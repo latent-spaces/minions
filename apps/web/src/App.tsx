@@ -15,7 +15,6 @@ import { NeedsYou, useOpenRequests } from './ui/NeedsYou';
 import { ProjectControlFeedback, useProjectControls } from './ui/ProjectControls';
 import { ProjectStatusPanel } from './ui/ProjectStatusPanel';
 import { JobLimitsBar } from './ui/JobLimitsBar';
-import { ProjectSetup } from './ProjectSetup';
 import { Button } from './ui/Button';
 import { CloseButton } from './ui/CloseButton';
 import { OwnerConnectionApproval } from './ui/OwnerConnectionApproval';
@@ -165,7 +164,7 @@ export function App() {
 const SHORTCUTS = 5;
 const SECTION_NAMES: Record<Section, string> = { overview: 'Activity', outputs: 'Outputs', usage: 'Usage', tasks: 'Tasks', teams: 'Teams', agents: 'Agents', conversations: 'Conversations', 'control-center': 'Control center', 'needs-you': 'Needs you' };
 // Needs you and My computers are not in the menu: the notifications bell and the account menu reach them.
-const GLOBAL_NAMES: Record<GlobalView, string> = { projects: 'My projects', computers: 'My computers', create: 'Create project', 'needs-you': 'Needs you' };
+const GLOBAL_NAMES: Record<GlobalView, string> = { projects: 'My projects', computers: 'My computers', 'needs-you': 'Needs you' };
 /** Project navigation and own-agent shortcuts; web creation is hidden (OPE-230). */
 type ProjectFacts = { projectId: string; connect: (() => void) | null; openAgent?: (id: string) => void; myAgents?: { provider?: string; id: string; name: string; status: string; detail: string; waiting?: boolean; queued?: boolean }[]; cheatSheet?: { title: string; started: boolean } | null };
 const executionLabel = (p: ProjectEntry) => personalProjectStatus({ ...p, kind: 'project', proposalStatus: null }).label;
@@ -226,8 +225,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   // The open project stays mounted (hidden) on global pages; only opening another project replaces it.
   const current = useRef({ route, selected, navigationOpen });
   current.current = { route, selected, navigationOpen };
-  const leaves = (next: Route) => next.view === 'project' && current.current.selected !== null && next.projectId !== current.current.selected.id
-    || current.current.route.view === 'create' && formatRoute(next) !== formatRoute(current.current.route);
+  const leaves = (next: Route) => next.view === 'project' && current.current.selected !== null && next.projectId !== current.current.selected.id;
   const closeAfterDestination = () => {
     const active = document.activeElement;
     focusNext.current = current.current.navigationOpen ? 'content' : active && active !== document.body ? 'lost' : null;
@@ -368,10 +366,10 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   // Projects first in the menu: the global menu, or inside a project that project's sections and Switch project.
   const openProject = menuMode(route, projectShown ? selected!.id : null) === 'project' ? selected! : null;
   const openFacts = openProject && facts?.projectId === openProject.id ? facts : null;
-  const projectsLink: WorkspaceNavItem = { id:'projects', label:GLOBAL_NAMES.projects, icon:<Folder size={18} />, href:formatRoute({ view:'projects' }), current:route.view === 'projects' || route.view === 'create', onNavigate:() => go({ view:'projects' }) };
+  const projectsLink: WorkspaceNavItem = { id:'projects', label:GLOBAL_NAMES.projects, icon:<Folder size={18} />, href:formatRoute({ view:'projects' }), current:route.view === 'projects', onNavigate:() => go({ view:'projects' }) };
   const accountMenu = <AccountMenu personId={profileIdentity?.id} photo={profileIdentity?.photo} name={displayName} go={go} onOverview={openOverview} signOut={signOutFromMenu} />;
   const shortcut = (p: ProjectEntry) => ({ id:p.id, name:p.name, href:formatRoute(projectRoute(p.id)), onNavigate:() => go(projectRoute(p.id)), status:executionLabel(p), private:p.private });
-  // New project opens project creation directly (owner, 19 October 2026); agents are added through local MCP.
+  // Projects and agents are created from Claude through local MCP (owner, 10 November 2026).
   const projectMenu: ProjectMenu | null = openProject && { id:openProject.id, name:openProject.name, status:executionLabel(openProject), private:openProject.private,
     back: { id:'all-projects', label:'All projects', href:formatRoute({ view:'projects' }), onNavigate:() => go({ view:'projects' }) },
     // Project sections live in header tabs; the menu keeps identity and own-agent shortcuts.
@@ -388,7 +386,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
     <WorkspaceNavigation collapsed={rail} onCollapsedChange={compact ? undefined : setMenuCollapsed}
       brand={compact ? undefined : <span className="k42-brand-lockup"><NavLink to={{ view:'projects' }} go={go} className="wordmark"><BrandLogo /></NavLink><span className="k42-tagline">Build together at scale</span></span>}
       footer={compact ? undefined : <SidebarFooter collapsed={rail} onFeedback={openFeedback} />}
-      globals={[]} projectsLink={projectsLink} onCreate={() => go({ view:'create' })} project={projectMenu}
+      globals={[]} projectsLink={projectsLink} project={projectMenu}
       projects={shortcuts.map(shortcut)}
       projectStatus={listError || !directory ? <>
         {listError && <Button onClick={refreshAll}>Try again</Button>}
@@ -420,9 +418,8 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
             {accountMenu}
           </>} />
         <main id="content" ref={content} tabIndex={-1} className="workspace-content">
-          <div hidden={!['projects', 'create'].includes(route.view)}><MyProjects user={user} view={route.view !== 'project' ? route.projectList ?? 'current' : 'current'} onArchiveChange={archiveChanged} active={route.view === 'projects' && visible} refreshKey={directoryTick} go={go} retry={refreshAll} /></div>
+          <div hidden={route.view !== 'projects'}><MyProjects user={user} view={route.view !== 'project' ? route.projectList ?? 'current' : 'current'} onArchiveChange={archiveChanged} active={route.view === 'projects' && visible} refreshKey={directoryTick} go={go} retry={refreshAll} /></div>
           {route.view === 'computers' && <MyComputers key={`${user.uid}:${account.person.id}`} user={user} active={visible} refreshKey={directoryTick} go={go} retry={refreshAll} />}
-          {route.view === 'create' && <ProjectSetup key={user.uid} user={user} go={go} refresh={refreshAll} />}
           {route.view === 'needs-you' && <NeedsYou key={user.uid} user={user} go={go} />}
           {selected && <div hidden={!projectShown}><ProjectScope.Provider value={selected.id}><ProjectContent key={selected.id} suppliedProfileId={account.person.id} user={user} projectId={selected.id} section={section} chooseSection={chooseSection} agent={agent} search={agentSearch} agentFilter={route.view === 'project' ? route.agentFilter ?? 'mine' : 'mine'} onAgent={reportAgent} go={go} thread={route.view === 'project' ? route.thread : null} messageId={route.view === 'project' ? route.message : undefined} controlSection={route.view === 'project' ? route.controlSection : undefined} tick={tick} refresh={refresh} refreshAll={refreshAll} active={projectShown && visible} onDenied={denied} onFacts={setFacts} /></ProjectScope.Provider></div>}
           {route.view === 'project' && !projectShown && !failure && <p className="muted" role="status">Loading project…</p>}

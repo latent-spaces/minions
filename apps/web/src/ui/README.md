@@ -34,10 +34,9 @@ for owners or Leave project (which opens Settings) for private joined projects, 
 project link and Archive for me. A proposal's menu holds Open proposal and Archive for
 me. Archived cards drop Archive for me and show a Restore button instead.
 
-In the Current view, Projects I own starts with the dashed New project `AddTile`. With
-the Joined filter, an empty Projects I joined group shows the "Find your kind of
-trouble." tile only in the Current view, when this page is the whole list (the first
-page, with no next page) and no search is active. The component never fetches or saves
+In the Current view, Projects I own starts with the dashed `ClaudePromptTile`: the example
+prompt for starting a project from Claude, copied on click (the website has no create
+screen). The component never fetches or saves
 project data; archiving and starring arrive as callbacks.
 
 ## Project cards
@@ -67,8 +66,8 @@ The title button stretches over the whole card, so the card opens from anywhere;
 action button sits above it and keeps its own click. On hover or keyboard focus the swatch folds from 92px to
 40px and the white grows while the card keeps its height; reduced motion turns the fold
 off. Grids hold 4 cards a row, 5 when the section is at least 1080px wide; below a 900px
-viewport they hold 2 from 560px and 1 below. `AddTile` is the dashed, card-sized button
-for adding to a grid.
+viewport they hold 2 from 560px and 1 below. `ClaudePromptTile` is the dashed, card-sized button
+that copies the example prompt.
 
 `catalogProjectPresentation` maps catalog projects through the same lifecycle
 presentation as personal cards, as seen by a guest, so card labels follow the existing

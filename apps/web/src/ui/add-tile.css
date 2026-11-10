@@ -3,5 +3,6 @@
 .k42-add-tile:hover:not(:disabled) { background:var(--canvas); border-color:var(--hairline-strong); }
 .k42-add-tile-icon { display:grid; place-items:center; width:48px; height:48px; margin-bottom:6px; border:1px solid var(--hairline-shell); border-radius:50%; background:var(--canvas); }
 .k42-add-tile-title { font-size:15px; font-weight:600; line-height:1.3; }
-.k42-add-tile-text { font-size:13px; font-weight:450; line-height:1.45; color:var(--muted); }
+.k42-add-tile-text { display:inline-flex; align-items:center; gap:6px; font-size:13px; font-weight:450; line-height:1.45; color:var(--muted); }
+.k42-add-tile-prompt { max-width:28ch; margin:4px 0 8px; font-size:14px; line-height:1.45; font-style:italic; color:var(--ink); }
 @media (prefers-reduced-motion: reduce) { .k42-add-tile { transition:none; } }

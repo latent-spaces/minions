@@ -34,8 +34,6 @@ export interface WorkspaceNavigationProps {
   projectsLink?: WorkspaceNavItem;
   projects: WorkspaceShortcut[];
   projectStatus?: ReactNode;
-  /** New project: opens project creation directly (owner, 19 October 2026). */
-  onCreate?: () => void;
   /** Inside a project: replaces the global links and the project shortcuts. */
   project?: ProjectMenu | null;
   /** Links at the foot of the column, above `footer`. */
@@ -56,12 +54,7 @@ function ProjectStamp({ project, className = '' }: { project: { id: string; name
 
 // My agents shows a handful first, like a recents list, and the rest on Show more.
 const AGENTS_SHOWN = 5;
-/** New project: the row has its plus on the left and opens project creation directly. */
-function NewProjectButton({ collapsed, label, onCreate }: { collapsed: boolean; label: ReactNode; onCreate: () => void }) {
-  return <button type="button" className="k42-nav-link k42-nav-create" aria-label={collapsed ? 'New project' : undefined} title={collapsed ? 'New project' : undefined} onClick={onCreate}>
-    {collapsed ? <Plus size={18} aria-hidden="true" /> : <span className="k42-nav-create-plus is-start" aria-hidden="true"><Plus size={16} /></span>}{label}</button>;
-}
-export function WorkspaceNavigation({ globals, projectsLink, projects, projectStatus, onCreate, project, secondary = [], brand, footer, collapsed = false, onCollapsedChange }: WorkspaceNavigationProps) {
+export function WorkspaceNavigation({ globals, projectsLink, projects, projectStatus, project, secondary = [], brand, footer, collapsed = false, onCollapsedChange }: WorkspaceNavigationProps) {
   const text = (label: ReactNode) => <span className={collapsed ? 'k42-nav-text' : undefined}>{label}</span>;
   // Collapsed links retain their accessible names and tooltips.
   const link = (item: WorkspaceNavItem, children: ReactNode, className = 'k42-nav-link', { currentKind = 'page' }: { currentKind?: 'page' | 'location' } = {}) => {
@@ -81,11 +74,10 @@ export function WorkspaceNavigation({ globals, projectsLink, projects, projectSt
   return <div className={`k42-navigation${collapsed ? ' is-collapsed' : ''}${project ? ' is-project' : ''}`}>
     {(brand || onCollapsedChange) && <div className="k42-nav-brand">{!collapsed && brand}{onCollapsedChange && <Button type="button" className="k42-nav-collapse" aria-expanded={!collapsed} aria-label={toggleLabel} title={toggleLabel} onClick={() => onCollapsedChange(!collapsed)}>{collapsed ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}</Button>}</div>}
     {/* The top of the menu is the same everywhere; only the part below it changes inside a project (owner, 19 October 2026). */}
-    {/* My projects and New project sit under Explore (owner, 19 October 2026); New project opens the Create menu. */}
+    {/* My projects sits under Explore (owner, 19 October 2026); projects are created from Claude (owner, 10 November 2026). */}
     {(globals.length > 0 || projectsLink) && <nav aria-label="Workspace"><ul>
       {globals.map(item => <li key={item.id}>{link(item, <>{item.icon}{text(item.label)}</>)}</li>)}
       {projectsLink && <li>{link({ ...projectsLink, label: 'My projects' }, <><Folder size={18} aria-hidden="true" />{text('My projects')}</>)}</li>}
-      {onCreate && <li><NewProjectButton collapsed={collapsed} label={text('New project')} onCreate={onCreate} /></li>}
     </ul></nav>}
     {project ? <div className="k42-shortcuts k42-project-menu">
       <nav aria-label="Project">
