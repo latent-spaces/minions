@@ -67,7 +67,21 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
       clearTimeout(ctrl.retryTimer); ctrl.retryTimer = setTimeout(() => { void cloudTick(ctrl); schedule(ctrl); }, retryMs); ctrl.retryTimer.unref?.();
     }
   }
-  const projectPauseSettled = ctrl => ctrl.projectPaused && !ctrl.turnBusy && ctrl.nativeCleanupConfirmed !== false && !ctrl.halted;
+  const projectPauseSettled = ctrl => ctrl.projectPaused && !ctrl.turnBusy && ctrl.nativeCleanupConfirmed !== false && !ctrl.halted && !pauseUpdateDue(ctrl);
+  // After a project Pause, an agent whose latest turn was work runs one short turn that only posts an update
+  // (owner, 10 November 2026). Not for an agent paused on its own, stopped, detached or at its token cap.
+  const pauseUpdateDue = ctrl => {
+    const last = ctrl.mission?.outcomes?.at(-1)?.outcome;
+    return ctrl.projectPaused === true && ctrl.projectControl?.closed !== true && !ctrl.cancelled && !ctrl.detached && !ctrl.halted
+      && !locallyPaused(ctrl) && !ctrl.turnBusy && !!ctrl.news?.project && ctrl.nativeCleanupConfirmed !== false
+      && (!ctrl.cloud || ctrl.tokenLimit !== undefined && !capReached(ctrl))
+      && !!last && last.pauseUpdate !== true && last.delivery === 'acknowledged';
+  };
+  async function runPauseUpdate(ctrl) {
+    ctrl.turnBusy = true;
+    try { ctrl.adapter ??= await adapterFactory(ctrl.mission, { signal: ctrl.lifetime.signal }); await runTurn(ctrl, 'pause_update'); }
+    finally { ctrl.turnBusy = false; if (ctrl.cloud && !ctrl.cancelled && !ctrl.settled) refreshCloud(ctrl); }
+  }
   const executionHeld = ctrl => ctrl.detached || locallyPaused(ctrl) || ctrl.projectPaused;
   const cloudSession = (ctrl, mission) => ({ missionId: mission.missionId, generation: mission.generation,
     startedAt: mission.cloudRun.startedAt,
@@ -355,7 +369,7 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
         if (ctrl.cleanupPending) { await settle(ctrl, ctrl.cleanupPending.reason); break; }
         if (ctrl.cancelled) { await settle(ctrl, ctrl.stopReason); break; }
         // A worker restored paused still reconnects, so the cloud sees it paused rather than gone.
-        if (executionHeld(ctrl) && !(ctrl.orphaned && ctrl.paused && !ctrl.detached)) break;
+        if (executionHeld(ctrl) && !(ctrl.orphaned && ctrl.paused && !ctrl.detached)) { if (pauseUpdateDue(ctrl)) await runPauseUpdate(ctrl); break; }
         if (cloudFactory && !ctrl.cloudInitialized) {
           if (now() < (ctrl.cloudRetryAt ?? 0)) break;
           try { await initializeCloud(ctrl); }
@@ -424,26 +438,29 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
     }).finally(() => { ctrl.pumping = false; if (ctrl.requested && !ctrl.settled && !ctrl.halted) schedule(ctrl); });
   }
   async function runTurn(ctrl, trigger) {
-    if (executionHeld(ctrl)) return;
+    const pauseUpdate = trigger === 'pause_update';
+    // The pause update runs under the project Pause it reports on; any other hold still stops it.
+    const held = () => pauseUpdate ? ctrl.cancelled || ctrl.detached || locallyPaused(ctrl) || !ctrl.projectPaused : executionHeld(ctrl);
+    if (held()) return;
     const turnId = randomUUID(), ref = { missionId: ctrl.mission.missionId, generation: ctrl.mission.generation, turnId };
     ctrl.adapter ??= await adapterFactory(ctrl.mission, { signal: ctrl.lifetime.signal });
     if (ctrl.cancelled) { await settle(ctrl, ctrl.stopReason); return; }
-    if (executionHeld(ctrl)) return;
-    if (ctrl.cloud) {
+    if (held()) return;
+    if (ctrl.cloud && !pauseUpdate) {
       try { await cloudRequest(ctrl, () => ctrl.cloud.phase(ctrl.mission, 'turn', { signal: ctrl.lifetime.signal })); }
       catch (error) { if (!ctrl.cancelled) cloudFailure(ctrl, error); return; }
       if (ctrl.cancelled) { await settle(ctrl, ctrl.stopReason); return; }
       if (!workAllowed(ctrl)) return;
     }
     const startedAt = now();
-    const prepared = await store.prepareTurn(ref);
+    const prepared = await store.prepareTurn({ ...ref, steering: !pauseUpdate });
     if (ctrl.cancelled) { await settle(ctrl, ctrl.stopReason); return; }
-    if (executionHeld(ctrl) || ctrl.cloud && !workAllowed(ctrl)) { ctrl.mission = await store.deferPreparedTurn(ref); return; }
+    if (pauseUpdate ? held() : executionHeld(ctrl) || ctrl.cloud && !workAllowed(ctrl)) { ctrl.mission = await store.deferPreparedTurn(ref); return; }
     ctrl.mission = prepared.mission;
-    ctrl.scheduler.beginTurn(ctrl.news);
+    if (!pauseUpdate) ctrl.scheduler.beginTurn(ctrl.news);
     const seenProject = newsFingerprint(ctrl.news), seenRevision = ctrl.news.work?.revision;
     ctrl.abort = new AbortController();
-    const notices = ctrl.coordination?.notices ?? [];
+    const notices = pauseUpdate ? [] : ctrl.coordination?.notices ?? [];
     const inbox = { pending: ctrl.news.pending, acknowledged: ctrl.news.acknowledged };
     const {prompt,promptSources,steeringMessages}=controllerPrompt({scope:ctrl.mission.scope,
       steering:prepared.steering,notices,trigger,inbox});
@@ -451,7 +468,7 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
     let denials = 0; const denialTools = new Set();
     ctrl.nativeInvoked = true; ctrl.nativeCleanupConfirmed = false;
     try {
-      result = await ctrl.adapter.run({ turnId, prompt, promptSources, steeringMessages, signal: ctrl.abort.signal,
+      result = await ctrl.adapter.run({ turnId, prompt, promptSources, steeringMessages, signal: ctrl.abort.signal, ...(pauseUpdate ? { pauseUpdate } : {}),
         onGuardStarted: async pid => { guardPid = pid; await store.recordGuard({ ...ref, guardPid: pid }); },
         onGuardClosed: ({ guardPid: closedPid, cleanupConfirmed }) => {
           if (cleanupConfirmed !== true || closedPid !== guardPid) throw new Error('Guard cleanup identity changed.');
@@ -471,18 +488,19 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
     ctrl.nativeCleanupConfirmed = cleanupConfirmed;
     let outcome = { delivery: result.delivery ?? 'not_submitted', failed: result.failed === true, interrupted: result.interrupted === true, retryable: result.retryable === true, cleanupConfirmed };
     const fullText = typeof result.text === 'string' ? result.text : '';
-    ctrl.scheduler.recordOutcome({ kind: outcome.interrupted ? 'interrupted' : outcome.failed ? 'failed' : 'ok', news: ctrl.news,
+    if (!pauseUpdate) ctrl.scheduler.recordOutcome({ kind: outcome.interrupted ? 'interrupted' : outcome.failed ? 'failed' : 'ok', news: ctrl.news,
       retryable: outcome.retryable, continuation: /(?:^|\n)WORK_NEXT: runnable\s*$/.test(fullText), now: now(),
       providerLimited: outcome.failed && !outcome.interrupted && result.failureCode === 'provider_limited', resetAt: result.limitResetAt ?? null });
     // What this turn saw and whether the worker has more to do, so a worker restored after a connector
     // restart continues as it would have, and otherwise runs only for news since then.
-    const handled = !outcome.failed && !outcome.interrupted && Number.isSafeInteger(seenRevision) && seenRevision >= 0;
+    const handled = !pauseUpdate && !outcome.failed && !outcome.interrupted && Number.isSafeInteger(seenRevision) && seenRevision >= 0;
     const { continuation: more, limited } = ctrl.scheduler.status();
     // A provider limit's wait is kept with the turn, so a worker restored after a connector restart still waits for it.
     outcome.seen = { project: seenProject, ...(handled ? { revision: seenRevision } : {}), ...(more ? { more: true } : {}),
       ...(limited ? { limit: { retryAt: limited.retryAt, resetAt: limited.resetAt, streak: limited.streak } } : {}) };
     for (const name of ['failureCode', 'usage', 'diagnostics', 'evidence']) if (result[name] !== undefined) outcome[name] = result[name];
     if (focus !== undefined) outcome.focus = focus;
+    if (pauseUpdate) outcome.pauseUpdate = true;
     if (denials) outcome.permissionDenials = { count: denials, tools: [...denialTools] };
     if (observedModel && outcome.usage) outcome.usage = { ...outcome.usage, model: observedModel };
     outcome=fitContextTelemetry(outcome,RUNTIME_LIMITS.metadataBytes);

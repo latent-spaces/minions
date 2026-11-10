@@ -26,7 +26,7 @@ async function setup(t, options = {}) {
   const cloudFor = mission => ({
     async start(m) { return { runId: m.missionId, cloudGeneration: 7, pollSeconds: 20 }; },
     async observe(m) { observeTimes.push({ agent: m.target.agentId, t: Date.now() }); return { project: view(state(keyOf(m))), pending: 0, acknowledged: 0 }; },
-    async workerSession(m, session) { sessions.push(m.target.agentId); syncTimes.push(Date.now()); payloads.push({ agent: m.target.agentId, site: m.target.site, ...session }); options.onSession?.(m.target.agentId); return { missionId: m.missionId, authorizedDeadlineAt: m.deadlineAt, messages: [] }; },
+    async workerSession(m, session) { sessions.push(m.target.agentId); syncTimes.push(Date.now()); payloads.push({ agent: m.target.agentId, site: m.target.site, ...session }); options.onSession?.(m.target.agentId); return { missionId: m.missionId, authorizedDeadlineAt: m.deadlineAt, messages: [], ...(options.tokenLimit ? { tokenLimit: options.tokenLimit } : {}) }; },
     async phase() {}, async reportStatus() {},
     async projectControl(m, { afterRevision, signal }) {
       const id = keyOf(m), p = state(id);
@@ -48,8 +48,9 @@ async function setup(t, options = {}) {
     },
   });
   let busy = 0;
+  const runs = [];
   const adapter = { async observe() { assert.fail('cloud-bound'); }, async release() {},
-    async run(args) { await args.onPromptSubmitted(); await args.onTurnStarted();
+    async run(args) { runs.push({ pauseUpdate: args.pauseUpdate === true }); await args.onPromptSubmitted(); await args.onTurnStarted();
       // A project change starts a turn (work-controller 'project_change'); real turns take model time.
       if (options.turnMs) {
         // Kill aborts the turn, as a native worker would be interrupted. A Pause lets it finish.
@@ -60,7 +61,7 @@ async function setup(t, options = {}) {
         }).finally(() => { busy--; });
         if (aborted) return { text: '', delivery: 'acknowledged', failed: false, interrupted: true, retryable: true, cleanupConfirmed: true };
       }
-      return { text: 'WORK_NEXT: waiting', delivery: 'acknowledged', failed: false, interrupted: false, retryable: false, cleanupConfirmed: true }; } };
+      return { text: 'WORK_NEXT: waiting', delivery: 'acknowledged', failed: false, interrupted: false, retryable: false, cleanupConfirmed: true, ...(options.usage ? { usage: options.usage } : {}) }; } };
   const controllers = createRuntimeControllers({ store, adapterFactory: async () => adapter, cloudFactory: cloudFor, observeIntervalMs: options.observeIntervalMs ?? 10000, ...(options.random ? { random: options.random } : {}),
     onChangeSpreadMs: options.onChangeSpreadMs ?? 0 });
   t.after(async () => { await controllers.close(); await store.close(); await rm(directory, { recursive: true, force: true }); });
@@ -73,7 +74,9 @@ async function setup(t, options = {}) {
   const timeout = id => { for (const listener of [...state(id).listeners]) listener(); };
   // Later turns finish at once, and the running ones are waited out: a Pause never cuts a turn short.
   const idle = async () => { options.turnMs = 0; while (busy) await sleep(10); };
-  return { start, stop, change, timeout, idle, busy: () => busy, held, holders, sessions, refusals, afters, payloads, lagging, state, calls, syncTimes, observeTimes };
+  const pause = mission => controllers.accept({ version: 2, operationId: randomUUID(), kind: 'pause', target: mission.target,
+    missionId: mission.missionId, generation: mission.generation, payload: {} });
+  return { runs, pause, start, stop, change, timeout, idle, busy: () => busy, held, holders, sessions, refusals, afters, payloads, lagging, state, calls, syncTimes, observeTimes };
 }
 
 test('missions of one project on one computer share a single held request; every mission gets each change', async t => {
@@ -441,4 +444,53 @@ test('a member whose first report predates a change confirms it when it joins th
   await until(() => f.payloads, p => ['a', 'b'].every(agent => p.some(x => x.agent === agent && x.projectPauseRevision === 1)), 'a and b confirmed');
   // observeIntervalMs is 10 s, so only a sync on joining can confirm within this wait.
   await until(() => f.payloads, p => p.some(x => x.agent === 'c' && x.projectPauseRevision === 1), 'c confirmed Pause after joining');
+});
+
+// Owner decision, 10 November 2026 ("Short last turn"): after a project Pause, an agent whose latest turn was work
+// gets one short turn that only posts an update. The Pause is confirmed when that turn ends.
+const pauseUpdates = f => f.runs.filter(r => r.pauseUpdate).length;
+const confirmed = (f, from) => f.payloads.slice(from).some(p => p.projectPauseRevision !== undefined);
+
+test('a project Pause gives an agent that worked one pause update turn, confirmed after it and not repeated', async t => {
+  const f = await setup(t, { turnMs: 300 });
+  await f.start('park', 'a');
+  await until(() => f.runs.length, n => n === 1, 'the first work turn');
+  const from = f.payloads.length;
+  f.change('park', true);
+  await until(() => pauseUpdates(f), n => n === 1, 'one pause update turn');
+  await until(() => confirmed(f, from), Boolean, 'Pause confirmed after the update turn');
+  await f.idle();
+  f.timeout('park'); await sleep(200);
+  assert.equal(pauseUpdates(f), 1, 'no second update turn while still paused');
+  // After Resume and more work, the next Pause gives one more.
+  f.change('park', false);
+  await until(() => f.runs.filter(r => !r.pauseUpdate).length, n => n >= 2, 'work resumes');
+  await sleep(50);
+  f.change('park', true);
+  await until(() => pauseUpdates(f), n => n === 2, 'one update turn for the second Pause');
+});
+
+test('an agent paused on its own gets no pause update turn when the project pauses', async t => {
+  const f = await setup(t);
+  const mission = await f.start('park', 'a');
+  await until(() => f.runs.length, n => n === 1, 'the first work turn');
+  await f.pause(mission); await sleep(50);
+  const from = f.payloads.length;
+  f.change('park', true);
+  await sleep(300);
+  assert.equal(pauseUpdates(f), 0);
+  assert.equal(f.runs.length, 1);
+  assert.ok(from <= f.payloads.length);
+});
+
+test('an agent at its token cap gets no pause update turn', async t => {
+  const f = await setup(t, { tokenLimit: { tokens: 100, othersUsed: 0 }, usage: { tokens: { input: 150, output: 10 } } });
+  await f.start('park', 'a');
+  await until(() => f.runs.length, n => n === 1, 'the turn that crosses the cap');
+  await sleep(50);
+  const from = f.payloads.length;
+  f.change('park', true);
+  await until(() => confirmed(f, from), Boolean, 'Pause confirmed at once');
+  await sleep(100);
+  assert.equal(pauseUpdates(f), 0);
 });

@@ -6,7 +6,7 @@ import { assertMembership } from './access.js';
 import { projects, runtimeOf } from './records.js';
 import { assertPublicProject } from './public-access.js';
 import { assertRunInTransaction } from '../v2/runs.js';
-import { assertCanAct } from '../store/project-policy.js';
+import { assertCanAct, assertCanDiscuss } from '../store/project-policy.js';
 
 export type ProgressActor = { kind: 'person'; person: WithId<Profile> } | { kind: 'agent'; agent: WithId<Agent>; runId: string };
 const label = (name: string) => [...name].slice(0, 120).join('');
@@ -29,14 +29,15 @@ export async function authorizeProgressPublisher(tx: Transaction, actor: Progres
   return { profile: { id: profileId, name: profile.name }, agent: agentRef };
 }
 
-export async function assertNewProgressAction(tx: Transaction, actor: ProgressActor) {
+// whilePaused: an agent may still post its update after a project Pause (owner, 10 November 2026, “Short last turn”).
+export async function assertNewProgressAction(tx: Transaction, actor: ProgressActor, { whilePaused = false } = {}) {
   const record = (await tx.get(projects.doc(currentProjectId()))).data();
   if (record?.execution.completedAt != null) throw new Refusal('forbidden', 'This project is closed. The owner can reopen it.');
   if (actor.kind !== 'agent') return;
   const runtime = runtimeOf((await tx.get(projects.doc(currentProjectId()))).data());
   if (!runtime) throw new Refusal('not_found', 'This project isn’t set up yet, so agents can’t publish updates.');
   if (runtime.completedAt != null) throw new Refusal('forbidden', 'This project is closed. The owner can reopen it.');
-  assertCanAct(runtime);
+  if (whilePaused) assertCanDiscuss(runtime); else assertCanAct(runtime);
 }
 
 export async function authorizeProgressRead(tx: Transaction, actor: ProgressActor | null): Promise<{ audience: 'public' | 'member'; publicConversionAt: number | null }> {

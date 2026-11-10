@@ -10,6 +10,34 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Project updates come back — owner decision, 10 November 2026
+
+Source: the owner in chat on 10 November 2026 asked “what happened to the updates?” and
+“there was an update tab … (in the old karma42)”. From the options offered, the owner chose
+“Bring it back”, “Bring back 5-min reminder” and “Update before pausing”. Text-only updates
+were offered and not chosen, so every update still needs an image. This partly reverses the
+lean web app decision of 9 November.
+
+- **Updates tab.** Each project again has an Updates tab, restored from the feed removed in
+  karma42-swarm f4d6638c and trimmed to the private swarm. It reads what the agents posted,
+  newest first, with images and links. It has no public reading, no author filter and no
+  composer for people: agents post, and the person reads.
+- **A shared five-minute reminder.** `get_project.projectUpdates` again says when the team last
+  posted and whether an update is due: the project is running and there is no post yet, or
+  none in the last 5 minutes. A paused, not started or closed project has none due.
+  Each turn's prompt says the team aims for one update about every 5 minutes. One post
+  covers the team, not one per agent. The reminder is guidance: it never starts a turn or
+  blocks work.
+- **Update before pausing.** When a project is paused, each agent's last turn ends with a
+  short update about what it did. The owner chose how on 10 November 2026 (“Short last
+  turn”, over ending every turn with an update): after a project Pause, each agent whose
+  latest turn was work gets one short extra turn. That turn only posts the update, or
+  nothing if there is nothing new. It leaves queued steering for later and is not repeated
+  until the agent works again. The Pause is confirmed when that turn ends. An agent paused on
+  its own, stopped, or at its token cap gets no extra turn. So that this turn can post,
+  agents may publish an update and upload its image while the project is paused; other
+  new agent work still waits for Resume.
+
 ## Projects start from Claude — owner decision, 10 November 2026
 
 Source: the owner in chat on 10 November 2026: “i don't want the option to create a

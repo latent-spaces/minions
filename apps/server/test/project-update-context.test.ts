@@ -12,9 +12,10 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import { v2Routes } from '../src/v2/routes.js';
-import { resetEmulator, scoped, seed } from './helpers.js';
+import { resetEmulator, scoped, seed, seedRuntime } from './helpers.js';
 
 import { saveProjectUpdateSettings } from '../src/projects/progress-settings.js';
+import { readProjectUpdateContext } from '../src/projects/progress.js';
 
 const T = 2_000_000_000_000;
 let at = T, server: Server, base: string;
@@ -49,28 +50,25 @@ async function connect(token: string) {
 const fixture = () => seed({ profiles: [{ name: 'Dana', email: 'dana@example.test', role: 'owner' }, { name: 'Noam', email: 'noam@example.test' }],
   agents: [{ person: 0, name: 'amber' }, { person: 1, name: 'basil' }] });
 
-test('agents receive task-aware checkpoint guidance and writing style without a timed schedule', async () => {
+test('agents receive task-aware guidance, writing style and one shared five-minute reminder', async () => {
   const f = await fixture();
+  await seedRuntime(TEST_PROJECT, { started: true, paused: false, completedAt: undefined });
   const amber = await connect(f.agents[0].token), basil = await connect(f.agents[1].token);
   const project = (await amber('get_project')).value;
   expect(project.tasks.enabled).toBe(true);
-  // The shared workflow lives in the guide's updates-and-help section, not in every get_project.
-  expect(project.projectUpdates).toMatchObject({ writingStyle: 'brief', guide: 'get_mlswarm_guide updates-and-help' });
+  expect(project.projectUpdates).toMatchObject({ writingStyle: 'brief', guide: 'get_mlswarm_guide updates-and-help',
+    everyMinutes: 5, lastPublishedAt: null, due: true });
   expect(project.projectUpdates.writingGuidance).toBeTruthy();
-  expect(project.projectUpdates).not.toHaveProperty('instructions');
   expect(project.projectUpdates).not.toHaveProperty('responsibility');
-  expect(project.tasks).not.toHaveProperty('policy');
-  expect(project.tasks).not.toHaveProperty('assignment');
-  expect(project).not.toHaveProperty('humanRequests.check');
   const guide = readFileSync(new URL('../../../packages/agent-cli/skills/mlswarm/references/updates-and-help.md', import.meta.url), 'utf8').replace(/\s+/g, ' ');
-  for (const phrase of ['When get_project.tasks.enabled is true', 'Tasks is off', 'a feed post does not update or complete a task']) expect(guide).toContain(phrase);
-  for (const key of ['intervalMinutes', 'targetIntervalSeconds', 'suggestedNow', 'suggestedNextUpdateAt', 'lastPublishedAt', 'enabled']) {
-    expect(project.projectUpdates).not.toHaveProperty(key);
-  }
+  for (const phrase of ['When get_project.tasks.enabled is true', 'Tasks is off', 'a feed post does not update or complete a task', 'about every five minutes']) expect(guide).toContain(phrase);
   const input = { screenshot: await seedProgressImage('agent:' + f.agents[0].agentId), clientRequestId: 'first', body: 'The park paths now load. Local checks passed; there is no deployed preview. Camera controls are next.', links: [] };
   expect((await amber('publish_project_update', input)).error).toBe(false);
-  at += 300_000;
-  expect((await basil('get_project')).value.projectUpdates).toEqual(project.projectUpdates);
+  // One update covers the team: a teammate's post resets the reminder for everyone.
+  at += 299_999;
+  expect((await basil('get_project')).value.projectUpdates).toMatchObject({ lastPublishedAt: T, due: false });
+  at += 1;
+  expect((await basil('get_project')).value.projectUpdates).toMatchObject({ lastPublishedAt: T, due: true });
   const feed = await basil('list_project_updates', { source: 'authored_updates', detail: true });
   expect(feed.value.items[0].content.body).toBe(input.body);
   expect(feed.value.items[0].content.author.agent.id).toBe(f.agents[0].agentId);
@@ -78,9 +76,22 @@ test('agents receive task-aware checkpoint guidance and writing style without a 
   await db.doc(projects.doc(TEST_PROJECT).path).update({ nativeTasks: { enabled: false, revision: 1 } });
   const withoutTasks = (await amber('get_project')).value;
   expect(withoutTasks.tasks.enabled).toBe(false);
-  expect(withoutTasks.projectUpdates).toEqual(project.projectUpdates);
+  expect(withoutTasks.projectUpdates.due).toBe(true);
 });
 
+test('paused, not started and closed projects have no update due; other projects do not count', async () => {
+  const f = await fixture(), amber = await connect(f.agents[0].token);
+  for (const controls of [{ started: true, paused: true }, { started: false, paused: false }, { started: true, paused: true, completedAt: T }]) {
+    await seedRuntime(TEST_PROJECT, controls);
+    expect((await amber('get_project')).value.projectUpdates).toMatchObject({ lastPublishedAt: null, due: false });
+  }
+  await seedRuntime(TEST_PROJECT, { started: true, paused: false, completedAt: undefined });
+  expect((await amber('get_project')).value.projectUpdates.due).toBe(true);
+  const other = 'b'.repeat(64);
+  await db.collection(`projects/${other}/updates`).doc('u').set({ publishedAt: T });
+  expect(await readProjectUpdateContext(TEST_PROJECT, true, T)).toMatchObject({ lastPublishedAt: null, due: true });
+  expect(await readProjectUpdateContext(other, true, T)).toMatchObject({ lastPublishedAt: T, due: false });
+});
 
 test('saved project instructions reach agents at their next context read and clear', async () => {
   const f = await fixture(), amber = await connect(f.agents[0].token);

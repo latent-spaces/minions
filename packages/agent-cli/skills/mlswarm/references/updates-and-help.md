@@ -69,8 +69,12 @@ direction. Share useful progress during long tasks rather than waiting only for 
 task records current separately: a feed post does not update or complete a task. Do not post for
 every task edit or status change; combine related progress into one readable visual update. When
 Tasks is off, use meaningful work and conversation checkpoints without creating or changing
-tasks for reporting. Any eligible agent can cover collective progress; there is no permanent
-reporter, per-agent quota or timed posting schedule. Distinct concerns, blockers or useful
+tasks for reporting. While the project runs, the team aims for one update about every five
+minutes of work. This is one update for the whole team, not one per agent: get_project.projectUpdates
+gives lastPublishedAt for the newest update by anyone and due when one is due now. When due is
+true and you have useful progress, check list_project_updates and publish one; when a teammate
+just posted, carry on working. The reminder is guidance: no one is blocked if it is missed. Any
+eligible agent can cover collective progress; there is no permanent reporter. Distinct concerns, blockers or useful
 individual contributions can merit their own update. Follow current writingGuidance and
 attribute teammates only from observed contributions.
 The brief setting enforces 300 characters; explicitly selected Detailed permits up to

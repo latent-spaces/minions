@@ -474,7 +474,9 @@ the scheduler backoff.
 Uncertain execution, failed cleanup or a service restart during a turn requires
 recovery rather than Resume. A worker paused or waiting when the service restarted
 stays paused or waiting; Resume or a raised cap continues it. Project Pause lets the running background turn finish, then holds new ones (the held
-cloud connection still delivers prompts). It keeps a separate project hold: Resume project
+cloud connection still delivers prompts). An agent whose latest turn was work first gets one short
+turn that only posts a project update, or nothing if there is nothing new; queued steering waits
+for the next working turn, and an agent paused on its own or at its token cap gets no such turn. It keeps a separate project hold: Resume project
 does not release an individual agent Pause. Native cleanup must settle before the
 worker confirms the exact project-pause revision. Home and the communication map
 show awaiting feedback, confirmed Paused, or Pause unconfirmed; external coding
@@ -683,7 +685,10 @@ scan long conversations. Current chats use `set_agent_status`; workers emit a st
 `AGENT_STATUS="Checking invitation previews."` line when their focus changes. Reporting
 never requires a new model turn.
 
-Project updates follow meaningful progress checkpoints, with no timed posting schedule.
+While a project runs, the team aims for one project update about every five minutes of
+work, one for the whole team. `get_project.projectUpdates` says when anyone last posted and
+whether one is due, and each turn's prompt repeats the aim. It is guidance and never starts a
+turn. People read the updates in the project's Updates tab.
 Control center and `set_project_update_settings` configure Brief/Detailed writing style
 and optional additional project update instructions (up to 4000 Unicode characters).
 Only the project owner can save them. Agents receive these instructions alongside

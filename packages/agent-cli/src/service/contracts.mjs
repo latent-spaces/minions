@@ -70,7 +70,8 @@ const fields = (value, required, optional, label) => {
 const safeName = value => typeof value === 'string' && /^[A-Za-z0-9_:.-]{1,150}$/.test(value);
 const safeCounter = value => value === null || Number.isFinite(value) && value >= 0 && value <= 1e15;
 export function validateOutcome(value) {
-  fields(value,['delivery','failed','interrupted','retryable','cleanupConfirmed'],['failureCode','usage','diagnostics','textTruncated','focus','permissionDenials','evidence','seen'],'outcome');
+  fields(value,['delivery','failed','interrupted','retryable','cleanupConfirmed'],['failureCode','usage','diagnostics','textTruncated','focus','permissionDenials','evidence','seen','pauseUpdate'],'outcome');
+  if (value.pauseUpdate !== undefined && value.pauseUpdate !== true) fail('Invalid pauseUpdate');
   if (value.seen !== undefined) {
     fields(value.seen,['project'],['revision','more','limit'],'seen');
     const limit = value.seen.limit;

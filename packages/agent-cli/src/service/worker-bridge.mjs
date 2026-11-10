@@ -15,6 +15,6 @@ export function createWorkerBridgeFactory({ getService, workerOperations }) {
         revoke() { return revoked ??= (async () => { try { await endpoint.revoke(); } finally { await workerOperations.release(scope); } })(); },
       };
     },
-    prepareParticipation({ mission, signal }) { return workerOperations.prepareParticipation(caller(mission), { signal }); },
+    prepareParticipation({ mission, signal, pauseUpdate }) { return workerOperations.prepareParticipation(caller(mission), { signal, pauseUpdate }); },
   };
 }

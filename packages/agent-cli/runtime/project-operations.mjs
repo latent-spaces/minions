@@ -112,7 +112,8 @@ export class ProjectOperations {
     this.secret = randomBytes(32).toString('hex'); this.queue = Promise.resolve(); this.closed = false; this.fault = null;
   }
   beginContext() { this.context = { catalogRequests: 0, catalogBytes: 0, tools: new Map(), byTool: new Map() }; }
-  async beginParticipationTurn() {
+  // pauseUpdate: the one short update turn after a project Pause, which runs only while the project is paused.
+  async beginParticipationTurn({ pauseUpdate = false } = {}) {
     this.participationSnapshot = null;
     const reply = await this.forward({ jsonrpc: '2.0', id: 'participation-start', method: 'tools/call',
       params: { name: 'get_project', arguments: {} } });
@@ -120,8 +121,8 @@ export class ProjectOperations {
     const text = reply?.result?.content?.find(part => part.type === 'text')?.text;
     const value = JSON.parse(text ?? '');
     this.verifyProject(value);
-    if (value?.project?.started !== true || value.project.paused !== false || value.project.completedAt != null)
-      throw new Error('Project work is not currently running. No native model was started.');
+    if (value?.project?.started !== true || value.project.paused !== pauseUpdate || value.project.completedAt != null)
+      throw new Error(pauseUpdate ? 'The project is no longer paused. No pause update was started.' : 'Project work is not currently running. No native model was started.');
     const project = value.project;
     if (!['humans', 'other_agents', 'agent_review', 'anyone'].includes(project.mergeApproval)
       || !['name', 'mission', 'rules', 'repoUrl'].every(key => typeof project[key] === 'string'))
@@ -143,7 +144,7 @@ export class ProjectOperations {
     const taskCounts = value => value && count(value.assignedToYouOpen) !== null && count(value.unassignedBacklog) !== null
       ? { assignedToYouOpen: value.assignedToYouOpen, unassignedBacklog: value.unassignedBacklog } : null;
     this.participationSnapshot = { project: { name: project.name, mission: project.mission, rules: project.rules, repoUrl: project.repoUrl, mergeApproval: project.mergeApproval, cardVersion: project.cardVersion ?? null, nativeTasksEnabled: value.tasks?.enabled !== false, nativeTeamsEnabled: value.teams?.enabled === true }, persona: structuredClone(persona), capturedAt: context.observedAt, githubAttribution,
-      runId: this.control.runId, identity: structuredClone(context.identity), taskCounts: taskCounts(value.tasks?.counts) };
+      runId: this.control.runId, identity: structuredClone(context.identity), taskCounts: taskCounts(value.tasks?.counts), updateDue: value.projectUpdates?.due === true };
     return structuredClone(this.participationSnapshot);
   }
   async projectForTurn(rpc) {

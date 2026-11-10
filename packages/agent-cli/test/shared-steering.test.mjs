@@ -60,3 +60,5 @@ test('an unconfirmed group freezes all recipients across restart before any clou
  await assert.rejects(make().submitMany({...input,recipients:[input.recipients[0]]}),e=>e.code==='conflict');
  assert.equal(calls,1);await assert.rejects(make().submitMany(input),/Offline/);assert.equal(calls,2);
 });
+
+test('a pause update turn leaves queued steering for the next working turn',async t=>{const {store,command,ref}=await fixture(t);await store.acceptSteering(command);await store.prepareTurn({...ref,turnId:randomUUID(),steering:false});assert.deepEqual((await store.getMission({...ref,target})).steering.map(s=>s.state),['queued']);});
