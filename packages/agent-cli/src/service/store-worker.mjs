@@ -529,7 +529,8 @@ const operations = {
       updateState(row,row.state,{guardPid:null});return snapshot(missionRow(missionId));
     });
   },
-  prepareTurn({ missionId, generation, turnId }) {
+  // A pause update turn (steering: false) leaves queued steering for the next working turn.
+  prepareTurn({ missionId, generation, turnId, steering = true }) {
     validateUuid(turnId, 'turnId');
     return transaction(() => {
       const row = missionRow(missionId, generation);
@@ -538,7 +539,7 @@ const operations = {
       if (row.currentTurnId || !['accepted', 'starting', 'waiting'].includes(row.state)) error('conflict', 'Mission cannot start a turn');
       if (statement('SELECT 1 FROM outcomes WHERE missionId=? AND turnId=?').get(missionId, turnId)) error('conflict', 'Turn ID was already completed');
       updateState(row, 'running', { currentTurnId: turnId, currentTurnStage: 'prepared' });
-      statement("UPDATE steering SET state='received',turnId=? WHERE missionId=? AND state='queued'").run(turnId, missionId);
+      if (steering) statement("UPDATE steering SET state='received',turnId=? WHERE missionId=? AND state='queued'").run(turnId, missionId);
       const mission = snapshot(missionRow(missionId));
       return { mission, steering: mission.steering.filter(item => item.turnId === turnId) };
     });

@@ -474,7 +474,9 @@ the scheduler backoff.
 Uncertain execution, failed cleanup or a service restart during a turn requires
 recovery rather than Resume. A worker paused or waiting when the service restarted
 stays paused or waiting; Resume or a raised cap continues it. Project Pause lets the running background turn finish, then holds new ones (the held
-cloud connection still delivers prompts). It keeps a separate project hold: Resume project
+cloud connection still delivers prompts). An agent whose latest turn was work first gets one short
+turn that only posts a project update, or nothing if there is nothing new; queued steering waits
+for the next working turn, and an agent paused on its own or at its token cap gets no such turn. It keeps a separate project hold: Resume project
 does not release an individual agent Pause. Native cleanup must settle before the
 worker confirms the exact project-pause revision. Home and the communication map
 show awaiting feedback, confirmed Paused, or Pause unconfirmed; external coding

@@ -51,7 +51,7 @@ export async function uploadProgressScreenshot(projectId: string, actor: Progres
       if (existing && existing.fingerprint !== fingerprint) inputError('This upload ID was already used for a different image. Use a new upload ID.');
       const isPublic = !isPrivateProject(project);
       if (existing?.ready && (!isPublic || reviewFor(existing))) return { upload: existing, isPublic };
-      await assertNewProgressAction(tx, actor);
+      await assertNewProgressAction(tx, actor, { whilePaused: true });
       if (existing) return { upload: existing, isPublic };
       const record: Upload = { projectId, publisherKey, fingerprint, createdAt: now(), ready: false,
         attachedUpdateId: null, objectKey: `${id}-${fingerprint}`, media: null, storedDigest: null };
@@ -76,7 +76,7 @@ export async function uploadProgressScreenshot(projectId: string, actor: Progres
         if (saved) return current;
         if (current.ready && current.storedDigest !== review.imageSha256)
           throw new Refusal('moderation_required', 'The image changed while it was being checked. Upload it again.');
-        await assertNewProgressAction(tx, actor);
+        await assertNewProgressAction(tx, actor, { whilePaused: true });
         tx.update(uploads().doc(id), { moderation: review });
         return { ...current, moderation: review };
       });
@@ -93,7 +93,7 @@ export async function uploadProgressScreenshot(projectId: string, actor: Progres
       const current = (await tx.get(uploads().doc(id))).data();
       if (!current || current.fingerprint !== fingerprint) throw new Error('Progress screenshot upload reservation changed.');
       if (current.ready) return receipt(id, current, true);
-      await assertNewProgressAction(tx, actor);
+      await assertNewProgressAction(tx, actor, { whilePaused: true });
       if (before.isPublic && currentImageReview(current.moderation)?.decision !== 'allowed')
         throw new Refusal('moderation_required', 'This image hasn’t been checked yet. Upload it again before adding it to an update on a public project.');
       const ready: Upload = { ...current, objectKey, ready: true, media: normalized.media, storedDigest: hash(normalized.bytes) };

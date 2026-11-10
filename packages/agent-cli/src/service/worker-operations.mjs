@@ -148,10 +148,11 @@ export function createWorkerOperations({ store, resolveBinding, fetchImpl = fetc
     async prepareParticipation(caller, options = {}) {
       return serialized(caller, async (context, mission) => {
         context.verifiedTurn = null;
-        const snapshot = await context.bridge.beginParticipationTurn();
+        const pauseUpdate = options.pauseUpdate === true;
+        const snapshot = await context.bridge.beginParticipationTurn({ pauseUpdate });
         if (snapshot.identity?.projectId !== caller.target.projectId || snapshot.identity?.agentId !== caller.target.agentId || snapshot.identity?.profileId !== caller.target.ownerId)
           failure('identity_mismatch', 'The project replied with a different participant identity.');
-        context.control.news = { project: { started: true, paused: false, closed: false } };
+        context.control.news = { project: { started: true, paused: pauseUpdate, closed: false } };
         context.verifiedTurn = mission.currentTurnId;
         return snapshot;
       }, options);

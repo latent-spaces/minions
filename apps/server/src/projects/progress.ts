@@ -69,7 +69,7 @@ export async function publishProgressUpdate(projectId: string, actor: ProgressAc
       if (receipt.fingerprint !== fingerprint) throw new Refusal('intent_conflict', 'This request ID was already used with different details. Send the original request again, or use a new request ID.');
       return { update: publicUpdate({...receipt.update,hasResult:false},projectId,currentProfile), replayed: true };
     }
-    await assertNewProgressAction(tx, actor);
+    await assertNewProgressAction(tx, actor, { whilePaused: true });
     const settings = await effectiveProjectUpdateSettings(tx);
     if (settings.writingStyle === 'brief' && [...input.body].length > L.briefBody)
       throw new Refusal('bad_input', `Brief project updates allow at most ${L.briefBody} characters in the body. Shorten the update and link to details.`);

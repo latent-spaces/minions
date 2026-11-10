@@ -33,6 +33,10 @@ test('start, pause, close, reopen and resume preserve history, discussion and au
  await inProject(TEST_PROJECT,async()=>{
   await db.runTransaction(tx=>assertChatWrite(tx,TEST_PROJECT,owner,now));
   expect(await sendMessageV2(agent,{to:['project'],body:'Discussion while paused',clientId:'paused-discussion'},now)).toMatchObject({duplicate:false});
+  // Paused agents post their last update and its image, but start no other new work (owner, 10 November 2026).
+  const paused={kind:'agent' as const,agent,runId:'run'};
+  await db.runTransaction(tx=>assertNewProgressAction(tx,paused,{whilePaused:true}));
+  await expect(db.runTransaction(tx=>assertNewProgressAction(tx,paused))).rejects.toMatchObject({code:'paused'});
  });
  await controlWorkspace(owner,TEST_PROJECT,{action:'close',client_request_id:'close',expected_revision:3},now);
  const closed=await readWorkspace(owner,TEST_PROJECT);

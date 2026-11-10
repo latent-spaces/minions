@@ -238,11 +238,17 @@ test('project Pause lets the turn finish and confirms only after native cleanup;
   await sleep(50);
   assert.equal(ctx.sessions.some(s => s.projectPauseRevision !== undefined), false, 'no confirmation before cleanup');
   cleanup.resolve();
+  // Then one short turn posts the update; the Pause is confirmed after it (owner, 10 November 2026).
+  await until(() => ctx.frames[1]?.finish, Boolean, 'the pause update turn');
+  assert.equal(ctx.frames[1].options.pauseUpdate, true);
+  assert.match(ctx.frames[1].options.prompt, /The project was just paused/);
+  assert.equal(ctx.sessions.some(s => s.projectPauseRevision !== undefined), false, 'no confirmation during the update turn');
+  ctx.frames[1].finish('Posted the update.');
   await until(() => ctx.sessions, sessions => sessions.some(s => s.phase === 'paused' && s.projectPauseRevision === 1), 'exact confirmed pause');
   assert.equal(ctx.observes, 1, 'the held connection delivers Pause and its receipt without another /wait poll');
-  await sleep(60); assert.equal(ctx.frames.length, 1);
+  await sleep(60); assert.equal(ctx.frames.length, 2, 'one update turn only');
   ctx.project(false, 2);
-  await until(() => ctx.frames.length, n => n === 2, 'same mission resumes');
+  await until(() => ctx.frames.length, n => n === 3, 'same mission resumes');
   assert.equal((await ctx.inspect()).missionId, missionId);
 });
 
@@ -265,13 +271,18 @@ test('stale periodic state cannot release a project hold or confirm a later paus
   await ctx.start(); await until(() => ctx.frames, frames => !!frames[0]?.finish, 'active worker');
   await until(() => ctx.projectListener, Boolean, 'watch ready');
   ctx.project(true, 1); ctx.frames[0].finish('Turn done.');
+  // Each Pause after work gets one update turn before it is confirmed.
+  await until(() => ctx.frames, frames => frames[1]?.options.pauseUpdate === true && !!frames[1].finish, 'pause update turn');
+  ctx.frames[1].finish('Update posted.');
   await until(() => ctx.sessions, sessions => sessions.some(s => s.projectPauseRevision === 1), 'pause despite stale polling');
-  await sleep(70); assert.equal(ctx.frames.length, 1);
+  await sleep(70); assert.equal(ctx.frames.length, 2);
   ctx.project(false, 2);
-  await until(() => ctx.frames, frames => !!frames[1]?.finish, 'resumed turn');
-  ctx.project(true, 3); ctx.frames[1].finish('Turn done.');
+  await until(() => ctx.frames, frames => !!frames[2]?.finish, 'resumed turn');
+  ctx.project(true, 3); ctx.frames[2].finish('Turn done.');
+  await until(() => ctx.frames, frames => frames[3]?.options.pauseUpdate === true && !!frames[3].finish, 'second pause update turn');
+  ctx.frames[3].finish('Update posted.');
   await until(() => ctx.sessions, sessions => sessions.some(s => s.projectPauseRevision === 3), 'new pause has its own confirmation');
-  assert.equal(ctx.frames.length, 2);
+  assert.equal(ctx.frames.length, 4);
 });
 
 test('project Resume cannot release an individual Pause', async t => {

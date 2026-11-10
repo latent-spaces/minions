@@ -104,10 +104,15 @@ for(const provider of ['claude','codex'])test(`project Pause lets fake ${provide
   await sleep(400);assert.equal(f.sessions.some(row=>row.missionId===mission.missionId&&row.phase==='paused'),false,'not paused before the turn ends');
   assert.equal((await f.read(mission)).outcomes.length,0);
   await writeFile(join(f.root,`${mission.target.projectId}-${mission.target.agentId}-one`),'go');
+  // Then one short turn posts the update (owner, 10 November 2026); the Pause is confirmed after it.
+  await until(()=>f.turns(),turns=>turns.length===3,'the pause update turn starts');
+  assert.equal(f.sessions.some(row=>row.missionId===mission.missionId&&row.projectPauseRevision===3),false,'not confirmed during the update turn');
+  await writeFile(join(f.root,`${mission.target.projectId}-${mission.target.agentId}-two`),'go');
   await until(()=>f.sessions,rows=>rows.some(row=>row.missionId===mission.missionId&&row.projectPauseRevision===3&&row.phase==='paused'),'exact project Pause confirmation');
   const held=await f.read(mission);
   assert.equal(held.outcomes[0].outcome.interrupted,false);
   assert.equal(held.outcomes[0].outcome.cleanupConfirmed,true);
-  assert.equal((await f.turns()).length,2);
+  assert.equal(held.outcomes[1].outcome.pauseUpdate,true);
+  assert.equal(held.outcomes.length,2,'one update turn only');
   assert.equal((await f.read(f.missions.find(item=>item!==mission))).state,'running','another project stays active');
 });

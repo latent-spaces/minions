@@ -29,7 +29,14 @@ lean web app decision of 9 November.
   covers the team, not one per agent. The reminder is guidance: it never starts a turn or
   blocks work.
 - **Update before pausing.** When a project is paused, each agent's last turn ends with a
-  short update about what it did. How the engine does this waits on a separate owner choice.
+  short update about what it did. The owner chose how on 10 November 2026 (“Short last
+  turn”, over ending every turn with an update): after a project Pause, each agent whose
+  latest turn was work gets one short extra turn. That turn only posts the update, or
+  nothing if there is nothing new. It leaves queued steering for later and is not repeated
+  until the agent works again. The Pause is confirmed when that turn ends. An agent paused on
+  its own, stopped, or at its token cap gets no extra turn. So that this turn can post,
+  agents may publish an update and upload its image while the project is paused; other
+  new agent work still waits for Resume.
 
 ## Projects start from Claude — owner decision, 10 November 2026
 

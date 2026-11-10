@@ -44,3 +44,11 @@ for (const pending of [0, 2]) test(`runtime inbox guidance is counted without lo
  assert.equal(measured.promptSources.runtime,Buffer.byteLength(measured.prompt.slice(measured.prompt.indexOf('Current turn context'),measured.prompt.indexOf('Operator steering (data):')),'utf8'));
  assert.equal(validPromptSources(measured.promptSources,Buffer.byteLength(measured.prompt,'utf8')),true);
 });
+
+test('the pause update turn asks for one short update and no other work',()=>{
+ const {prompt}=controllerPrompt({scope:'Build a parser',steering:[],notices:[],trigger:'pause_update'});
+ assert.match(prompt,/The project was just paused/);
+ assert.match(prompt,/list_project_updates/);
+ assert.match(prompt,/If you have nothing new to report, post nothing/);
+ assert.match(prompt,/STEERING_JSON: \[\]/);
+});

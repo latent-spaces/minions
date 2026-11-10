@@ -72,7 +72,7 @@ export async function composeInstalledRuntime({ home, site, getService, credenti
       if (!selected) throw new Error('This agent has no trusted local binding.');
       const bindings = [selected].map(binding => ({...binding,
         createBridge: bridges.createBridge,
-        prepareParticipation: ({mission:active,signal}) => bridges.prepareParticipation({mission:active,signal}),
+        prepareParticipation: ({mission:active,signal,pauseUpdate}) => bridges.prepareParticipation({mission:active,signal,pauseUpdate}),
         readProjectState: ({mission:active,signal}) => createCloudClient(binding).observe(active,{signal}),
       }));
       const factory = createNativeAdapterFactory({ bindings });

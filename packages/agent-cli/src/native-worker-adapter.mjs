@@ -139,7 +139,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
   const mark = missionMark(journalIdentity);
   return {
     async stopLeftovers() { const result = process.platform === 'win32' ? await stopWindowsMission(mark, { env: provider.environment() }) : await stopMarkedProcesses(mark); await mergePolicy?.cleanup(); return result; },
-    async run({ turnId = randomUUID(), prompt, promptSources, steeringMessages, signal, onActivity, onStatus, onMetadata, onPermission, onModelStarting, onGuardStarted, onGuardClosed, onModelStarted, onPromptSubmitted, onTurnStarted, recovering = false }) {
+    async run({ turnId = randomUUID(), prompt, promptSources, steeringMessages, signal, onActivity, onStatus, onMetadata, onPermission, onModelStarting, onGuardStarted, onGuardClosed, onModelStarted, onPromptSubmitted, onTurnStarted, recovering = false, pauseUpdate = false }) {
       const basePrompt = prompt;
       const sources=validPromptSources(promptSources,Buffer.byteLength(prompt,'utf8'))?{...promptSources}:{...emptyPromptSources(),unattributed:Buffer.byteLength(prompt,'utf8')};
       const append=(key,text)=>{prompt+=text;sources[key]+=Buffer.byteLength(text,'utf8');};
@@ -156,7 +156,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
       if (signal.aborted) return withEvidence({ interrupted: true, delivery: 'not_submitted', text: '', cleanupConfirmed: true });
       if (firstSpawnPending && launchExpired()) return beforeLaunchFailure('request_expired');
       let participation;
-      try { participation = await readWhileActive(prepareParticipation, signal); }
+      try { participation = await readWhileActive(options => prepareParticipation(pauseUpdate ? { ...options, pauseUpdate } : options), signal); }
       catch { if (signal.aborted) return withEvidence({ interrupted: true, delivery: 'not_submitted', text: '', cleanupConfirmed: true }); return beforeLaunchFailure('runtime_contact_failure', true); }
       if (signal.aborted) return withEvidence({ interrupted: true, delivery: 'not_submitted', text: '', cleanupConfirmed: true });
       const mergeApproval = participation?.project?.mergeApproval;
