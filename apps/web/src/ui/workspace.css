@@ -80,6 +80,5 @@
 .k42-project-kind.is-private { color:var(--ink); }
 /* New project flyout beside the menu column (owner, 19 October 2026). */
 .k42-nav-create .k42-nav-create-plus { display:grid; place-items:center; width:26px; height:26px; margin-left:auto; border-radius:8px; color:var(--ink); }
-.k42-nav-create .k42-nav-create-plus.is-start { margin-left:-4px; }
 .k42-nav-create:hover .k42-nav-create-plus, .k42-nav-create.is-open .k42-nav-create-plus { background:var(--canvas); box-shadow:0 0 0 1px var(--hairline); }
 @keyframes k42-flyout-in { from { opacity:0; transform:translateX(-4px); } to { opacity:1; transform:none; } }

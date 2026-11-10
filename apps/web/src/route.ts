@@ -2,7 +2,7 @@
 // so a path per screen would not survive a reload. No parameters means My projects.
 export const SECTIONS = ['overview', 'outputs', 'usage', 'tasks', 'teams', 'agents', 'conversations', 'control-center', 'needs-you'] as const;
 export type Section = typeof SECTIONS[number];
-export const GLOBAL_VIEWS = ['projects', 'computers', 'create', 'needs-you'] as const;
+export const GLOBAL_VIEWS = ['projects', 'computers', 'needs-you'] as const;
 export type GlobalView = typeof GLOBAL_VIEWS[number];
 export const CONTROL_CENTER_SECTIONS = ['status', 'merging', 'repository', 'agents', 'features'] as const;
 export type ControlCenterSection = typeof CONTROL_CENTER_SECTIONS[number];

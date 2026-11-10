@@ -1,10 +1,10 @@
 import { sharedLink } from '../shared-link';
 import { Button } from './Button';
-import { Archive, RotateCcw, Link as LinkIcon, LogOut, Plus, Settings, type LucideIcon, Star, StarOff } from 'lucide-react';
+import { Archive, RotateCcw, Link as LinkIcon, LogOut, Settings, type LucideIcon, Star, StarOff } from 'lucide-react';
 import type { PersonalProjectEntry } from '../project-api';
 import { formatRoute, projectRoute, type Route } from '../route';
 import type { HeaderMenuItem } from './ProjectHeader';
-import { AddTile } from './AddTile';
+import { ClaudePromptTile } from './ClaudePromptTile';
 import { ExploreProjectCard } from './ExploreProjectCard';
 import { groupPersonalProjects, personalFilterChips, type PersonalFilter } from './group-personal-projects';
 import { personalProjectStatus } from './personal-project-status';
@@ -30,16 +30,16 @@ export function PersonalFilterChips({ projects, archived, value, disabled = fals
   </div>;
 }
 
-// One grid with no group headings (Noa, 26 October 2026): New project first, then every project in the chosen filter.
+// One grid with no group headings (Noa, 26 October 2026): the Claude prompt first, then every project in the chosen filter.
 // The card's small tag says which kind it is (Owner, a joined role, or Waiting); the chips above do the filtering.
 // `searching` is true while the page is filtered by a search: an empty result is then a search result, not an invitation.
 export function PersonalProjectGroups({ projects, go, filter = 'all', searching = false, onArchive, onStar, onLeave, disabled = false, archived = false }: { projects: PersonalProjectEntry[]; go: (to: Route) => void; filter?: PersonalFilter; searching?: boolean; onArchive?: (project: PersonalProjectEntry) => void; onStar?: (project: PersonalProjectEntry) => void; onLeave?: (id: string) => void; disabled?: boolean; archived?: boolean }) {
   const grouped = groupPersonalProjects(projects, archived);
   const keys = (['owner', 'joined', 'waiting'] as const).filter(key => filter === 'all' || filter === key);
   const shown = keys.flatMap(key => grouped[key].map(project => ({ project, waiting: key === 'waiting' })));
-  const newProject = !archived && !searching && (filter === 'all' || filter === 'owner');
+  const prompt = !archived && !searching && (filter === 'all' || filter === 'owner');
   return <div className="personal-project-groups">
-    {newProject && <AddTile icon={Plus} title="New project" text="Got a problem worth sharing?" onClick={() => go({ view: 'create' })} />}
+    {prompt && <ClaudePromptTile />}
     {shown.map(({ project, waiting }) => {
       const state = personalProjectStatus(project);
       const act = () => { if (project.kind !== 'proposal') go(projectRoute(project.id, state.settings ? 'control-center' : 'overview')); };

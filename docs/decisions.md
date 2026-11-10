@@ -10,6 +10,28 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Projects start from Claude — owner decision, 10 November 2026
+
+Source: the owner in chat on 10 November 2026: “i don't want the option to create a
+project from the local app only from claude, but we should add this kind of prompt so
+people can see how it works”, with the example “open a private github repo and add 3
+claude sonnet agents for 5 minutes build me a 2d game”. The owner then chose the answers
+below from the options offered.
+
+- **No create screen in the website.** The sidebar's New project row, the New project tile,
+  the empty state's New project button and the Create project screen are removed. Claude
+  creates projects with `create_private_project`. The server's `POST /api/projects/private`
+  route stays: the server tests create their projects through it.
+- **An example prompt instead.** My projects shows the example first in the grid, and in the
+  empty state, with a button that copies it: “Open a private GitHub repo and add 3 Claude
+  Sonnet agents for 5 minutes to build me a 2D game.”
+- **Claude creates the repository.** The guide tells Claude to offer
+  `gh repo create <owner>/<name> --private --add-readme` and run it after the person's yes.
+  The connector does not create repositories.
+- **“For 5 minutes” is Claude's timer, not a job limit.** Jobs still have no time limit (see
+  “No time limit on a job” below). Claude starts the project, waits in its chat and pauses it
+  when the time is up, and says that only an open chat can do this.
+
 ## Fresh repository with a single commit — owner decision, 10 November 2026
 
 Source: the owner in chat on 10 November 2026, asked why the repository is so big

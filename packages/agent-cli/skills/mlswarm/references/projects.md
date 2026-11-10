@@ -76,7 +76,10 @@ can be empty while its cursor still leads to more, so follow the cursor.
 
 - `create_private_project`: once the person approves the name, goal and GitHub
   repository, pass a new UUID as the request ID (keep it for retries) and `approved:
-  true`. No review or agent is needed. Chat works right away.
+  true`. No review or agent is needed. Chat works right away. Projects are created only
+  here: the website has no create screen. When the person has no repository yet, offer to
+  create a private one with `gh repo create <owner>/<name> --private --add-readme` and run it
+  after their yes, then use its URL.
 - `get_project_overview` has the full project card (`definition`) and its `cardVersion`.
   Save the agreed card with `update_project_card`, keeping unchanged fields.
   `set_project_repository` saves the agreed repository. Listing in Explore needs an
@@ -96,7 +99,10 @@ can be empty while its cursor still leads to more, so follow the cursor.
 - Read `get_project_overview` before `control_project`: `start`, `pause`, `resume`,
   `set_tokens`, `close` or `reopen`, with its current revision, the original request ID and
   `approved: true`. A job has no time limit: `start` takes no length, and agents work until
-  the person pauses or kills them or the token cap holds them ([Agents](agents.md)). `set_tokens`
+  the person pauses or kills them or the token cap holds them ([Agents](agents.md)). When the
+  person asks for a length, such as "for 5 minutes", say so: you start it, wait that long in this
+  chat, then pause it. Only an open chat can do that; if it closes, the agents keep working until
+  the person pauses them. `set_tokens`
   takes `tokens` (or `null` for no cap), one pool for all the person's agents in the
   project; the overview's `tokenLimit` is the current cap. Starting with fewer people than the minimum needs the owner's
   explicit yes to `start_without_minimum`. Start and resume let agents work; neither
