@@ -1,0 +1,608 @@
+import { nativeTaskTitleMatches } from '@mlswarm/contracts';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import type { NativeTask, NativeTaskContributor, NativeTaskActor, NativeTaskDetail, NativeTaskStatus, NativeTaskActivity } from '@mlswarm/contracts';
+import { Check, Columns3, List, ListTodo, Plus, RefreshCw, Search } from 'lucide-react';
+export type TaskAgent = { id: string; name: string; operatorId: string | null; operatorName: string | null; revokedAt: number | null;
+  operatorPhoto?: import('@mlswarm/contracts').PublicProfilePhoto | null; personaChoice?: import('@mlswarm/contracts').PersonaChoice | null; assignable?: boolean };
+import { hold, type Route } from '../route';
+import { NavLink } from '../navigation-link';
+import type { PublicPhoto } from '../profile-photo-api';
+import { TASK_STATUSES, isAccessLoss, isConflict, isTasksDisabled, isSettledRefusal, taskReferenceView, newestTaskSnapshot, taskSourceHref, taskReferenceFromUrl, statusLabel, statusChangeBlock, taskMutation, singleFlight, readTasksView, writeTasksView, type TasksApi, type TasksView } from '../task-model';
+import type { NativeTaskMutation } from '@mlswarm/contracts';
+import { AgentAvatar } from './AgentAvatar';
+import { TaskContributorAvatars } from './TaskContributorAvatars';
+import { PersonAvatar } from './PersonAvatar';
+import { Button } from './Button';
+import { CloseButton } from './CloseButton';
+import { EmptyState } from './EmptyState';
+import { useLabelLookup } from '../label-lookup';
+import './project-tasks.css';
+
+export type TaskPerson = { id: string; name: string | null; photo?: PublicPhoto | null };
+/** Labels by id for actors the directory walks have not reached (at most 60 ids per call). */
+export type TaskLabelLookup = { agents: (ids: string[]) => Promise<TaskAgent[]>; members: (ids: string[]) => Promise<TaskPerson[]> };
+export interface ProjectTasksProps {
+  api: TasksApi;
+  /** Project agents: the only possible assignees. Revoked agents still label old tasks but cannot be picked. */
+  agents: TaskAgent[];
+  people: TaskPerson[];
+  /** Closed project or hosted observation: reads only, no mutation controls. */
+  readOnly?: boolean;
+  active: boolean;
+  /** The signed-in person's actor id: only their own comments offer Edit (the server enforces authorship). */
+  selfId?: string | null;
+  /** The signed-in person is the project owner: they may change any task's status (the server enforces this). */
+  manager?: boolean;
+  /** Same-project navigation for native conversation/message links. */
+  projectId?: string;
+  go?: (to: Route) => void;
+  /** Tasks are turned off for this project: retained records stay readable, nothing can change. */
+  disabledNotice?: boolean;
+  viewerUrl?: string;
+  lookup?: TaskLabelLookup;
+}
+
+const errorText = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong.';
+const when = (at: number) => new Date(at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+const safeStorage = (): Storage | null => { try { return window.localStorage; } catch { return null; } };
+
+// The walked directories label most actors. Actors shown on screen that a bounded walk has not reached are looked up
+// by id, so a large project still names its assignees, contributors and authors, including retired agents.
+function useDirectory(agents: TaskAgent[], people: TaskPerson[], shown: NativeTaskActor[], lookup?: TaskLabelLookup) {
+  const walkedAgents = useMemo(() => new Map(agents.map(a => [a.id, a])), [agents]);
+  const walkedPeople = useMemo(() => new Map(people.map(p => [p.id, p])), [people]);
+  const looked = {
+    agents: useLabelLookup(lookup?.agents ?? null, 'agents', shown.filter(a => a.kind === 'agent').map(a => a.id), walkedAgents),
+    people: useLabelLookup(lookup?.members ?? null, 'members', shown.filter(a => a.kind === 'person').map(a => a.id), walkedPeople),
+  };
+  return useMemo(() => {
+    const agent = looked.agents.rows, person = looked.people.rows;
+    const name = (actor: NativeTaskActor) => actor.kind === 'agent' ? agent.get(actor.id)?.name ?? 'Agent' : person.get(actor.id)?.name ?? 'Member';
+    // Without a lookup, an agent the walk never listed is taken as gone, as before.
+    const gone = (id: string) => { const row = agent.get(id); return row ? row.revokedAt != null : !lookup || looked.agents.absent.has(id); };
+    return { agent, person, name, gone };
+  }, [looked.agents, looked.people, lookup]);
+}
+type Directory = ReturnType<typeof useDirectory>;
+
+function AgentChip({ id, directory, size = 28 }: { id: string; directory: Directory; size?: number }) {
+  const row = directory.agent.get(id);
+  return <span className="k42-task-actor">
+    <AgentAvatar id={id} name={row?.name ?? 'Agent'} ownerId={row?.operatorId} ownerName={row?.operatorName} ownerPhoto={row?.operatorPhoto} persona={row?.personaChoice} size={size} decorative />
+    <span>{row?.name ?? 'Agent'}{row?.revokedAt != null && <span className="muted"> (removed)</span>}</span>
+  </span>;
+}
+function ActorChip({ actor, directory }: { actor: NativeTaskActor; directory: Directory }) {
+  if (actor.kind === 'agent') return <AgentChip id={actor.id} directory={directory} size={24} />;
+  const person = directory.person.get(actor.id);
+  return <span className="k42-task-actor"><PersonAvatar id={actor.id} name={person?.name ?? null} photo={person?.photo} size={24} /><span>{directory.name(actor)}</span></span>;
+}
+function Unassigned() { return <span className="k42-task-actor k42-task-unassigned"><span className="k42-task-unassigned-dot" aria-hidden="true" />Unassigned</span>; }
+
+/** The selected simple design: one task per row (title, assigned agent, contributing agents, status, latest update) and a drawer. */
+export function ProjectTasks({ api, agents, people, readOnly = false, active, selfId = null, manager = false, projectId, go, disabledNotice = false, viewerUrl, lookup }: ProjectTasksProps) {
+  const [searchDraft, setSearchDraft] = useState('');
+  const [search, setSearch] = useState('');
+  const [assignee, setAssignee] = useState('');
+  const assignedAgentId = assignee === 'unassigned' ? null : assignee ? assignee.slice(6) : undefined;
+  const [view, setView] = useState<TasksView>(() => readTasksView(safeStorage()));
+  const chooseView = (next: TasksView) => { setView(next); writeTasksView(safeStorage(), next); };
+  // On the board the columns are the states, so the State filter is hidden and not applied there.
+  const [statusChoice, setStatus] = useState<NativeTaskStatus | ''>('');
+  const status = view === 'board' ? '' : statusChoice;
+  const [tasks, setTasks] = useState<NativeTask[] | null>(null);
+  const [next, setNext] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [drawerActors, setDrawerActors] = useState<NativeTaskActor[]>([]);
+  const shown = useMemo(() => [...(tasks ?? []).flatMap(task => [...task.assignedAgentId ? [{ kind: 'agent' as const, id: task.assignedAgentId }] : [], ...task.contributors]),
+    ...openId ? drawerActors : []], [tasks, openId, drawerActors]);
+  const directory = useDirectory(agents, people, shown, active ? lookup : undefined);
+  // Only the latest load may write; a reply from an earlier account or project is dropped.
+  const generation = useRef(0), pageCursors = useRef<(string | null)[]>([null]);
+  const load = useCallback(() => {
+    const mine = ++generation.current, count = pageCursors.current.length;
+    void (async () => {
+      const cursors: (string | null)[] = [], rows: NativeTask[] = [];
+      let cursor: string | null = null;
+      // Rebuild the loaded range from returned cursors: inserts and larger records can move page boundaries.
+      for (let index = 0; index < count; index++) {
+        cursors.push(cursor);
+        const page = await api.list(cursor, status || undefined, assignedAgentId, search || undefined);
+        rows.push(...page.tasks); cursor = page.nextCursor;
+        if (!cursor) break;
+      }
+      if (mine !== generation.current) return;
+      pageCursors.current = cursors;
+      setTasks(current => {
+        const saved = new Map(current?.map(task => [task.id, task]));
+        return rows.map(task => newestTaskSnapshot(saved.get(task.id), task));
+      });
+      setNext(cursor); setError(null);
+    })().catch(e => {
+      if (mine !== generation.current) return;
+      if (isAccessLoss(e)) { setTasks(null); setNext(null); setOpenId(null); setCreating(false); }
+      setError(errorText(e));
+    });
+  }, [api, status, assignedAgentId, search]);
+  useEffect(() => { pageCursors.current = [null]; setTasks(null); setNext(null); setError(null); return () => { generation.current++; }; }, [api, status, assignedAgentId, search]);
+  useEffect(() => {
+    if (!active) return;
+    const refresh = () => { if (document.visibilityState !== 'hidden') load(); };
+    refresh();const timer=setInterval(refresh,10_000);window.addEventListener('focus',refresh);
+    return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);};
+  }, [active, load]);
+  // One page request at a time; a reply for an earlier account, project or refresh is dropped, including its error.
+  const [loadingGeneration, setLoadingGeneration] = useState<number | null>(null);
+  const loadingMore = loadingGeneration === generation.current;
+  const moreFlight = useRef(singleFlight()).current;
+  const more = () => { const mine = generation.current; if (!next || !moreFlight.start(mine)) return; setLoadingGeneration(mine);
+    api.list(next, status || undefined, assignedAgentId, search || undefined).then(page => { if (mine !== generation.current) return; pageCursors.current.push(next); setTasks(t => [...(t ?? []), ...page.tasks.filter(n => !t?.some(o => o.id === n.id))]); setNext(page.nextCursor); },
+      e => { if (mine === generation.current) setError(errorText(e)); }).finally(() => { if (moreFlight.end(mine)) setLoadingGeneration(current => current === mine ? null : current); }); };
+  const replace = (task: NativeTask) => {
+    setTasks(current => {
+      const saved = current?.find(row => row.id === task.id);
+      const newest = newestTaskSnapshot(saved, task);
+      if (!nativeTaskTitleMatches(newest.title, search) || (status && newest.status !== status) || (assignedAgentId !== undefined && newest.assignedAgentId !== assignedAgentId)) return current?.filter(row => row.id !== task.id) ?? null;
+      return saved ? current!.map(row => row.id === task.id ? newest : row) : [newest, ...(current ?? [])];
+    });
+    load();
+  };
+  const assignable = agents.filter(a => a.revokedAt === null && a.assignable !== false);
+
+  const filterAgents = new Map(agents.map(agent => [agent.id, agent.name]));
+  for (const [id, row] of directory.agent) if (!filterAgents.has(id)) filterAgents.set(id, row.name);
+  for (const task of tasks ?? []) if (task.assignedAgentId && !filterAgents.has(task.assignedAgentId)) filterAgents.set(task.assignedAgentId, `Agent (${task.assignedAgentId})`);
+  if (assignedAgentId && !filterAgents.has(assignedAgentId)) filterAgents.set(assignedAgentId, `Agent (${assignedAgentId})`);
+
+  return <section className="k42-tasks" aria-labelledby="k42-tasks-title">
+    <div className="k42-tasks-head">
+      <h2 id="k42-tasks-title">Tasks{tasks && <span className="k42-tasks-heading-count"> ({tasks.length}{next ? '+' : ''})</span>}</h2>
+      <div className="k42-task-segments k42-tasks-view" role="group" aria-label="Tasks view">
+        <button type="button" className="k42-task-segment" aria-pressed={view === 'list'} onClick={() => chooseView('list')}><List size={16} aria-hidden="true" />List</button>
+        <button type="button" className="k42-task-segment" aria-pressed={view === 'board'} onClick={() => chooseView('board')}><Columns3 size={16} aria-hidden="true" />Board</button>
+      </div>
+    </div>
+    <div className="k42-tasks-toolbar">
+      <form className="k42-tasks-search" role="search" aria-label="Task titles" onSubmit={event => {
+        event.preventDefault(); const value = searchDraft.trim();
+        if (value === search) load(); else { generation.current++; setSearch(value); }
+      }}>
+        <Search className="k42-tasks-search-icon" size={16} aria-hidden="true" />
+        <input type="search" aria-label="Search tasks" value={searchDraft} maxLength={300} placeholder="Search tasks"
+          onChange={event => { const value = event.target.value; setSearchDraft(value); if (!value.trim() && search) { generation.current++; setSearch(''); } }} />
+      </form>
+      {view === 'list' && <select className="k42-tasks-filter" aria-label="State" value={statusChoice} onChange={event => { generation.current++; setStatus(event.target.value as NativeTaskStatus | ''); }}>
+        <option value="">All states</option>
+        {TASK_STATUSES.map(state => <option key={state.id} value={state.id}>{state.label}</option>)}
+      </select>}
+      <select className="k42-tasks-filter" aria-label="Assigned agent" value={assignee} onChange={event => { generation.current++; setAssignee(event.target.value); }}>
+        <option value="">All assignments</option>
+        <option value="unassigned">Unassigned</option>
+        {[...filterAgents].map(([id, name]) => <option key={id} value={`agent:${id}`}>{name}</option>)}
+      </select>
+      <Button className="k42-tasks-refresh" onClick={load} aria-label="Refresh tasks" title="Refresh tasks"><RefreshCw size={16} aria-hidden="true" /></Button>
+      {!readOnly && <Button className="k42-tasks-new" onClick={() => setCreating(true)}><Plus size={18} aria-hidden="true" />New task</Button>}
+    </div>
+    {disabledNotice ? <p className="muted" role="status">Tasks are off. Existing tasks are read-only.</p>
+      : readOnly && <p className="muted">This view is read-only.</p>}
+    {creating && !readOnly && <NewTask api={api} onCancel={() => setCreating(false)} onCreated={task => { replace(task); setCreating(false); setOpenId(task.id); }} />}
+    {error && <div role="alert" className="k42-tasks-error"><p>Could not load tasks: {error}</p><Button onClick={load}>Try again</Button></div>}
+    {!tasks && !error && <p className="muted" role="status">Loading tasks…</p>}
+    {tasks?.length === 0 && !creating && <EmptyState icon={ListTodo} tone={null} title={next ? 'More tasks to search' : search || assignee ? 'No tasks match these filters' : status ? `No ${statusLabel(status).toLowerCase()} tasks` : 'No tasks yet'}>{next ? 'No matches in this page. Show more to continue searching.' : search || assignee || status ? 'Change the title search, state or assigned agent filter to see more tasks.' : readOnly ? 'Tasks will appear here.' : 'Add the first task. A title is enough; an agent can pick it up from Backlog.'}</EmptyState>}
+    {!!tasks?.length && view === 'board' && <TasksBoard api={api} tasks={tasks} directory={directory} readOnly={readOnly} more={!!next}
+      canMove={task => !readOnly && (manager || (!!selfId && !!task.assignedAgentId && directory.agent.get(task.assignedAgentId)?.operatorId === selfId))}
+      openId={openId} onOpen={setOpenId} onChange={replace} onReload={load} />}
+    {!!tasks?.length && view === 'list' && <div className="k42-tasks-tablewrap"><table className="k42-tasks-table">
+      <thead><tr><th scope="col">Task</th><th scope="col">Assigned agent</th><th scope="col">Agents</th><th scope="col">Status</th><th scope="col">Updated</th></tr></thead>
+      <tbody>{tasks.map(task => <tr key={task.id} className={openId === task.id ? 'is-open' : undefined}>
+        <th scope="row"><button type="button" className="k42-task-open" onClick={() => setOpenId(task.id)} aria-haspopup="dialog">{task.title}</button>
+          {task.priority === 'high' && <span className="k42-task-priority">High</span>}</th>
+        <td data-label="Assigned">{task.assignedAgentId ? <AgentChip id={task.assignedAgentId} directory={directory} /> : <Unassigned />}</td>
+        <td data-label="Agents"><TaskContributorAvatars contributors={task.contributors} agents={directory.agent} /></td>
+        <td data-label="Status"><span className={`k42-task-status is-${task.status}`}>{statusLabel(task.status)}</span></td>
+        <td data-label="Updated" className="muted">{when(task.updatedAt)}</td>
+      </tr>)}</tbody>
+    </table></div>}
+    {next && <Button onClick={more} disabled={loadingMore}>{loadingMore ? 'Loading…' : 'Show more'}</Button>}
+    {openId && <TaskDrawer key={openId} api={api} taskId={openId} directory={directory} agents={assignable} readOnly={readOnly} onActors={setDrawerActors} onChange={replace} onAccessLost={load} onClose={() => setOpenId(null)} selfId={selfId} projectId={projectId} go={go} viewerUrl={viewerUrl} />}
+  </section>;
+}
+
+function NewTask({ api, onCreated, onCancel }: { api: TasksApi; onCreated: (task: NativeTask) => void; onCancel: () => void }) {
+  const [title, setTitle] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null), [uncertain, setUncertain] = useState(false);
+  // One request ID per draft: retrying after an uncertain response cannot create a second task.
+  const requestId = useRef(crypto.randomUUID()), titleId = useId();
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    if (!title.trim() || busy) return;
+    setBusy(true); setError(null);
+    api.mutate(taskMutation({ operation: 'create', title: title.trim() }, requestId.current))
+      .then(result => onCreated(result.task), e => {
+        // A refused create may be corrected and sent as a new request; an unknown outcome is retried unchanged.
+        const settled = isSettledRefusal(e);
+        if (settled) requestId.current = crypto.randomUUID();
+        setUncertain(!settled); setError(settled ? errorText(e) : 'Could not confirm the task was created. Retry sends the same request; it will not create a duplicate.'); setBusy(false);
+      });
+  };
+  return <form className="k42-task-new" onSubmit={submit}>
+    <label htmlFor={titleId}>Title</label>
+    <input id={titleId} value={title} readOnly={uncertain} onChange={e => setTitle(e.target.value)} autoFocus required maxLength={300} placeholder="What needs doing?" />
+    <p className="muted">New tasks start unassigned in Backlog.</p>
+    {error && <p role="alert" className="error">{error}</p>}
+    <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || !title.trim()}>{busy ? 'Creating…' : uncertain ? 'Retry' : 'Create task'}</Button><Button type="button" onClick={onCancel}>Cancel</Button></div>
+  </form>;
+}
+
+/** Board view: one column per task status, in the existing order, over the same loaded tasks as the list. A card shows title, assigned agent
+ *  and state; opening it uses the same drawer. Dropping a card on another column sends the drawer's status change (`update` with the
+ *  revision it saw). Like the drawer's status buttons, only a person who may change the task's status (the owner, or the person of its
+ *  assigned agent) can drag it; the server keeps its control and transition rules, and a refusal is shown here without changing anything. */
+function TasksBoard({ api, tasks, directory, readOnly, more, canMove, openId, onOpen, onChange, onReload }: {
+  api: TasksApi; tasks: NativeTask[]; directory: Directory; readOnly: boolean; more: boolean; canMove: (task: NativeTask) => boolean; openId: string | null; onOpen: (id: string) => void; onChange: (task: NativeTask) => void; onReload: () => void;
+}) {
+  const [dragging, setDragging] = useState<string | null>(null), [over, setOver] = useState<NativeTaskStatus | null>(null);
+  const [moving, setMoving] = useState<string | null>(null), [notice, setNotice] = useState<string | null>(null);
+  const dragged = dragging ? tasks.find(task => task.id === dragging) ?? null : null;
+  const accepts = (status: NativeTaskStatus) => !!dragged && canMove(dragged) && dragged.status !== status && !statusChangeBlock(dragged, status);
+  const drop = (status: NativeTaskStatus) => {
+    const task = dragged; setDragging(null); setOver(null);
+    if (!task || moving || readOnly || !canMove(task)) return;
+    const blocked = statusChangeBlock(task, status);
+    if (blocked) { setNotice(`${blocked}.`); return; }
+    if (task.status === status) return;
+    setMoving(task.id); setNotice(null);
+    api.mutate(taskMutation({ operation: 'update', taskId: task.id, expectedRevision: task.revision, status })).then(result => onChange(result.task), e => {
+      if (isConflict(e)) setNotice('Someone else changed this task first. The board shows the latest saved state.');
+      else if (isTasksDisabled(e)) setNotice('Tasks were turned off for this project. Nothing was changed.');
+      else if (isSettledRefusal(e)) setNotice(`Could not move “${task.title}”: ${errorText(e)}`);
+      else setNotice(`Could not confirm the move of “${task.title}”. The board shows the latest saved state.`);
+      onReload();
+    }).finally(() => setMoving(current => current === task.id ? null : current));
+  };
+  return <div className="k42-tasks-board-wrap">
+    {!readOnly && <p className="muted k42-tasks-board-hint">Drag a card to another column, or open it to change its status.</p>}
+    {notice && <div role="status" className="k42-task-notice k42-tasks-board-notice"><p>{notice}</p><Button onClick={() => setNotice(null)} aria-label="Dismiss">Dismiss</Button></div>}
+    <div className="k42-tasks-board" role="list" aria-label="Tasks by status">
+      {TASK_STATUSES.map(state => {
+        const column = tasks.filter(task => task.status === state.id);
+        const target = accepts(state.id);
+        return <section key={state.id} role="listitem" aria-label={state.label} className={`k42-tasks-column is-${state.id}${over === state.id && dragged?.status !== state.id ? target ? ' is-over' : ' is-refused' : ''}`}
+          onDragOver={event => { if (!dragged || readOnly) return; event.preventDefault(); event.dataTransfer.dropEffect = 'move'; if (over !== state.id) setOver(state.id); }}
+          onDragLeave={event => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setOver(current => current === state.id ? null : current); }}
+          onDrop={event => { event.preventDefault(); drop(state.id); }}>
+          <h3 className="k42-tasks-column-head"><span className={`k42-task-status is-${state.id}`}>{state.label}</span><span className="k42-tasks-count">{column.length}{more ? '+' : ''}</span></h3>
+          <ul className="k42-tasks-cards">
+            {column.map(task => <li key={task.id} className={`k42-tasks-card${openId === task.id ? ' is-open' : ''}${dragging === task.id ? ' is-dragging' : ''}${moving === task.id ? ' is-moving' : ''}`}
+              draggable={!moving && canMove(task)} aria-busy={moving === task.id || undefined}
+              onDragStart={event => { if (!canMove(task)) { event.preventDefault(); return; } event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', task.id); setDragging(task.id); }}
+              onDragEnd={() => { setDragging(null); setOver(null); }}>
+              <button type="button" className="k42-task-open k42-tasks-card-title" onClick={() => onOpen(task.id)} aria-haspopup="dialog">{task.title}</button>
+              {task.priority === 'high' && <span className="k42-task-priority">High</span>}
+              <div className="k42-tasks-card-meta">
+                {task.assignedAgentId ? <AgentChip id={task.assignedAgentId} directory={directory} size={24} /> : <Unassigned />}
+                <span className={`k42-task-status is-${task.status}`}>{statusLabel(task.status)}</span>
+              </div>
+            </li>)}
+          </ul>
+          {!column.length && <p className="muted k42-tasks-column-empty">{dragged && !readOnly ? target ? 'Drop here' : statusChangeBlock(dragged, state.id) ?? 'Already here' : 'No tasks'}</p>}
+        </section>;
+      })}
+    </div>
+  </div>;
+}
+
+
+function TaskDrawer({ api, taskId, directory, agents, readOnly: readOnlyProp, onActors, onChange, onAccessLost, onClose, selfId, projectId, go, viewerUrl }: {
+  api: TasksApi; taskId: string; directory: Directory; agents: TaskAgent[]; readOnly: boolean; onActors: (actors: NativeTaskActor[]) => void; onChange: (task: NativeTask) => void; onAccessLost: () => void; onClose: () => void;
+  selfId: string | null; projectId?: string; go?: (to: Route) => void; viewerUrl?: string;
+}) {
+  const [detail, setDetail] = useState<NativeTaskDetail | null>(null);
+  const [error, setError] = useState<string | null>(null), [notice, setNotice] = useState<string | null>(null), [busy, setBusy] = useState(false);
+  const [titleDraft, setTitleDraft] = useState<string | null>(null), [commentEdit, setCommentEdit] = useState<{ id: string; body: string } | null>(null);
+  const [editing, setEditing] = useState<string | null>(null), [comment, setComment] = useState(''), [link, setLink] = useState(''), [linkLabel, setLinkLabel] = useState('');
+  // A write whose outcome is unknown (lost reply, network, 5xx) is kept and resent byte-for-byte until it settles.
+  const [uncertain, setUncertain] = useState<NativeTaskMutation | null>(null);
+  const [turnedOff, setTurnedOff] = useState(false);
+  const readOnly = readOnlyProp || turnedOff || detail?.permissions.edit === false;
+  const [reconcile, setReconcile] = useState(false);
+  const [versions,setVersions] = useState<Record<string,NativeTaskActivity>>({});
+  const draftState=useRef({dirty:false,busy:false});draftState.current={dirty:titleDraft!==null || editing!==null || commentEdit!==null || !!comment.trim() || !!link.trim() || !!linkLabel.trim(),busy:busy || !!uncertain};
+  // Like other editors, typed drafts and a change awaiting its exact retry hold the page and survive an accidental close.
+  const unsaved=draftState.current.dirty || draftState.current.busy;
+  useEffect(()=>unsaved ? hold() : undefined,[unsaved]);
+  const close=()=>{ if(!draftState.current.dirty && !draftState.current.busy || window.confirm('Discard your unsaved changes to this task?')) onClose(); };
+  const linkDraft = useRef({ link, label: linkLabel }); linkDraft.current = { link, label: linkLabel };
+  const revision=useRef(0);revision.current=detail?.task.revision ?? 0;
+  const titleId = useId(), panel = useRef<HTMLElement>(null);
+  // Replies for an earlier api (account/profile) or a closed drawer are dropped.
+  const live = useRef(api); live.current = api;
+  useEffect(() => { live.current = api; return () => { live.current = null as unknown as TasksApi; }; }, [api]);
+  const current = (from: TasksApi) => live.current === from;
+  const reload = useCallback(() => { const from = api; return api.get(taskId,{activityOrder:'desc'}).then(d => { if (!current(from)) return; if (d.task.revision < revision.current) return;
+      if (revision.current && d.task.revision > revision.current && draftState.current.dirty) setReconcile(true);
+      setDetail(current => current && current.task.revision > d.task.revision ? current : {...d,activity:[...d.activity].sort((a,b)=>a.revision-b.revision)}); onChange(d.task); setError(null); }, e => {
+    if (!current(from)) return;
+    if (isAccessLoss(e)) { setDetail(null); onAccessLost(); }
+    setError(errorText(e));
+  }); }, [api, taskId]);
+  useEffect(() => { setDetail(null); }, [api]);
+  // Comment authors and history actors are labelled like task rows.
+  useEffect(() => { onActors(detail ? [...detail.comments.map(c => c.author), ...detail.activity.map(a => a.actor)] : []); }, [detail]);
+  /** After a confirmed write, fetch the authoritative newest history without dropping older loaded pages or drafts. */
+  const refreshActivity = () => { const from = api; api.get(taskId, { activityOrder: 'desc' }).then(d => { if (!current(from)) return;
+    setDetail(cur => {
+      if (!cur || cur.task.revision > d.task.revision) return cur;
+      const comments = new Map(cur.comments.map(comment => [comment.id, comment]));
+      for (const comment of d.comments) if ((comments.get(comment.id)?.updatedAt ?? -1) <= comment.updatedAt) comments.set(comment.id, comment);
+      return { ...cur, task: newestTaskSnapshot(cur.task, d.task), permissions:d.permissions,
+        comments: [...comments.values()].sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id)),
+        activity: [...d.activity, ...cur.activity.filter(a => !d.activity.some(n => n.id === a.id))].sort((a, b) => a.revision - b.revision) };
+    }); onChange(d.task); },
+    e => { if (current(from) && isAccessLoss(e)) { setDetail(null); setError(errorText(e)); onAccessLost(); } }); };
+  useEffect(() => { void reload(); }, [reload]);
+  useEffect(() => {
+    const refresh=()=>{if(document.visibilityState!=='hidden' && !draftState.current.busy)void reload();};
+    const timer=setInterval(refresh,10_000);window.addEventListener('focus',refresh);
+    return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);};
+  }, [reload]);
+  /** Older comments/history pages append (deduplicated) and keep the current task record. */
+  const more = (which: 'comments' | 'activity') => {
+    if (!detail) return;
+    const cursors = which === 'comments' ? { commentCursor: detail.nextCommentCursor } : { activityCursor: detail.nextActivityCursor };
+    const from = api;
+    api.get(taskId, {...cursors,activityOrder:'desc'}).then(page => current(from) && setDetail(d => d && (which === 'comments'
+      ? { ...d, comments: [...d.comments, ...page.comments.filter(c => !d.comments.some(o => o.id === c.id))].sort((a,b)=>a.createdAt-b.createdAt || a.id.localeCompare(b.id)), nextCommentCursor: page.nextCommentCursor }
+      : { ...d, activity: [...d.activity, ...page.activity.filter(a => !d.activity.some(o => o.id === a.id))].sort((a,b)=>a.revision-b.revision), nextActivityCursor: page.nextActivityCursor })),
+    e => { if (!current(from)) return; if (isAccessLoss(e)) { setDetail(null); onAccessLost(); } setNotice(errorText(e)); });
+  };
+  // Runs once per drawer: a fresh onClose each render must not re-run focus handling while someone types.
+  const closeRef = useRef(close); closeRef.current = close;
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    panel.current?.focus();
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.preventDefault(); closeRef.current(); return; }
+      if (event.key !== 'Tab' || !panel.current) return;
+      const items = [...panel.current.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, summary, [tabindex]')].filter(element => {
+        if (element.tabIndex < 0 || element.matches(':disabled') || element.closest('[inert]') || !element.getClientRects().length || getComputedStyle(element).visibility === 'hidden') return false;
+        // Closed disclosures expose only their first summary, never their hidden controls.
+        for (let ancestor = element.parentElement; ancestor && ancestor !== panel.current; ancestor = ancestor.parentElement) {
+          if (ancestor instanceof HTMLDetailsElement && !ancestor.open) {
+            const summary = [...ancestor.children].find(child => child.tagName === 'SUMMARY');
+            if (!summary?.contains(element)) return false;
+          }
+        }
+        return true;
+      });
+      if (!items.length) { event.preventDefault(); panel.current.focus(); return; }
+      const first = items[0], last = items[items.length - 1], focused = document.activeElement;
+      if (event.shiftKey && (focused === first || !items.includes(focused as HTMLElement))) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && (focused === last || !items.includes(focused as HTMLElement))) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('keydown', key); opener?.focus?.(); };
+  }, []);
+  const task = detail?.task;
+  type Op = Parameters<typeof taskMutation>[0];
+  /** Each write sends the revision it saw; a 409 reloads the latest task and keeps any typed draft. */
+  const send = (mutation: NativeTaskMutation) => {
+    setBusy(true); setNotice(null);
+    const from = api;
+    return api.mutate(mutation).then(result => {
+      if (!current(from)) return false;
+      setUncertain(null);
+      // All confirmed writes (including an identical Retry replay) settle only their own draft.
+      // Functional updates preserve newer text typed while the original reply was in flight.
+      if (mutation.operation === 'comment') setComment(draft => draft.trim() === mutation.body ? '' : draft);
+      if (mutation.operation === 'edit_comment') setCommentEdit(draft => draft?.id === mutation.commentId && draft.body.trim() === mutation.body ? null : draft);
+      if (mutation.operation === 'update') {
+        if (mutation.title !== undefined) setTitleDraft(draft => draft?.trim() === mutation.title ? null : draft);
+        if (mutation.description !== undefined) setEditing(draft => draft === mutation.description ? null : draft);
+      }
+      if (mutation.operation === 'add_reference') {
+        const draft = linkDraft.current;
+        try {
+          const reference = taskReferenceFromUrl(draft.link, mutation.reference.id, projectId, viewerUrl ?? new URL('/viewer/', window.location.href).href, draft.label);
+          const same = reference.kind === mutation.reference.kind && reference.label === mutation.reference.label
+            && ('url' in reference && 'url' in mutation.reference ? reference.url === mutation.reference.url
+              : 'sourceId' in reference && 'sourceId' in mutation.reference && reference.sourceId === mutation.reference.sourceId);
+          if (same) { setLink(value => value === draft.link ? '' : value); setLinkLabel(value => value === draft.label ? '' : value); }
+        } catch { /* A newer incomplete draft is unrelated to this successful write. */ }
+      }
+      setDetail(d => d && { ...d, task: newestTaskSnapshot(d.task, result.task), comments: result.comment ? [...d.comments.filter(c => c.id !== result.comment!.id), d.comments.find(c => c.id === result.comment!.id && c.updatedAt > result.comment!.updatedAt) ?? result.comment].sort((a,b)=>a.createdAt-b.createdAt || a.id.localeCompare(b.id)) : d.comments });
+      onChange(result.task); refreshActivity(); return true;
+    }, e => {
+      if (!current(from)) return false;
+      if (!isSettledRefusal(e)) { setUncertain(mutation); setNotice('Could not confirm this change. Retry sends the same change again; it will not be applied twice.'); return false; }
+      setUncertain(null);
+      if (isTasksDisabled(e)) { setTurnedOff(true); setNotice('Tasks were turned off for this project. Nothing was changed; existing tasks stay readable.'); }
+      else if (isConflict(e)) { setReconcile(true); setNotice('Someone else changed this task. Review the saved version before replacing it.'); void reload(); }
+      else if (isAccessLoss(e)) { setDetail(null); setError(errorText(e)); onAccessLost(); }
+      else setNotice(errorText(e));
+      return false;
+    }).finally(() => { if (current(from)) setBusy(false); });
+  };
+  const act = (op: Op) => !task || busy || uncertain || readOnly || reconcile ? Promise.resolve(false) : send(taskMutation(op));
+  const base = task ? { taskId: task.id, expectedRevision: task.revision } : null;
+  const setStatus = (status: NativeTaskStatus) => base && act({ operation: 'update', ...base, status });
+  const assign = (agentId: string) => base && agentId && act({ operation: 'assign', ...base, assignedAgentId: agentId });
+  const release = () => base && act({ operation: 'release', ...base });
+  const saveTitle = () => base && titleDraft !== null && titleDraft.trim() && act({ operation: 'update', ...base, title: titleDraft.trim() });
+  const saveComment = () => base && commentEdit && commentEdit.body.trim() && act({ operation: 'edit_comment', ...base, commentId: commentEdit.id, body: commentEdit.body.trim() });
+  const saveDescription = () => base && editing !== null && act({ operation: 'update', ...base, description: editing });
+  const sendComment = (event: FormEvent) => {
+    event.preventDefault();
+    if (!base || !comment.trim()) return;
+    void act({ operation: 'comment', ...base, body: comment.trim() });
+  };
+  const addLink = (event: FormEvent) => {
+    event.preventDefault();
+    if (!base) return;
+    try { const reference=taskReferenceFromUrl(link,crypto.randomUUID(),projectId,viewerUrl ?? new URL('/viewer/',window.location.href).href,linkLabel);
+      void act({operation:'add_reference',...base,reference});
+    } catch(e){setNotice(errorText(e));}
+  };
+  const unassigned = !task?.assignedAgentId;
+  const canControl=detail?.permissions.control === true;
+  const canDescribe=detail?.permissions.editDescription === true;
+  const assignmentChoices=task?.status === 'canceled' ? [] : detail?.permissions.assign === 'any' ? agents : detail?.permissions.assign === 'own' ? agents.filter(a=>a.operatorId===selfId) : [];
+  const resolveLatest=()=>{setTitleDraft(null);setEditing(null);setCommentEdit(null);setReconcile(false);setNotice(null);};
+  const viewVersion=(id:string)=>{const from=api;void api.get(taskId,{activityId:id}).then(d=>{if(current(from))setVersions(v=>({...v,[id]:d.activity[0]}));},e=>{if(current(from))setNotice(errorText(e));});};
+
+  return <div className="k42-task-layer">
+    <div className="k42-task-scrim" onClick={close} aria-hidden="true" />
+    <aside ref={panel} tabIndex={-1} className="k42-task-drawer" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div className="k42-task-drawer-head">
+        {titleDraft === null || readOnly
+          ? <h2 id={titleId}>{task?.title ?? 'Task'}</h2>
+          : <form className="k42-task-title-edit" onSubmit={e => { e.preventDefault(); void saveTitle(); }}>
+              <input id={titleId} aria-label="Title" value={titleDraft} maxLength={300} onChange={e => setTitleDraft(e.target.value)} autoFocus />
+              <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || reconcile || !!uncertain || !titleDraft.trim()}>Save</Button><Button type="button" onClick={() => setTitleDraft(null)}>Cancel</Button></div>
+            </form>}
+        {task && !readOnly && titleDraft === null && <Button className="k42-task-text-action" onClick={() => setTitleDraft(task.title)} aria-label="Edit title">Edit</Button>}
+        <CloseButton onClick={close} label="Close task" />
+      </div>
+      {error && <div role="alert"><p className="error">Could not load this task: {error}</p><Button onClick={() => void reload()}>Try again</Button></div>}
+      {!detail && !error && <p className="muted" role="status">Loading…</p>}
+      {task && <>
+        {notice && <div role="status" className="k42-task-notice"><p>{notice}</p>{uncertain && <Button disabled={busy} onClick={() => void send(uncertain)}>Retry</Button>}</div>}
+        {reconcile && <section className="k42-task-conflict" role="alert">
+          <h3>Task changed</h3><p>Your draft is kept. Review the current saved text:</p>
+          {titleDraft!==null && <p>{task.title}</p>}{editing!==null && <p className="k42-task-description">{task.description || 'No description'}</p>}
+          {commentEdit && <p>{detail.comments.find(c=>c.id===commentEdit.id)?.body}</p>}
+          <div className="k42-task-actions"><Button onClick={resolveLatest}>Use saved version</Button><Button onClick={()=>{setReconcile(false);setNotice(null);}}>Keep my draft</Button></div>
+        </section>}
+        <div className="k42-task-props">
+          <span className="k42-task-prop-label" id={`${titleId}-status`}>Status</span>
+          <div className="k42-task-segments" role="group" aria-labelledby={`${titleId}-status`}>
+            {TASK_STATUSES.map(s => {
+              const blocked = statusChangeBlock(task, s.id);
+              return <button key={s.id} type="button" aria-pressed={task.status === s.id} className={`k42-task-segment is-${s.id}`}
+                disabled={readOnly || !canControl || reconcile || busy || !!uncertain || !!blocked || task.status === s.id} title={blocked ?? undefined}
+                onClick={() => void setStatus(s.id)}>{s.label}</button>;
+            })}
+          </div>
+          {!readOnly && (task.status === 'canceled' ? <p className="muted k42-task-hint">Reopen to Backlog to work on it. Canceling doesn’t stop an agent.</p> : unassigned && <p className="muted k42-task-hint">Assign an agent before starting or completing this task.</p>)}
+
+          <span className="k42-task-prop-label" id={`${titleId}-assignee`}>Assigned agent</span>
+          <div className="k42-task-assignee">
+            {readOnly || !assignmentChoices.length ? task.assignedAgentId ? <AgentChip id={task.assignedAgentId} directory={directory} size={32} /> : <Unassigned />
+              : <PickerMenu label="Assigned agent" disabled={busy || reconcile || !!uncertain} summary={task.assignedAgentId ? <AgentChip id={task.assignedAgentId} directory={directory} size={32} /> : <Unassigned />}
+                  items={[...assignmentChoices.map(a => ({ key: a.id, label: <AgentChip id={a.id} directory={directory} size={24} />, checked: a.id === task.assignedAgentId, onSelect: () => { if (a.id !== task.assignedAgentId) void assign(a.id); } })),
+                    ...(task.assignedAgentId && canControl ? [{ key: 'release', label: <span>Release to Backlog</span>, onSelect: () => void release() }] : [])]} />}
+            {task.assignedAgentId && directory.gone(task.assignedAgentId) && <p className="muted k42-task-hint">This agent left the project. The assignment stays until released.</p>}
+          </div>
+
+          <span className="k42-task-prop-label">Contributors</span>
+          <div>
+            {readOnly ? <ContributorSummary contributors={task.contributors} directory={directory} />
+              : <PickerMenu label="Contributors" disabled={busy || reconcile || !!uncertain} summary={<ContributorSummary contributors={task.contributors} directory={directory} />}
+                  items={agents.map(a => ({ kind: 'agent' as const, id: a.id })).map(actor => {
+                    const on = task.contributors.some(c => c.kind === actor.kind && c.id === actor.id);
+                    return { key: `${actor.kind}:${actor.id}`, label: <ActorChip actor={actor} directory={directory} />, checked: on,
+                      onSelect: () => base && void act({ operation: 'update', ...base, contributors: on ? task.contributors.filter(c => !(c.kind === actor.kind && c.id === actor.id)) : [...task.contributors, actor] }) };
+                  })} />}
+          </div>
+
+        </div>
+
+        <section className="k42-task-section" aria-label="Description">
+          <div className="k42-task-section-head"><h3>Description</h3>{!readOnly && canDescribe && editing === null && <Button className="k42-task-text-action" onClick={() => setEditing(task.description)}>Edit</Button>}</div>
+          {editing === null || readOnly
+            ? task.description ? <p className="k42-task-description">{task.description}</p> : <p className="muted">No description. Describe the work and what done looks like.</p>
+            : <><textarea aria-label="Description" className="k42-task-textarea" value={editing} rows={8} onChange={e => setEditing(e.target.value)} placeholder="What needs doing, and what does done look like?" />
+              <div className="k42-task-actions"><Button className="primary" disabled={busy || reconcile || !!uncertain} onClick={() => void saveDescription()}>{task.status==='done' && editing!==task.description ? 'Save and reopen' : 'Save'}</Button><Button onClick={() => setEditing(null)}>Cancel</Button></div></>}
+        </section>
+
+        <details className="k42-task-section"><summary>Details{task.priority!=='normal' ? ` · ${task.priority} priority` : ''}</summary><div className="k42-task-props">          <label className="k42-task-prop-label" htmlFor={`${titleId}-priority`}>Priority</label>
+          <div>{readOnly ? <span>{task.priority[0].toUpperCase() + task.priority.slice(1)}</span>
+            : <select id={`${titleId}-priority`} className="k42-task-priority-select" value={task.priority} disabled={busy || reconcile || !!uncertain} onChange={e => base && void act({ operation: 'update', ...base, priority: e.target.value as NativeTask['priority'] })}>
+                <option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option>
+              </select>}</div></div></details>
+
+        <details className="k42-task-section k42-task-links">
+          <summary><h3>Links</h3><span className="k42-tasks-count">{task.references.length}</span></summary>
+          <ul>{task.references.map(r => { const v = taskReferenceView(r); return <li key={r.id}><span className="k42-task-ref-kind">{v.label}</span>
+            {v.href ? <a href={v.href} title={v.href} target="_blank" rel="noreferrer noopener">{v.text}{v.destination && <span className="k42-task-ref-destination">{v.destination}</span>}</a>
+              : 'sourceId' in r && go && projectId ? <NavLink go={go} to={r.kind === 'conversation'
+                ? { view: 'project', projectId, section: 'conversations', thread: r.sourceId, agent: null, q: null }
+                : { view: 'project', projectId, section: 'conversations', thread: null, agent: null, q: null, message: r.sourceId }}>{v.text}</NavLink>
+              : taskSourceHref(r,projectId,viewerUrl) ? <a href={taskSourceHref(r,projectId,viewerUrl)!} target="_blank" rel="noreferrer noopener">{v.text}{v.destination && <span className="k42-task-ref-destination">{v.destination}</span>}</a> : <span>{v.text}</span>}
+            {!readOnly && base && <button type="button" className="k42-task-text-action" aria-label={`Remove ${v.label.toLowerCase()}: ${v.text}`} disabled={busy || reconcile || !!uncertain} onClick={() => void act({ operation: 'remove_reference', ...base, referenceId: r.id })}>Remove</button>}</li>; })}</ul>
+          {!readOnly && <form className="k42-task-link-form" onSubmit={addLink}>
+            <label htmlFor={`${titleId}-link`}>Link</label>
+            <input id={`${titleId}-link`} aria-label="Link URL" type="url" value={link} readOnly={busy || !!uncertain} onChange={e => setLink(e.target.value)} placeholder="Paste a PR, result or conversation link" />
+            <label htmlFor={`${titleId}-link-label`}>Label <span className="muted">(optional)</span></label>
+            <div className="k42-task-inline"><input id={`${titleId}-link-label`} value={linkLabel} readOnly={busy || !!uncertain} onChange={e => setLinkLabel(e.target.value)} maxLength={120} placeholder="e.g. Implementation reference" /><Button type="submit" disabled={busy || reconcile || !!uncertain || !link.trim()}>Add link</Button></div></form>}
+        </details>
+
+        <section className="k42-task-section" aria-label="Comments">
+          <h3>Comments</h3>
+          <ol className="k42-task-comments">{detail.comments.map(c => {
+            const own = !readOnly && !!selfId && c.author.kind === 'person' && c.author.id === selfId;
+            return <li key={c.id}><div className="k42-task-comment-meta"><ActorChip actor={c.author} directory={directory} /><span className="muted">{when(c.createdAt)}{c.updatedAt > c.createdAt ? ' · edited' : ''}</span>
+              {own && commentEdit?.id !== c.id && <button type="button" className="k42-task-text-action" onClick={() => setCommentEdit({ id: c.id, body: c.body })}>Edit</button>}</div>
+              {commentEdit?.id === c.id && !readOnly
+                ? <><textarea aria-label="Edit comment" className="k42-task-textarea" rows={3} value={commentEdit.body} onChange={e => setCommentEdit({ id: c.id, body: e.target.value })} />
+                  <div className="k42-task-actions"><Button className="primary" disabled={busy || reconcile || !!uncertain || !commentEdit.body.trim()} onClick={() => void saveComment()}>Save</Button><Button onClick={() => setCommentEdit(null)}>Cancel</Button></div></>
+                : <p>{c.body}</p>}</li>;
+          })}</ol>
+          {detail.nextCommentCursor && <Button onClick={() => more('comments')}>Show older comments</Button>}
+          {!detail.comments.length && <p className="muted">No comments yet.</p>}
+          {!readOnly && <form onSubmit={sendComment}><textarea aria-label="Comment" className="k42-task-textarea" rows={3} value={comment} onChange={e => setComment(e.target.value)} placeholder="Add an update, a question or a result" />
+            <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || reconcile || !!uncertain || !comment.trim()}>Comment</Button></div></form>}
+        </section>
+
+        <details className="k42-task-section">
+          <summary><h3>History</h3><span className="k42-tasks-count">{detail.activity.length}</span></summary>
+          <ol className="k42-task-history">{detail.activity.map(a => <li key={a.id}><ActorChip actor={a.actor} directory={directory} /> <span>{historyLabel(a)}</span> <span className="muted">{when(a.at)}</span>
+            <Button onClick={()=>viewVersion(a.id)}>View saved version</Button>{versions[a.id]?.task && <div className="k42-task-saved-version"><strong>{versions[a.id].task!.title}</strong><p>{versions[a.id].task!.status}</p>{versions[a.id].comment && <p>{versions[a.id].comment!.body}</p>}<p className="k42-task-description">{versions[a.id].task!.description}</p></div>}</li>)}</ol>
+          {detail.nextActivityCursor && <Button onClick={() => more('activity')}>Show more history</Button>}
+        </details>
+      </>}
+    </aside>
+  </div>;
+}
+
+function ContributorSummary({ contributors, directory }: { contributors: NativeTaskContributor[]; directory: Directory }) {
+  if (!contributors.length) return <span className="muted">None yet</span>;
+  return <span className="k42-task-avatars">{contributors.map(c => <span key={`${c.kind}:${c.id}`} title={directory.name(c)}>
+    <AgentAvatar id={c.id} name={directory.name(c)} ownerId={directory.agent.get(c.id)?.operatorId} ownerName={directory.agent.get(c.id)?.operatorName} ownerPhoto={directory.agent.get(c.id)?.operatorPhoto} persona={directory.agent.get(c.id)?.personaChoice} size={28} decorative /></span>)}
+    <span className="k42-visually-hidden">{contributors.map(c => directory.name(c)).join(', ')}</span></span>;
+}
+
+type PickerItem = { key: string; label: ReactNode; checked?: boolean; onSelect: () => void };
+/** The summary (avatar and name) is the control: it opens a small menu, like the selected simple-tasks design. */
+function PickerMenu({ label, summary, items, disabled }: { label: string; summary: ReactNode; items: PickerItem[]; disabled?: boolean }) {
+  const [open, setOpen] = useState(false), trigger = useRef<HTMLButtonElement>(null), menu = useRef<HTMLDivElement>(null), menuId = useId();
+  useEffect(() => {
+    if (!open) return;
+    menu.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    const outside = (event: PointerEvent) => { if (!menu.current?.contains(event.target as Node) && !trigger.current?.contains(event.target as Node)) setOpen(false); };
+    const key = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); trigger.current?.focus(); }
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        const buttons = [...(menu.current?.querySelectorAll<HTMLButtonElement>('button') ?? [])], at = buttons.indexOf(document.activeElement as HTMLButtonElement);
+        buttons[(at + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus(); event.preventDefault();
+      }
+    };
+    document.addEventListener('pointerdown', outside); document.addEventListener('keydown', key, true);
+    return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', key, true); };
+  }, [open]);
+  return <div className="k42-task-picker">
+    <button ref={trigger} type="button" className="k42-task-picker-trigger" aria-haspopup="menu" aria-expanded={open} aria-controls={menuId} aria-label={`${label}: change`} disabled={disabled} onClick={() => setOpen(v => !v)}>{summary}</button>
+    {open && <div ref={menu} id={menuId} role="menu" aria-label={label} className="k42-task-picker-menu">
+      {items.map(item => <button key={item.key} type="button" role={item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked={item.checked}
+        className="k42-task-picker-item" onClick={() => { item.onSelect(); setOpen(false); trigger.current?.focus(); }}>
+        {item.label}{item.checked && <Check size={16} aria-hidden="true" />}</button>)}
+    </div>}
+  </div>;
+}
+
+function historyLabel(event: NativeTaskActivity) {
+  const labels:Record<string,string>={create:'created the task',claim:'claimed the task',release:'released the task to Backlog',assign:'changed the assigned agent',comment:'added a comment',edit_comment:'edited a comment',add_reference:'added a link',remove_reference:'removed a link'};
+  const fields:Record<string,string>={title:'title',description:'description',status:'status',assignedAgentId:'assigned agent',priority:'priority',contributors:'contributors',references:'links'};
+  return event.action==='update' ? `changed ${event.fields?.map(f=>fields[f]??f).join(', ') || 'task details'}` : labels[event.action];
+}

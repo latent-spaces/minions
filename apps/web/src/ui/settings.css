@@ -1,0 +1,43 @@
+/* Settings uses the existing Gallery Workspace surfaces and controls. */
+.project-settings { max-width: 900px; }
+.settings-page-title { font-size: 20px; font-weight: 650; line-height: 1.25; margin: 0 0 20px; }
+.settings-page-title:focus { outline: none; }
+.settings-category-pages > [hidden] { display: none; }
+.settings-category-pages .settings-section { border: 0; margin: 0; padding: 0; }
+.settings-category-pages .settings-card > .settings-section ~ .settings-section { border-top: var(--card-border); margin-top: 28px; padding-top: 24px; }
+.settings-category-pages :is(h3, h4) { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+.settings-category-pages :is(p, .settings-value) { margin: 8px 0 16px; }
+.settings-category-pages .settings-form { max-width: none; margin: 0; }
+.settings-category-pages fieldset { min-width: 0; }
+.settings-category-pages .settings-form label { font-size: 14px; font-weight: 600; }
+.settings-category-pages .settings-form :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]), textarea) { width: 100%; box-sizing: border-box; }
+.settings-category-pages .settings-form :is(input, select, textarea) { margin-bottom: 8px; }
+.settings-category-pages .settings-form :is(input[type="checkbox"], input[type="radio"]) { margin: 0 8px 0 0; }
+.settings-category-pages .settings-form > fieldset > label:first-child,
+.settings-category-pages .card-form > fieldset > div:first-child > label { margin-top: 0; }
+.settings-save-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.settings-category-pages .settings-form > fieldset > button { margin-top: 16px; margin-inline-end: 8px; }
+.settings-category-pages .settings-disclosure { border: 0; padding: 0; margin: 16px 0 0; }
+.settings-category-pages .settings-disclosure > summary { display: flex; align-items: center; gap: 8px; padding: 8px 0; min-height: 36px; box-sizing: border-box; font-size: 14px; font-weight: 600; }
+.settings-category-pages .settings-disclosure > summary::after { position: static; margin-left: auto; }
+.settings-category-pages .settings-disclosure > summary > span { display: inline; padding: 0; margin: 0; font-size: 12px; font-weight: 450; }
+.settings-category-pages .settings-disclosure > :not(summary) { margin-top: 16px; }
+.settings-category-pages .settings-readonly { display: grid; gap: 16px; }
+.settings-readonly dt { font-weight: 600; }
+.settings-readonly dd { margin: 4px 0 0; }
+.settings-category-pages .agent-panel { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; margin: 28px 0 0; border-top: var(--card-border); padding-top: 24px; }
+.settings-category-pages .agent-details-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.settings-category-pages .agent-details-list > div { min-width: 0; }
+@media (max-width: 900px), (pointer: coarse) {
+  .project-settings :is(input, select, textarea), .project-settings .settings-form :is(input, select, textarea) { font-size: 16px; }
+}
+@media (max-width: 600px) {
+   .settings-category-pages .agent-details-list { grid-template-columns: 1fr; }
+  .settings-category-pages .settings-disclosure > summary { min-height: 44px; }
+  .settings-category-pages label:has(> input:is([type="checkbox"], [type="radio"])) { display: flex; align-items: center; min-height: 44px; }
+  .settings-category-pages label > input:is([type="checkbox"], [type="radio"]) { flex: none; }
+  .settings-category-pages .k42-md-toolbar { flex-wrap: wrap; gap: 4px; }
+  .settings-category-pages .k42-md-toolbar > :not(.k42-md-gap) { width: 44px; height: 44px; }
+  .settings-category-pages .k42-md-gap { display: none; }
+  .settings-category-pages .k42-md-tabs button { min-width: 44px; min-height: 44px; }
+}

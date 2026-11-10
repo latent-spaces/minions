@@ -1,0 +1,29 @@
+import type { MergeApproval } from './merge-approval';
+import type { ProjectLifecycle } from '@mlswarm/contracts';
+import type { Overview } from './api';
+export type ProjectRole = 'owner' | 'member';
+export type ProjectEntry = { archived?: boolean; archiveRevision?: number; starred?: boolean; coverImage?: string; id: string; name: string; summary: string; execution: 'not_configured' | 'ready' | 'paused' | 'active' | 'closed'; role: ProjectRole; participantCount?: number | null; listed?: boolean; state?: ProjectLifecycle; lifecycle?: 'setup' | 'recruiting' | 'active' | 'paused'; minContributors?: number | null; startDeadline?: string | null;
+  /** Not listed in Explore. A service from before 18 October 2026 omits it: no lock is shown. */
+  private?: boolean };
+export type ProjectPage = { projects: ProjectEntry[]; next: string | null };
+export type PersonalProjectEntry = ProjectEntry & { kind: 'project' | 'proposal'; proposalStatus: string | null; revision: number | null };
+export type PersonalProjectPage = { projects: PersonalProjectEntry[]; next: string | null };
+export type CardDefinition = { title: string; goal: string; beneficiaries: string; output: string; scope: string; acceptanceCriteria: string; sources: string | null; resources: string | null; githubUrl?: string | null; proposalFormat?: 'simple'; minContributors?: number; mergeApproval: MergeApproval; agentGuidance?: string };
+export type CommunityRulesData = { body: string; version: number; updatedAt: number };
+// definition is the current Card version (cardVersion); version 1 is the approved idea.
+export type Workspace = {
+  startAnnouncement?: import('@mlswarm/contracts').ProjectStartAnnouncement | null;
+  archived?: boolean; archiveRevision?: number; starred?: boolean;
+  setupPlan?: import('@mlswarm/contracts').ProjectSetupPlan; coverImage?: string; conceptImages?: { src: string; title: string }[]; id: string; role: ProjectRole | 'guest'; listed?: boolean; state?: ProjectLifecycle;
+  /** The job's token cap, one pool for all the owner's agents in the project; null or absent for no cap. */
+  tokenLimit?: { tokens: number } | null; tokensUsed?: number; project: NonNullable<Overview['project']> | null; revision: number; execution: ProjectEntry['execution']; canConfigure: boolean;
+  privacy?: { visibility: 'private'; messageProtection: 'server_readable_v1'; createdAt: number; memberLimit: number };
+  publicationOrigin?: 'private' | 'owner_conversion' | 'reviewed_proposal';
+  setup?: { required: boolean; finalizedAt: number | null; minContributors: number | null; startDeadline: string | null }; participantCount?: number;
+  definition: CardDefinition; cardVersion: number;
+  /** Optional native teams, off by default (read with nativeTeamsEnabled). */
+  nativeTeams?: import('@mlswarm/contracts').NativeTeamSettings;
+  /** Optional native tasks, on by default (read with nativeTasksEnabled). */
+  nativeTasks?: import('@mlswarm/contracts').NativeTaskSettings; communityRules: CommunityRulesData; liveUrl?: string | null };
+export type CardVersion = { version: number; at: number; editorName: string | null; source: 'edit' | 'approved' | 'created'; definition: CardDefinition };
+export type Member = { operatorId: string; projectId: string; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null; email: string | null; role: Exclude<ProjectRole, 'owner'>; revision: number; removedAt: number | null; banned?: boolean };

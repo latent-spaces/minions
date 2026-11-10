@@ -1,0 +1,11 @@
+# Native task drawer recovery checks
+
+Use the existing development-only real-component harness at `/test/native-tasks.html`. These are synthetic transport checks, not backend acceptance.
+
+1. Open the first task with Links and History closed. Tab through the dialog. From the final visible History summary, Tab wraps to the first visible control; Shift+Tab wraps back. Focus never reaches the background “After task workspace” link. Expand Links and History and repeat. Escape closes and restores the original task-row button. Inside an open assignee picker, Escape closes only the picker first.
+2. Open `/test/native-tasks.html?lostReply=add_reference`. Add a URL and “Implementation reference” label. The first response is lost **after the harness commits**. Retry once. The saved link appears once, URL and label inputs clear, Add link is disabled. Expand “Synthetic mutation requests”: both calls have identical request and reference IDs. A labeled PR keeps its compact repository/number visibly beneath its label. Existing unlabeled PRs show compact repository/number.
+3. Open `/test/native-tasks.html?lostReply=comment`. Post a comment, then Retry. The comment appears once and the composer clears; Comment remains disabled until new text is typed. Both logged requests match exactly.
+4. Open `/test/native-tasks.html?lostReply=update&delay=2000`. Edit a title or description and save. During the delay, change the draft again. Retry the original failed reply: the newly edited draft remains; it must not be discarded merely because the earlier text saved. An unchanged draft closes after the same successful replay.
+5. Open `/test/native-tasks.html?lostReply=edit_comment`. Add a person-authored comment, edit it, then Retry the lost edit reply. The editor closes if still showing the submitted text; later edits remain. The synthetic transport preserves the committed comment and receipts.
+
+The separate `/test/task-settings-races.html` harness queues real settings-component requests for explicit ordering. Verify: no checkbox before loading; OFF loads unchecked; read failure offers Try again; unknown save failure offers Retry with identical payload; old-project successes/failures never change the current project or fire its saved callback; deactivate/unmount fences late replies.

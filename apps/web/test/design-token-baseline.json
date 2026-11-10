@@ -1,0 +1,35 @@
+{
+  "styles.css": {
+    "pill": 2,
+    "fieldRadius": 1
+  },
+  "ui/agents.css": {
+    "hex": 8
+  },
+  "ui/chat.css": {
+    "fieldRadius": 1
+  },
+  "ui/invitation-recipient.css": {
+    "fieldRadius": 1
+  },
+  "ui/invited-sign-in.css": {
+    "hex": 1
+  },
+  "ui/needs-you.css": {
+    "hex": 3,
+    "pill": 1
+  },
+  "ui/project-home.css": {
+    "pill": 1
+  },
+  "ui/proposals.css": {
+    "hex": 6,
+    "fieldRadius": 1
+  },
+  "ui/recruitment-timing.css": {
+    "hex": 3
+  },
+  "ui/sign-in-preview.css": {
+    "hex": 3
+  }
+}

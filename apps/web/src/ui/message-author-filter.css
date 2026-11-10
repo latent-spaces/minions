@@ -1,0 +1,2 @@
+.k42-message-author-filter { display: flex; flex-wrap: wrap; gap: 8px; margin-block: 16px; }
+.k42-message-author-filter button[aria-pressed="true"] { background: var(--ink, #141414); color: var(--on-ink, #fff); }

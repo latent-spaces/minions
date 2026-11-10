@@ -1,0 +1,85 @@
+.k42-navigation { color:var(--ink); font:inherit; display:flex; flex-direction:column; }
+.k42-navigation ul { list-style:none; padding:0; margin:0; display:grid; gap:2px; }
+.k42-navigation .k42-nav-label { font-size:12px; font-weight:600; line-height:1.33; color:var(--text-muted); padding:0 14px; margin:0 0 8px; }
+.k42-navigation .k42-nav-link { display:flex; align-items:center; gap:12px; padding:10px 14px; border:0; border-radius:var(--radius-button); color:var(--ink); min-height:var(--shell-control-size); text-decoration:none; overflow-wrap:anywhere; }
+.k42-navigation .k42-nav-link:hover, .k42-navigation .k42-project-title:hover { background:var(--canvas-soft); text-decoration:none; }
+.k42-navigation .k42-nav-link[aria-current="page"] { background:var(--hairline-soft); color:var(--ink); font-weight:600; }
+.k42-navigation .k42-nav-link[aria-current="page"]:hover { background:var(--hairline-shell); }
+.k42-navigation .k42-shortcuts { margin-top:24px; }
+.k42-navigation .k42-project-title { display:flex; align-items:center; gap:10px; color:var(--ink); flex:1; padding:7px 14px 7px 7px; border:0; border-radius:var(--radius-button); font-weight:600; min-width:0; min-height:var(--shell-control-size); text-decoration:none; overflow-wrap:anywhere; }
+.k42-navigation .k42-project-title[aria-current="location"] { background:var(--canvas-soft); font-weight:650; }
+.k42-project-title small, .k42-nav-project small { display:block; color:var(--text-muted); font-size:12px; font-weight:450; line-height:1.33; }
+.k42-project-stamp { display:grid; place-items:center; width:30px; height:30px; border-radius:6px; flex-shrink:0; overflow:hidden; color:var(--ink); font-size:11px; font-weight:650; background:var(--pastel-mint); }
+.k42-navigation svg { flex-shrink:0; }
+.k42-navigation a:focus-visible, .k42-navigation button:focus-visible, .k42-navigation .k42-nav-locked:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+.k42-navigation .k42-nav-locked { color:var(--text-muted); cursor:not-allowed; }
+.k42-navigation .k42-nav-locked:hover { background:transparent; }
+.k42-navigation .k42-nav-locked > svg:last-child { margin-left:auto; }
+.k42-nav-brand { display:flex; align-items:center; gap:8px; padding:4px 0 28px 14px; }
+.k42-nav-brand .wordmark-logo { font-size:22px; }
+.k42-nav-footer { margin-top:auto; padding-top:12px; border-top:1px solid var(--hairline-shell); display:flex; flex-direction:column; gap:2px; }
+.k42-nav-footer > button { min-height:var(--shell-control-size); }
+.k42-navigation .k42-shortcuts { margin-bottom:24px; }
+.k42-navigation .k42-nav-tour { width:100%; background:transparent; font:inherit; font-weight:450; cursor:pointer; }
+/* "Your projects": the heading links to My projects; the + beside it opens the Create menu. */
+.k42-nav-heading { display:flex; align-items:center; gap:2px; margin-bottom:4px; }
+.k42-navigation .k42-nav-heading > .k42-nav-label { flex:1; margin:0; }
+/* Project mode: "← All projects", the project's stamp, name and status, its sections, then Switch project. */
+.k42-navigation.is-project .k42-shortcuts { margin-top:0; }
+.k42-nav-project { display:flex; align-items:center; gap:12px; margin:12px 0 12px; padding:0 14px 0 7px; min-width:0; overflow-wrap:anywhere; }
+.k42-nav-project strong { display:block; font-weight:650; line-height:1.3; }
+.k42-project-stamp.is-large { width:40px; height:40px; font-size:13px; }
+/* Collapse toggle: a 44px target centred on the 22px wordmark line, so the brand row keeps its height. */
+.k42-navigation .k42-nav-collapse { display:grid; place-items:center; flex:none; width:var(--shell-control-size); height:var(--shell-control-size); margin:-11px 0 -11px auto; padding:0; border:0; border-radius:var(--radius-button); background:transparent; color:var(--text-muted); cursor:pointer; }
+.k42-navigation .k42-nav-collapse:hover { background:var(--canvas-soft); color:var(--ink); }
+/* Names stay for screen readers (and as tooltips) while the rail shows icons only. */
+.k42-navigation .k42-nav-text { position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip-path:inset(50%); white-space:nowrap; border:0; }
+/* Collapsed icon rail (shell polish 2026-10-18): 44px icon and stamp targets that stay put while the column narrows. */
+.k42-navigation.is-collapsed .k42-nav-brand { padding:0 0 20px; }
+.k42-navigation.is-collapsed .k42-nav-collapse { margin:0; }
+.k42-navigation.is-collapsed .k42-nav-link, .k42-navigation.is-collapsed .k42-project-title{ position:relative; display:flex; align-items:center; justify-content:center; flex:none; width:var(--shell-control-size); padding:0; box-sizing:border-box; }
+.k42-navigation.is-collapsed .k42-nav-heading { flex-direction:column; align-items:flex-start; gap:2px; }
+.k42-navigation.is-collapsed .k42-nav-project { justify-content:center; width:var(--shell-control-size); padding:0; }
+/* The stamps keep their own scroll in the rail; a scrollbar would cover them, so it is hidden (wheel, touch and focus still scroll). */
+.k42-navigation.is-collapsed .k42-shortcuts { scrollbar-width:none; }
+/* New project: a menu item that opens the Create menu, styled as the links around it. */
+.k42-nav-link.k42-nav-create { width:100%; border:0; background:transparent; font:inherit; text-align:left; cursor:pointer; }
+/* The project menu's hierarchy (owner, 19 October 2026): 8px item radius, 2px between items, 16px between groups. */
+.k42-project-menu ul { display:flex; flex-direction:column; gap:2px; margin:0; padding:0; list-style:none; }
+.k42-project-menu .k42-nav-link { border-radius:8px; }
+.k42-project-menu .k42-nav-back .k42-nav-link { min-height:36px; padding-block:6px; font-size:13px; color:var(--text-muted); }
+.k42-project-menu .k42-nav-project { margin:8px 0 16px; }
+.k42-nav-project-text { display:flex; flex-direction:column; min-width:0; }
+.k42-nav-project-text strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.k42-nav-project-text small { color:var(--text-muted); font-size:12px; }
+.k42-my-agents { margin-top:16px; padding-top:16px; border-top:1px solid var(--hairline-shell); }
+.k42-my-agents .k42-nav-label { margin:0 0 4px; font-size:12px; color:var(--text-muted); }
+.k42-navigation .k42-my-agent { gap:10px; min-height:44px; padding-block:4px; background:transparent; border:0; box-shadow:none; font:inherit; color:var(--ink); width:100%; text-align:left; cursor:pointer; }
+.k42-navigation .k42-my-agent:hover { background:var(--canvas-soft); }
+.k42-my-agents .k42-my-agent-group { padding:8px 14px 2px; font-size:11px; font-weight:600; color:var(--text-faint); }
+/* Keep project identity outside the list's scrollport so focus cannot hide underneath it. */
+.k42-navigation .k42-project-menu { display:flex; flex-direction:column; }
+.k42-project-menu > nav[aria-label="Project"] { flex:none; }
+.k42-project-scroll { min-height:0; overflow:auto; overscroll-behavior:contain; padding:4px; margin-inline:-4px; flex:1 1 auto; }
+.workspace-layout > .project-sidebar:not(.drawer) .k42-project-menu { overflow:visible; padding:0; margin-inline:0; }
+/* My agents reads like a recents list: avatar, name, what it is doing, and Show more (owner, 19 October 2026). */
+.k42-navigation .k42-my-agent:has(.k42-my-agent-text) { min-height:48px; }
+.k42-my-agent-text { display:flex; flex-direction:column; min-width:0; line-height:1.3; }
+.k42-my-agent-text strong { font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.k42-my-agent-text small { font-size:12px; color:var(--text-muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.k42-navigation .k42-nav-more { border:0; background:transparent; padding:8px 14px; font:inherit; font-size:13px; font-weight:600; color:var(--ink); cursor:pointer; border-radius:8px; }
+.k42-navigation .k42-nav-more:hover { background:var(--canvas-soft); }
+/* The name and focus lines shrink with the menu and end in an ellipsis instead of widening it. */
+.k42-navigation .k42-my-agent > span:has(> .k42-my-agent-text) { flex:1; min-width:0; }
+/* The tagline under the logo (owner, 19 October 2026). */
+.k42-brand-lockup { display:flex; flex-direction:column; align-items:flex-start; gap:4px; min-width:0; }
+.k42-tagline { font-size:12px; line-height:1.3; color:var(--text-muted); white-space:nowrap; }
+.k42-my-agent-avatar-wrap { position:relative; display:inline-flex; flex:none; }
+/* Private or shared mark at the end of a project row. */
+.k42-project-kind { flex:none; display:grid; place-items:center; margin-left:auto; color:var(--text-muted); }
+.k42-project-kind.is-private { color:var(--ink); }
+/* New project flyout beside the menu column (owner, 19 October 2026). */
+.k42-nav-create .k42-nav-create-plus { display:grid; place-items:center; width:26px; height:26px; margin-left:auto; border-radius:8px; color:var(--ink); }
+.k42-nav-create .k42-nav-create-plus.is-start { margin-left:-4px; }
+.k42-nav-create:hover .k42-nav-create-plus, .k42-nav-create.is-open .k42-nav-create-plus { background:var(--canvas); box-shadow:0 0 0 1px var(--hairline); }
+@keyframes k42-flyout-in { from { opacity:0; transform:translateX(-4px); } to { opacity:1; transform:none; } }

@@ -1,0 +1,43 @@
+/* Directory/detail layout uses the Gallery Workspace's existing surface and control tokens. */
+.k42-teams { display: grid; gap: 20px; min-width: 0; }
+.k42-teams-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.k42-teams-heading h2, .k42-teams-heading h3, .k42-teams-heading h4 { margin: 0; }
+.k42-teams-heading h2 { font-size: 24px; font-weight: 650; }
+.k42-teams-heading p { margin: 6px 0 0; }
+.k42-teams-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.k42-teams-toolbar .k42-tasks-search { flex: 1 1 180px; }
+.k42-teams-split { display: grid; grid-template-columns: minmax(180px, 2fr) minmax(0, 3fr); border: var(--card-border); border-radius: var(--surface-radius); overflow: hidden; background: var(--canvas); min-width: 0; }
+.k42-teams-split.is-empty { grid-template-columns: minmax(0, 1fr); }
+.k42-teams-directory { min-width: 0; padding-bottom: 12px; }
+.k42-teams-directory > ul { list-style: none; margin: 0; padding: 0; }
+.k42-teams-directory > .k42-empty { padding: 24px 16px; }
+.k42-teams-directory > button { margin: 12px; }
+.k42-team-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; padding: 16px; min-height: 76px; border: 0; border-bottom: 1px solid var(--hairline-shell); border-radius: 0; background: var(--canvas); color: var(--ink); font: inherit; text-align: left; }
+.k42-team-row:hover, .k42-team-row[aria-pressed="true"] { background: var(--canvas-soft); }
+.k42-team-row > span { display: grid; gap: 4px; min-width: 0; }
+.k42-team-row strong { font-size: 16px; font-weight: 600; overflow-wrap: anywhere; }
+.k42-team-row .muted { font-size: 14px; font-weight: 450; }
+.k42-team-row svg { flex: none; }
+.k42-team-row:focus-visible { outline: 2px solid var(--ink); outline-offset: -3px; }
+.k42-team-detail, .k42-teams-placeholder { border-left: 1px solid var(--hairline-shell); padding: 24px; min-width: 0; }
+.k42-team-detail { display: grid; align-content: start; gap: 24px; }
+.k42-team-detail:focus { outline: none; }
+.k42-team-detail h3 { font-size: 20px; font-weight: 650; overflow-wrap: anywhere; }
+.k42-team-detail h4 { font-size: 14px; font-weight: 600; margin: 0 0 12px; }
+.k42-team-detail p { margin: 8px 0 0; }
+.k42-team-purpose { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.55; }
+.k42-teams-placeholder { display: grid; align-content: start; justify-items: start; gap: 8px; color: var(--text-muted); font-size: 14px; }
+.k42-team-members { display: grid; gap: 16px; list-style: none; padding: 0; margin: 0 0 12px; }
+.k42-team-agent { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.k42-team-agent > span:last-child { display: grid; min-width: 0; gap: 2px; }
+.k42-team-agent strong { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.k42-team-agent small { color: var(--text-muted); font-size: 12px; overflow-wrap: anywhere; }
+.k42-team-history { display: grid; gap: 16px; padding: 0; margin: 12px 0; list-style: none; }
+.k42-team-history li { display: grid; gap: 4px; font-size: 14px; overflow-wrap: anywhere; }
+.k42-team-history time { color: var(--text-muted); font-size: 12px; }
+@media (max-width: 720px) {
+  .k42-teams-split { grid-template-columns: minmax(0, 1fr); }
+  .k42-teams-placeholder { display: none; }
+  .k42-teams-split.has-selection .k42-teams-directory { display: none; }
+  .k42-team-detail { border-left: 0; padding: 20px; }
+}

@@ -1,0 +1,7 @@
+/* The shared X (CloseButton). A dialog's direct child sits in its top-right corner; inside a header or
+   drawer body it stays in flow and the container places it. */
+.k42-close { display:grid; place-items:center; flex:none; width:var(--shell-control-size); height:var(--shell-control-size); min-width:var(--shell-control-size); min-height:var(--shell-control-size); padding:0; border:0; border-radius:var(--radius-button); background:transparent; color:var(--ink); transition:background-color 160ms var(--k42-ease); }
+.k42-close:hover:not(:disabled) { background:var(--canvas-soft); }
+.k42-close:disabled { color:var(--text-faint); }
+dialog > .k42-close { position:absolute; top:12px; right:12px; z-index:1; }
+@media (prefers-reduced-motion:reduce) { .k42-close { transition:none; } }

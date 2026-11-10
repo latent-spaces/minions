@@ -1,0 +1,8 @@
+.agent-observation-list { list-style: none; margin: 1rem 0 0; padding: 0; border-top: 1px solid var(--line, #e0e0e0); }
+.agent-observation-list > li { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid var(--line, #e0e0e0); overflow-wrap: anywhere; }
+.agent-observation-body { min-width: 0; flex: 1; }
+.agent-observation-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: .375rem .75rem; }
+.agent-observation-status { font-size: .875rem; font-weight: 600; color: var(--text, #262626); background: var(--canvas-soft, #f3f3f3); border-radius: 999px; padding: .2rem .625rem; }
+.agent-observation-list .agent-focus p { margin: .5rem 0 0; }
+.agent-observation-list .agent-help { font-size: .875rem; color: var(--muted, #6b6b6b); }
+@media (max-width: 36rem) { .agent-observation-list > li { flex-wrap: wrap; } }

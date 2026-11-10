@@ -1,0 +1,6 @@
+.k42-participant-popup { width: min(680px, calc(100vw - 32px)); max-height: calc(100svh - 32px); overflow: auto; padding: 28px; border: 1px solid var(--hairline); border-radius: 16px; background: var(--canvas); color: var(--ink); overflow-wrap: anywhere; }
+.k42-participant-popup::backdrop { background: var(--scrim); }
+.k42-participant-popup > h2 { margin: 0 44px 20px 0; font-size: 22px; }
+.k42-participant-popup .k42-profile-summary { max-width: 100%; }
+.k42-person-map-avatar { display: flex; justify-content: center; }
+@media (max-width: 480px) { .k42-participant-popup { padding: 20px 16px; } .k42-participant-popup .k42-needs-item > summary { flex-wrap: wrap; padding: 14px; gap: 8px; } .k42-participant-popup .k42-needs-detail { padding: 0 14px 14px; } .k42-participant-popup .k42-needs-visibility { white-space: normal; } }

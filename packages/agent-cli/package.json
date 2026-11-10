@@ -1,0 +1,33 @@
+{
+  "name": "mlswarm",
+  "version": "0.1.0-beta.73",
+  "private": true,
+  "description": "Model-independent MyLittleSwarm MCP connector for project agents",
+  "license": "UNLICENSED",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "mlswarm-agent": "./src/cli.mjs"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 \"test/*.test.mjs\"",
+    "build": "node scripts/build.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oronanschel/mylittleswarm.git",
+    "directory": "packages/agent-cli"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "2.3.1",
+    "@modelcontextprotocol/node": "2.1.1",
+    "@modelcontextprotocol/server": "2.3.1",
+    "smol-toml": "1.9.1",
+    "zod": "4.6.5"
+  }
+}

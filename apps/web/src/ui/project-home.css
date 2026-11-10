@@ -1,0 +1,13 @@
+.k42-agent-filters { display:flex; gap:8px; flex-wrap:wrap; margin:0 0 20px; }
+.k42-agent-filters a { padding:8px 12px; border:1px solid var(--line); border-radius:6px; color:var(--text); text-decoration:none; }
+.k42-agent-filters a[aria-current="page"] { background:var(--highlight); font-weight:600; }
+.k42-agent-filters a:hover { border-color:var(--accent); }
+.k42-agent-filters a:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+.k42-activity-main h2 { margin:0; }
+.k42-activity-main { min-width:0; display:flex; flex-direction:column; gap:16px; }
+.k42-overview:not([hidden]) { display:flex; flex-direction:column; gap:16px; margin-bottom:24px; }
+.k42-swarm-panel { border:var(--card-border); border-radius:var(--surface-radius); background:var(--canvas); padding:20px; }
+.k42-activity-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+.k42-project-main { min-width:0; }
+/* My agents and Agents chat tabs. */
+.k42-chat-identity svg { flex:none; color:var(--muted); }

@@ -1,0 +1,30 @@
+.feedback-dialog { width: min(520px, calc(100vw - 32px)); max-height: calc(100svh - 32px); overflow: auto; padding: 32px; border: 1px solid var(--hairline); border-radius: 16px; background: var(--canvas); color: var(--ink); }
+.feedback-dialog::backdrop { background: var(--scrim); }
+.feedback-dialog h1 { margin: 0 40px 8px 0; font-size: 24px; line-height: 1.25; }
+.feedback-dialog > p{ margin-top: 8px; }
+.feedback-dialog fieldset { padding: 0; margin: 24px 0 0; border: 0; min-width: 0; }
+.feedback-dialog label { display: block; font-weight: 600; margin: 20px 0 8px; }
+.feedback-dialog textarea { width: 100%; resize: vertical; min-height: 120px; padding: 12px; font: inherit; }
+.feedback-dialog .muted { font-size: 14px; line-height: 1.5; }
+.feedback-dialog .feedback-context { display: flex; align-items: flex-start; gap: 8px; font-weight: 450; }
+.feedback-dialog .feedback-context input { flex: none; margin: 3px 0 0; }
+.feedback-kinds, .feedback-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.feedback-kinds button, .feedback-actions button { min-height: 44px; }
+.feedback-kinds button[aria-pressed=true] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.feedback-dialog .feedback-actions { justify-content: flex-end; margin-top: 24px; }
+.feedback-file { overflow-wrap: anywhere; }
+.feedback-file button { display: block; margin-top: 8px; }
+.feedback-body { white-space: pre-wrap; overflow-wrap: anywhere; }
+.feedback-dialog .feedback-reasons { margin: 0; }
+.feedback-dialog.is-lifecycle { padding: 24px; }
+.feedback-dialog.is-lifecycle textarea { min-height: 88px; }
+.feedback-reasons legend { font-weight: 600; }
+.feedback-dialog .feedback-reasons label { display: flex; align-items: center; gap: 12px; min-height: 44px; margin: 0; font-weight: 450; }
+.feedback-reasons input { flex: none; margin: 0; }
+.feedback-pause-prompt { position: fixed; bottom: 24px; right: 24px; z-index: 100; width: min(380px, calc(100vw - 32px)); max-height: calc(100svh - 32px); overflow: auto; padding: 24px; border: 1px solid var(--hairline); border-radius: 16px; background: var(--canvas); color: var(--ink); }
+.feedback-pause-prompt > p:first-child { margin-top: 0; font-weight: 600; }
+.feedback-pause-prompt .muted { font-size: 14px; }
+.feedback-pause-prompt button { min-height: 44px; }
+.feedback-prompt-preference { margin-top: 24px; }
+@media (max-width: 600px) { .feedback-pause-prompt { right: 16px; bottom: 16px; padding: 20px; } }
+@media (max-width: 760px) { .feedback-dialog { padding: 24px; } }

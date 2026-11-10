@@ -1,0 +1,18 @@
+/* Approve this computer: one centred card on a quiet page, the logo above it. */
+.k42-approve-page { min-height: 100%; display: flex; flex-direction: column; align-items: center; gap: 28px; padding: 40px 16px 64px; background: var(--canvas-sunken); }
+.k42-approve-page > .wordmark, .k42-approve-page > img, .k42-approve-page > a { align-self: center; }
+.k42-approve-card { box-sizing: border-box; width: min(520px, 100%); display: grid; gap: 14px; padding: 32px; border: var(--card-border); border-radius: var(--surface-radius); background: var(--canvas); box-shadow: 0 1px 2px rgb(20 20 20 / .04), 0 18px 48px rgb(20 20 20 / .07); }
+.k42-approve-card h1 { margin: 0; font-size: 24px; letter-spacing: -.02em; text-wrap: balance; }
+.k42-approve-card p { margin: 0; line-height: 1.55; }
+.k42-approve-card dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 16px; margin: 0; padding: 14px 16px; border-radius: var(--surface-radius); background: var(--canvas-sunken); font-size: 12px; }
+.k42-approve-card dt { color: var(--text-muted); }
+.k42-approve-card dd { margin: 0; }
+.k42-approve-card ul { margin: 0; padding-inline-start: 20px; display: grid; gap: 6px; }
+.k42-approve-card .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.k42-approve-art { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 6px; }
+.k42-approve-device { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; background: var(--pastel-sky); color: var(--ink); }
+.k42-approve-link { width: 56px; height: 0; border-top: 2px dashed var(--hairline-strong); }
+.k42-approve-done { display: grid; gap: 10px; justify-items: center; text-align: center; }
+.k42-approve-check { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; background: var(--pastel-mint); color: var(--ink); }
+.k42-approve-muted { color: var(--text-muted); font-size: 12px; }
+.k42-approve-card:has(.k42-approve-done) .k42-approve-art { display: none; }

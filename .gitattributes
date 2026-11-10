@@ -1,0 +1,2 @@
+# Preserve generated PDF bytes and avoid treating their object tables as text.
+*.pdf binary

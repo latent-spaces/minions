@@ -1,0 +1,8 @@
+.k42-team-access-actions { display: flex; flex-wrap: wrap; justify-content: end; align-items: center; gap: 6px; }
+.k42-person-merge-access { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; font-size: 12px; }
+.k42-person-merge-access > span { color: var(--muted); }
+.k42-person-merge-access button { min-height: 32px; font-size: 12px; padding: 6px 10px; white-space: normal; }
+@container (max-width: 620px) {
+  .k42-team-access-actions { justify-content: start; }
+  .k42-person-merge-access button { min-height: 44px; }
+}

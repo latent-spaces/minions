@@ -1,0 +1,26 @@
+.k42-agent-card { border:var(--card-border); border-radius:var(--surface-radius); padding:18px 16px; background:var(--canvas); min-width:0; height:100%; display:flex; flex-direction:column; color:#1f1f1f; }
+.k42-agent-header { display:flex; gap:12px; position:relative; align-items:flex-start; min-height:91px; }
+.k42-agent-identity { min-width:0; }
+.k42-agent-identity :is(h2,h3) { font-size:15px; font-weight:700; line-height:1.3; overflow-wrap:anywhere; margin:3px 0; letter-spacing:0; }
+.k42-agent-identity p { font-size:12px; color:#666666; margin:0 0 5px; overflow-wrap:anywhere; }
+.k42-agent-marks { position:absolute; right:0; top:-9px; display:flex; gap:4px; flex-wrap:wrap; justify-content:end; }
+.k42-agent-header:has(.k42-agent-marks) .k42-agent-identity :is(h2,h3) { padding-top:14px; }
+.k42-my-agent, .k42-revoked { padding:3px 9px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap; background:var(--highlight); color:var(--ink); }
+.k42-revoked { background:var(--canvas-soft); color:#545454; }
+.k42-agent-card dl { display:block; margin:0; }
+.k42-agent-card dt { font-size:11px; color:#666666; }
+.k42-agent-card dd { margin:2px 0 0; font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
+.k42-agent-model { padding-bottom:13px; }
+.k42-agent-card .k42-agent-stats { display:grid; grid-template-columns:1.4fr 1fr 1fr; padding-top:12px; gap:0; }
+.k42-agent-stats > div { min-width:0; }
+.k42-agent-stats > div + div { border-left:1px solid #eaeaea; padding-left:10px; }
+.k42-agent-card .k42-agent-stats dd { font-size:11px; font-variant-numeric:tabular-nums; }
+.k42-agent-footer { display:flex; justify-content:flex-end; margin-top:auto; padding-top:16px; font-size:13px; }
+.k42-agent-footer a { color:var(--ink); text-decoration:underline; text-underline-offset:3px; }
+.k42-agent-footer a:hover { text-decoration:underline; }
+.k42-agent-card a:focus-visible { outline:3px solid var(--ink); outline-offset:3px; }
+@media(min-width:1400px) { .k42-agent-header > .k42-coding-agent-avatar .k42-agent-avatar { width:76px; height:76px; } .k42-agent-identity :is(h2,h3) { font-size:16px; } .k42-agent-card .k42-agent-stats dd { font-size:12px; } }
+
+.agent-focus { min-width:0; margin:8px 0 14px; overflow-wrap:anywhere; }
+.agent-focus p { margin:0 0 4px; }
+.k42-agent-card .agent-focus { font-size:13px; line-height:1.5; }

@@ -1,0 +1,76 @@
+name: Backend checks
+on:
+  # Automatic CI is temporarily paused at the owner’s request. Run manually.
+  workflow_dispatch:
+    inputs:
+      windows_cutover_only:
+        description: Run only the focused native Windows cutover checks
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+concurrency:
+  group: backend-checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  backend:
+    if: ${{ !inputs.windows_cutover_only }}
+    runs-on: ubuntu-24.04
+    # The complete disposable/browser suite measured ~17 minutes locally; keep
+    # the whole acceptance gate.
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - run: npm run build:backend
+        working-directory: apps/server
+      - run: npm run typecheck
+        working-directory: apps/server
+      - run: npm --prefix tests run test:guards
+      - name: Install browser for image upload acceptance
+        run: npm --workspace @mlswarm/web exec -- playwright install --with-deps chromium
+      - run: npm run test:backend
+      # The test launcher gives each run its own SQLite store; saved data and models stay outside it.
+  windows-cutover:
+    if: ${{ inputs.windows_cutover_only }}
+    runs-on: windows-2025
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - run: npm ci
+      - name: Owned subprocess cleanup and portable checks
+        run: |
+          New-Item -ItemType Directory -Force native-cutover-validation | Out-Null
+          git rev-parse HEAD | Set-Content native-cutover-validation/source.txt
+          node --test tests/support/owned-process-tree.test.mjs 2>&1 | Tee-Object -FilePath native-cutover-validation/process-tree.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node tests/all.mjs --profile portable --logs native-cutover-validation/portable
+      - name: Focused disposable status and usage acceptance
+        # Each run gets its own SQLite store and local sign-in; no models or production credentials.
+        # "usage" includes current and subsequent usage-poll regression coverage.
+        run: |
+          node tests/run.mjs current-state agent-status-doc usage 2>&1 | Tee-Object -FilePath native-cutover-validation/backend.log
+          exit $LASTEXITCODE
+      - name: Preserve native acceptance diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4, same pin as connector checks
+        with:
+          name: windows-cutover-${{ github.sha }}
+          path: native-cutover-validation/
+          if-no-files-found: warn
+          retention-days: 7

@@ -1,0 +1,47 @@
+.agent-connect-card { min-width: 0; margin: 16px 0; }
+.your-agent p { max-width: 75ch; }
+.agent-connect-card h2{ margin: 0 0 8px; font-size: 20px; }
+
+.agent-connect-card .agent-rows { margin: 16px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+
+@media (max-width: 600px) { .agent-connect-card{ padding: 20px; } }
+
+.your-agent > h2 { font-size: 20px; margin-top: 32px; }
+
+.agent-setup-field { display: block; margin: 16px 0; }
+.agent-setup-field select { display: block; width: 100%; margin-top: 6px; }
+.agent-command { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 8px; margin: 12px 0; }
+@media (max-width: 600px) { .agent-command { grid-template-columns: 1fr; } }
+/* A read-only prompt sized by its rows, so it keeps its own height; border, radius and background are the field tokens. */
+.agent-command textarea { display: block; width: 100%; min-height: 0; padding: 12px; color: var(--text); font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.5; resize: vertical; }
+.agent-command-text { min-width: 0; margin: 0; padding: 12px; border: 1px solid var(--line); border-radius: var(--radius-button); background: var(--bg); color: var(--text); white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; font-family: ui-monospace, monospace; font-size: 12px; line-height: 1.5; }
+.agent-command-text code { font: inherit; }
+.agent-command-status { grid-column: 1 / -1; color: var(--text-muted); font-size: 12px; }
+.agent-command-status:empty { display: none; }
+
+.agent-connections-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.agent-connections-heading h2, .agent-connections-heading h3 { margin: 0; }
+.agent-connect-card .agent-connections-heading { justify-content: flex-end; }
+.agent-connect-card .agent-connections-heading h3 { margin-right: auto; }
+.agent-connect-dialog { width: min(680px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); box-sizing: border-box; overflow: auto; padding: 24px; border: 1px solid var(--line); border-radius: var(--dialog-radius); background: var(--bg); color: var(--text); }
+.agent-connect-dialog::backdrop { background: var(--scrim); }
+/* The X keeps the heading's top-right corner, also when the title wraps. */
+.agent-connect-dialog .k42-contrib-body > .agent-connections-heading { flex-wrap: nowrap; align-items: flex-start; }
+.agent-connect-dialog .k42-contrib-body > .agent-connections-heading > h2 { min-width: 0; overflow-wrap: anywhere; }
+.agent-connect-dialog .k42-contrib-body > .agent-connections-heading > .k42-close { margin: -12px -12px 0 auto; }
+@media (max-width: 600px) { .agent-connect-dialog { padding: 20px; } }
+.k42-contrib-chips { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+.k42-contrib-chips .k42-contrib-chip { display:inline-flex; align-items:center; gap:6px; min-height:36px; padding:0 12px 0 6px; border:var(--card-border); border-radius:var(--pill-radius); background:var(--canvas); font-size:13px; font-weight:600; }
+.k42-contrib-chips .k42-contrib-chip:hover { border-color:var(--hairline-strong); background:var(--canvas-soft); }
+.k42-contrib-chips .k42-contrib-chip[aria-pressed="true"] { background:var(--ink); color:var(--on-ink); border-color:var(--ink); }
+.k42-contrib-chips .k42-contrib-chip:disabled { opacity:.45; cursor:not-allowed; }
+.k42-contrib-chips .k42-contrib-chip:disabled:hover { border-color:inherit; }
+.k42-contrib-mark { width:20px; height:20px; border-radius:6px; display:grid; place-items:center; flex:none; font-size:11px; font-weight:700; color:var(--ink); }
+/* Add agent, after the "Bring your agent" reference: the form on the left, how it works on the right. */
+.agent-connect-dialog.is-add-agent[open] { display:grid; grid-template-columns:minmax(0,1fr) 230px; width:min(820px, calc(100vw - 32px)); padding:0; overflow:hidden; }
+.is-add-agent .k42-contrib-body { padding:24px; min-width:0; overflow:auto; }
+.k42-add-label { margin:14px 0 0; font-size:13px; font-weight:600; }
+.k42-add-footer { display:flex; gap:8px; align-items:center; margin-top:16px; padding-top:14px; border-top:1px solid var(--line); }
+.k42-add-footer > :first-child { margin-right:auto; }
+@media (max-width:700px) { .agent-connect-dialog.is-add-agent[open] { grid-template-columns:minmax(0,1fr); overflow:auto; } }
+.agent-connect-card .agent-limit-line { margin: 4px 0 0; }

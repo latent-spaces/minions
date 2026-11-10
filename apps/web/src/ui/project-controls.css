@@ -1,0 +1,38 @@
+.project-controls-card { border: var(--card-border); border-radius: var(--surface-radius); background: var(--canvas); padding: 24px; margin: 0 0 24px; min-width: 0; }
+.project-controls-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px; }
+.project-controls-heading h2 { font-size: 16px; margin: 0; }
+.project-controls-role { color: var(--text-muted); font-size: 12px; }
+.project-controls-body { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; margin-top: 20px; }
+.project-controls-status { flex: 1 1 240px; min-width: 0; }
+.project-controls-status strong { font-size: 16px; }
+.project-controls-status p { color: var(--text-muted); margin: 6px 0 0; max-width: 65ch; line-height: 1.5; }
+.project-controls-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+.project-controls-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; }
+.project-controls-retry { margin-top: 16px; }
+@media (max-width: 600px) { .project-controls-card { padding: 20px; } }
+
+.my-worker-controls { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.my-worker-controls summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
+.my-worker-controls > p { font-size: 12px; line-height: 1.5; margin: 8px 0; }
+.my-worker-list { list-style: none; padding: 0; margin: 12px 0 0; }
+.my-worker-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.my-worker-identity { display: flex; flex-direction: column; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.my-worker-identity span, .my-worker-identity small { font-size: 12px; font-variant-numeric: tabular-nums; }
+.my-worker-list button, .my-worker-setup { flex-shrink: 0; min-height: 44px; }
+.my-worker-setup { display: inline-flex; align-items: center; font-size: 12px; }
+.my-worker-list .background-worker-row { align-items: flex-start; flex-wrap: wrap; }
+.background-worker-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.my-worker-all, .k42-participant-all { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+/* Pause all / Kill all match the row buttons. */
+.my-worker-controls > .my-worker-all { font-size: inherit; }
+.my-worker-all button { min-height: 44px; }
+.background-worker-confirm { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+.my-worker-list .chat-participation-row { align-items: flex-start; flex-direction: column; }
+.chat-participation-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; width: 100%; }
+.chat-participation-grant { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.chat-participation-grant label, .chat-participation-grant small { font-size: 12px; }
+.chat-participation-grant > div { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.chat-participation-grant input { width: 110px; max-width: 100%; font-size: 16px; }
+/* Start work banner on Home (owner, from the 19 October onboarding test). */
+

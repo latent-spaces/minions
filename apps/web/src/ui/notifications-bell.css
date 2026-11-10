@@ -1,0 +1,40 @@
+/* The notifications bell: a 44px bell with an ink count badge, and a 380px popover with a header
+   (Notifications, Clear all on Updates) over two tabs: Needs you (open requests, newest first) and
+   Updates (unread notices, each clearable). Rows: unread dot, avatar, one sentence over the project, compact age. */
+.k42-top-icon.k42-bell { position:relative; }
+.k42-bell-badge { position:absolute; top:5px; right:3px; min-width:18px; height:18px; box-sizing:border-box; padding:0 5px; border-radius:var(--pill-radius); background:var(--ink); color:var(--on-ink); font-size:11px; font-weight:650; line-height:18px; text-align:center; box-shadow:0 0 0 2px var(--canvas-sunken); pointer-events:none; }
+.k42-bell-panel { --popover-width:380px; }
+.k42-bell-panel:popover-open { display:flex; flex-direction:column; gap:4px; }
+.k42-bell-header { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:36px; padding:4px 8px 0 12px; }
+.k42-bell-heading { margin:0; font-size:15px; font-weight:650; line-height:1.4; }
+.k42-bell-tabs { display:flex; gap:2px; padding:0 8px; border-bottom:1px solid var(--hairline-shell); }
+.k42-bell-tab { display:inline-flex; align-items:center; gap:6px; min-height:32px; padding:0 10px; border:0; border-radius:var(--radius-button); background:transparent; color:var(--text-muted); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.k42-bell-tab:hover, .k42-bell-tab:focus-visible { background:var(--canvas-soft); color:var(--ink); }
+.k42-bell-tab[aria-selected="true"] { color:var(--ink); box-shadow:inset 0 -2px 0 var(--ink); border-radius:var(--radius-button) var(--radius-button) 0 0; }
+.k42-bell-tab-count { min-width:18px; height:18px; box-sizing:border-box; padding:0 6px; border-radius:var(--pill-radius); background:var(--canvas-soft); color:var(--text-muted); font-size:11px; font-weight:600; line-height:18px; text-align:center; }
+.k42-bell-tab[aria-selected="true"] .k42-bell-tab-count { background:var(--canvas-sunken); color:var(--ink); }
+.k42-bell-text-button, .k42-bell-quiet { min-height:28px; padding:0 8px; border:0; border-radius:var(--radius-button); background:transparent; color:var(--text-muted); font:inherit; font-size:12px; font-weight:600; cursor:pointer; }
+.k42-bell-quiet { align-self:center; margin:4px 12px; border:1px solid var(--hairline-shell); background:var(--canvas, #fff); color:var(--ink); }
+.k42-bell-text-button:hover, .k42-bell-text-button:focus-visible, .k42-bell-quiet:hover, .k42-bell-quiet:focus-visible { background:var(--canvas-soft); color:var(--ink); }
+.k42-bell-text-button:disabled, .k42-bell-quiet:disabled, .k42-bell-dismiss:disabled { cursor:default; opacity:.55; }
+.k42-bell-tabpanel { display:flex; flex-direction:column; gap:4px; }
+.k42-bell-list { list-style:none; margin:0; padding:0; display:grid; gap:2px; }
+.k42-bell-row { display:flex; align-items:flex-start; gap:10px; min-height:var(--shell-control-size); padding:10px 12px 10px 6px; border-radius:var(--radius-button); color:var(--ink); text-decoration:none; }
+.k42-bell-unread { flex:none; width:8px; height:8px; margin-top:12px; border-radius:50%; background:var(--ink); }
+.k42-bell-row:hover, .k42-bell-row:focus-visible { background:var(--canvas-soft); text-decoration:none; }
+.k42-bell-text { flex:1; display:grid; gap:2px; min-width:0; overflow-wrap:anywhere; }
+.k42-bell-sentence { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; font-size:14px; line-height:1.4; }
+.k42-bell-sentence strong { font-weight:600; }
+.k42-bell-text small { color:var(--text-muted); font-size:12px; line-height:1.4; }
+.k42-bell-age { flex:none; padding-top:2px; color:var(--text-muted); font-size:12px; line-height:1.4; white-space:nowrap; }
+.k42-bell-update { position:relative; }
+.k42-bell-notice { width:100%; padding-right:40px; text-align:left; border:0; background:transparent; font:inherit; cursor:pointer; }
+.k42-bell-system { display:inline-flex; flex:none; align-items:center; justify-content:center; width:32px; height:32px; border-radius:50%; background:var(--canvas-soft); color:var(--text-muted); }
+.k42-bell-dismiss { position:absolute; top:6px; right:6px; display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; padding:0; border:0; border-radius:var(--radius-button); background:transparent; color:var(--text-muted); cursor:pointer; }
+.k42-bell-dismiss:hover, .k42-bell-dismiss:focus-visible { background:var(--canvas-sunken); color:var(--ink); }
+.k42-bell-status, .k42-bell-problem p { margin:0; padding:8px 12px; color:var(--text-muted); }
+.k42-bell-problem { display:grid; gap:4px; justify-items:start; padding-bottom:8px; }
+.k42-bell-problem > .k42-bell-quiet { align-self:start; }
+.k42-bell-footer { margin-top:4px; padding-top:6px; border-top:1px solid var(--hairline-shell); }
+.k42-bell-footer a { display:flex; align-items:center; justify-content:center; min-height:var(--shell-control-size); border-radius:var(--radius-button); color:var(--ink); font-weight:600; text-decoration:none; }
+.k42-bell-footer a:hover, .k42-bell-footer a:focus-visible { background:var(--canvas-soft); text-decoration:none; }

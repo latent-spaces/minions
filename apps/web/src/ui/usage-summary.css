@@ -1,0 +1,16 @@
+.usage-summary { padding:16px 20px; margin:0 0 20px; border:1px solid var(--hairline); border-radius:var(--surface-radius); background:var(--canvas); }
+.usage-summary h3 { font-size:14px; margin:0 0 4px; }
+.usage-summary p { margin:4px 0 0; color:var(--text-muted); font-size:12px; }
+.usage-summary dl, .agent-usage-primary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin:16px 0; }
+.usage-summary dd, .agent-usage-primary dd { margin:4px 0 0; font-size:20px; font-weight:600; font-variant-numeric:tabular-nums; }
+.usage-summary dt, .agent-usage-primary dt { color:var(--text-muted); font-size:12px; }
+.usage-summary small, .agent-usage-primary small { display:block; font-size:12px; font-weight:400; color:var(--text-muted); }
+.agent-usage-panel summary { margin-top:12px; cursor:pointer; font-size:14px; text-decoration:underline; text-underline-offset:3px; }
+.agent-usage-panel summary:focus-visible { outline:2px solid var(--ink); outline-offset:4px; }
+.agent-current-work { border-top:1px solid var(--hairline); margin-top:16px; padding-top:16px; }
+.agent-current-work h3 { margin:0 0 8px; }
+.agent-current-work .agent-focus > p:first-child { font-size:20px; line-height:1.45; font-weight:600; }
+.agent-current-work .agent-focus > p:first-child strong { display:none; }
+.agent-current-work .agent-focus { margin:0 0 12px; }
+.agent-current-observation { display:flex; align-items:center; flex-wrap:wrap; gap:8px; font-size:14px; }
+@media(max-width:480px) { .usage-summary dl, .agent-usage-primary { gap:12px; grid-template-columns:repeat(2,minmax(0,1fr)); } .agent-current-work .agent-focus > p:first-child { font-size:20px; } }

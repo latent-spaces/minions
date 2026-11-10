@@ -1,0 +1,3 @@
+.agent-communication-form fieldset label { display: block; margin: 12px 0 6px; }
+.agent-communication-form input, .agent-communication-form select { width: 100%; }
+.agent-communication-form .actions { margin-top: 16px; }

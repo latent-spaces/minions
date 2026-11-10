@@ -1,0 +1,20 @@
+// Synthetic harness check: the assignee summary opens a menu; Release lives inside it; Escape closes only the menu.
+import { chromium } from 'playwright';
+const [url, out] = process.argv.slice(2);
+const browser = await chromium.launch({ args: ['--single-process'] });
+const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+await page.goto(url, { waitUntil: 'networkidle' });
+await page.getByRole('button', { name: 'Store native tasks with atomic claims' }).click();
+await page.getByRole('dialog').getByText('Claim transaction is in').waitFor();
+await page.getByRole('button', { name: 'Assigned agent: change' }).click();
+const items = await page.getByRole('menu', { name: 'Assigned agent' }).getByRole('menuitemcheckbox').count();
+const release = await page.getByRole('menuitem', { name: 'Release to Backlog' }).count();
+await page.screenshot({ path: `${out}/tasks-desktop-assign-menu.png` });
+await page.keyboard.press('Escape');
+const afterEscape = { menu: await page.getByRole('menu').count(), dialog: await page.getByRole('dialog').count() };
+await page.getByRole('button', { name: 'Assigned agent: change' }).click();
+await page.getByRole('menuitem', { name: 'Release to Backlog' }).click();
+await page.getByRole('dialog').getByText('Unassigned').first().waitFor();
+const status = await page.getByRole('button', { name: 'Backlog', pressed: true }).count();
+console.log(JSON.stringify({ items, release, afterEscape, releasedToBacklog: status === 1 }));
+await browser.close();
