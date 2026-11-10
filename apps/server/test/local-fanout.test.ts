@@ -4,9 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   metrics: vi.fn(), dispatch: vi.fn(), reserve: vi.fn(), backlog: vi.fn(), scheduled: vi.fn(),
-  sessions: vi.fn(),
 }));
-vi.mock('../src/identity/server-sessions.js', () => ({ deleteExpiredSessions: mocks.sessions }));
 vi.mock('../src/v2/fanout-jobs.js', () => ({
   dispatchFanoutJob: mocks.dispatch, reserveFanoutRound: mocks.reserve, fanoutBacklog: mocks.backlog,
 }));
@@ -25,7 +23,6 @@ beforeEach(() => {
   mocks.reserve.mockResolvedValue({ dispatches: [], oldestDueSeconds: null });
   mocks.backlog.mockResolvedValue({ globalOldestDueSeconds: null, backlogProjects: 0 });
   mocks.scheduled.mockResolvedValue({ failed: 0 });
-  mocks.sessions.mockResolvedValue({ deleted: 0, more: false });
   mocks.metrics.mockResolvedValue({ failed: 0 });
 });
 afterEach(() => { vi.useRealTimers(); });
@@ -129,21 +126,8 @@ test('the local worker reserves, dispatches and retries a busy lease through the
   expect(mocks.scheduled).toHaveBeenCalledTimes(1);
   await vi.advanceTimersByTimeAsync(60_000);
   expect(mocks.scheduled).toHaveBeenCalledTimes(2);
-  // Each reconcile round also reclaims expired self-hosted sign-in sessions.
-  expect(mocks.sessions).toHaveBeenCalledTimes(2);
   await worker.stop();
   await vi.advanceTimersByTimeAsync(60_000);
   expect(mocks.scheduled).toHaveBeenCalledTimes(2);
 });
 
-test('a failed session sweep is logged without failing or delaying the reconcile round', async () => {
-  mocks.sessions.mockRejectedValue(new Error('store down'));
-  const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-  const worker = startLocalWorker(Date.now, 60_000);
-  await vi.advanceTimersByTimeAsync(0);
-  expect(mocks.scheduled).toHaveBeenCalledTimes(1);
-  expect(error).toHaveBeenCalledWith(JSON.stringify({ event: 'local_session_sweep_failed' }));
-  expect(error.mock.calls.flat().join(' ')).not.toContain('store down');
-  await worker.stop();
-  error.mockRestore();
-});

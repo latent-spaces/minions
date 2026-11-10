@@ -1,23 +1,18 @@
 import { expect, test } from 'vitest';
 import path from 'node:path';
 import { selfHostedConfig } from '../src/self-hosted-config.js';
-const env = { MLSWARM_ENGINE: 'self-hosted', MLSWARM_SIGN_IN: 'local-owner', MLSWARM_SQLITE_PATH: path.resolve('private/db.sqlite'),
+const env = { MLSWARM_ENGINE: 'self-hosted', MLSWARM_SQLITE_PATH: path.resolve('private/db.sqlite'),
   MLSWARM_BLOB_DIR: path.resolve('private/media'), MLSWARM_OWNER_FILE: path.resolve('private/owner.json') };
 
 test('explicit loopback configuration supports an ephemeral test port', () => {
-  expect(selfHostedConfig({ ...env, PORT: '0' })).toMatchObject({ signIn: 'local-owner', port: 0, host: '127.0.0.1' });
+  expect(selfHostedConfig({ ...env, PORT: '0' })).toMatchObject({ port: 0, host: '127.0.0.1' });
 });
 test('ambiguous settings fail before database initialization', () => {
   for (const patch of [{ MLSWARM_ENGINE: '' }, { MLSWARM_ENGINE: 'hosted' },
-    { MLSWARM_SIGN_IN: '' }, { HOST: '0.0.0.0' }, { PORT: '-1' }, { PORT: '65536' }, { TRUST_PROXY: 'true' },
-    { MLSWARM_OWNER_FILE: 'relative' }, { MLSWARM_BLOB_DIR: 'relative' }, { MLSWARM_SQLITE_PATH: 'relative.sqlite' }]) {
+    { HOST: '0.0.0.0' }, { PORT: '-1' }, { PORT: '65536' }, { TRUST_PROXY: 'true' },
+    { MLSWARM_OWNER_FILE: undefined }, { MLSWARM_OWNER_FILE: 'relative' }, { MLSWARM_BLOB_DIR: 'relative' }, { MLSWARM_SQLITE_PATH: 'relative.sqlite' }]) {
     expect(() => selfHostedConfig({ ...env, ...patch })).toThrow();
   }
-});
-test('GitHub callback origin must match its fixed listener', () => {
-  expect(selfHostedConfig({ ...env, MLSWARM_SIGN_IN: 'github', MLSWARM_PUBLIC_ORIGIN: 'http://127.0.0.1:8787' }).ownerFile).toBeUndefined();
-  expect(() => selfHostedConfig({ ...env, MLSWARM_SIGN_IN: 'github', PORT: '0' })).toThrow();
-  expect(() => selfHostedConfig({ ...env, MLSWARM_SIGN_IN: 'github', MLSWARM_PUBLIC_ORIGIN: 'https://example.test' })).toThrow();
 });
 test('the database, media folder and owner file must be different locations, however Windows spells them', () => {
   const windows = { ...env, MLSWARM_SQLITE_PATH: 'C:\\Users\\Ana Lee\\engine\\db.sqlite', MLSWARM_BLOB_DIR: 'C:\\Users\\Ana Lee\\engine\\media',

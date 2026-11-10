@@ -46,10 +46,10 @@ npm run setup
 ```
 
 `npm run setup` installs and builds everything, starts the engine at
-`http://127.0.0.1:8787/viewer/`, signs your browser in with a private owner link
-(valid for five minutes), and connects this computer's Claude Code and Codex. It
-starts no model. Two steps stay in your browser because they are your yes: signing
-in as the owner and approving this computer. Details are in
+`http://127.0.0.1:8787/viewer/`, opens it in your browser (no sign-in: the app is
+yours on this computer), and connects this computer's Claude Code and Codex. It
+starts no model. One step stays in your browser because it is your yes: approving
+this computer. Details are in
 [Run the standalone engine locally](docs/self-hosted-engine.md).
 
 Then, in Claude Code or Codex, ask for what you want, for example:

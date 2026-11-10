@@ -2,7 +2,7 @@
 // starts is Node itself, without a shell, so checkout paths with spaces and Windows work alike; npm runs the package
 // build scripts as any npm run does. Nothing here runs a model.
 import { spawn, spawnSync } from 'node:child_process';
-import { createWriteStream, existsSync, readFileSync, statSync } from 'node:fs';
+import { createWriteStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -50,19 +50,18 @@ function openPage(url, env) {
   } catch { return false; }
 }
 
-/** Opens the private sign-in link, which signs this browser in to the local app; the code itself is never printed. */
-function openSignIn(linkFile) {
-  const opened = openPage(readFileSync(linkFile, 'utf8').trim(), process.env);
-  console.info(opened ? 'Your browser is opening the local app; the private link in it signs you in.'
-    : `To sign in, open the link in ${linkFile} in your browser on this computer; it expires in five minutes.`);
+/** Opens the local app, which lets the owner straight in on this computer. */
+function openApp(site) {
+  const page = `${site}/viewer/`;
+  console.info(openPage(page, process.env) ? 'Your browser is opening the local app.' : `Open ${page} in your browser on this computer.`);
 }
 
 /**
  * The engine runs as an owned child with an IPC channel, so `mlswarm-stop` drains it gracefully on every platform.
  * stop() resolves true only when the engine then exits 0 by itself; a force-kill after 15 s or any failure is unclean.
  */
-function startEngine(env, linkFile, files) {
-  const child = spawn(process.execPath, [at('apps/server/dist/self-hosted-main.js'), 'start', '--link-file', linkFile],
+function startEngine(env, files) {
+  const child = spawn(process.execPath, [at('apps/server/dist/self-hosted-main.js'), 'start'],
     { cwd: repository, env, stdio: ['ignore', 'pipe', 'pipe', 'ipc'], shell: false, windowsHide: true });
   const exited = new Promise(accept => child.once('exit', (code, signal) => accept({ code, signal })));
   // The engine's routine activity goes to its log file; its errors stay on this console.
@@ -116,7 +115,7 @@ function summary(url, connected, files, { owned }) {
   const mcpConfig = connectorCommand(process.platform, { node: process.execPath, cli: at('packages/agent-cli/src/cli.mjs'),
     serviceHome: files.serviceHome, credentialHome: files.credentialHome, args: ['mcp-config', '--client', 'claude'] });
   say(`${connected ? 'Done' : 'The engine is running; this computer is not connected yet'}. The local app is at ${url}/viewer/.
-${owned ? 'The engine runs until you press Ctrl+C here. ' : ''}Run npm run setup again at any time: it starts the engine when it is stopped, and otherwise opens the local app signed in.
+${owned ? 'The engine runs until you press Ctrl+C here. ' : ''}Run npm run setup again at any time: it starts the engine when it is stopped, and otherwise opens the local app.
 When you want them:
 - Use this installation from your coding agent (or --client codex or other); run this in another ${shellName()} window and follow what it prints:
   ${mcpConfig}
@@ -134,7 +133,6 @@ async function main() {
   const connectorEnv = connectorEnvironment(base, { home, port });
   const site = `http://127.0.0.1:${port}`;
   const engineMain = at('apps/server/dist/self-hosted-main.js');
-  const linkFile = join(home, `owner-link-${Date.now()}.txt`);
   const steps = 6;
   let step = 0;
   const next = text => say(`[${++step}/${steps}] ${text}`);
@@ -145,12 +143,12 @@ async function main() {
     throw new Error(`An earlier first run stopped before initialization finished: ${home} holds only one of engine.sqlite and owner.json. Nothing was changed. If nothing there needs keeping, remove that directory (or choose a new MLSWARM_ENGINE_HOME) and run npm run setup again.`);
   }
   if (!await portFree(port)) {
-    // Only an engine started with this owner file can issue a sign-in link for it, so a link proves the port is this engine.
+    // Only an engine started with this owner file signs sessions with its secret, so a verified session proves the port is this engine.
     const ours = state === 'existing' && existsSync(engineMain)
-      && await run('owner link', [engineMain, 'owner-link', '--url', site, '--link-file', linkFile], { env: engineEnv, stdio: 'ignore' }).then(() => true, () => false);
+      && await run('engine check', [engineMain, 'check-running', '--url', site], { env: engineEnv, stdio: 'ignore' }).then(() => true, () => false);
     if (!ours) throw new Error(`Port ${port} is occupied. Stop the program using it, or choose another with MLSWARM_ENGINE_PORT. Nothing was started or stopped.`);
     say(`The engine is already running at ${site}. Opening the local app and checking this computer's connection.`);
-    openSignIn(linkFile);
+    openApp(site);
     const result = await connectComputer(site, connectorEnv);
     if (result !== 'interrupted') summary(site, result === 'connected', files, { owned: false });
     return;
@@ -175,7 +173,7 @@ async function main() {
   }
 
   next('Building the contracts, engine, local app and connector');
-  // The packages' own build scripts; the local app is built for self-hosted sign-in.
+  // The packages' own build scripts.
   await run('contracts build', [npm, 'run', 'build', '--workspace', 'packages/contracts'], { env: base, quiet: true });
   await run('engine build', [npm, 'run', 'build:backend', '--workspace', 'apps/server'], { env: base, quiet: true });
   await run('local app build', [npm, 'run', 'build', '--workspace', 'apps/web'], { env: base, quiet: true });
@@ -189,17 +187,17 @@ async function main() {
   }
 
   next('Starting the engine');
-  const engine = startEngine(engineEnv, linkFile, files);
+  const engine = startEngine(engineEnv, files);
   // Ctrl+C, a closed terminal (SIGHUP; on Windows a closed console) and Ctrl+Break stop the engine gracefully.
   const stopAndExit = () => { void engine.stop().then(clean => process.exit(clean ? 0 : 1)); };
   for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP', ...(process.platform === 'win32' ? ['SIGBREAK'] : [])]) process.on(signal, stopAndExit);
   try {
     const url = await engine.url;
     console.info(`The engine is listening on ${url}; its activity log is ${files.engineLog}.`);
-    openSignIn(linkFile);
+    openApp(url);
 
     next('Connecting this computer');
-    console.info('Approve this computer on the page the connector shows, in the browser where you are signed in. Setup waits up to ten minutes.');
+    console.info('Approve this computer on the page the connector shows, in the browser where the local app is open. Setup waits up to ten minutes.');
     const result = await connectComputer(url, connectorEnv, engine.stopping);
     if (result === 'interrupted') { stopAndExit(); return; }
     summary(url, result === 'connected', files, { owned: true });

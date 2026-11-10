@@ -6,10 +6,10 @@ import type { Route } from '../route';
 import { PersonAvatar } from './PersonAvatar';
 import { usableName } from './display-name';
 import './account-menu.css';
-import { CircleHelp, Laptop, LogOut, MessageSquareHeart } from 'lucide-react';
+import { Laptop, MessageSquareHeart } from 'lucide-react';
 
-/** The account menu in the top bar: the round avatar, opening to My computers, the overview and Sign out. */
-export function AccountMenu({ personId, photo, go, signOut, onOverview, onFeedback, name }: { personId?: string; photo?: PublicPhoto | null; go: (route: Route) => void; signOut: () => void; onOverview?: () => void; onFeedback?: () => void; name?: string | null }) {
+/** The account menu in the top bar: the round avatar, opening to My computers and feedback. */
+export function AccountMenu({ personId, photo, go, onFeedback, name }: { personId?: string; photo?: PublicPhoto | null; go: (route: Route) => void; onFeedback?: () => void; name?: string | null }) {
   const menu = useRef<HTMLDetailsElement>(null);
   const close = () => { if (menu.current) menu.current.open = false; };
   // Until the profile loads there is no name: the avatar stays an empty circle and the identity row is left out.
@@ -19,11 +19,7 @@ export function AccountMenu({ personId, photo, go, signOut, onOverview, onFeedba
     <summary aria-label={summaryLabel} title={summaryLabel}><PersonAvatar id={personId} photo={photo} name={shown} /></summary><div>
       {shown && <p className="k42-account-identity">{shown}</p>}
       <NavLink to={{view:'computers'}} go={next => { go(next); close(); }}><Laptop size={18} aria-hidden="true" />My computers</NavLink>
-      <hr className="k42-account-divider" />
-      {onFeedback && <Button onClick={() => { onFeedback(); close(); }}><MessageSquareHeart size={18} aria-hidden="true" />Give us feedback</Button>}
-      {onOverview && <Button onClick={() => { onOverview(); close(); }}><CircleHelp size={18} aria-hidden="true" />How MyLittleSwarm works</Button>}
-      <hr className="k42-account-divider" />
-      <Button onClick={() => { signOut(); close(); }}><LogOut size={18} aria-hidden="true" />Sign out</Button>
+      {onFeedback && <><hr className="k42-account-divider" /><Button onClick={() => { onFeedback(); close(); }}><MessageSquareHeart size={18} aria-hidden="true" />Give us feedback</Button></>}
     </div>
   </details>;
 }

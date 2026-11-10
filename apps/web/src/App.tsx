@@ -19,10 +19,7 @@ import { Button } from './ui/Button';
 import { CloseButton } from './ui/CloseButton';
 import { OwnerConnectionApproval } from './ui/OwnerConnectionApproval';
 import { personalProjectStatus, workspaceProjectStatus } from './ui/personal-project-status';
-import { InvitedSignIn, type AccessRefusal } from './ui/InvitedSignIn';
-import { ComingSoon } from './ui/ComingSoon';
-import { SessionLoading } from './ui/SessionLoading';
-import { ProductOverview } from './ui/ProductOverview';
+import { SessionLoading, SessionUnavailable } from './ui/SessionLoading';
 import { WorkspaceNavigation, type ProjectMenu, type WorkspaceNavItem } from './ui/WorkspaceNavigation';
 import { COMPACT_SHELL } from './ui/shell-breakpoint';
 import { useMenuCollapsed } from './ui/menu-collapse';
@@ -36,7 +33,7 @@ import { useMediaQuery } from './useMediaQuery';
 // Data refreshes every 30 s while the tab is visible.
 import type { SessionUser } from './session-identity';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { session, read, community, projects, ProjectScope, ApiError, signIn, signOutNow, type AgentRow, type Overview } from './api';
+import { session, read, community, projects, ProjectScope, ApiError, type AgentRow, type Overview } from './api';
 
 import { MyProjects } from './MyProjects';
 import { YourAgent } from './ui/YourAgent';
@@ -88,10 +85,6 @@ function workspaceEntry(workspace: Workspace): ProjectEntry {
 export function App() {
   const [user, setUser] = useState<SessionUser | null | undefined>(undefined);
   const [accessTick, setAccessTick] = useState(0);
-  const [signingIn, setSigningIn] = useState(false);
-  const signInPending = useRef(false);
-  // Announce "Signed in." only once the invitation check passes, never for a refused account.
-  const announceSignIn = useRef(false);
   // Computer-approval links are read from the address before the workspace opens.
   const [entrySearch, setEntrySearch] = useState(() => window.location.search);
   useEffect(() => {
@@ -100,66 +93,34 @@ export function App() {
     return () => window.removeEventListener('popstate', restore);
   }, []);
   useEffect(() => session.onTokenChanged(value => {
-    // A new GitHub sign-in is shown once the service has confirmed its emails (enterWorkspace).
-    if (value && signInPending.current) return;
     setUser(value); setEntrySearch(window.location.search);
-    // Reauthentication can keep the same SessionUser object. Recheck admission even then.
+    // A renewed session can keep the same SessionUser object. Check the account again even then.
     setAccessTick(tick => tick + 1);
   }), []);
 
-  const enterWorkspace = async (options: { chooseAccount?: boolean } = {}) => {
-    if (signInPending.current || user === undefined) return;
-    signInPending.current = true;
-    setSigningIn(true);
-    try {
-      await signIn(options);
-      setUser(session.currentUser()); setEntrySearch(window.location.search); setAccessTick(tick => tick + 1);
-      announceSignIn.current = true;
-    } catch (error) {
-      console.warn('Sign-in was not completed.', error);
-      notify(error instanceof ApiError ? error.message : 'Could not sign in. Try again.', 'error');
-    } finally {
-      signInPending.current = false;
-      setSigningIn(false);
-    }
-  };
-
-  // Only an invited account gets past the invited sign-in screen; the service refuses others with 401.
-  const [access, setAccess] = useState<{ uid: string; refused: AccessRefusal | null; person?: CommunityAccount['person']; account?: CommunityAccount } | null>(null);
-  // Coming soon stays the front page; its Sign in opens the invited sign-in screen.
-  const [signInOpen, setSignInOpen] = useState(false);
+  // The engine opens this computer's owner session; the account check confirms it before the workspace shows.
+  const [access, setAccess] = useState<{ uid: string; account?: CommunityAccount } | null>(null);
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
     community<CommunityAccount>(user, '/me').then(result => {
-      if (cancelled) return;
-      setAccess({ uid: user.uid, refused: null, person: result.person, account: result });
-      if (announceSignIn.current) { announceSignIn.current = false; notify('Signed in.'); }
-    }, (error: Error) => {
-      if (cancelled) return;
-      announceSignIn.current = false;
-      setAccess({ uid: user.uid, refused: error instanceof ApiError && error.status === 401 ? 'not-invited' : 'check-failed' });
+      if (!cancelled) setAccess({ uid: user.uid, account: result });
+    }, () => {
+      if (!cancelled) setAccess({ uid: user.uid });
     });
     return () => { cancelled = true; };
   }, [user, accessTick]);
   const checked = user && access?.uid === user.uid ? access : null;
   const render = () => {
-    const ownerRequest = ownerApprovalRequest(entrySearch);
-    if (ownerRequest) return <main><OwnerConnectionApproval key={`${user?.uid ?? 'guest'}:${ownerRequest}`} user={user} requestId={ownerRequest} onSignIn={() => void enterWorkspace()} signingIn={signingIn} /></main>;
-
-    // Unknown authentication/admission is a loading state, not a signed-out or invited entry screen.
     if (user === undefined || user && !checked) return <SessionLoading />;
-    if (!user && !signInOpen && !signingIn) return <ComingSoon onSignIn={() => setSignInOpen(true)} />;
-    if (!user || !checked || checked.refused !== null) return <InvitedSignIn onSignIn={() => void enterWorkspace()}
-      onChooseAccount={() => void enterWorkspace({ chooseAccount: true })} onSignOut={() => { setSignInOpen(false); void signOutNow(); }}
-      onBack={user ? undefined : () => setSignInOpen(false)}
-      onRetry={() => { setAccess(null); setAccessTick(value => value + 1); }} pending={signingIn}
-      checking={false} signedInEmail={user?.email ?? undefined} refused={checked?.refused ?? undefined} />;
-    const account = checked.account;
-    if (!account) return <SessionLoading />;
+    if (!user) return <SessionUnavailable />;
+    const ownerRequest = ownerApprovalRequest(entrySearch);
+    if (ownerRequest) return <main><OwnerConnectionApproval key={`${user.uid}:${ownerRequest}`} user={user} requestId={ownerRequest} /></main>;
+    const account = checked?.account;
+    if (!account) return <SessionUnavailable />;
     return <Viewer key={`${user.uid}:${account.person.id}`} user={user} account={account} />;
   };
-  return user && checked?.person ? <WebPresence key={`${user.uid}:${checked.person.id}`} user={user} profileId={checked.person.id}>{render()}</WebPresence> : render();
+  return user && checked?.account ? <WebPresence key={`${user.uid}:${checked.account.person.id}`} user={user} profileId={checked.account.person.id}>{render()}</WebPresence> : render();
 }
 
 const SHORTCUTS = 5;
@@ -179,11 +140,8 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   const [listError, setListError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const [directoryTick, setDirectoryTick] = useState(0);
-  // The overview is manually opened and never reads or writes onboarding progress.
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const requestFeedback = useMemo(() => feedbackRequest(user), [user]);
-  const [overviewOpen, setOverviewOpen] = useState(false);
-  const finishOverview = useCallback(() => setOverviewOpen(false), []);
   // A tab loads when it opens, even one opened in the background (e.g. by an agent checking the page); it stops
   // refreshing once it is hidden and carries on when shown again.
   const [visible, setVisible] = useState(true);
@@ -207,12 +165,6 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   const drawer = useRef<HTMLDialogElement>(null);
   const content = useRef<HTMLElement>(null);
   useShellFocus(compact, content);
-  // When the overview closes, return focus to the preserved workspace destination.
-  const overviewWasOpen = useRef(overviewOpen);
-  useEffect(() => {
-    if (overviewWasOpen.current && !overviewOpen) content.current?.focus();
-    overviewWasOpen.current = overviewOpen;
-  }, [overviewOpen]);
   const failureHeading = useRef<HTMLHeadingElement>(null);
   // Where focus goes after the location or the drawer changes: the menu button when the drawer is dismissed, the
   // content after choosing a destination in the drawer, and the content when the control that was used disappeared.
@@ -361,14 +313,12 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   }, [location]);
   const failed = failure && failure.error instanceof ApiError && [400, 401, 403, 404].includes(failure.error.status) ? failure : null;
   const openFeedback = () => { setFeedbackOpen(true); setNavigationOpen(false); };
-  const openOverview = () => { if (mayLeaveProject()) setOverviewOpen(true); };
-  const signOutFromMenu = () => { if (mayLeaveProject()) void signOutNow(); };
   // The account lives in the top bar (shell polish 2026-10-18, section 12).
   // Projects first in the menu: the global menu, or inside a project that project's sections and Switch project.
   const openProject = menuMode(route, projectShown ? selected!.id : null) === 'project' ? selected! : null;
   const openFacts = openProject && facts?.projectId === openProject.id ? facts : null;
   const projectsLink: WorkspaceNavItem = { id:'projects', label:GLOBAL_NAMES.projects, icon:<Folder size={18} />, href:formatRoute({ view:'projects' }), current:route.view === 'projects', onNavigate:() => go({ view:'projects' }) };
-  const accountMenu = <AccountMenu personId={profileIdentity?.id} photo={profileIdentity?.photo} name={displayName} go={go} onOverview={openOverview} signOut={signOutFromMenu} />;
+  const accountMenu = <AccountMenu personId={profileIdentity?.id} photo={profileIdentity?.photo} name={displayName} go={go} />;
   const shortcut = (p: ProjectEntry) => ({ id:p.id, name:p.name, href:formatRoute(projectRoute(p.id)), onNavigate:() => go(projectRoute(p.id)), status:executionLabel(p), private:p.private });
   // Projects and agents are created from Claude through local MCP (owner, 10 November 2026).
   const projectMenu: ProjectMenu | null = openProject && { id:openProject.id, name:openProject.name, status:executionLabel(openProject), private:openProject.private,
@@ -395,7 +345,6 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
       </> : undefined}
     />
   </>;
-  if (overviewOpen) return <ProductOverview onDone={finishOverview} />;
   const feedbackPage: FeedbackPage = route.view === 'project' ? 'Project' : route.view === 'projects' ? 'My projects' : route.view === 'needs-you' ? 'Needs you' : 'Other';
   return <LifecycleFeedbackProvider request={requestFeedback} profileId={account.person.id} accountId={user.uid}><div className="page workspace">
     {feedbackOpen && <FeedbackDialog key={`${user.uid}:${account.person.id}`} request={requestFeedback} profileId={account.person.id} accountId={user.uid} page={feedbackPage} onClose={() => { setFeedbackOpen(false); requestAnimationFrame(() => content.current?.focus({ preventScroll: true })); }} />}

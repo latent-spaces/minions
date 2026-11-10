@@ -32,7 +32,7 @@ test('children get one PATH led by the selected Node and no test-session or enro
   assert.deepEqual(result, { HOME: 'C:\\Users\\Ana', PATH: 'C:\\Program Files\\nodejs;C:\\Windows' });
   assert.deepEqual(childEnvironment({}, { nodeDirectory: '/opt/node/bin', platform: 'darwin' }), { PATH: '/opt/node/bin' });
   const engine = engineEnvironment(result, { home: 'C:\\Users\\Ana\\.mlswarm\\engine', port: 8787, platform: 'win32' });
-  assert.equal(engine.MLSWARM_ENGINE, 'self-hosted'); assert.equal(engine.MLSWARM_SIGN_IN, 'local-owner');
+  assert.equal(engine.MLSWARM_ENGINE, 'self-hosted');
   assert.equal(engine.HOST, '127.0.0.1'); assert.equal(engine.PORT, '8787');
   assert.equal(engine.MLSWARM_SQLITE_PATH, 'C:\\Users\\Ana\\.mlswarm\\engine\\engine.sqlite');
   const connector = connectorEnvironment(result, { home: '/Users/ana/.mlswarm/engine', port: 8797, platform: 'darwin' });
@@ -95,6 +95,6 @@ test('the printed connector command quotes paths with spaces and quotes for Powe
 });
 
 test('the listening address is read from engine output with LF or CRLF line endings', () => {
-  assert.equal(engineUrl('Private owner sign-in link saved to C:\\x\\link.txt. It expires in five minutes.\r\nStandalone engine listening on http://127.0.0.1:8787\r\n'), 'http://127.0.0.1:8787');
+  assert.equal(engineUrl('Standalone engine listening on http://127.0.0.1:8787\r\n'), 'http://127.0.0.1:8787');
   assert.equal(engineUrl('Standalone engine list'), null);
 });

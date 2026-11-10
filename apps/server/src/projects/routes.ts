@@ -12,7 +12,7 @@ import { PERSONAL_ARCHIVE, PERSONAL_STAR, setPersonalArchive, setPersonalStar } 
 import { readProjectUpdateSettings, saveProjectUpdateSettings } from './progress-settings.js';
 import express, { type Request, type Response } from 'express';
 import { z } from 'zod';
-import { personIdentityFromIdToken, signInRequired } from '../auth.js';
+import { personIdentityFromIdToken, SIGN_IN_REQUIRED } from '../auth.js';
 import { bearerToken } from '../bearer.js';
 import { RecentlyUsed, requestLimits } from '../request-state.js';
 import { Refusal, sendRefusal } from '../errors.js';
@@ -38,7 +38,7 @@ import { JOIN_PROJECT, joinWorkspace, CONFIGURE, CONTROL, finalizeWorkspace, FIN
 
 async function person(req: Request) {
   const token = bearerToken(req.headers.authorization);
-  if (!token) throw new Refusal('unauthorized', signInRequired('Sign in with GitHub first.'));
+  if (!token) throw new Refusal('unauthorized', SIGN_IN_REQUIRED);
   return personIdentityFromIdToken(token);
 }
 function fail(res: Response, error: unknown) {

@@ -1,6 +1,6 @@
 import express, { type Response, type Router } from 'express';
 import { z } from 'zod';
-import { personFromIdToken, signInRequired } from '../auth.js';
+import { personFromIdToken, SIGN_IN_REQUIRED } from '../auth.js';
 import { bearerToken } from '../bearer.js';
 import { requestLimits } from '../request-state.js';
 import { Refusal, sendRefusal } from '../errors.js';
@@ -25,7 +25,7 @@ export function onboardingRoutes(now: () => number): Router {
   router.use(async (req, res, next) => {
     try {
       const token = bearerToken(req.headers.authorization);
-      if (!token) throw new Refusal('unauthorized', signInRequired('Sign in with GitHub first.'));
+      if (!token) throw new Refusal('unauthorized', SIGN_IN_REQUIRED);
       const person = await personFromIdToken(token);
       limit(`person:${person.id}`);
       await projectRole(person);  // Refuses anyone who is not a member of this project.

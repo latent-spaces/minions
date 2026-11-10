@@ -11,7 +11,7 @@ import { selfHostedCli } from './self-hosted-cli.js';
 const networkGuard = new URL('../../../tests/support/loopback-only-network-preload.mjs', import.meta.url).href;
 test('a fresh standalone CLI initializes, signs in its ordinary owner, shuts down and reopens its database', async () => {
   const root = mkdtempSync(join(tmpdir(), 'engine CLI with spaces ')); chmodSync(root, 0o700);
-  const env: NodeJS.ProcessEnv & { MLSWARM_SQLITE_PATH: string; MLSWARM_OWNER_FILE: string } = { ...process.env, MLSWARM_ENGINE: 'self-hosted', MLSWARM_SIGN_IN: 'local-owner', HOST: '127.0.0.1', PORT: '0',
+  const env: NodeJS.ProcessEnv & { MLSWARM_SQLITE_PATH: string; MLSWARM_OWNER_FILE: string } = { ...process.env, MLSWARM_ENGINE: 'self-hosted', HOST: '127.0.0.1', PORT: '0',
     MLSWARM_SQLITE_PATH: join(root, 'engine.sqlite'), MLSWARM_BLOB_DIR: join(root, 'media'), MLSWARM_OWNER_FILE: join(root, 'owner.json') };
   for (const name of ['TRUST_PROXY', 'MLSWARM_TEST_SESSION', 'MLSWARM_TEST_SQLITE_PATH']) delete env[name];
   const networkLogs: string[] = [];
@@ -28,8 +28,7 @@ test('a fresh standalone CLI initializes, signs in its ordinary owner, shuts dow
     expect(refused.status).toBe(1); expect(readFileSync(env.MLSWARM_OWNER_FILE, 'utf8')).toBe(bytes);
     let firstToken = '';
     for (let round = 0; round < 2; round++) {
-      const linkFile = join(root, `link-${round}.txt`);
-      const run = guarded(['start', '--link-file', linkFile]);
+      const run = guarded(['start']);
       const child = spawn(process.execPath, run.argv, { env: run.env, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
       let output = '', errors = '';
       child.stderr!.on('data', chunk => { errors += chunk; });
@@ -45,16 +44,15 @@ test('a fresh standalone CLI initializes, signs in its ordinary owner, shuts dow
           req.on('error', reject); req.end();
         });
         expect(rebound).toBe(403); // Includes unauthenticated routes mounted before the MCP SDK guard.
-        const duplicate = command('start', '--link-file', join(root, `duplicate-${round}.txt`));
+        const duplicate = command('start');
         expect(duplicate.status, duplicate.stderr).toBe(1);
         expect(duplicate.stderr).toContain('database is locked');
         expect(existsSync(`${env.MLSWARM_SQLITE_PATH}.lock`)).toBe(true);
-        const link = new URL(readFileSync(linkFile, 'utf8').trim());
-        expect(link.origin).toBe(url);
-        const code = new URLSearchParams(link.hash.slice(1)).get('mlswarm_owner_code')!;
-        expect(output).not.toContain(code); expect(errors).not.toContain(code);
-        const response = await fetch(`${url}/api/auth/local-owner/exchange`, { method: 'POST', headers: { origin: url, 'content-type': 'application/json' },
-          body: JSON.stringify({ code, client_state: 's'.repeat(43) }) });
+        expect(output).toContain(`Open ${url}/viewer/`);
+        // The engine's own page gets the owner session with no link; another website does not.
+        const ask = (origin: string) => fetch(`${url}/api/auth/local-owner/session`, { method: 'POST', headers: { origin, 'content-type': 'application/json' }, body: '{}' });
+        expect((await ask('https://example.com')).status).toBe(403);
+        const response = await ask(url);
         expect(response.status).toBe(200);
         const session = await response.json(); expect(session.token).toMatch(/^lo1\./);
         expect(output).not.toContain(session.token);
@@ -63,9 +61,6 @@ test('a fresh standalone CLI initializes, signs in its ordinary owner, shuts dow
         expect(await identity.json()).toMatchObject({ email: 'ada@example.test', displayName: 'Ada Example' });
         if (!round) firstToken = session.token;
         else expect((await fetch(`${url}/api/auth/session`, { headers: { authorization: `Bearer ${firstToken}` } })).status).toBe(200);
-        const refresh = command('owner-link', '--url', url, '--link-file', join(root, `refreshed-${round}.txt`));
-        expect(refresh.status, refresh.stderr).toBe(0);
-        expect(refresh.stdout).not.toMatch(/lo1\.|mlswarm_owner_code=/);
         // Both stop routes drain and unlock: the supervisor's IPC message, then Ctrl+C (SIGINT).
         if (round) child.kill('SIGINT'); else child.send('mlswarm-stop');
         expect(await exit).toBe(0);
@@ -74,7 +69,7 @@ test('a fresh standalone CLI initializes, signs in its ordinary owner, shuts dow
     }
     // No engine process tried to reach a non-loopback host. A missing log (a process that died without
     // exiting normally) throws here rather than counting as nothing refused.
-    expect(networkLogs).toHaveLength(8); // init, refused init, then start + refused duplicate + owner-link per round
+    expect(networkLogs).toHaveLength(6); // init, refused init, then start + refused duplicate per round
     for (const log of networkLogs) expect(JSON.parse(readFileSync(log, 'utf8')), log).toEqual([]);
   } finally { rmSync(root, { recursive: true, force: true }); }
 }, 60_000);

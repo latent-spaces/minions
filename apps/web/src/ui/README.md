@@ -231,7 +231,7 @@ explains that background work stops when the computer receives the revocation;
 external coding chats remain under their host's control. Interrupted server cleanup
 stays visible with Finish revoking. Ambiguous older associations require verified
 reconnection or project-level revocation before computer revocation can proceed.
-Setup remains in the tour, Karma progress and project connection flow.
+Setup remains in Karma progress and the project connection flow.
 
 Page headings use `PathHeading`: a breadcrumb trail above a single h1. The trail starts
 at Home, which opens My projects, followed by the route-backed parent levels. Separators are

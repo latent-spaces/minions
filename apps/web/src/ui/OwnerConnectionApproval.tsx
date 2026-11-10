@@ -7,16 +7,15 @@ import { owner } from '../api';
 type OwnerReview = { requestId: string; clientName: string; status: 'pending' | 'approved' | 'expired' | 'cancelled'; expiresAt: number; connectionExpiresAt: number | null; verificationCode: string; personName?: string; email?: string };
 
 // The one browser approval: a person approves a computer, which then connects their agents.
-export function OwnerConnectionApproval({ user, requestId, onSignIn, signingIn = false }: { user: SessionUser | null | undefined; requestId: string; onSignIn: () => void; signingIn?: boolean }) {
+export function OwnerConnectionApproval({ user, requestId }: { user: SessionUser; requestId: string }) {
   const [review, setReview] = useState<OwnerReview | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const request = useCallback(async (approve = false) => {
-    if (!user) throw new Error('Sign in with GitHub to approve this computer.');
     return owner<OwnerReview>(user, `/connect/${encodeURIComponent(requestId)}/${approve ? 'approve' : 'review'}`, approve ? { approved: true } : undefined);
   }, [requestId, user]);
   useEffect(() => { let cancelled = false; setReview(null); setError(null);
-    if (user) request().then(data => { if (!cancelled) setReview(data); }, reason => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Could not load this request.'); });
+    request().then(data => { if (!cancelled) setReview(data); }, reason => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Could not load this request.'); });
     return () => { cancelled = true; };
   }, [request, user]);
   async function approve() { setBusy(true); setError(null); try {
@@ -36,9 +35,9 @@ export function OwnerConnectionApproval({ user, requestId, onSignIn, signingIn =
   </ApprovePage>;
   return <ApprovePage>
     <h1 id="owner-connection-title">Approve this computer</h1>
-    {user === undefined ? <p role="status">Checking your account…</p> : !user ? <><p>Sign in with the account you use to own projects. You will review the requested permissions before approving.</p><Button className="primary" disabled={signingIn} onClick={onSignIn}><LogIn size={18} aria-hidden="true" />{signingIn ? 'Signing in…' : 'Sign in with GitHub'}</Button></> : !review && !error ? <p role="status">Loading your request…</p> : null}
+    {!review && !error && <p role="status">Loading your request…</p>}
     {review && <>
-      <p>Allow <strong>{review.clientName}</strong> on this computer to add your agents and manage your projects as <strong>{review.personName ?? user?.displayName ?? user?.email}</strong>.</p>
+      <p>Allow <strong>{review.clientName}</strong> on this computer to add your agents and manage your projects as <strong>{review.personName ?? user.displayName ?? user.email}</strong>.</p>
       <dl><dt>Request check</dt><dd><strong>{review.verificationCode}</strong></dd><dt>Approval expires</dt><dd>{new Date(review.expiresAt).toLocaleString()}</dd><dt>Access duration</dt><dd>90 days, or until you revoke it in My computers</dd></dl>
       {review.status === 'pending' && <p>Check that this code matches your coding agent or terminal before approving.</p>}
       <p>Once approved, this computer can:</p><ul><li><strong>Add your own agents to any project you belong to, now and later, without asking you again.</strong> Your coding agent still asks you before an agent starts work.</li><li>Read your proposals, projects and their status.</li><li>Create private projects when you ask, without public proposal review.</li><li>Start projects you own once they are ready.</li><li>Manage moderator and admin roles within projects you own.</li></ul>
@@ -47,10 +46,10 @@ export function OwnerConnectionApproval({ user, requestId, onSignIn, signingIn =
         : <p role="status">This request {review.status === 'expired' ? 'expired' : 'was cancelled'}. Start the approval again from your coding agent.</p>}
     </>}
     {error && <p role="alert" className="error">{error}</p>}
-    {user && <Button className="soft" disabled={busy} onClick={() => { void request().then(data => { setReview(data); setError(null); }, reason => setError(reason instanceof Error ? reason.message : 'Could not refresh this request.')); }}>Refresh request</Button>}
+    <Button className="soft" disabled={busy} onClick={() => { void request().then(data => { setReview(data); setError(null); }, reason => setError(reason instanceof Error ? reason.message : 'Could not refresh this request.')); }}>Refresh request</Button>
   </ApprovePage>;
 }
-import { Bot, CircleCheck, Laptop, LogIn, ShieldCheck } from 'lucide-react';
+import { Bot, CircleCheck, Laptop, ShieldCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { BrandLogo } from './BrandLogo';
 import './approve-computer.css';

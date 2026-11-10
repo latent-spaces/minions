@@ -9,16 +9,13 @@ export type SessionUser = {
   getIdToken(forceRefresh?: boolean): Promise<string>;
 };
 
-// The one module that talks to the engine's sign-in (server-session.ts, created in site-session.ts).
+// The one module that talks to the engine's session (server-session.ts, created in site-session.ts).
 export type SessionClient = {
   currentUser(): SessionUser | null;
   /** The signed-in account ID at the moment of the call; requests use it to refuse a changed account. */
   currentUid(): string | undefined;
-  /** Sign-in and sign-out. Returns the unsubscribe function. */
+  /** The session opening or ending. Returns the unsubscribe function. */
   onUserChanged(listener: (user: SessionUser | null) => void): () => void;
-  /** Sign-in, sign-out and every new token, so access can be rechecked after reauthentication. */
+  /** Every new token, so access can be rechecked. */
   onTokenChanged(listener: (user: SessionUser | null) => void): () => void;
-  /** Signs in with GitHub and lets the service confirm the account before resolving. */
-  signIn(options?: { chooseAccount?: boolean }): Promise<void>;
-  signOut(): Promise<void>;
 };

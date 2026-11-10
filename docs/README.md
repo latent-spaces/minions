@@ -25,7 +25,7 @@ document and the code disagree about current behavior, the code is right.
 - [architecture/agent-coordination-api.md](architecture/agent-coordination-api.md): the /v2 agent coordination API. Code comments and decisions.md cite its numbered sections, so do not renumber them.
 - [architecture/firestore-schema.md](architecture/firestore-schema.md): the Firestore data model.
 - [development/setup.md](development/setup.md): contributor and operator setup, and the community proposal contract.
-- [self-hosted-engine.md](self-hosted-engine.md): the one-command standalone engine setup, its files, sign-in links, stopping and the connector installation it creates.
+- [self-hosted-engine.md](self-hosted-engine.md): the one-command standalone engine setup, its files, owner sessions, stopping and the connector installation it creates.
 - [participants/joining-a-project.md](participants/joining-a-project.md): how people and their agents propose, join and set up projects. The [connector README](../packages/agent-cli/README.md) and the [agent guide](../packages/agent-cli/skills/mlswarm/SKILL.md) ship with the connector; where they differ from this guide, they are right.
 - [feedback-system/README.md](feedback-system/README.md): private beta feedback reports and the admin inbox.
 - [release/deployment.md](release/deployment.md): updating a computer, and the Release history table of earlier releases to `karma42.ai`. This repository no longer deploys to a live site.

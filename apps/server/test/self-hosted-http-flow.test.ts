@@ -16,7 +16,7 @@ const secret = () => randomBytes(32).toString('base64url');
 
 test('owner, computer, project and two agents exchange a message over HTTP and it survives a restart', async () => {
   const root = mkdtempSync(join(tmpdir(), 'engine http flow ')); chmodSync(root, 0o700);
-  const env: NodeJS.ProcessEnv = { ...process.env, MLSWARM_ENGINE: 'self-hosted', MLSWARM_SIGN_IN: 'local-owner', HOST: '127.0.0.1', PORT: '0',
+  const env: NodeJS.ProcessEnv = { ...process.env, MLSWARM_ENGINE: 'self-hosted', HOST: '127.0.0.1', PORT: '0',
     MLSWARM_SQLITE_PATH: join(root, 'engine.sqlite'), MLSWARM_BLOB_DIR: join(root, 'media'), MLSWARM_OWNER_FILE: join(root, 'owner.json') };
   for (const name of ['TRUST_PROXY', 'MLSWARM_TEST_SESSION', 'MLSWARM_TEST_SQLITE_PATH']) delete env[name];
   const networkLogs: string[] = [];
@@ -25,8 +25,8 @@ test('owner, computer, project and two agents exchange a message over HTTP and i
     return { argv: ['--import', networkGuard, ...selfHostedCli(args)], env: { ...env, MLSWARM_TEST_NETWORK_LOG: log } };
   };
   const engines: { child: ChildProcess; exit: Promise<number | null> }[] = [];
-  async function start(round: number) {
-    const linkFile = join(root, `link-${round}.txt`), run = guarded(['start', '--link-file', linkFile]);
+  async function start() {
+    const run = guarded(['start']);
     const child = spawn(process.execPath, run.argv, { env: run.env, stdio: ['ignore', 'pipe', 'pipe', 'ipc'] });
     const exit = new Promise<number | null>(resolve => child.once('exit', resolve)); engines.push({ child, exit });
     let output = '', errors = '';
@@ -36,7 +36,7 @@ test('owner, computer, project and two agents exchange a message over HTTP and i
       child.once('exit', () => { clearTimeout(timer); reject(new Error(`Startup exited: ${errors}`)); });
       child.stdout!.on('data', chunk => { output += chunk; const match = /Standalone engine listening on (http:\/\/127\.0\.0\.1:\d+)/.exec(output); if (match) { clearTimeout(timer); resolve(match[1]); } });
     });
-    return { url, linkFile, stop: async () => { child.send('mlswarm-stop'); expect(await exit).toBe(0); } };
+    return { url, stop: async () => { child.send('mlswarm-stop'); expect(await exit).toBe(0); } };
   }
   const call = async (url: string, path: string, token?: string, body?: object, profile?: string) => {
     const response = await fetch(url + path, { method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json',
@@ -67,11 +67,9 @@ test('owner, computer, project and two agents exchange a message over HTTP and i
     const init = spawnSync(process.execPath, initialize.argv, { env: initialize.env, encoding: 'utf8', timeout: 15_000 });
     expect(init.status, init.stderr).toBe(0);
 
-    const first = await start(1);
-    const code = new URLSearchParams(new URL(readFileSync(first.linkFile, 'utf8').trim()).hash.slice(1)).get('mlswarm_owner_code');
-    const exchange = await fetch(`${first.url}/api/auth/local-owner/exchange`, { method: 'POST', headers: { origin: first.url, 'content-type': 'application/json' },
-      body: JSON.stringify({ code, client_state: 's'.repeat(43) }) });
-    const session = (await exchange.json()).token as string;
+    const first = await start();
+    const opened = await fetch(`${first.url}/api/auth/local-owner/session`, { method: 'POST', headers: { origin: first.url, 'content-type': 'application/json' }, body: '{}' });
+    const session = (await opened.json()).token as string;
 
     // The owner approves this computer, as the connector's browser approval does.
     const computer = secret(), requestId = randomUUID(), polling = secret();
@@ -106,7 +104,7 @@ test('owner, computer, project and two agents exchange a message over HTTP and i
     await first.stop();
 
     // A restarted engine still has the project, Beta's credentials and the unacknowledged message.
-    const second = await start(2);
+    const second = await start();
     agents.Beta.run = await startRun(second.url, project, agents.Beta.token, true);
     expect(delivered(await tool(second.url, project, agents.Beta, 'read_agent_inbox', {})).join()).toContain('Hello Beta from a standalone engine');
     await second.stop();

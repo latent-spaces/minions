@@ -13,11 +13,8 @@ export function hashToken(t: string): string {
   return createHash('sha256').update(t).digest('hex');
 }
 
-// What to tell someone whose request carries no accepted session. A local-owner engine has no GitHub sign-in:
-// its owner gets a new owner link from the engine's owner-link command. A GitHub engine asks for GitHub sign-in.
-export function signInRequired(github = 'Sign in with GitHub.'): string {
-  return localOwnerSubject(identity()) !== null ? 'Sign in again with a new owner link from your engine.' : github;
-}
+// What to tell someone whose request carries no accepted session: the local app opens a new owner session on reload.
+export const SIGN_IN_REQUIRED = 'Reload MyLittleSwarm on this computer.';
 
 export type SignIn = { firebaseUid: string; provider: 'github.com' | 'local-owner'; authTime: number; name: string | null; emails: string[]; githubUsername: string | null };
 
@@ -40,7 +37,7 @@ export async function signInFromIdToken(idToken: string): Promise<SignIn> {
     const account = (await githubAccounts.doc(githubId).get()).data();
     if (account?.firebaseUid === session.subject) { emails = account.emails; githubUsername = account.login; }
   } else if (session && provider === LOCAL_OWNER_PROVIDER && session.subject === localOwnerSubject(identity()) && session.email && session.emailVerified) emails = [session.email.toLowerCase()];
-  if (!session || !emails.length) throw new Refusal('unauthorized', signInRequired());
+  if (!session || !emails.length) throw new Refusal('unauthorized', SIGN_IN_REQUIRED);
   return { firebaseUid: session.subject, provider: provider as SignIn['provider'], authTime: session.authTime * 1000, name: session.name, emails, githubUsername };
 }
 

@@ -10,6 +10,27 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Local app opens without sign-in — owner decision, 10 November 2026
+
+Source: the owner in chat on 10 November 2026: “let's remove the sign in thing and the
+related screens, we don't need them in a local app (Coming soon, tour, etc)”. From the
+options offered the owner chose “Open automatically” and “Remove all three”.
+
+- **No sign-in step.** Opening the local app on this computer lets the owner straight in.
+  The page asks the engine for the owner's session; the engine issues one only to its own
+  page at its loopback address (`Host` and `Origin` checked, at most 30 a minute). There
+  is no owner link, no `owner-link` command and no link file.
+- **Screens removed.** Coming soon, the invited sign-in screen, the product tour (“How
+  MyLittleSwarm works”) and Sign out are gone. When the engine cannot open the session
+  the app says so and asks for a reload.
+- **GitHub sign-in mode removed.** `MLSWARM_SIGN_IN`, GitHub OAuth sign-in, its setup
+  and its docs are removed; the engine always runs with the local owner file. GitHub
+  stays the person's own `gh` sign-in for repository work.
+- **Unchanged.** Approving a computer is still the person's own yes in the browser.
+  `npm run setup` recognizes its own running engine with `check-running`, which verifies
+  an issued session against the owner file's secret. Existing databases and owner files
+  keep working.
+
 ## Preview replaces Outputs — owner decision, 10 November 2026
 
 Source: the owner in chat on 10 November 2026: “now we don't have outputs on claudeflare
