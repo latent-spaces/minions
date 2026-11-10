@@ -115,13 +115,12 @@ test('worker operations verify exact participant every turn and reject selectors
   await assert.rejects(f.ops.callTool(f.caller,'list_my_projects',{}),e=>e.code==='unknown_tool');
 });
 
-
 test('scoped worker discovery follows ON/OFF/ON and never exposes an unbundled or owner tool', async t => {
   const f=await fixture(t);
   const names=async()=> (await f.ops.listTools(f.caller)).map(t=>t.name);
-  assert.deepEqual((await names()).sort(),['comment_task','get_mlswarm_guide','get_project','get_task','list_tasks','manage_team','read_teams','upload_project_image','upload_project_output']);
+  assert.deepEqual((await names()).sort(),['comment_task','get_mlswarm_guide','get_project','get_task','list_tasks','manage_team','read_teams','upload_project_image']);
   f.enabled=false;
-  assert.deepEqual((await names()).sort(),['get_mlswarm_guide','get_project','get_task','list_tasks','read_teams','upload_project_image','upload_project_output']);
+  assert.deepEqual((await names()).sort(),['get_mlswarm_guide','get_project','get_task','list_tasks','read_teams','upload_project_image']);
   f.enabled=true;
   assert.ok((await names()).includes('comment_task'));
   f.catalogFailure=true;
@@ -148,7 +147,7 @@ test('real HTTP worker discovery refreshes on the same MCP client; cached OFF wr
   assert.equal(guide.isError,undefined);
   assert.ok(guide.content[0].text.endsWith(readBundledGuide('project-work')));
   f.enabled=false;
-  assert.deepEqual((await names()).sort(),['get_mlswarm_guide','get_project','get_task','list_tasks','read_teams','upload_project_image','upload_project_output']);
+  assert.deepEqual((await names()).sort(),['get_mlswarm_guide','get_project','get_task','list_tasks','read_teams','upload_project_image']);
   await assert.rejects(client.callTool({name:'comment_task',arguments:{task_id:'task',expected_revision:1,body:'stale',client_request_id:'same'}}),e=>e.code===-32602 && /Tool comment_task not found/.test(e.message));
   assert.ok(!f.calls.some(c=>c.rpc.params?.name==='comment_task'));
   f.enabled=true;
@@ -239,7 +238,6 @@ test('context measures returned facade catalog, guide and sanitized replies, exc
   assert.equal(await f.ops.endContext(f.caller), null, 'an absent measurement is unknown');
 });
 
-
 test('worker steering replies reach the scoped server and retain server refusals for other empty-recipient threads', async t => {
   const f = await fixture(t);
   await f.ops.callTool(f.caller, 'get_project', {});
@@ -254,12 +252,4 @@ test('worker steering replies reach the scoped server and retain server refusals
   assert.equal(refused.isError,true);
   assert.match(refused.content[0].text,/only for a reply to human steering/);
   assert.deepEqual(await f.ops.deliveryState(f.caller),{pending:0,notices:[]});
-});
-
-test('native workers cannot select approved-computer hosting authority or person controls', async t => {
-  const f=await fixture(t);
-  for(const name of ['inspect_project_output','get_project_hosting','configure_project_hosting','approve_project_output'])
-    await assert.rejects(f.ops.callTool(f.caller,name,{project_id:'a'.repeat(64)}),{code:'unknown_tool'});
-  await assert.rejects(f.ops.callTool(f.caller,'upload_project_output',{project_id:'a'.repeat(64),directoryPath:f.binding.folder,clientRequestId:'root-shape',expectedArtifact:'b'.repeat(64),confirmPublic:true}),{code:'bad_input'});
-  assert.equal(f.calls.length,0,'person-only arguments must never reach project HTTP');
 });

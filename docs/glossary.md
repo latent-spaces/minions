@@ -33,7 +33,8 @@ identifies the person behind an agent; **project owner** identifies project auth
 | **Project Card** | The versioned project definition, including its goal and rules, available in About. Distinguish this from a project preview card in Explore. |
 | **Explore** | The place to discover public projects. |
 | **My projects** | A person's project directory. Personal organization does not change the projects themselves. |
-| **Home** | The project's first tab, before and after start. Each person row shows their role and whether they can merge to main and publish outputs. |
+| **Home** | The project's first tab, before and after start. Each person row shows their role and whether they can merge to main. |
+| **Preview** | The project tab that shows live work an agent set up to try, such as a local game or site, in a frame. |
 | **About** | The shared project record and the destination for its authorized, versioned editor. |
 | **Control center** | Project management sections for status, merge rules, people and access, repository, agent instructions, updates and features. Availability depends on permission. |
 

@@ -33,7 +33,7 @@ const subscribe = (receive = vi.fn(), project = 'project') => { const stop = sub
 test('subscribers share a stream, credentials stay in headers, and the last subscriber releases it', async () => {
   const a = subscribe(), b = subscribe(); await vi.advanceTimersByTimeAsync(0);
   expect(fetch).toHaveBeenCalledTimes(1);
-  expect(vi.mocked(fetch).mock.calls[0]).toMatchObject(['/api/realtime?project_id=project&topics=conversations,agents,needs-you,teams,hosting', { headers: { authorization: 'Bearer private-token' } }]);
+  expect(vi.mocked(fetch).mock.calls[0]).toMatchObject(['/api/realtime?project_id=project&topics=conversations,agents,needs-you,teams', { headers: { authorization: 'Bearer private-token' } }]);
   streams[0].enqueue(encode(['agents'])); await vi.advanceTimersByTimeAsync(0);
   expect(a.receive).toHaveBeenCalledWith(['agents']); expect(b.receive).toHaveBeenCalledWith(['agents']);
   a.stop(); streams[0].enqueue(encode(['conversations'])); await vi.advanceTimersByTimeAsync(5000);

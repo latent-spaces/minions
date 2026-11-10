@@ -30,42 +30,12 @@ returned cursor for the next one, and `detail: true` only when the answer needs 
 rows. Follow the cursor when the answer needs more. The conversation and chat reads keep
 full messages with the same paging.
 
-## Static outputs
+## Preview
 
-Hosting is independent of agent execution. Use `get_project_hosting` to read the
-current policy, candidate page and confirmed release. This read starts no agent.
-The owner may enable public hosting with `configure_project_hosting`, designating
-current member submitters and approvers, with the current policy revision and an
-explicit public-file confirmation. Preserve other people’s permissions unless the
-owner asked to change them.
-
-First use `inspect_project_output` with `project_id` and the absolute clean built
-`directoryPath`. It checks project membership before local inspection and returns
-`artifact` (the canonical digest), `manifest`, `bytes` and `fileCount`, without
-uploading files. Review the inventory and obtain public-file approval for those
-exact files, then pass `artifact` as `expectedArtifact` to the uploader.
-
-A designated member can use `upload_project_output` through their approved computer
-without joining an agent run or resuming a paused project. Supply `project_id`, the
-absolute clean built `directoryPath`, stable `clientRequestId`, the reviewed
-`expectedArtifact` digest and `confirmPublic: true`. Keep those exact files and ID
-for retries; inspect the build inventory before approving the digest. Include only
-the intended static public output, never the repository, credentials or private
-files. The tool does not build or install dependencies. Closed projects refuse
-writes. A changed computer approval, membership or hosting policy can stop the
-upload, including between files.
-
-In approval mode, submission returns `awaiting_approval`. A currently designated
-person may use `approve_project_output` after approving that exact candidate and
-artifact: pass `candidate_id`, `expected_artifact`, `policy_revision`, stable
-`client_request_id` and `approved: true`. Automatic mode requests publication
-under the current selected policy. Neither an uploaded candidate nor an uncertain
-operation is Published; read hosting state to confirm the public release.
-
-Native agents working on their own retain their run-scoped uploader, limited to
-that agent’s approved working folder and current run. They gain no person-level
-hosting configuration or approval tools. In coding chats the canonical uploader
-is the approved-computer tool above; it takes no `participation_ref`.
+The Preview tab shows a page an agent set with `set_project_preview`: a local server it
+started (`http://localhost:PORT/…`) or an `https://` page, in a frame. When the person
+wants to see the project running, ask an agent working on it to start the server and set
+the preview. A localhost preview only works on the computer where that agent runs.
 
 ## Projects
 
@@ -91,8 +61,7 @@ can be empty while its cursor still leads to more, so follow the cursor.
   Old agent conversations and updates remain members-only. New explicit updates on the
   public project follow its public screening rules. Other MyLittleSwarm accounts may
   join under public-project limits.
-  Repository visibility, current members, execution and hosting publication do not
-  change. Obtain the owner's explicit disclosure/joining approval, then pass both
+  Repository visibility, current members and execution do not change. Obtain the owner's explicit disclosure/joining approval, then pass both
   confirmations, public listing metadata, the Card version and all three revisions, `approved: true` and
   one stable request ID. After an uncertain reply retry the identical decision; never
   replace its revisions silently. Public information already read cannot be recalled.

@@ -15,15 +15,16 @@ Closed projects are read-only; reopening does not resume work. Before start, wai
 for the owner to start. Reconcile checkpoints, GitHub and local history
 before repeating work after restart or an uncertain response.
 
-## Static outputs
+## Preview
 
-A running native worker can submit a clean built folder inside its approved
-working folder with `upload_project_output` and one stable request ID. Its current
-run and the owner’s submitter policy are checked for every upload step. Do not
-resume yourself or bypass a paused project to upload. Human coding chats use the
-approved-computer hosting workflow in [Projects](projects.md), which can upload
-while paused without an agent run. Exact-build approval and automatic publication
-remain separate from agent execution authority.
+When the project has live visuals people can try, such as a game, site or app, show
+them in the project's Preview tab with `set_project_preview`. Start the project's own
+dev or static server on this computer and pass its page, for example
+`http://localhost:5173/`, or pass an `https://` page. The tab shows it in a frame.
+A localhost preview works only for people on this computer and only while your server
+runs: keep it running, and clear the link with an empty string when it stops. Set it
+when there is something worth trying, not for every change, and mention it in your
+next update. Saving it starts nothing and grants no powers.
 
 ## Tasks
 

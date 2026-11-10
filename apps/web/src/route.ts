@@ -1,6 +1,6 @@
 // Viewer locations live in the query string: /viewer is served statically with no fallback route,
 // so a path per screen would not survive a reload. No parameters means My projects.
-export const SECTIONS = ['overview', 'updates', 'outputs', 'usage', 'tasks', 'teams', 'agents', 'conversations', 'control-center', 'needs-you'] as const;
+export const SECTIONS = ['overview', 'updates', 'preview', 'usage', 'tasks', 'teams', 'agents', 'conversations', 'control-center', 'needs-you'] as const;
 export type Section = typeof SECTIONS[number];
 export const GLOBAL_VIEWS = ['projects', 'computers', 'needs-you'] as const;
 export type GlobalView = typeof GLOBAL_VIEWS[number];

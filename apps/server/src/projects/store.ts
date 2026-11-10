@@ -26,7 +26,7 @@ import { artworkOf } from './artwork.js';
 import { runtimeOf, runtimeWithCard, recordWithRuntime, type WorkspaceProject, type RuntimeState } from './records.js';
 import { communityRulesDoc, communitySettingsDoc, setCommunityPublication } from './community-schema.js';
 import { communityRulesView } from './community-rules.js';
-import { liveLinkDoc, liveLinkView } from './live-link.js';
+import { previewDoc, previewView } from './preview.js';
 export type { WorkspaceProject } from './records.js';
 export const CONFIGURE = z.object({
   client_request_id: z.string().regex(/^[\w-]{1,64}$/), expected_revision: z.number().int().nonnegative(),
@@ -181,7 +181,7 @@ async function listDirectoryPage(operator: WithId<Profile>, cursor: string | und
 
 export async function readWorkspace(operator: WithId<Profile>, id: string) {
   const role = await projectRole(operator, id);
-  const [approvedSnap, cardSnap, listingSnap, rulesSnap, liveSnap] = await Promise.all([projects.doc(id).get(), cardDoc(id).get(), projectListings.doc(id).get(), communityRulesDoc(id).get(), liveLinkDoc(id).get()]);
+  const [approvedSnap, cardSnap, listingSnap, rulesSnap, previewSnap] = await Promise.all([projects.doc(id).get(), cardDoc(id).get(), projectListings.doc(id).get(), communityRulesDoc(id).get(), previewDoc(id).get()]);
   const approved = approvedSnap.data()!, card = currentCard(approved, cardSnap.data());
   const listed = !isPrivateProject(approved) && listingSnap.exists;
   const p = runtimeWithCard(approved, cardSnap.data()), setup = setupSnapshot(approved, p), participantCount = await registeredParticipantCount(id, approved.ownerProfileId);
@@ -193,7 +193,7 @@ export async function readWorkspace(operator: WithId<Profile>, id: string) {
     ...(isPrivateProject(approved) ? { privacy: { ...approved.privacy, memberLimit: (await db.runTransaction(tx => readProjectAdmission(tx, id, approved.ownerProfileId))).capacity } } : {}),
     ...(role === 'owner' && approved.setupPlan ? { setupPlan: approved.setupPlan } : {}),
     startAnnouncement: await readStartAnnouncement(operator.id, id),
-    communityRules: communityRulesView(rulesSnap.data()), liveUrl: liveLinkView(liveSnap.data()), setup, participantCount, execution, tokenLimit: approved.execution.tokenLimit ?? null,
+    communityRules: communityRulesView(rulesSnap.data()), previewUrl: previewView(previewSnap.data()), setup, participantCount, execution, tokenLimit: approved.execution.tokenLimit ?? null,
     // What the job's token pool has counted, for the owner's job bar; read only while a cap is set.
     ...(role === 'owner' && approved.execution.tokenLimit ? { tokensUsed: await inProject(id, () => jobTokensCounted(approved.ownerProfileId, approved.execution.startsAt)) } : {}), canConfigure: role === 'owner' };
 }

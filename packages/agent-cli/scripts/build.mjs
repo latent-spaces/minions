@@ -20,13 +20,10 @@ const bundledSkill = skillMetadata(router);
 if (metadata.version !== VERSION || bundledSkill.guide_revision !== GUIDE_REVISION) throw new Error('Package version and skill guide revision must match their declarations.');
 if (router !== guideFiles['SKILL.md']) writeFileSync(join(root, 'skills/mlswarm/SKILL.md'), router);
 const dest = join(root, 'runtime');
-// One validation implementation across browser, API, Worker and the connector.
-buildSync({ entryPoints: [join(root, '../contracts/src/hosting-runtime.ts')], outfile: join(dest, 'hosting-contract.mjs'),
-  bundle: true, platform: 'neutral', format: 'esm', target: 'es2023', legalComments: 'none' });
 const workerGuides = createWorkerGuidance({ core: readFileSync(join(dest, 'AGENT_PROMPT_V2.md'), 'utf8'), guideRevision: GUIDE_REVISION,
   sections: Object.fromEntries(WORKER_GUIDE_SECTIONS.map(name => [name, guideFiles[`references/${name}.md`]])) });
 writeFileSync(join(dest, 'worker-guides.json'), `${JSON.stringify(workerGuides, null, 2)}\n`);
-const names = ['project-operations.mjs', 'work-controller.mjs', 'providers.mjs', 'claude-settings.json', 'AGENT_PROMPT_V2.md', 'worker-guides.json', 'hosting-contract.mjs'];
+const names = ['project-operations.mjs', 'work-controller.mjs', 'providers.mjs', 'claude-settings.json', 'AGENT_PROMPT_V2.md', 'worker-guides.json'];
 const files = {};
 for (const name of names) {
   const data = readFileSync(join(dest, name));

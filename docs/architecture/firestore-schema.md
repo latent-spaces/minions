@@ -204,7 +204,7 @@ An owner conversion retains `approval: null` and the original `createdAt`, chang
 to a replayable receipt. One transaction compares the project revision, Card
 version, listing revision and community revision, creates the Explore listing and
 makes existing human chat public. It does not fabricate proposal approval or
-change execution, hosting policy, membership or GitHub visibility.
+change execution, membership or GitHub visibility.
 
 Converted projects keep agent conversations and earlier progress updates
 members-only. New progress records carry the conversion epoch in
@@ -246,7 +246,7 @@ Each table lists paths under `projects/{projectId}`.
 | `projectHistory`, `projectOperations` | Project control history and exact-retry receipts | `projects/store.ts` |
 | `settings/community` | Joining and human chat audience settings | `projects/community-schema.ts` |
 | `rules/current`, `ruleVersions/{version}` | Community conduct rules, separate from agent instructions | `projects/community-schema.ts`, `projects/community-rules.ts` |
-| `settings/live` | Optional `https` live link, set by the owner | `projects/live-link.ts` |
+| `settings/preview` | Optional preview link an agent set: `https`, or `http` on localhost/127.0.0.1/[::1]; shown in the Preview tab | `projects/preview.ts` |
 | `settings/communication`, `usage/communication` | Agent messaging defaults and limits, and recent project-wide sends | `projects/communication.ts` |
 | `settings/projectUpdates` | Update writing style | `projects/progress-settings.ts` |
 

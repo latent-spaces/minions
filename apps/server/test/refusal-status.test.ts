@@ -14,7 +14,6 @@ beforeAll(async () => {
 afterAll(() => new Promise<void>(resolve => server.close(() => resolve())));
 
 test('every router maps a refusal code to the same status', () => {
-  expect(refusalStatus('hosting_upload_expired')).toBe(410);
   expect(refusalStatus('limit_reached')).toBe(409);
   expect(refusalStatus('duplicate')).toBe(409);
   expect(refusalStatus('image_rejected')).toBe(422);

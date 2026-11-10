@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   metrics: vi.fn(), dispatch: vi.fn(), reserve: vi.fn(), backlog: vi.fn(), scheduled: vi.fn(),
-  hosting: vi.fn(), cleanup: vi.fn(), sessions: vi.fn(),
+  sessions: vi.fn(),
 }));
 vi.mock('../src/identity/server-sessions.js', () => ({ deleteExpiredSessions: mocks.sessions }));
 vi.mock('../src/v2/fanout-jobs.js', () => ({
@@ -12,8 +12,6 @@ vi.mock('../src/v2/fanout-jobs.js', () => ({
 }));
 vi.mock('../src/analytics/projection.js', () => ({ reconcileUsageMetrics: mocks.metrics }));
 vi.mock('../src/projects/scheduled-start.js', () => ({ reconcileScheduledStarts: mocks.scheduled }));
-vi.mock('../src/hosting/service.js', () => ({ reconcileHostingOperations: mocks.hosting }));
-vi.mock('../src/hosting/cleanup.js', () => ({ reconcileHostingCleanup: mocks.cleanup }));
 import { LOCAL_QUEUE, localScheduler, localTaskQueue, startLocalWorker } from '../src/v2/local-fanout.js';
 
 const hint = (n: number, generation = 1) => ({ jobId: n.toString(16).padStart(64, '0'), generation });
@@ -29,8 +27,6 @@ beforeEach(() => {
   mocks.scheduled.mockResolvedValue({ failed: 0 });
   mocks.sessions.mockResolvedValue({ deleted: 0, more: false });
   mocks.metrics.mockResolvedValue({ failed: 0 });
-  mocks.hosting.mockResolvedValue({ failed: 0 });
-  mocks.cleanup.mockResolvedValue({ failed: 0 });
 });
 afterEach(() => { vi.useRealTimers(); });
 

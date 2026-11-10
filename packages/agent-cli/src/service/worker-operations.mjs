@@ -3,7 +3,6 @@ import { join } from 'node:path';
 import { z } from 'zod/v4';
 import { ProjectOperations } from '../../runtime/project-operations.mjs';
 import { PROJECT_IMAGE_TOOL } from '../project-image.mjs';
-import { PROJECT_OUTPUT_TOOL } from '../project-output.mjs';
 import { verifyBundle } from '../system.mjs';
 import { ensureHome, physicalPath, assertStateOutsideWorkspace, digest } from '../state.mjs';
 import { RuntimeError, sameTarget, validateTarget, validateUuid, validateGeneration } from './contracts.mjs';
@@ -19,7 +18,7 @@ const resultValue = reply => {
 export function createWorkerOperations({ store, resolveBinding, fetchImpl = fetch }) {
   if (!store || typeof resolveBinding !== 'function') throw new TypeError('A store and trusted worker binding resolver are required.');
   const generated = JSON.parse(verifyBundle().files['project-tools.json'].toString('utf8')).tools;
-  const catalog = [...generated, PROJECT_IMAGE_TOOL, PROJECT_OUTPUT_TOOL, WORKER_GUIDE_TOOL].map(tool => ({ ...structuredClone(tool), inputSchema: { type: 'object', properties: {}, ...structuredClone(tool.inputSchema ?? {}), additionalProperties: false } }));
+  const catalog = [...generated, PROJECT_IMAGE_TOOL, WORKER_GUIDE_TOOL].map(tool => ({ ...structuredClone(tool), inputSchema: { type: 'object', properties: {}, ...structuredClone(tool.inputSchema ?? {}), additionalProperties: false } }));
   const schemas = new Map(catalog.map(tool => [tool.name, z.fromJSONSchema(tool.inputSchema)]));
   const contexts = new Map();
   const keyFor = caller => {

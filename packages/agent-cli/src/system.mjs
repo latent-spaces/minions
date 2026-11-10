@@ -10,7 +10,7 @@ export function verifyBundle() {
   let manifest;
   try { manifest = JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')); }
   catch { throw new Error('Packaged runtime missing. Build or reinstall this package before preparing an agent.'); }
-  const names = ['project-operations.mjs', 'work-controller.mjs', 'providers.mjs', 'claude-settings.json', 'AGENT_PROMPT_V2.md', 'project-tools.json', 'worker-guides.json', 'hosting-contract.mjs'];
+  const names = ['project-operations.mjs', 'work-controller.mjs', 'providers.mjs', 'claude-settings.json', 'AGENT_PROMPT_V2.md', 'project-tools.json', 'worker-guides.json'];
   if (Object.keys(manifest.files ?? {}).sort().join() !== [...names].sort().join()) throw new Error('Invalid packaged runtime manifest.');
   const files = {};
   for (const name of names) {

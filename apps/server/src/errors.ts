@@ -3,7 +3,6 @@ import type { Response } from 'express';
 export type RefusalCode =
   | 'tasks_disabled' | 'teams_disabled' | 'unauthorized' | 'forbidden' | 'not_started' | 'paused' | 'rate_limited'
   | 'too_long'
-  | 'hosting_upload_expired'
   | 'not_found' | 'duplicate' | 'bad_input'
   | 'image_rejected' | 'moderation_unavailable' | 'moderation_required'
   | 'intent_conflict' | 'recipient_backlog' | 'project_busy' | 'run_active' | 'run_superseded' | 'runtime_conflict' | 'proposal_conflict' | 'proposal_state' | 'delivery_conflict' | 'limit_reached';
@@ -24,7 +23,7 @@ export const refusalDetails = (error: Refusal) => error.limit ? { limit: error.l
 // One HTTP status per refusal code; every router answers a refusal the same way.
 const REFUSAL_STATUS: Record<RefusalCode, number> = {
   bad_input: 400, too_long: 400, not_started: 400, paused: 400, recipient_backlog: 400,
-  unauthorized: 401, forbidden: 403, not_found: 404, hosting_upload_expired: 410,
+  unauthorized: 401, forbidden: 403, not_found: 404,
   duplicate: 409, intent_conflict: 409, proposal_conflict: 409, proposal_state: 409, delivery_conflict: 409, limit_reached: 409,
   tasks_disabled: 409, teams_disabled: 409, moderation_required: 409, run_active: 409, run_superseded: 409, runtime_conflict: 409,
   image_rejected: 422, rate_limited: 429, moderation_unavailable: 503, project_busy: 503,

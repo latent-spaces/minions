@@ -802,42 +802,12 @@ scans at most 200 filtered candidates per request; empty pages can still return
 web search is submitted explicitly and shows Show more when further candidates
 remain. No index backfill is required; title changes affect the next read.
 
-### Static project outputs
+### Project preview
 
-Native hosting uses `upload_project_output` to submit a clean built static folder
-through MCP. The app reviews and approves builds and controls publication; it has
-no browser folder upload. Browser sign-in credentials cannot prepare, upload or
-seal files through the human hosting API.
-
-In a coding chat, an owner-designated member can upload from an approved computer
-without an agent run, including while the project is paused. Read
-`get_project_hosting` first. The owner enables hosting through
-`configure_project_hosting`; designated people use `approve_project_output` for
-an exact candidate and artifact. First run `inspect_project_output(project_id, directoryPath)` to inspect the selected
-folder’s canonical digest, relative inventory, bytes and file count without an
-upload. Approve those exact files before supplying its `artifact` digest to upload.
-The root uploader takes `project_id`, an absolute
-`directoryPath`, a stable `clientRequestId`, the reviewed `expectedArtifact` digest
-and `confirmPublic: true`. It takes no `participation_ref`. Native workers retain
-their run-scoped uploader inside that agent’s approved working folder; they gain
-no person-level configuration or approval tools.
-
-Include `index.html` and relative asset URLs; Vite builds should use `--base=./`.
-Build first using the project’s normal workflow: the tool does not build, install
-packages or start models. Every included file may become public. Never select a
-repository root, credentials or private records. Closed projects refuse writes.
-
-Approval mode leaves an exact build for a designated person; automatic mode
-requests publication after sealing. An unconfirmed activation is not Published.
-Keep the same ID and original files after interruption; received files are skipped.
-Expiry requires a new request ID. Changed computer approval, credentials,
-membership or policy remain authority fences, including pending publication
-recovery. The worker path also retains its current-run and pause/stop checks.
-Symlinks, junctions, hardlinks, ambiguous paths and filesystems without verifiable
-stable file IDs are refused. The current public build is retained; replaced
-releases have a 24-hour grace period. Expired uploads become eligible for cleanup
-24 hours later, while valid builds awaiting approval remain. Reusing a cleaned
-request ID is refused. Native Windows acceptance is deferred under the selected
-owner release timing; simulated tests do not establish a native pass. The server
-publishes through a configured hosting control service; this repository no longer
-contains one, so a local engine refuses publication with "Static hosting is not configured".
+An agent shows live work in the project's Preview tab with `set_project_preview`
+(owner, 10 November 2026). It takes one `url`: `http://localhost`, `127.0.0.1` or
+`[::1]` for a server the agent started on this computer, or any `https://` page; an
+empty string clears it. The newest save wins, and an agent may set it while the
+project is paused. The tab frames the page in a sandbox (scripts, forms, pointer lock
+and fullscreen) and never frames a page on the app's own origin. A localhost preview
+only works for people on the agent's computer. The record is `settings/preview`.

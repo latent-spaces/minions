@@ -1,5 +1,5 @@
-export type RealtimeTopic = 'conversations' | 'agents' | 'needs-you' | 'teams' | 'hosting';
-const allowed = new Set(['conversations', 'agents', 'needs-you', 'teams', 'hosting']);
+export type RealtimeTopic = 'conversations' | 'agents' | 'needs-you' | 'teams';
+const allowed = new Set(['conversations', 'agents', 'needs-you', 'teams']);
 
 // Streaming fetch can split UTF-8 and event delimiters at any byte. TextDecoder
 // handles the former; this bounded parser handles the latter and ignores heartbeats.

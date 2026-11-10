@@ -48,7 +48,6 @@ const MANAGEMENT: Record<string, Row> = {
   'POST /:id/personal-archive': { body: { client_request_id: 'probe', expected_revision: 0, archived: true } },
   'POST /:id/configure': { body: { client_request_id: 'probe', expected_revision: 1, repoUrl: 'https://github.com/example/library' } },
   'POST /:id/community-rules': { body: { client_request_id: 'probe', expected_version: 1, body: 'Respect one another.' } },
-  'POST /:id/live-link': { body: { url: 'https://example.com/game', expectedUrl: null } },
   'GET /:id/project-update-settings': {},
   'POST /:id/project-update-settings': { body: { clientRequestId: 'probe', expectedRevision: 0, writingStyle: 'brief' } },
   'GET /:id/communication': {},

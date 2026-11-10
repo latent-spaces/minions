@@ -84,7 +84,7 @@ try{
   for(const name of ['create_task','update_task','assign_task','claim_task','release_task','comment_task','link_task'])assert.ok(!catalogs[0].tools.some(t=>t.name===name));
   for(const name of ['get_project_join_link','start_owned_project','runtime_archive_failed_launch_report','get_updates','find_work','configure_owned_project','set_agent_work_settings','extend_agent_work','get_owned_project_status','open_vote','cast_vote','get_vote','list_votes','resolve_vote','open_decision','vote','get_decision','list_decisions','decide_direction'])assert.ok(!catalogs[0].tools.some(t=>t.name===name));
   assert.ok(catalogs[0].tools.some(t=>t.name==='work_in_this_chat'));
-  for(const name of ['upload_project_output','make_project_public'])assert.ok(catalogs[0].tools.some(t=>t.name===name),`Checkout MCP catalog must include ${name}`);
+  for(const name of ['make_project_public'])assert.ok(catalogs[0].tools.some(t=>t.name===name),`Checkout MCP catalog must include ${name}`);
   for(const name of ['get_agent_run_log','get_agent_run_diagnostics','recover_agent_run'])assert.ok(catalogs[0].tools.some(t=>t.name===name));
   const call=async(client,name,args={})=>parse(await client.callTool({name,arguments:args}));
   const guideText=reply=>{assert.ok(!reply.isError);return reply.content[0].text;};
@@ -115,7 +115,7 @@ try{
   const guideClient=new Client({name:'synthetic-checkout-worker-guide',version:'test'});
   try{
     await guideClient.connect(new StreamableHTTPClientTransport(new URL(workerEndpoint.url),{requestInit:{headers:{Authorization:`Bearer ${workerEndpoint.token}`}}}));
-    const workerNames=(await guideClient.listTools()).tools.map(tool=>tool.name);assert.ok(workerNames.includes('get_mlswarm_guide'));assert.ok(workerNames.includes('upload_project_output'));assert.ok(!workerNames.includes('make_project_public'));assert.ok(!workerNames.includes('control_agent'));
+    const workerNames=(await guideClient.listTools()).tools.map(tool=>tool.name);assert.ok(workerNames.includes('get_mlswarm_guide'));assert.ok(workerNames.includes('upload_project_image'));assert.ok(!workerNames.includes('make_project_public'));assert.ok(!workerNames.includes('control_agent'));
     assert.equal((await guideClient.callTool({name:'get_mlswarm_guide',arguments:{section:'project-work'}})).isError,true);
     await call(guideClient,'get_project');
     for(const section of workerGuide.WORKER_GUIDE_SECTIONS)assert.ok(guideText(await guideClient.callTool({name:'get_mlswarm_guide',arguments:{section}})).endsWith(skillBundle.files[`references/${section}.md`]));

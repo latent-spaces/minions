@@ -27,7 +27,6 @@ import { convertProjectToPublic, readPublicConversion } from './public-conversio
 import { DELIVERY_QUERY, DELIVERY_RETRY, listDeliveryJobs, retryDeliveryJob } from '../v2/fanout-admin.js';
 import { validProjectId } from './access.js';
 import { editCommunityRules } from './community-rules.js';
-import { editLiveLink } from './live-link.js';
 import { readAgentPersona, saveAgentPersona } from './agent-participation.js';
 import { readCommunication, saveCommunication } from './communication.js';
 import { listMyWorkers } from './worker-sessions.js';
@@ -154,7 +153,6 @@ export function projectManagementRoutes(now: () => number) {
   router.post('/:id/merge-access', (req, res) => answer(res, () => editMergePolicy(res.locals.operator.id, id(req), req.body, now)));
   router.get('/:id/merging', (req, res) => answer(res, () => readMergingAccess(res.locals.operator.id, id(req), parsed(MERGING_QUERY, req.query), now)));
   router.post('/:id/community-rules', (req, res) => answer(res, async () => editCommunityRules(res.locals.operator, id(req), req.body, now)));
-  router.post('/:id/live-link', (req, res) => answer(res, async () => editLiveLink(res.locals.operator, id(req), req.body, now)));
   router.get('/:id/project-update-settings', (req, res) => answer(res, async () => {
     parsed(z.object({}).strict(), req.query);
     return inProject(id(req), () => readProjectUpdateSettings(res.locals.operator.id));

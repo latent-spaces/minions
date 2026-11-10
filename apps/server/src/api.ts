@@ -17,7 +17,6 @@ import { chatMediaRoutes } from './projects/chat-media.js';
 import { projectDiscoveryRoutes } from './projects/discovery.js';
 import { trustProxySetting } from './trust-proxy.js';
 import { projectProgressRoutes } from './projects/progress-routes.js';
-import { projectHostingRoutes, projectHostingAgentRoutes, projectHostingComputerRoutes } from './hosting/routes.js';
 
 // Shared API composition for the hosted entry and the explicit standalone launcher.
 // Constructing the app never opens a listener or starts a delivery worker.
@@ -45,9 +44,6 @@ export function createApi(host: string, authentication?: express.Router, standal
   app.use(['/api/owner/participations/sync','/api/owner/backgrounds/sync'], participationSnapshotParser(host));
   app.use('/api/feedback', feedbackRoutes(host));
   // Before the SDK's generic JSON parser: manifests and binary files have their own bounded readers.
-  app.use('/api/owner/project-hosting', projectHostingComputerRoutes(Date.now));
-  app.use('/api/project-hosting', projectHostingRoutes(Date.now));
-  app.use('/p/:projectId/v2/hosting', projectHostingAgentRoutes(Date.now));
   // Standalone authentication supplies its own literal Host/origin checks and bounded JSON parser.
   // Mount before the generic parser so exchange failures keep their small JSON response contract.
   if (authentication) app.use('/api/auth', authentication);

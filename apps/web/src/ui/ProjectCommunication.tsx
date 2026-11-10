@@ -32,7 +32,7 @@ import {createPortal} from 'react-dom';
 import {AddAgentPrompt,useAddAgentPrompt} from './AddAgentPrompt';
 
 type LiveFrame={at:number;serverTime:number;nodes:CommunicationNode[];messages:MessageRow[];trafficMark?:string|null};
-function ProjectCommunicationView({user,projectId,projectName,active,agents,go,addAgent,closed=false,pauseRequest,onOpenAgent,onCopyLink}:{onCopyLink?:(()=>void)|null;pauseRequest?:{revision:number;requestedAt:number};onOpenAgent?:(id:string)=>void;projectName?:string;liveUrl?:string|null;user:SessionUser;projectId:string;active:boolean;agents:AgentRow[];go:(r:Route)=>void;addAgent?:ReactNode;closed?:boolean}){
+function ProjectCommunicationView({user,projectId,projectName,active,agents,go,addAgent,closed=false,pauseRequest,onOpenAgent,onCopyLink}:{onCopyLink?:(()=>void)|null;pauseRequest?:{revision:number;requestedAt:number};onOpenAgent?:(id:string)=>void;projectName?:string;user:SessionUser;projectId:string;active:boolean;agents:AgentRow[];go:(r:Route)=>void;addAgent?:ReactNode;closed?:boolean}){
  const id=useId().replace(/:/g,''),[snapshot,setSnapshot]=useState<LiveFrame|null>(null),[error,setError]=useState<string|null>(null),[selected,setSelected]=useState<string|null>(null);
  const [pulse,setPulse]=useState(0),[loading,setLoading]=useState(false),[readNotice,setReadNotice]=useState(false);
  const [traffic,setTraffic]=useState<Traffic[]>([]),[trafficError,setTrafficError]=useState<string|null>(null),[trafficRetry,setTrafficRetry]=useState(0);

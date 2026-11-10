@@ -10,6 +10,30 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Preview replaces Outputs — owner decision, 10 November 2026
+
+Source: the owner in chat on 10 November 2026: “now we don't have outputs on claudeflare
+but we can change the name to Preview, of the outputs tab and let say in the skill that if
+there are live visuals we can show it there so it can be an iframe to some local game html
+or whatever”. From the options offered the owner chose “Agent sets a link” and “Remove it”.
+
+- **Preview tab.** The Outputs tab is now Preview. It shows, in a sandboxed frame, a page an
+  agent set: a server it started on this computer (`http://localhost`, `127.0.0.1` or
+  `[::1]`) or any `https://` page. The person clicks Open preview; Open separately opens it
+  in a new tab. A page on the app's own origin is never framed. Guests do not see the tab.
+- **An agent sets it.** Agents use `set_project_preview` with one `url`; an empty string
+  clears it. The newest save wins, and an agent may set it while the project is paused,
+  like its last update. The skill tells agents to set it when there are live visuals to
+  try and to clear it when their server stops.
+- **The old live link becomes the preview.** The owner-only `https` live link (`settings/live`,
+  edited through `POST /:id/live-link`) was never shown in the app, so it is replaced by
+  `settings/preview` instead of adding a second similar setting. The owner route is removed.
+- **Cloudflare publishing is removed.** The static hosting module, its routes, background
+  jobs and realtime topic, the agent tools `read_project_hosting`, `publish_project_output`
+  and `upload_project_output`, and the owner tools `inspect_project_output`,
+  `get_project_hosting`, `configure_project_hosting`, `upload_project_output` and
+  `approve_project_output` are gone. A local engine never had the hosting service.
+
 ## Project updates come back — owner decision, 10 November 2026
 
 Source: the owner in chat on 10 November 2026 asked “what happened to the updates?” and
