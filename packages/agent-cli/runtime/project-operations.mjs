@@ -1,7 +1,6 @@
 import { CONTEXT_TOOL_NAMES } from '../src/turn-context.mjs';
 import { attributionFromProjectContext } from '../src/github-attribution.mjs';
 import { PROJECT_IMAGE_TOOL, uploadProjectImage } from '../src/project-image.mjs';
-import { PROJECT_OUTPUT_TOOL, uploadProjectOutput } from '../src/project-output.mjs';
 // Single-writer local intent journal, owned by the foreground runner (OPE-20).
 // The MCP child accesses it through an authenticated loopback bridge, never by writing the file.
 import { createServer } from 'node:http';
@@ -204,12 +203,6 @@ export class ProjectOperations {
   canSend() { return !this.closed && !this.control.closed && !this.control.fatal && this.control.news?.project?.started; }
   pendingResult(entry) { return { content: [{ type: 'text', text: JSON.stringify({ status: 'pending', client_message_id: entry.id, retry_at: entry.nextAt, instruction: 'The runner saved this send and will retry without model usage. Finish this turn; do not send a replacement message.' }) }] }; }
   async forward(rpc, { folder = this.folder } = {}) {
-    if (rpc.method === 'tools/call' && rpc.params?.name === PROJECT_OUTPUT_TOOL.name) {
-      try {
-        const receipt = await uploadProjectOutput(this.control, rpc.params.arguments, folder, { fetchImpl: this.fetchImpl });
-        return { jsonrpc: '2.0', id: rpc.id, result: { content: [{ type: 'text', text: JSON.stringify(receipt) }] } };
-      } catch (error) { return { jsonrpc: '2.0', id: rpc.id, result: refusalResult(error.message) }; }
-    }
     if (rpc.method === 'tools/call' && rpc.params?.name === PROJECT_IMAGE_TOOL.name) {
       try {
         const receipt = await uploadProjectImage(this.control, rpc.params.arguments, folder, { fetchImpl: this.fetchImpl });
@@ -237,7 +230,7 @@ export class ProjectOperations {
       throw new Error('Remote MCP request refused.');
     }
     if (rpc.method === 'tools/list' && Array.isArray(data.result?.tools))
-      data.result.tools.push(PROJECT_IMAGE_TOOL, PROJECT_OUTPUT_TOOL);
+      data.result.tools.push(PROJECT_IMAGE_TOOL);
     return data;
   }
   async attempt(entry, rpc, observed = () => true) {

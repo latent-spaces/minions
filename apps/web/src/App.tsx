@@ -1,5 +1,5 @@
 import { useRealtimeTick } from './realtime';
-import { OutputsController } from './OutputsController';
+import { ProjectPreview } from './ui/ProjectPreview';
 import { UsageAnalytics } from './UsageAnalytics';
 import { WebPresence } from './WebPresence';
 import { sharedLink } from './shared-link';
@@ -26,7 +26,7 @@ import { ProductOverview } from './ui/ProductOverview';
 import { WorkspaceNavigation, type ProjectMenu, type WorkspaceNavItem } from './ui/WorkspaceNavigation';
 import { COMPACT_SHELL } from './ui/shell-breakpoint';
 import { useMenuCollapsed } from './ui/menu-collapse';
-import { ListTodo, Folder, Settings, Menu, Users, Activity, FileText, LogOut, House, MessageSquare, Megaphone } from 'lucide-react';
+import { ListTodo, Folder, Settings, Menu, Users, Activity, MonitorPlay, LogOut, House, MessageSquare, Megaphone } from 'lucide-react';
 import { ProjectUpdatesFeed } from './ProjectUpdatesFeed';
 import { TopBar } from './ui/TopBar';
 import { NotificationsBell } from './ui/NotificationsBell';
@@ -163,7 +163,7 @@ export function App() {
 }
 
 const SHORTCUTS = 5;
-const SECTION_NAMES: Record<Section, string> = { overview: 'Activity', updates: 'Updates', outputs: 'Outputs', usage: 'Usage', tasks: 'Tasks', teams: 'Teams', agents: 'Agents', conversations: 'Conversations', 'control-center': 'Control center', 'needs-you': 'Needs you' };
+const SECTION_NAMES: Record<Section, string> = { overview: 'Activity', updates: 'Updates', preview: 'Preview', usage: 'Usage', tasks: 'Tasks', teams: 'Teams', agents: 'Agents', conversations: 'Conversations', 'control-center': 'Control center', 'needs-you': 'Needs you' };
 // Needs you and My computers are not in the menu: the notifications bell and the account menu reach them.
 const GLOBAL_NAMES: Record<GlobalView, string> = { projects: 'My projects', computers: 'My computers', 'needs-you': 'Needs you' };
 /** Project navigation and own-agent shortcuts; web creation is hidden (OPE-230). */
@@ -438,7 +438,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
 
 // Task 11: the project's tabs, shared by the header's tab row and the menu.
 type ProjectTab = { id: Section; label: string; icon: typeof Activity };
-const PROJECT_TABS: ProjectTab[] = [{ id:'overview', label:'Home', icon:House }, { id:'updates', label:'Updates', icon:Megaphone }, { id:'outputs', label:'Outputs', icon:FileText }, { id:'tasks', label:'Tasks', icon:ListTodo }, { id:'teams', label:'Teams', icon:Users }, { id:'conversations', label:'Conversations', icon:MessageSquare }, { id:'usage', label:'Usage', icon:Activity },
+const PROJECT_TABS: ProjectTab[] = [{ id:'overview', label:'Home', icon:House }, { id:'updates', label:'Updates', icon:Megaphone }, { id:'preview', label:'Preview', icon:MonitorPlay }, { id:'tasks', label:'Tasks', icon:ListTodo }, { id:'teams', label:'Teams', icon:Users }, { id:'conversations', label:'Conversations', icon:MessageSquare }, { id:'usage', label:'Usage', icon:Activity },
   { id:'control-center', label:'Control center', icon:Settings }];
 function tabRoute(projectId: string, tab: ProjectTab): Route {
   return projectRoute(projectId, tab.id);
@@ -600,9 +600,9 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
     ...(isPrivate && !restricted && !owner && workspace?.role !== 'guest' ? [{ id:'leave', label:'Leave project', icon:<LogOut size={18} aria-hidden="true" />, onSelect:() => void leave.act(projectId) }] : []),
   ];
   // Detail pages and the sections without a tab keep their breadcrumb heading; the card's title is then an h2.
-  const detail = !allAgents && (!!agent || !['overview', 'updates', 'outputs', 'usage', 'tasks', 'teams', 'conversations', 'needs-you', 'control-center'].includes(currentSection));
+  const detail = !allAgents && (!!agent || !['overview', 'updates', 'preview', 'usage', 'tasks', 'teams', 'conversations', 'needs-you', 'control-center'].includes(currentSection));
   const tabs = <nav ref={projectTabsRef} className="k42-ph-tabs" aria-label="Project sections">
-    {PROJECT_TABS.filter(tab => (tab.id !== 'conversations' || workspace?.role !== 'guest' || workspace.publicationOrigin !== 'owner_conversion') && (tab.id !== 'outputs' || workspace?.role !== 'guest') && (tab.id !== 'usage' || workspace?.role !== 'guest') && (tab.id !== 'control-center' || canManageMerging(workspace?.role)) && (tab.id !== 'tasks' || nativeTasksEnabled(workspace?.nativeTasks)) && (tab.id !== 'teams' || nativeTeamsEnabled(workspace?.nativeTeams))).map(tab => restricted && tab.id !== 'overview' ? <Button key={tab.id} disabled aria-disabled="true" title="Available when the project starts">{tab.label}</Button> : <NavLink key={tab.label} to={tabRoute(projectId, tab)} go={go}
+    {PROJECT_TABS.filter(tab => (tab.id !== 'conversations' || workspace?.role !== 'guest' || workspace.publicationOrigin !== 'owner_conversion') && (tab.id !== 'preview' || workspace?.role !== 'guest') && (tab.id !== 'usage' || workspace?.role !== 'guest') && (tab.id !== 'control-center' || canManageMerging(workspace?.role)) && (tab.id !== 'tasks' || nativeTasksEnabled(workspace?.nativeTasks)) && (tab.id !== 'teams' || nativeTeamsEnabled(workspace?.nativeTeams))).map(tab => restricted && tab.id !== 'overview' ? <Button key={tab.id} disabled aria-disabled="true" title="Available when the project starts">{tab.label}</Button> : <NavLink key={tab.label} to={tabRoute(projectId, tab)} go={go}
       current={currentSection === tab.id && !detail}>{tab.label}</NavLink>)}
   </nav>;
   return (
@@ -634,12 +634,12 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
           {workspace && <div hidden={currentSection !== 'overview'} className="k42-overview">
             {waiting && workspace.role !== 'owner' && <WaitingRoomCallout />}
             {waiting && workspace.role !== 'guest' && <WaitingAddAgent projectName={project?.name ?? workspace.definition.title} waitingForOwner={workspace.role !== 'owner'} />}
-            {!waiting && project && <ProjectActivity liveUrl={workspace.liveUrl ?? null} user={user} tick={tick} active={visible && currentSection === 'overview'} go={go} projectName={project.name ?? workspace.definition.title} canAddAgent={workspace.role !== 'guest'} readOnly={workspace.execution === 'closed'} pauseRequest={project.paused ? project.pauseRequest : undefined} agentRows={agentRows.page?.items ?? []} onOpenAgent={activateAgent} onCopyLink={copyLink} />}
+            {!waiting && project && <ProjectActivity user={user} tick={tick} active={visible && currentSection === 'overview'} go={go} projectName={project.name ?? workspace.definition.title} canAddAgent={workspace.role !== 'guest'} readOnly={workspace.execution === 'closed'} pauseRequest={project.paused ? project.pauseRequest : undefined} agentRows={agentRows.page?.items ?? []} onOpenAgent={activateAgent} onCopyLink={copyLink} />}
             {workspace.execution !== 'closed' && workspace.role !== 'guest' && controls.workers.data && !myAgents.length && <AddAgentNudge key={projectId} projectId={projectId} title={workspace.definition.title} started={!!project?.started} />}
             {!project && <ProjectHomePreparation owner={owner} closed={workspace.execution === 'closed'} projectId={projectId} go={go} />}
           </div>}
           {workspace && currentSection === 'updates' && <ProjectUpdatesFeed key={`${user.uid}:${projectId}`} projectId={projectId} user={user} tick={tick} active={visible} go={go} />}
-          {workspace && workspace.role !== 'guest' && currentSection === 'outputs' && <OutputsController key={`${user.uid}:${projectId}`} user={user} profileId={suppliedProfileId} projectId={projectId} owner={owner} closed={workspace.execution === 'closed'} active={visible} title={workspace.definition.title} />}
+          {workspace && workspace.role !== 'guest' && currentSection === 'preview' && <ProjectPreview key={`${user.uid}:${projectId}`} title={workspace.definition.title} url={workspace.previewUrl ?? null} appOrigin={window.location.origin} />}
           {workspace && workspace.role !== 'guest' && currentSection === 'usage' && visible && <UsageAnalytics scope={`${user.uid}:${projectId}`} request={analyticsRequest} />}
           {workspace && currentSection === 'needs-you' && visible && <NeedsYou key={`${user.uid}:${projectId}`} user={user} projectId={projectId} readOnly={workspace.execution === 'closed'} />}
           <div hidden={currentSection !== 'control-center'}>

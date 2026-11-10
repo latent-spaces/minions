@@ -1,6 +1,6 @@
 import type { Response } from 'express';
 
-export type RealtimeTopic = 'conversations' | 'agents' | 'needs-you' | 'teams' | 'hosting';
+export type RealtimeTopic = 'conversations' | 'agents' | 'needs-you' | 'teams';
 export type RealtimeWatch = (topic: RealtimeTopic, changed: () => void, failed: () => void) => () => void;
 
 // Events are invalidations, never records or delivery receipts. A fresh connection

@@ -37,5 +37,3 @@ export type * from './project-merging.js';
 export type * from './github-access.js';
 export * from './usage-analytics.js';
 export type * from './project-merge-policy.js';
-export * from './project-hosting.js';
-export * from './hosting-artifact.js';

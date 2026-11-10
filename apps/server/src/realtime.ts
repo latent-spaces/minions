@@ -81,7 +81,7 @@ export function realtimeRoutes() {
     const project = req.query.project_id;
     const requestedTopics = req.query.topics;
     const defaults: RealtimeTopic[] = project ? ['conversations', 'agents', 'needs-you'] : ['needs-you'];
-    const allowed = new Set<RealtimeTopic>(project ? [...defaults, 'teams', 'hosting'] : defaults);
+    const allowed = new Set<RealtimeTopic>(project ? [...defaults, 'teams'] : defaults);
     if (Object.keys(req.query).some(key => !['project_id', 'topics'].includes(key)) || project !== undefined && !validProjectId(project)
       || requestedTopics !== undefined && (typeof requestedTopics !== 'string' || !requestedTopics.length
         || requestedTopics.split(',').some(topic => !allowed.has(topic as RealtimeTopic)))) throw new Refusal('bad_input', 'Choose a valid project and update topics.');
@@ -95,14 +95,13 @@ export function realtimeRoutes() {
     if (res.destroyed) return;
     active.set(person.id, (active.get(person.id) ?? 0) + 1); total++;
     res.once('close', () => { total--; const count = (active.get(person.id) ?? 1) - 1; if (count) active.set(person.id, count); else active.delete(person.id); });
-    const sources: Record<RealtimeTopic, Source[]> = { conversations: [], agents: [], 'needs-you': [], teams: [], hosting: [] };
+    const sources: Record<RealtimeTopic, Source[]> = { conversations: [], agents: [], 'needs-you': [], teams: [] };
     if (project) {
       sources.conversations = ['conversationEntries', 'humanChat'].map(name => ({ path: `projects/${project}/${name}`, order: 'createdAt', nameDescending: true, limit: 50 }));
       // Existing bounded revision shards cover canonical status changes without
       // opening a listener for every agent or loading historical run records.
       sources.conversations.push({ path: `projects/${project}/chatReactions`, order: 'updatedAt', nameDescending: true, limit: 1 });
       sources.agents = [{ path: `projects/${project}/currentStateProgress`, limit: 17 }];
-      sources.hosting = [{ path: `projects/${project}/hosting`, limit: 1 }];
       sources.teams = [{ path: `projects/${project}/nativeTeamProgress`, limit: NATIVE_TEAM_PROGRESS_SHARDS }];
     }
     sources['needs-you'] = ['open', 'answered', 'resolved'].map(status => ({ path: humanRequests.path,

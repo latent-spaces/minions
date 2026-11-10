@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
-import { dirname, join, isAbsolute, resolve } from 'node:path';
+import { dirname, join, isAbsolute } from 'node:path';
 import { mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { assertStateOutsideWorkspace, canonicalPath, connectionDir, ensureHome, privateDir, readPrivate, writePrivate, lstatExists, digest, save as saveConnection } from './state.mjs';
 import { sessionHome, sessionId, validateSession } from './session.mjs';
@@ -10,9 +10,6 @@ import { isGithubRepositoryUrl } from './github-repository.mjs';
 import { configuredWebsiteOrigin, trustedWebsiteUrl } from './website-origin.mjs';
 import { OWNER_TOOLS } from './owner-tools.mjs';
 import { z } from 'zod/v4';
-import { setTimeout as delay } from 'node:timers/promises';
-import { inspectProjectOutput, submitProjectOutput } from './project-output.mjs';
-import { HOSTING_LIMITS } from '../runtime/hosting-contract.mjs';
 
 const OWNER_SCHEMAS = new Map(OWNER_TOOLS.map(tool => [tool.name, tool.inputSchema]));
 
@@ -70,10 +67,9 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
     if (expectedProfileId !== undefined && (!PROFILE.test(expectedProfileId ?? '') || r.personId !== expectedProfileId)) throw new Error('This computer is now approved for a different MyLittleSwarm account. Call approve_this_computer to check which account it uses, then try again with the same request.');
     return r;
   }
-  async function request(path, { method = 'GET', body, token, poll, profileId, signal, raw = false, responseLimit = 256 * 1024 } = {}) {
-    if (raw && (!(body instanceof Uint8Array) || body.byteLength > HOSTING_LIMITS.fileBytes)) throw new Error('Use bounded static file bytes.');
+  async function request(path, { method = 'GET', body, token, poll, profileId, signal, responseLimit = 256 * 1024 } = {}) {
     let response;
-    try { response = await fetchImpl(new URL('/api/owner' + path, origin), { method, redirect: 'error', credentials: 'omit', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: { Accept: 'application/json', ...(body !== undefined ? { 'content-type': raw ? 'application/octet-stream' : 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(poll ? { Authorization: `Bearer ${poll}` } : {}), ...(profileId ? { 'X-Mlswarm-Profile-Id': profileId } : {}) }, ...(body !== undefined ? { body: raw ? body : JSON.stringify(body) } : {}) }); }
+    try { response = await fetchImpl(new URL('/api/owner' + path, origin), { method, redirect: 'error', credentials: 'omit', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: { Accept: 'application/json', ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(poll ? { Authorization: `Bearer ${poll}` } : {}), ...(profileId ? { 'X-Mlswarm-Profile-Id': profileId } : {}) }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) }); }
     catch { throw new Error('MyLittleSwarm can’t be reached right now. Try the same request again in a moment.'); }
     let size = 0, chunks = [];
     for await (const c of response.body) { size += c.byteLength; if (size > responseLimit) { await response.body.cancel?.().catch(() => {}); throw new Error('MyLittleSwarm sent back an unexpected reply. Try again in a moment.'); } chunks.push(c); }
@@ -130,8 +126,7 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
     const r = selectedAccount(expectedProfileId);
     const e = value => encodeURIComponent(value ?? ''), project = `/projects/${e(args.project_id)}`;
     const specs = { list_working_agents:[`${project}/my-workers`], list_needs_you:['/needs-you'], answer_human_request:[`/needs-you/${e(args.request_id)}/answer`,'POST'], set_project_update_settings:[`${project}/project-update-settings`,'POST'], get_project_overview:[`${project}/overview`], list_project_agents:[`${project}/agents`], list_project_conversations:[`${project}/conversations`], read_project_conversation:[`${project}/conversations/${e(args.thread_id)}`], read_project_chat:[`${project}/chat`], read_project_updates:[`${project}/updates`], list_project_tasks:[`${project}/tasks`], read_project_task:[`${project}/tasks/${e(args.task_id)}`], update_project_card:[`${project}/card`,'POST'], set_project_repository:[`${project}/configure`,'POST'], publish_to_explore:[`${project}/publish`,'POST'], make_project_public:[`${project}/public-conversion`,'POST'], create_private_project:['/projects/private','POST'], set_agent_limits:[`${project}/agents/${e(args.agent_id)}/settings`,'POST'], register_my_agents:[`${project}/agents`,'POST'], list_my_projects:['/projects'], list_my_proposals:['/proposals'], get_my_proposal:[`/proposals/${e(args.project_id)}`], control_project:[`${project}/control`,'POST'], archive_my_project:[`${project}/personal-archive`,'POST'], end_computer_approval:['/connections/revoke','POST'] };
-    const hostingNames = ['inspect_project_output','get_project_hosting','configure_project_hosting','upload_project_output','approve_project_output'];
-    if (!specs[name] && !hostingNames.includes(name)) throw new Error('Owner operation is unknown.');
+    if (!specs[name]) throw new Error('Owner operation is unknown.');
     const schema = OWNER_SCHEMAS.get(name);
     if (schema.required.includes('project_id') && !ID.test(args.project_id ?? '')) throw new Error('Use the project’s ID from list_my_projects.');
     if (Object.keys(args).some(k=>!Object.hasOwn(schema.properties,k))) throw new Error('This tool doesn’t take one of these fields; use only the documented ones.');
@@ -148,56 +143,6 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
       if (!intent) writePrivate(file, { profileId:account.personId, fingerprint });
       return request(path, { method:'POST', body, token:account.token, profileId:account.personId });
     });
-    if (hostingNames.includes(name)) {
-      const parsed = z.fromJSONSchema(schema).safeParse(args);
-      if (!parsed.success) throw new Error('Use the documented hosting fields, exact approval and current policy.');
-      const accountId = r.personId, connectionId = r.requestId;
-      const active = () => {
-        signal?.throwIfAborted();
-        const current = selectedAccount(expectedProfileId ?? accountId);
-        if (current.personId !== accountId || current.requestId !== connectionId || current.token !== r.token) throw new Error('This computer connection changed. Keep the original hosting decision.');
-      };
-      const call = async (suffix, body, raw = false) => {
-        for (let attempt = 0; attempt < 3; attempt++) {
-          active();
-          try {
-            const value = await request(`/project-hosting/${args.project_id}${suffix}`, { method:body === undefined ? 'GET' : 'POST', body, raw, token:r.token, profileId:accountId, signal, responseLimit:HOSTING_LIMITS.manifestBytes + 16 * 1024 });
-            active(); return value;
-          } catch (error) {
-            if (error.httpStatus !== 429 || attempt === 2) throw error;
-            await delay(Math.max(1000, error.retryAfterSeconds * 1000), undefined, {signal});
-          }
-        }
-      };
-      if (name === 'get_project_hosting') return call(args.cursor ? `?cursor=${encodeURIComponent(args.cursor)}` : '');
-      const selectedParent = () => {
-        if (!isAbsolute(args.directoryPath) || resolve(args.directoryPath) === dirname(resolve(args.directoryPath))) throw new Error('Choose an absolute clean output folder.');
-        return dirname(args.directoryPath);
-      };
-      if (name === 'inspect_project_output') {
-        await call(''); // Authenticate current computer and membership before reading local files.
-        active();
-        const build = await inspectProjectOutput(selectedParent(),args.directoryPath);
-        active();
-        return {artifact:build.artifact.digest,manifest:build.artifact.manifest,bytes:build.artifact.bytes,fileCount:build.artifact.manifest.files.length};
-      }
-      const requestId = name === 'upload_project_output' ? args.clientRequestId : args.client_request_id;
-      await withOperationLock(directory(), async () => {
-        active();
-        const intents = join(directory(),'hosting'); privateDir(intents);
-        const file = join(intents,digest(name + ':' + requestId) + '.json'), fingerprint = hash(canonical(args));
-        const saved = lstatExists(file) ? readPrivate(file,true) : null;
-        if (saved && (saved.profileId !== accountId || saved.connectionId !== connectionId || saved.fingerprint !== fingerprint)) throw new Error('Retry the original hosting decision from its original approved computer and account.');
-        if (!saved) writePrivate(file,{profileId:accountId,connectionId,fingerprint});
-      });
-      if (name === 'configure_project_hosting') return call('/policy',{clientRequestId:requestId,expectedRevision:args.expected_revision,confirmPublic:true,mode:args.mode,approvers:args.approvers,submitters:args.submitters});
-      if (name === 'upload_project_output') {
-        return submitProjectOutput({directoryPath:args.directoryPath,clientRequestId:requestId},selectedParent(),{call,active,expectedArtifact:args.expectedArtifact});
-      }
-      const candidate = await call(`/candidates/${args.candidate_id}`);
-      if (candidate.candidateId !== args.candidate_id || candidate.artifact?.digest !== args.expected_artifact) throw new Error('This build differs from the exact artifact approved by the person.');
-      return call('/publications',{clientRequestId:requestId,policyRevision:args.policy_revision,candidateId:args.candidate_id});
-    }
     if (name === 'create_private_project') {
       if (args.approved !== true || typeof args.title !== 'string' || !args.title.trim() || args.title.trim().length > 120 || typeof args.goal !== 'string' || !args.goal.trim() || args.goal.trim().length > 1500 || typeof args.repoUrl !== 'string' || !isGithubRepositoryUrl(args.repoUrl) || !UUID.test(args.client_request_id ?? '')) throw new Error('Owner private creation requires approval of the name, purpose and GitHub repository and the original request UUID.');
       const body = { client_request_id: args.client_request_id, title: args.title.trim(), goal: args.goal.trim(), githubUrl: args.repoUrl, approved: true };

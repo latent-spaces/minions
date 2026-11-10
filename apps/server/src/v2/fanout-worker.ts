@@ -1,5 +1,3 @@
-import { reconcileHostingCleanup } from '../hosting/cleanup.js';
-import { reconcileHostingOperations } from '../hosting/service.js';
 import { reconcileUsageMetrics } from '../analytics/projection.js';
 // Fanout rounds and periodic reconciliation, run by the engine's in-process queue (v2/local-fanout.ts):
 // they advance lifecycle and durable delivery without participant authentication or paid model invocation.
@@ -62,8 +60,8 @@ export async function deliverHint(dispatch: Dispatch, round: Round, now: () => n
 
 export async function reconcileWorker(round: Round, now: () => number): Promise<WorkerResult> {
   try {
-    const [fanout, scheduled, queue, metrics, hosting, cleanup] = await Promise.allSettled([
-      round(), reconcileScheduledStarts(now), fanoutBacklog(now), reconcileUsageMetrics(now), reconcileHostingOperations(now), reconcileHostingCleanup(now),
+    const [fanout, scheduled, queue, metrics] = await Promise.allSettled([
+      round(), reconcileScheduledStarts(now), fanoutBacklog(now), reconcileUsageMetrics(now),
     ]);
     const shared = fanout.status === 'fulfilled' ? fanout.value : undefined;
     // Observation only: a failed backlog read never asks Scheduler to retry delivery work.
@@ -71,11 +69,7 @@ export async function reconcileWorker(round: Round, now: () => number): Promise<
     console.info(JSON.stringify({ event: 'fanout_backlog', ...(backlog ?? { error: 'unavailable' }) }));
     const scheduledStarts = scheduled.status === 'fulfilled' ? scheduled.value : undefined;
     const usageMetrics = metrics.status === 'fulfilled' ? metrics.value : undefined;
-    const hostingCleanup = cleanup.status === 'fulfilled' ? cleanup.value : undefined;
-    const projectHosting = hosting.status === 'fulfilled' ? hosting.value : undefined;
     const failedComponents = [
-      ...(cleanup.status === 'rejected' || hostingCleanup?.failed ? ['hostingCleanup'] : []),
-      ...(hosting.status === 'rejected' || projectHosting?.failed ? ['projectHosting'] : []),
       ...(metrics.status === 'rejected' || usageMetrics?.failed ? ['usageMetrics'] : []),
       ...(fanout.status === 'rejected' ? ['fanout'] : []),
       ...(scheduled.status === 'rejected' || scheduledStarts?.failed ? ['scheduledStarts'] : []),
@@ -83,7 +77,7 @@ export async function reconcileWorker(round: Round, now: () => number): Promise<
     if (failedComponents.length) console.error(JSON.stringify({ event: 'worker_reconcile_failed', components: failedComponents }));
     // Keep successful component evidence visible, while asking Scheduler to retry failures.
     return { status: failedComponents.length || shared?.refused ? 503 : 200, body: {
-      ...shared, backlog, usageMetrics, projectHosting, hostingCleanup,
+      ...shared, backlog, usageMetrics,
       scheduledStarts: scheduledStarts ?? { error: 'retryable_failure' },
       ...(failedComponents.length ? { failedComponents } : {}),
     } };

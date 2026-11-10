@@ -42,10 +42,10 @@ export function subscribeRealtime(user: SessionUser, projectId: string | undefin
       try {
         const token = await user.getIdToken();
         if (!alive()) return;
-        const response = await fetch('/api/realtime' + (projectId ? '?project_id=' + encodeURIComponent(projectId) + '&topics=conversations,agents,needs-you,teams,hosting' : ''), {
+        const response = await fetch('/api/realtime' + (projectId ? '?project_id=' + encodeURIComponent(projectId) + '&topics=conversations,agents,needs-you,teams' : ''), {
           headers: { authorization: `Bearer ${token}`, accept: 'text/event-stream' }, signal: own.signal,
         });
-        if ([401, 403, 404].includes(response.status)) { terminal = true; emit(projectId ? ['conversations', 'agents', 'needs-you', 'teams', 'hosting'] : ['needs-you']); return; }
+        if ([401, 403, 404].includes(response.status)) { terminal = true; emit(projectId ? ['conversations', 'agents', 'needs-you', 'teams'] : ['needs-you']); return; }
         if (response.status === 429) {
           const value = response.headers.get('retry-after'), seconds = Number(value);
           const delay = value && !Number.isFinite(seconds) ? Date.parse(value) - Date.now() : seconds * 1000;

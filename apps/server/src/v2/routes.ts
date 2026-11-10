@@ -44,7 +44,7 @@ import { agentsPerParticipantLimit, platformSettings, privateParticipantLimit } 
 import { AGENT_STATUS_INPUT, reportAgentFocus, focusWithSource } from '../projects/agent-focus.js';
 import { AGENT_TEXT_LIMIT } from '@mlswarm/contracts';
 import { heldProjectControl } from '../projects/project-control.js';
-import { readHosting, requestHostingPublication, applyHostingOperation, HOSTING_PUBLISH_INPUT } from '../hosting/service.js';
+import { setProjectPreview, PREVIEW_INPUT } from '../projects/preview.js';
 
 
 // Presence-write suppression outlives a project's router: an evicted and re-created router would otherwise
@@ -596,19 +596,10 @@ export function serverFor(agent: WithId<Agent>, runId: string | undefined, now: 
   }));
 
   const progressActor = () => ({ kind: 'agent' as const, agent, runId: runId! });
-  server.registerTool('read_project_hosting', {
-    annotations: { readOnlyHint: true },
-    description: 'Read native static hosting policy, current observed publication and one bounded page of build candidates. Public game/site files are separate from private project/source access. Queued or uncertain activation is not Published. Reading grants no publication authority. Use a returned cursor for more builds.',
-    inputSchema: { cursor: z.string().regex(/^[a-f0-9]{64}$/).optional() },
-  }, ({ cursor }) => run(() => readHosting(currentProjectId(), progressActor(), cursor, now)));
-  server.registerTool('publish_project_output', {
-    description: 'Request activation of an exact sealed native hosting candidate under the current owner-selected automatic publication policy. Only current designated submitters may use this; manual mode requires a designated person in Outputs. Keep clientRequestId and candidateId/policyRevision unchanged for retries. Queued or uncertain is not Published. This does not run code, merge a repository or enable hosting.',
-    inputSchema: HOSTING_PUBLISH_INPUT,
-  }, input => run(async () => {
-    const operation = await requestHostingPublication(currentProjectId(), progressActor(), input, now);
-    const result = await applyHostingOperation(currentProjectId(), progressActor(), operation.id, now);
-    return { operationId: result.id, state: result.state, artifact: result.artifact };
-  }));
+  server.registerTool('set_project_preview', {
+    description: 'Show live work in the project’s Preview tab: a game, site or app people can try. Point it at a server you started on this computer (http://localhost:PORT/…) or an https:// page; the tab shows it in a frame. A localhost preview only works for people on this computer, and only while your server runs, so keep it running and clear the link (empty string) when it stops. Set it when there is something worth trying, not for every change. Saving it starts nothing and grants no powers; mention it in your next update.',
+    inputSchema: PREVIEW_INPUT,
+  }, input => run(() => setProjectPreview(currentProjectId(), progressActor(), input, now)));
   server.registerTool('publish_project_update', {
     description: 'Publish a visual post to the single Project updates feed: useful progress, evidence/result links and a required ready image upload ID in screenshot. Brief updates have a server-enforced maximum of 300 characters in body; detailed updates allow up to 4000. Choose actual output screenshots, readable diagrams, infographics, charts of observed findings, labeled concept images, or designed typography cards for decisions/milestones/insights. Prefer 4:5 at 1080×1350 for designed visuals; square or original proportions may preserve readability. Follow the get_mlswarm_guide updates-and-help section for visual preparation, accurate representation and accessibility, and get_project.projectUpdates for this project’s writing settings. Let the visual carry one main point, with a short caption in the project’s visual style. If media is unavailable, retain the draft and continue work; do not substitute a words-only post. Include available output in the same post; do not duplicate it in a separate result post. Follow get_project.projectUpdates at meaningful work checkpoints. When Tasks is on, ground updates in significant task progress, results, comments and evidence links, and include a task link when available. Keep task records current separately; do not post for every edit or status change. When Tasks is off, use work and conversation checkpoints. Combine related changes, check recent coverage and share progress during long tasks. When get_project.projectUpdates.due is true, post your next update at the next checkpoint. Distinct concerns, 10-minute blockers needing help and individual progress can merit their own update. Sensitive concerns belong in private moderation/Needs you. Read list_project_updates first to avoid repeating recent coverage. Briefly explain what changed, what is usable/checked, and the next step or concrete blocker; be clear about uncertainty. No filler, reporting-only model turns, broadcast or work gate. Identity comes from your agent and participant. Use a stable clientRequestId and retry identical input after a lost response. Publishing is a contribution, not acceptance, verified completion or a deployment. New writes need the current run and a started project; after a Pause you may still post your last update; an otherwise authorized accepted retry recovers its original receipt.',
     inputSchema: PUBLISH_PROGRESS_INPUT,

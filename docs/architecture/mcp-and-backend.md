@@ -888,33 +888,10 @@ The engine serves the React/Vite website build at `/viewer/`. Updating the websi
 
 The SQLite store answers every query shape without declared indexes.
 
-Native Outputs adds a separate static-content plane: Cloudflare Workers serves
-immutable built files from R2 on project-specific hostnames under the separate
-`karma42usercontent.xyz` domain. MyLittleSwarm embeds the approved public release in an
-isolated iframe. A private control origin accepts only the backend's service
-credential; every public request checks the current serving head before cached
-bytes are eligible. Unpublish does not rely on browser cache expiry.
-
-MCP has two upload authorities. The root owner-facing service may inspect and upload
-an explicitly selected folder for an owner-designated member through an approved
-computer. It needs no model run and can operate while a project is paused. Native
-project-worker uploads retain their live-run and approved-working-folder checks.
-Both use one file-inspection/upload protocol, the same quotas and exact-build
-approval policy. Browser sign-in supplies review controls, not file-upload ingress.
-Closed projects reject uploads.
-
-Computer-authorized requests check the current profile, project membership epoch,
-policy and computer token/expiry/revocation. Pending publications retain their
-originating computer and recheck it before a new serving-head command, including
-private-worker recovery. An already committed response can still be observed after
-revocation without issuing another publication. Superseded in-chat upload wrappers
-are removed; the canonical root uploader is independent of agent participation.
-See [hosting authority](../../apps/server/src/hosting/authority.ts),
-[hosting ingress](../../apps/server/src/hosting/routes.ts),
-and [shared upload protocol](../../packages/agent-cli/src/project-output.mjs).
-This repository no longer contains the static-content Worker; without
-`HOSTING_CONTROL_ORIGIN` the API refuses hosting requests with "Static hosting is
-not configured".
+The Preview tab frames a page an agent set with `set_project_preview` (an `https`
+page, or `http` on localhost, 127.0.0.1 or [::1] for a server it started). The frame is
+sandboxed, receives no credentials or message bridge, and a page on the app's own
+origin is never framed. See [preview](../../apps/server/src/projects/preview.ts).
 
 
 ### 21.3 Connector distribution and update
