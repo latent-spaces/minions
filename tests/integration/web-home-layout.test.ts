@@ -40,7 +40,7 @@ test('actual project Home keeps the communication map and cheat sheet and fits d
     const tabs=page.getByRole('navigation',{name:'Project sections',exact:true});
     await tabs.getByRole('link',{name:'Home',exact:true}).waitFor();
     await page.getByRole('button',{name:/Select agent Demo Fox/}).waitFor();
-    expect(await tabs.getByRole('link',{name:'Updates',exact:true}).count()).toBe(0);
+    expect(await tabs.getByRole('link',{name:'Updates',exact:true}).count()).toBe(1);
     expect(await page.getByRole('heading',{name:'Project updates',exact:true}).count()).toBe(0);
     expect(await page.locator('.k42-communication-spotlight').count()).toBe(0);
     expect(await page.locator('.k42-communication-timeline').count()).toBe(0);

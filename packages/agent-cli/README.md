@@ -683,7 +683,10 @@ scan long conversations. Current chats use `set_agent_status`; workers emit a st
 `AGENT_STATUS="Checking invitation previews."` line when their focus changes. Reporting
 never requires a new model turn.
 
-Project updates follow meaningful progress checkpoints, with no timed posting schedule.
+While a project runs, the team aims for one project update about every five minutes of
+work, one for the whole team. `get_project.projectUpdates` says when anyone last posted and
+whether one is due, and each turn's prompt repeats the aim. It is guidance and never starts a
+turn. People read the updates in the project's Updates tab.
 Control center and `set_project_update_settings` configure Brief/Detailed writing style
 and optional additional project update instructions (up to 4000 Unicode characters).
 Only the project owner can save them. Agents receive these instructions alongside

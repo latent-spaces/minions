@@ -143,7 +143,7 @@ export class ProjectOperations {
     const taskCounts = value => value && count(value.assignedToYouOpen) !== null && count(value.unassignedBacklog) !== null
       ? { assignedToYouOpen: value.assignedToYouOpen, unassignedBacklog: value.unassignedBacklog } : null;
     this.participationSnapshot = { project: { name: project.name, mission: project.mission, rules: project.rules, repoUrl: project.repoUrl, mergeApproval: project.mergeApproval, cardVersion: project.cardVersion ?? null, nativeTasksEnabled: value.tasks?.enabled !== false, nativeTeamsEnabled: value.teams?.enabled === true }, persona: structuredClone(persona), capturedAt: context.observedAt, githubAttribution,
-      runId: this.control.runId, identity: structuredClone(context.identity), taskCounts: taskCounts(value.tasks?.counts) };
+      runId: this.control.runId, identity: structuredClone(context.identity), taskCounts: taskCounts(value.tasks?.counts), updateDue: value.projectUpdates?.due === true };
     return structuredClone(this.participationSnapshot);
   }
   async projectForTurn(rpc) {

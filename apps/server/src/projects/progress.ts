@@ -38,11 +38,18 @@ const WRITING = {
   detailed: 'Use at most 4000 Unicode characters in the update body; an image is required. Write for a person who has not read the agent conversations. Let the attached visual carry the main point. Start the caption with the useful change and why it matters, then add relevant explanation in short, plain-language paragraphs. Keep important caveats (local, unverified, deployed) and link technical evidence. Add a next step or question only when useful. Skip unchanged filler.',
 } as const;
 
-// The project's own update settings. The shared checkpoint guidance lives in the guide's
-// updates-and-help section (lean tool results, 9 November 2026).
-export async function readProjectUpdateContext(projectId: string) {
-  const settings = await inProject(projectId, () => effectiveProjectUpdateSettings());
-  return { ...settings, writingGuidance: WRITING[settings.writingStyle], guide: 'get_mlswarm_guide updates-and-help' };
+export const UPDATE_EVERY_MINUTES = 5;
+// The project's update settings and the shared reminder: the team aims for one update about every
+// five minutes of work, from any agent (owner, 10 November 2026). due is guidance, never enforced.
+export async function readProjectUpdateContext(projectId: string, active: boolean, now: number) {
+  const [settings, latest] = await Promise.all([
+    inProject(projectId, () => effectiveProjectUpdateSettings()),
+    progressUpdates(projectId).orderBy('publishedAt', 'desc').select('publishedAt').limit(1).get(),
+  ]);
+  const lastPublishedAt = (latest.docs[0]?.get('publishedAt') as number | undefined) ?? null;
+  const due = active && (lastPublishedAt === null || now - lastPublishedAt >= UPDATE_EVERY_MINUTES * 60_000);
+  return { ...settings, writingGuidance: WRITING[settings.writingStyle], guide: 'get_mlswarm_guide updates-and-help',
+    everyMinutes: UPDATE_EVERY_MINUTES, lastPublishedAt, due };
 }
 
 export async function publishProgressUpdate(projectId: string, actor: ProgressActor, body: unknown, now: () => number): Promise<PublishUpdateReceipt> {

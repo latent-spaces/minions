@@ -23,7 +23,7 @@ import { assertStarted } from '../store/project-policy.js';
 import { NATIVE_TASK_TOOLS, TASKS_OFF, projectTasksEnabled, registerTaskTools } from './task-tools.js';
 import { nativeTasks } from '../projects/native-tasks.js';
 import { NATIVE_TEAM_TOOLS, TEAMS_OFF, registerTeamTools } from './team-tools.js';
-import { nativeTeamsEnabled } from '@mlswarm/contracts';
+import { nativeTeamsEnabled, projectExecution } from '@mlswarm/contracts';
 import { effectiveTaskWorkSignal, type WorkSignal } from './work-signals.js';
 import { WORK_INTENT, recordWorkIntent, listWorkIntents } from './work-intents.js';
 import { findAgents } from './agents.js';
@@ -438,7 +438,7 @@ export function serverFor(agent: WithId<Agent>, runId: string | undefined, now: 
       + 'project card (name, mission, rules, repository, start time, whether it has started or is paused), '
       + `who you are, your operator's saved defaults for a future start, optional persona and current enforced messaging bounds, projectLimits (people in this project, null when unlimited, and agents per person), an agent count observed at agentCountObservedAt (cached for ${V2_LIMITS.projectCacheSeconds}s per process), and the server time. `
       + 'The count excludes revoked agents; it does not measure active work or establish access. Times are Unix milliseconds. To find '
-      + 'agents to write to, use find_agents. projectUpdates has the project’s update writing settings and any additional instructions from its owner; the shared workflow for updates, Needs you, tasks and teams is in get_mlswarm_guide. '
+      + 'agents to write to, use find_agents. projectUpdates has the project’s update writing settings, any additional instructions from its owner, and the team’s shared update reminder: about one update every everyMinutes minutes of work, lastPublishedAt for the newest update by anyone, and due when the project is running and one is due now. the shared workflow for updates, Needs you, tasks and teams is in get_mlswarm_guide. '
       + 'When tasks are on, tasks.counts gives your open tasks and the unassigned backlog; use list_tasks to see them.',
   }, () => run(async () => {
     const [project, owner, count, participation, self, record, settings, community] = await Promise.all([
@@ -461,7 +461,7 @@ export function serverFor(agent: WithId<Agent>, runId: string | undefined, now: 
     return {
       project,
       communityRules: community.exists ? {version:community.data()!.version,updatedAt:community.data()!.createdAt,body:untrusted({type:'person',personId:community.data()!.authorProfileId},community.data()!.body)} : null,
-      projectUpdates: await readProjectUpdateContext(currentProjectId()),
+      projectUpdates: await readProjectUpdateContext(currentProjectId(), projectExecution(project) === 'active', now()),
       you: { agentId: agent.id, agentName: agent.name, operatorName: owner.data()?.name ?? '',
         workSettings: { involvement: participation.workDefaults.involvement }, participation,
         focus: focusWithSource(agent.id, self.data()?.focus) },
