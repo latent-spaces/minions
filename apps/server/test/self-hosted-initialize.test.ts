@@ -9,7 +9,7 @@ import { CURRENT_STATE_CUTOVER_RECEIPT } from '../src/storage/schema.js';
 let directory: string;
 beforeEach(() => { directory = mkdtempSync(join(tmpdir(), 'self-hosted-init-')); chmodSync(directory, 0o700); });
 afterEach(() => { rmSync(directory, { recursive: true, force: true }); });
-const options = () => ({ signIn: 'local-owner' as const, sqlitePath: join(directory, 'engine.sqlite'), ownerFile: join(directory, 'owner.json'),
+const options = () => ({ sqlitePath: join(directory, 'engine.sqlite'), ownerFile: join(directory, 'owner.json'),
   sourceRevision: 'a'.repeat(40), owner: { name: 'Ada', email: 'ada@example.test' }, now: () => 1_800_000_000_000 });
 
 test('explicit fresh initialization creates one normal profile and real schema evidence without returning a secret', async () => {
@@ -70,20 +70,6 @@ test('failed initialization closes its store and reports failure without claimin
     close: () => { closed = true; } }))).rejects.toThrow('transaction failed');
   expect(closed).toBe(true);
 });
-
-
-test('GitHub initialization creates an invited profile without a local signing credential', async () => {
-  const { ownerFile, ...input } = options();
-  let rows: InitialRow[] = [];
-  const result = await initializeSelfHostedStore({ ...input, signIn: 'github' }, async () => ({
-    createRows: async initial => { rows = initial; }, close: () => {},
-  }));
-  expect(existsSync(ownerFile)).toBe(false);
-  expect(rows[0].path).toBe(`profiles/${result.profileId}`);
-  expect(rows[1].data).toMatchObject({ signIn: 'github', ownerSubject: null });
-  expect(JSON.stringify(rows)).not.toContain('signingSecret');
-});
-
 
 test('fresh initialization commits into the actual persistent SQLite adapter and can be reopened', async () => {
   const { SqliteFirestore } = await import('../src/storage/sqlite-firestore.js');

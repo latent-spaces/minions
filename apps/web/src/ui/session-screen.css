@@ -1,0 +1,12 @@
+.session-screen { --session-screen-ink: var(--ink); --session-screen-muted: var(--text-muted); background: var(--subtle); color: var(--session-screen-ink); min-height: 100svh; font-family: ui-monospace, 'SFMono-Regular', Consolas, 'Liberation Mono', monospace; }
+.session-screen *, .session-screen *::before, .session-screen *::after { box-sizing: border-box; }
+.session-screen-header { height: 72px; padding: 0 clamp(24px, 4.8vw, 76px); border-bottom: 1px solid var(--direct); display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.session-screen-brand { font-size: 18px; letter-spacing: .36em; white-space: nowrap; }
+.session-screen-brand .wordmark-logo { display:block; font-size:24px; }
+.session-screen-main { margin: 0 auto; padding: 48px clamp(24px, 4.8vw, 76px); min-height: calc(100svh - 72px); display: grid; place-items: center; text-align: center; }
+.session-screen-note { margin: 24px 0 0; color: var(--session-screen-muted); font-size: 12px; line-height: 1.6; }
+@media (max-width: 760px) {
+  .session-screen-header { height: 64px; gap: 14px; }
+  .session-screen-brand .wordmark-logo { font-size:20px; }
+  .session-screen-main { min-height: calc(100svh - 64px); }
+}

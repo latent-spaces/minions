@@ -26,14 +26,12 @@ export function readOwnerConfiguration(file: string): OwnerConfiguration {
   catch { throw new Error('The private owner configuration is invalid. Existing credentials were not changed.'); }
 }
 
-export async function initializeSelfHostedStore({ sqlitePath, ownerFile, signIn, sourceRevision, owner, now = Date.now }: {
-  sqlitePath: string; ownerFile?: string; signIn: 'local-owner' | 'github'; sourceRevision: string;
+export async function initializeSelfHostedStore({ sqlitePath, ownerFile, sourceRevision, owner, now = Date.now }: {
+  sqlitePath: string; ownerFile: string; sourceRevision: string;
   owner: { name: string; email: string }; now?: () => number;
 }, openStore: (file: string) => Promise<InitializationStore>) {
   absoluteSelfHostedPath('MLSWARM_SQLITE_PATH', sqlitePath);
-  if (signIn !== 'local-owner' && signIn !== 'github') throw new Error('Select local-owner or github sign-in explicitly.');
-  if (signIn === 'local-owner') absoluteSelfHostedPath('MLSWARM_OWNER_FILE', ownerFile ?? '');
-  if (signIn === 'github' && ownerFile !== undefined) throw new Error('GitHub sign-in does not use a local-owner credential file.');
+  absoluteSelfHostedPath('MLSWARM_OWNER_FILE', ownerFile);
   if (sqlitePath === ownerFile) throw new Error('The database and owner configuration need separate paths.');
   if (!/^[a-f0-9]{40}$/.test(sourceRevision)) throw new Error('Initialization requires the exact 40-character source revision of this engine build.');
   const details = ownerDetails.safeParse(owner);
@@ -41,15 +39,15 @@ export async function initializeSelfHostedStore({ sqlitePath, ownerFile, signIn,
   const at = now();
   if (!Number.isSafeInteger(at) || at < 0) throw new Error('Initialization requires a valid clock.');
   const profileId = `owner-${randomUUID()}`;
-  const configuration: OwnerConfiguration | null = signIn === 'local-owner' ? { schema: 1, profileId,
-    owner: { ...details.data, subject: `local-${randomUUID()}` }, signingSecret: randomBytes(32).toString('hex'), validAfter: 0 } : null;
+  const configuration: OwnerConfiguration = { schema: 1, profileId,
+    owner: { ...details.data, subject: `local-${randomUUID()}` }, signingSecret: randomBytes(32).toString('hex'), validAfter: 0 };
 
   // Exclusive creation is the empty-store proof. Never open an existing SQLite file for initialization.
   createOwnerFile(sqlitePath, '');
-  if (configuration) createOwnerFile(ownerFile!, `${JSON.stringify(configuration, null, 2)}\n`);
+  createOwnerFile(ownerFile, `${JSON.stringify(configuration, null, 2)}\n`);
   const evidence = { kind: 'empty-self-hosted-store', initializedAt: at, writerSource: sourceRevision,
     schema: CURRENT_STATE_PROGRESS_SCHEMA, epoch: CURRENT_STATE_PROGRESS_EPOCH, usageEpoch: USAGE_EPOCH,
-    signIn, ownerProfileId: profileId, ownerSubject: configuration?.owner.subject ?? null };
+    signIn: 'local-owner', ownerProfileId: profileId, ownerSubject: configuration.owner.subject };
   const evidenceSha256 = initializationEvidenceHash(evidence);
   const store = await openStore(sqlitePath);
   try {

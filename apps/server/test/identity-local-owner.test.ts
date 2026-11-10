@@ -2,7 +2,7 @@ import { createHmac, randomBytes } from 'node:crypto';
 import { afterEach, beforeEach, expect, test } from 'vitest';
 
 // A self-hosted engine's owner signs in without GitHub.
-import { personIdentityFromIdToken, signInFromIdToken, signInRequired, verifiedEmails } from '../src/auth.js';
+import { personIdentityFromIdToken, signInFromIdToken, verifiedEmails } from '../src/auth.js';
 import { setIdentityProvider, type IdentityProvider } from '../src/identity/index.js';
 import { localOwnerIdentity, localOwnerSubject, vouchesForOwnerEmail } from '../src/identity/local-owner.js';
 import { serverSessionIdentity } from '../src/identity/server-sessions.js';
@@ -36,8 +36,8 @@ test('a forged, altered, foreign or expired token is refused', async () => {
   const other = localOwnerIdentity({ secret: randomBytes(32), owner, now }).issueSession();
   for (const bad of [`${prefix}.${forged}.${mac}`, `${prefix}.${payload}.${mac}x`, `${token}.extra`, other, 'not-a-token', ''])
     expect(await local.verifySession(bad)).toBeNull();
-  // The owner is pointed at an owner link, since this engine has no GitHub sign-in.
-  await expect(signInFromIdToken(other)).rejects.toMatchObject({ code: 'unauthorized', message: 'Sign in again with a new owner link from your engine.' });
+  // Reloading the local app opens a new owner session.
+  await expect(signInFromIdToken(other)).rejects.toMatchObject({ code: 'unauthorized', message: 'Reload MyLittleSwarm on this computer.' });
   clock += 12 * 60 * 60_000;
   expect(await local.verifySession(token)).toBeNull();
 });
@@ -77,7 +77,7 @@ test('only the installed local owner provider vouches for the owner email', asyn
   const impostor: IdentityProvider = { account: async () => null, exportAccount: async () => null,
     verifySession: async () => ({ subject: 'x', signInProvider: 'local-owner', authTime: 1, name: null, email: 'ada@example.test', emailVerified: true, githubId: null }) };
   setIdentityProvider(impostor);
-  await expect(signInFromIdToken('anything')).rejects.toMatchObject({ code: 'unauthorized', message: 'Sign in with GitHub.' });
+  await expect(signInFromIdToken('anything')).rejects.toMatchObject({ code: 'unauthorized', message: 'Reload MyLittleSwarm on this computer.' });
 });
 
 test('the export contains only the owner account', async () => {
@@ -88,11 +88,4 @@ test('the export contains only the owner account', async () => {
 test('a short secret or missing owner email is a configuration error', () => {
   expect(() => localOwnerIdentity({ secret: randomBytes(16), owner })).toThrow();
   expect(() => localOwnerIdentity({ secret, owner: { ...owner, email: '' } })).toThrow();
-});
-
-test('every sign-in refusal on a local-owner engine points to an owner link; other engines keep their wording', () => {
-  expect(signInRequired('Sign in with GitHub to review your invitation.')).toBe('Sign in again with a new owner link from your engine.');
-  setIdentityProvider(github);
-  expect(signInRequired()).toBe('Sign in with GitHub.');
-  expect(signInRequired('Sign in with GitHub to review your invitation.')).toBe('Sign in with GitHub to review your invitation.');
 });

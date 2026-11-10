@@ -12,7 +12,7 @@ import { readRuntime } from '../projects/records.js';
 import { FieldPath, type DocumentSnapshot } from '../firestore.js';
 import express, { type Response, type Router } from 'express';
 import { personaChoice } from '@mlswarm/contracts';
-import { personFromIdToken, signInRequired } from '../auth.js';
+import { personFromIdToken, SIGN_IN_REQUIRED } from '../auth.js';
 import { bearerToken } from '../bearer.js';
 import { Refusal, sendRefusal } from '../errors.js';
 import { requestLimits, sharedRead } from '../request-state.js';
@@ -84,7 +84,7 @@ export function viewRoutes(now: () => number): Router {
   router.use(async (req, res, next) => {
     try {
       const token = bearerToken(req.headers.authorization);
-      if (!token) throw new Refusal('unauthorized', signInRequired('Sign in with GitHub first.'));
+      if (!token) throw new Refusal('unauthorized', SIGN_IN_REQUIRED);
       const person = await personFromIdToken(token);
       res.locals.projectRole = await projectRole(person);
       const at = now();

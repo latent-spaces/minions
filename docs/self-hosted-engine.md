@@ -27,34 +27,32 @@ The command:
 2. runs `npm ci` unless npm's record of a finished install
    (`node_modules/.package-lock.json`) is at least as new as `package-lock.json`,
    so an interrupted or outdated install is redone;
-3. builds the contracts, engine, local app (for self-hosted sign-in) and connector
+3. builds the contracts, engine, local app and connector
    with each package's own `npm run build` script;
 4. initializes the database on the first run, and keeps it on later runs;
-5. starts the engine and opens the local app in your browser through a private
-   owner sign-in link;
+5. starts the engine and opens the local app in your browser;
 6. runs the connector's `setup` for this computer.
 
 Install and build output is shown only when a step fails. The engine's routine
 activity goes to `engine.log` in the engine directory; its errors stay on the
 console. The command keeps the engine running in the foreground until you press
 Ctrl+C. Running it again later rebuilds, keeps the existing database and connector
-installation, starts the engine and signs the browser in again. Running it while
+installation, starts the engine and opens the local app again. Running it while
 the engine already runs (from another window) starts nothing: it opens the local
-app signed in and runs the connector's `setup` again, which finishes at once for an
+app and runs the connector's `setup` again, which finishes at once for an
 approved computer. It starts no model.
 
-Two steps stay in your browser, because they are the person's own yes:
+The local app has one person, the owner, so it opens without a sign-in step. A
+page the engine serves at its own loopback address gets the owner's session from
+the engine; other websites and other hosts are refused. Without a desktop (over
+SSH, in CI, or with `MLSWARM_NO_BROWSER=1`) the command prints the address to open.
 
-1. **Sign in as the owner.** The link holds a one-time code that expires in five
-   minutes and is never printed to the console; the command opens it in your
-   default browser, or names the private link file to open when no desktop is
-   available (over SSH, in CI, or with `MLSWARM_NO_BROWSER=1`). The owner session
-   lives in that browser; the command cannot sign the browser in for you.
-2. **Approve this computer.** The connector shows the approval page with its code,
-   opens the page when you press Enter, and waits up to ten minutes. Check the code
-   and approve in the browser where you are signed in. If the wait runs out or the
-   connector fails, the engine keeps running; run `npm run setup` again, in another
-   terminal window or after Ctrl+C, to connect.
+One step stays in your browser, because it is your own yes: **approve this
+computer.** The connector shows the approval page with its code, opens the page
+when you press Enter, and waits up to ten minutes. Check the code and approve in
+the local app. If the wait runs out or the connector fails, the engine keeps
+running; run `npm run setup` again, in another terminal window or after Ctrl+C, to
+connect.
 
 The command then prints the connector's `mcp-config` command for registering this
 installation in your coding client, and reminds you to sign in to GitHub with
@@ -79,7 +77,6 @@ later runs: the connector installation is bound to the engine address.
 | `engine.sqlite` (+ WAL and `.lock`) | the database |
 | `media/` | private media |
 | `owner.json` | owner profile and signing secret |
-| `owner-link-*.txt` | one-time sign-in links; delete expired ones |
 | `engine.log` | the engine's activity and errors while the command runs it |
 | `connector-service/`, `connector-credentials/` | this computer's separate connector installation |
 
@@ -97,22 +94,19 @@ its records); the next run refuses it, changes nothing and says so. If nothing i
 the engine directory needs keeping, remove it (or choose a new
 `MLSWARM_ENGINE_HOME`) and run the command again.
 
-## Sign-in links and sessions
+## Owner sessions
 
-Each engine start, and each `npm run setup` while the engine runs, writes a new
-private link file. The local app removes the code from its address, exchanges it
-for a session, and verifies the session with the engine. A link never replaces a
-working browser session; an identical retry can recover a lost exchange response,
-but another browser state cannot reuse the code. Creating a new link invalidates
-the previous code. Only the engine running with this owner file can issue a link,
-which is how `npm run setup` recognizes that the busy port is its own engine. For
-an engine started by hand, run
-`node apps/server/dist/self-hosted-main.js owner-link --url http://127.0.0.1:8787`
-with the same `MLSWARM_*` settings it was started with.
+The local app asks the engine for an owner session when it opens, and again when
+its session has expired or been refused. The engine issues one only to a JSON
+request from this computer whose `Host` is `127.0.0.1` or `localhost` at the
+engine's port and whose `Origin` is that same address, and to at most 30 requests
+a minute. Sessions last twelve hours. To end every issued session, replace the
+private signing secret or advance its `validAfter` timestamp and restart the engine.
 
-Local owner sessions last twelve hours. Browser sign-out removes the browser's
-copy; the signed session remains valid until expiry or the operator replaces the
-private signing secret or advances its `validAfter` timestamp and restarts the engine.
+`node apps/server/dist/self-hosted-main.js check-running --url http://127.0.0.1:8787`,
+with the same `MLSWARM_*` settings the engine was started with, exits 0 only when
+the engine at that address signs sessions with this owner file's secret. `npm run
+setup` uses it to recognize that a busy port is its own engine.
 
 ## Stopping and recovery
 
@@ -180,8 +174,8 @@ for service lifecycle, client requirements and project workspace behavior.
 ## Check the standalone build
 
 `npm run test:self-hosted` on Node.js 24 or newer builds the contracts, server and
-self-hosted local app, then tests the compiled CLI with fresh temporary data: owner
-sign-in, HTTP message delivery between two synthetic agents, graceful shutdown and
+self-hosted local app, then tests the compiled CLI with fresh temporary data: the
+owner session, HTTP message delivery between two synthetic agents, graceful shutdown and
 persistence after restart. The engine processes refuse connections outside loopback.
 No cloud account, saved participant data or model execution is
 used. It does not start a persistent service. Run it on each native platform being
@@ -190,21 +184,3 @@ checks the setup command's platform decisions (install and initialization checks
 Ctrl+C detection, printed commands) and runs its early refusals (interrupted first
 run, missing owner identity, a port held by another program), none of which
 installs or starts anything.
-
-## GitHub sign-in mode
-
-The setup command uses local-owner sign-in. For GitHub sessions instead, initialize
-and start the engine yourself with `MLSWARM_SIGN_IN=github` and no
-`MLSWARM_OWNER_FILE`, using `node apps/server/dist/self-hosted-main.js init` and
-`start` with the same `MLSWARM_ENGINE`, `MLSWARM_SQLITE_PATH` and `MLSWARM_BLOB_DIR`
-settings. The initial profile is invited by its email, which GitHub must report as
-verified when that person signs in. Configure an OAuth application with callback
-`http://127.0.0.1:8787/api/auth/github/callback`, and provide
-`MLSWARM_GITHUB_CLIENT_ID`, `MLSWARM_GITHUB_CLIENT_SECRET`, and
-`MLSWARM_PUBLIC_ORIGIN=http://127.0.0.1:8787`. Use a fixed `PORT` matching that
-origin. Application creation and credential setup are operator actions.
-
-The launcher mounts GitHub OAuth and server session routes instead of the owner
-exchange. Mode changes on an already initialized database are refused. The engine
-still listens on loopback; this entry does not expose a multi-computer service or
-configure external hosting.

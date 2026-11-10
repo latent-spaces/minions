@@ -2,7 +2,6 @@
 // Durable intent stays in fanoutJobs. This queue only carries hints, exactly like the hosted queue:
 // losing it (crash, restart) is recovered by reservation expiry and the periodic reconcile round,
 // and dispatch generation plus the fanout lease still fence stale or duplicate hints.
-import { deleteExpiredSessions } from '../identity/server-sessions.js';
 import type { Dispatch } from './fanout-jobs.js';
 import { deliverHint, reconcileFanouts, reconcileWorker, singleFlight, type Enqueue, type WorkerResult } from './fanout-worker.js';
 
@@ -92,14 +91,7 @@ export function localScheduler(run: () => Promise<unknown>, intervalMs = LOCAL_R
 export function startLocalWorker(now: () => number = Date.now, intervalMs = LOCAL_RECONCILE_INTERVAL_MS) {
   const queue = localTaskQueue(dispatch => deliverHint(dispatch, round, now), now);
   const round = singleFlight(() => reconcileFanouts(queue.enqueue, now));
-  // Self-hosted sign-in sessions have no Firestore TTL policy; each round reclaims a bounded page of expired ones.
-  const sweepSessions = async () => {
-    try {
-      const swept = await deleteExpiredSessions(now);
-      if (swept.deleted) console.info(JSON.stringify({ event: 'local_session_sweep', ...swept }));
-    } catch { console.error(JSON.stringify({ event: 'local_session_sweep_failed' })); }
-  };
-  const scheduler = localScheduler(() => Promise.all([reconcileWorker(round, now), sweepSessions()]), intervalMs);
+  const scheduler = localScheduler(() => reconcileWorker(round, now), intervalMs);
   void scheduler.tick();
   // Let a running reconcile finish enqueueing before the queue refuses new hints.
   return { queue, scheduler, stop: async () => { await scheduler.stop(); queue.close(); } };

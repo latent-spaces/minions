@@ -1,10 +1,19 @@
 import { BrandLogo } from './BrandLogo';
-import './coming-soon.css';
+import './session-screen.css';
 
-/** Restore authentication and admission before showing any entry or onboarding screen. */
-export function SessionLoading() {
-  return <div className="coming-soon">
-    <header className="coming-soon-header"><span className="coming-soon-brand"><BrandLogo /></span></header>
-    <main className="coming-soon-main"><p className="coming-soon-note" role="status">Opening MyLittleSwarm…</p></main>
+function SessionScreen({ note }: { note: string }) {
+  return <div className="session-screen">
+    <header className="session-screen-header"><span className="session-screen-brand"><BrandLogo /></span></header>
+    <main className="session-screen-main"><p className="session-screen-note" role="status">{note}</p></main>
   </div>;
+}
+
+/** Shown while the engine opens this computer's owner session. */
+export function SessionLoading() {
+  return <SessionScreen note="Opening MyLittleSwarm…" />;
+}
+
+/** Shown when the engine refuses or cannot open the owner session. */
+export function SessionUnavailable() {
+  return <SessionScreen note="MyLittleSwarm could not open. Check that the engine is running on this computer, then reload this page." />;
 }

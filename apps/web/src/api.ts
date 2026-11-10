@@ -6,8 +6,6 @@ import { siteSession } from './site-session';
 
 /** This page's sign-in: the MyLittleSwarm engine's own sessions (src/server-session.ts). */
 export const session: SessionClient = siteSession;
-export const signIn = (options?: { chooseAccount?: boolean }) => session.signIn(options);
-export const signOutNow = () => session.signOut();
 
 export type Overview = {
   repositorySummary?: import('@mlswarm/contracts').RepositorySummary | null;
@@ -84,7 +82,7 @@ export async function discover<T>(path = ''): Promise<T> {
 export async function publicProject<T>(id: string, path = '', body?: object): Promise<T> {
   if (!/^[a-f0-9]{64}$/.test(id) || body !== undefined || !/^(?:\/(?:agents(?:\/[\w-]{1,200})?|conversations(?:\/search)?|messages\/[\w-]{1,200}|threads\/[\w-]{1,200}(?:\/search)?|issues))?(?:\?[^#]*)?$/.test(path)) throw new Error('Choose a public, read-only project page.');
   const user = session.currentUser();
-  if (!user) throw new ApiError(401, 'Sign in with your invited account.');
+  if (!user) throw new ApiError(401, 'Reload MyLittleSwarm on this computer.');
   return authorizedRequest<T>(user, `/api/projects/public/${id}`, path);
 }
 export const join = <T>(user: SessionUser, path: string, body: object | undefined, projectId: string) => authorizedRequest<T>(user, `${projectBase(projectId)}/api/join`, path, body);

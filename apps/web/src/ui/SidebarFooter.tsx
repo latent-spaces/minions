@@ -1,6 +1,6 @@
 import { MessageCircleHeart } from 'lucide-react';
 
-/** Bottom of the menu column: Give us feedback below (the tour lives in the account menu) the footer links; icon only in the collapsed rail. The account
+/** Bottom of the menu column: Give us feedback below the footer links; icon only in the collapsed rail. The account
  *  moved to the top bar (shell polish 2026-10-18, section 12). */
 export function SidebarFooter({ onFeedback, collapsed = false }: { onFeedback: () => void; collapsed?: boolean }) {
   return <>

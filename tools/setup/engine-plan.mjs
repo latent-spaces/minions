@@ -48,7 +48,7 @@ export function childEnvironment(env, { nodeDirectory, platform = process.platfo
 
 export function engineEnvironment(base, { home, port, platform = process.platform }) {
   const files = enginePaths(home, platform);
-  return { ...base, MLSWARM_ENGINE: 'self-hosted', MLSWARM_SIGN_IN: 'local-owner', HOST: '127.0.0.1', PORT: String(port),
+  return { ...base, MLSWARM_ENGINE: 'self-hosted', HOST: '127.0.0.1', PORT: String(port),
     MLSWARM_SQLITE_PATH: files.sqlitePath, MLSWARM_BLOB_DIR: files.blobDir, MLSWARM_OWNER_FILE: files.ownerFile };
 }
 
@@ -64,13 +64,13 @@ export function ownerIdentity(values, gitConfig) {
   return { name, email, fromGit: !values['owner-name'] || !values['owner-email'] };
 }
 
-/** How this desktop opens a page. The sign-in link holds a one-time code, so it is opened, never printed. */
+/** How this desktop opens a page, or null when there is no desktop to open it on. */
 export function pageOpener(platform, env) {
   if (env.MLSWARM_NO_BROWSER || env.CI || env.SSH_CONNECTION || env.SSH_TTY || (platform === 'linux' && !env.DISPLAY && !env.WAYLAND_DISPLAY)) return null;
   return platform === 'darwin' ? ['open'] : platform === 'win32' ? ['rundll32', 'url.dll,FileProtocolHandler'] : ['xdg-open'];
 }
 
-/** The engine prints this line once it listens; the sign-in link itself goes to the private link file, not stdout. */
+/** The engine prints this line once it listens. */
 export function engineUrl(output) {
   return /Standalone engine listening on (http:\/\/127\.0\.0\.1:\d+)/.exec(output)?.[1] ?? null;
 }

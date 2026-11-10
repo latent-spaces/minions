@@ -33,7 +33,7 @@ export function PlayAgent({ user, projectId, agent, disabled, refresh, compact =
       },
       send: async request => {
         const account = await owner<{ profileId: string }>(user, '/profile');
-        if (session.currentUid() !== user.uid) throw new Error('Sign in again before retrying.');
+        if (session.currentUid() !== user.uid) throw new Error('Reload this page before retrying.');
         return ownOwner(user, account.profileId, '/web-agent-starts', request);
       },
       refused: failure => failure instanceof ApiError && failure.status >= 400 && failure.status < 500 && ![408, 429].includes(failure.status),
