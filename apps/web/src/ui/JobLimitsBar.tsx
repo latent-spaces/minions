@@ -10,7 +10,7 @@ import './job-limits.css';
  * owner sees when the job ends and adds time, and sees, sets, changes or removes the job's token cap: one pool for
  * all their agents in the project. Shown once the job has started; a closed project changes nothing.
  */
-export function JobLimitsBar({ workspace, controls, disabled = false }: { workspace: Workspace; controls: ProjectControls; disabled?: boolean }) {
+export function JobLimitsBar({ workspace, controls }: { workspace: Workspace; controls: ProjectControls }) {
   const id = useId();
   const [editing, setEditing] = useState(false), [saved, setSaved] = useState('');
   const opener = useRef<HTMLButtonElement>(null), returnFocus = useRef(false);
@@ -19,7 +19,7 @@ export function JobLimitsBar({ workspace, controls, disabled = false }: { worksp
   const { data, now } = controls.workers;
   const cap = workspace.tokenLimit?.tokens ?? null, used = Math.max(workspace.tokensUsed ?? 0, jobTokensUsed(data?.agents ?? []));
   const reached = cap !== null && used >= cap, timeUp = (workspace.endsAt ?? 0) <= now;
-  const locked = disabled || controls.locked;
+  const locked = controls.locked;
   const close = () => { returnFocus.current = true; setEditing(false); };
   const save = async (tokens: number | null) => {
     if (!await controls.setTokens(tokens)) return;

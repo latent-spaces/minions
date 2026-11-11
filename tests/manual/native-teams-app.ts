@@ -55,9 +55,9 @@ try {
   page.on('request', req => { if (/\/(background-control|participation|steering|extend)$/.test(new URL(req.url()).pathname) && req.method() !== 'GET') controlCalls.push(req.url()); });
   await page.goto(`${origin}/`);
   await signInBrowser(page, await idTokenFor(email));
-  const settingsUrl = `${origin}/?project=${TEST_PROJECT}&section=control-center&tab=features`;
+  const settingsUrl = `${origin}/?project=${TEST_PROJECT}&section=control-center`;
   await page.goto(settingsUrl);
-  const toggle = page.getByRole('group', { name: 'Use teams in this project', exact: true });
+  const toggle = page.getByRole('group', { name: 'Teams', exact: true });
   const on = toggle.getByRole('button', { name: 'On', exact: true }), off = toggle.getByRole('button', { name: 'Off', exact: true });
   await off.waitFor(); assert.equal(await off.getAttribute('aria-pressed'), 'true');
   const nav = page.getByRole('navigation', { name: 'Project sections' });
@@ -115,7 +115,7 @@ try {
   await nav.getByRole('link', { name: 'Control center', exact: true }).click();
   await page.getByRole('link', { name: 'Project features', exact: true }).click();
   await off.waitFor(); await off.click();
-  await page.waitForFunction(() => [...document.querySelectorAll('.setting-toggle')].some(group => group.textContent?.includes('Use teams in this project') && [...group.querySelectorAll('button')].some(button => button.textContent === 'Off' && button.matches('[aria-pressed="true"]:enabled'))));
+  await page.waitForFunction(() => [...document.querySelectorAll('.setting-toggle')].some(group => group.textContent?.includes('Teams') && [...group.querySelectorAll('button')].some(button => button.textContent === 'Off' && button.matches('[aria-pressed="true"]:enabled'))));
   await nav.getByRole('link', { name: 'Teams', exact: true }).waitFor({ state: 'hidden' });
   await page.goto(`${origin}/?project=${TEST_PROJECT}&section=teams`);
   try { await page.getByText('Teams are off. Existing teams, memberships and history are read-only.', { exact: true }).waitFor(); } catch (error) {

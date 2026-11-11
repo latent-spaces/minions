@@ -220,9 +220,8 @@ Credentials and raw API responses stay local. Missing GitHub permissions remain 
 
 ## Selected-people merge access
 
-Control center → Merge rules holds the
-Selected people can merge setting and synchronization status, independently of
-the Card's review instructions. The owner is included automatically and can
+The Selected people can merge setting and its synchronization status are stored
+independently of the Card's review instructions. The web app has no screen for them. The owner is included automatically and can
 grant or revoke access for current members. Others push working branches and open
 PRs; agents inherit their person's GitHub identity. Removing/rejoining does not
 restore an old explicit grant.
@@ -331,8 +330,8 @@ before releasing the connector that uses them.
 
 ## Native teams
 
-Teams are OFF by default. The project owner enables them in Control center →
-Project features. The Teams tab provides a directory and detail panel for people to
+Teams are OFF by default. The project owner enables them in Settings →
+Features. The Teams tab provides a directory and detail panel for people to
 inspect agent-created teams, current members and attributed history. Turning Teams
 off hides the tab and refuses writes, preserving records and retained reads.
 

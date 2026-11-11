@@ -1,9 +1,4 @@
-// Repository configuration.
-import { repositoryUrl } from './proposal-form.js';
 import type { MergeApproval } from './merge-approval.js';
-export function configureBody(repo: string, revision: number) {
-  return { expected_revision: revision, repoUrl: repositoryUrl(repo) ?? repo.trim().replace(/\/$/, '') };
-}
 
 // The Card fields the owner edits in Settings (CardSettings.tsx), and the body a save sends. Unknown sources or resources
 // start empty, text is sent trimmed, and empty sources or resources are sent as unknown. The version read is the fence.

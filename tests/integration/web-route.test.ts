@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { ownerApprovalRequest, parseRoute, formatRoute, controlCenterRoute, CONTROL_CENTER_SECTIONS, projectRoute } from '../../apps/web/src/route.js';
+import { ownerApprovalRequest, parseRoute, formatRoute, controlCenterRoute, projectRoute } from '../../apps/web/src/route.js';
 
 const P = 'a'.repeat(64);
 
@@ -11,18 +11,14 @@ test('Project tab links survive a reload, and a removed tab opens the project ho
   for (const removed of ['community', 'details', 'updates', 'tasks']) expect(parseRoute(`?project=${P}&section=${removed}`)).toEqual(projectRoute(P));
 });
 
-test('Control center sections survive direct links and reloads without leaking into other screens', () => {
-  for (const category of CONTROL_CENTER_SECTIONS) {
-    const route = controlCenterRoute(P, category);
-    expect(parseRoute(formatRoute(route))).toEqual(route);
-    expect(formatRoute(route)).toContain(`tab=${category}`);
-    const elsewhere = parseRoute(`?project=${P}&section=agents&tab=${category}`);
-    expect(elsewhere).not.toHaveProperty('controlSection');
+// Settings is one page (owner decision, 11 November 2026): every old tab link, removed ones included, opens it.
+test('Settings links survive reloads, and old tab links open the one Settings page', () => {
+  const route = controlCenterRoute(P);
+  expect(parseRoute(formatRoute(route))).toEqual(route);
+  expect(formatRoute(route)).not.toContain('tab=');
+  for (const tab of ['status', 'merging', 'repository', 'agents', 'features', 'unknown', '../platform', '']) {
+    expect(parseRoute(`?project=${P}&section=control-center&tab=${encodeURIComponent(tab)}`)).toEqual(route);
   }
-  for (const tab of ['unknown', '../platform', 'people/roles', '']) {
-    expect(parseRoute(`?project=${P}&section=control-center&tab=${encodeURIComponent(tab)}`)).toEqual(controlCenterRoute(P));
-  }
-  expect(parseRoute(`?project=${P}&section=control-center&tab=repository`)).toEqual(controlCenterRoute(P, 'repository'));
 });
 
 test('the owner approval page accepts only its own request links', () => {

@@ -296,7 +296,7 @@ try {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.getByRole('navigation', { name: 'Project sections' }).getByRole('link', { name: 'Control center', exact: true }).click();
   await page.getByRole('link', { name: 'Project features', exact: true }).click();
-  const taskToggle = page.getByRole('group', { name: 'Use tasks in this project', exact: true });
+  const taskToggle = page.getByRole('group', { name: 'Tasks', exact: true });
   const on = taskToggle.getByRole('button', { name: 'On', exact: true });
   const off = taskToggle.getByRole('button', { name: 'Off', exact: true });
   await on.waitFor();

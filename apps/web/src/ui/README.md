@@ -189,7 +189,7 @@ bar for every member. It shows Active with a timer, Paused, Ready to start (the 
 Waiting for the owner to start) or Closed. Other people also see the job's end time and time left
 there; the owner sees them, and adds time, only in the job bar above My agents. It exposes
 controls for the viewer's own agents and applicable project controls for the owner.
-`ProjectControlsCard` on Tasks shows lifecycle status and the
+`ProjectControlsCard` in Settings shows lifecycle status and the
 applicable Start, Pause, Resume or Reopen action, plus Close for open projects,
 only to the project owner. Existing readiness and owner-only below-minimum
 override still apply. Before start, non-owners see the waiting-room callout ("Waiting for people
@@ -422,11 +422,10 @@ opens the card as a modal dialog and asks the browser for full screen; Escape or
 full screen closes it. If the canvas or layout worker fails, the map shows Map
 unavailable with Retry map. Viewing the map only reads; the run controls change project work.
 
-The Control center Merge rules section is available only to the owner. It contains the
-versioned merge-policy editor, supported worker restrictions and bounded access
-records. Control center → Repository configures the repository only. `MergingAccess`
-renders server-projected identities and explicit unknown GitHub access facts; it
-does not fetch credentials or private agent environment reports.
+Settings is one owner-only page with three cards: Project (`ProjectControlsCard`), Agents (shared
+instructions and `AgentCommunication`) and Features (Tasks and Teams toggles). Each setting's
+explanation sits behind an `InfoTip` ? button: hover or focus shows it, a click or tap keeps it open
+until Escape or a click elsewhere. There is no Merge rules or Repository screen.
 
 Usage's "Now · latest turn per agent" shows each agent's request as a share of its context
 window, with the window size, when the agent reports them (Codex and Claude agents do;

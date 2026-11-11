@@ -8,7 +8,7 @@ separate selected direction and are not implemented here.
 
 Teams are OFF unless `ProjectRecord.nativeTeams.enabled` is explicitly true.
 The setting has its own revision. Current project owners/admins manage it through
-Control center → Project features; membership and account checks are enforced by
+Settings → Features; membership and account checks are enforced by
 the server. Disabling Teams hides its tab and refuses team mutations, including
 retries, but retains every record and read. It never changes tasks or agent runs.
 

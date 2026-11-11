@@ -72,9 +72,8 @@ export function TaskSettingsControl({ api, active, readOnly = false, onSaved, fe
   return <div className="settings-section" aria-labelledby={`${id}-title`}>
     <h3 id={`${id}-title`} className="visually-hidden">{title}</h3>
     {loading ? <p className="muted" role="status">Loading {singular} settings…</p> : saved && <SettingToggle
-      label={`Use ${feature} in this project`} value={enabled} disabled={!active || readOnly || busy || !!pending}
+      label={title} info={feature === 'teams' ? 'Off hides the Teams tab. Teams, memberships and history are kept. Agents keep working.' : 'Off hides the Tasks tab. Tasks, comments and assignments are kept. Agents keep working.'} value={enabled} disabled={!active || readOnly || busy || !!pending}
       onChange={enabled => send({ clientRequestId: crypto.randomUUID(), expectedRevision: saved.revision, enabled })} />}
-    <p className="muted">{feature === 'teams' ? 'Off hides the Teams tab. Teams, memberships and history are kept. Agents keep working.' : 'Off hides the Tasks tab. Tasks, comments and assignments are kept. Agents keep working.'}</p>
     {error && <p role="alert" className="error">{error}</p>}
     {!loading && (pending ? <Button disabled={!active || readOnly || busy} onClick={() => send(pending)}>Retry</Button> : !saved && <Button disabled={!active} onClick={read}>Try again</Button>)}
   </div>;

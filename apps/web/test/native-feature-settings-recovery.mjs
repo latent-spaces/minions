@@ -56,7 +56,7 @@ try {
   for (const mode of ['current', 'read-failure', 'switch-project']) {
     const page = await context.newPage();
     await page.goto(`http://127.0.0.1:${address.port}/review-teams`);
-    const group = page.getByRole('group', { name: 'Use teams in this project', exact: true });
+    const group = page.getByRole('group', { name: 'Teams', exact: true });
     const on = group.getByRole('button', { name: 'On', exact: true }), off = group.getByRole('button', { name: 'Off', exact: true });
     await off.waitFor();
     await on.click();

@@ -1,3 +1,9 @@
-.agent-communication-form fieldset label { display: block; margin: 12px 0 6px; }
-.agent-communication-form input, .agent-communication-form select { width: 100%; }
-.agent-communication-form .actions { margin-top: 16px; }
+.agent-panel-title { display: flex; align-items: center; gap: 4px; }
+.agent-limits fieldset { display: grid; gap: 8px; min-width: 0; margin: 0; padding: 0; border: 0; }
+/* One row per limit: its name on the left, its field on the right. */
+.agent-limits-row { display: flex; align-items: center; justify-content: space-between; gap: 8px 24px; flex-wrap: wrap; min-width: 0; }
+.agent-limits-row label { flex: 1 1 200px; min-width: 0; margin: 0; font-size: 14px; font-weight: 450; color: var(--text-muted); }
+.agent-limits-row :is(input, select) { flex: 0 0 180px; width: 180px; max-width: 100%; box-sizing: border-box; margin: 0; }
+.agent-limits-row input { font-variant-numeric: tabular-nums; }
+.agent-limits .settings-save-row { margin-top: 16px; }
+.agent-panel > .agent-help[role="status"] { margin: 12px 0 0; }

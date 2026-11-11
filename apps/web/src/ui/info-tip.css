@@ -1,0 +1,8 @@
+.k42-info-tip { position: relative; display: inline-flex; vertical-align: middle; }
+.k42-info-tip-button { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 50%; background: none; color: var(--text-muted); cursor: pointer; }
+.k42-info-tip-button:hover, .k42-info-tip.is-open .k42-info-tip-button { background: var(--canvas-soft); color: var(--ink); }
+.k42-info-tip-button:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.k42-info-tip-note { position: absolute; z-index: 20; top: calc(100% + 6px); left: -4px; width: max-content; max-width: min(280px, calc(100vw - 32px)); padding: 8px 10px; border-radius: 8px; background: var(--ink); color: var(--on-ink); font-size: 12px; font-weight: 400; line-height: 1.45; white-space: normal; text-align: left; pointer-events: none; opacity: 0; visibility: hidden; transition: opacity .12s ease, visibility 0s linear .12s; }
+.k42-info-tip:is(:hover, :focus-within, .is-open) > .k42-info-tip-note { opacity: 1; visibility: visible; transition-delay: 0s; }
+@media (hover: none) { .k42-info-tip:hover:not(.is-open) > .k42-info-tip-note { opacity: 0; visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .k42-info-tip-note { transition: none; } }

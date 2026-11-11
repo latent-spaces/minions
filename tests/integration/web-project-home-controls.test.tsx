@@ -9,7 +9,7 @@ const { createElement } = requireWeb('react');
 const { renderToStaticMarkup } = requireWeb('react-dom/server');
 const workspace = (patch: Partial<Workspace> = {}) => ({ id: 'synthetic-project', role: 'owner', execution: 'active', project: { started: true, paused: false }, revision: 3, ...patch }) as Workspace;
 const controls = { locked: false, pending: null, busy: false, error: '', act() {}, retry() {}, discard() {}, workers: { data: null, now: 1000, background: { pending: {}, busy: {} } } } as unknown as ProjectControls;
-const render = (view: Workspace, state = controls, disabled = false) => renderToStaticMarkup(createElement(ProjectControlsCard, { workspace: view, controls: state, disabled }));
+const render = (view: Workspace, state = controls) => renderToStaticMarkup(createElement(ProjectControlsCard, { workspace: view, controls: state }));
 for (const role of ['member', 'admin', 'moderator', 'guest'] as const) test(`${role} cannot see project management controls in any lifecycle state`, () => {
   for (const project of [null, { started: false }, { started: true, paused: false }, { started: true, paused: true }]) {
     for (const execution of ['closed', 'active'] as const) expect(render(workspace({ role, execution, project: project as Workspace['project'] }))).toBe('');
@@ -40,9 +40,7 @@ test('setup and below-minimum blockers remain visible; the owner can override mi
   expect(render(view)).toContain('start with fewer'); expect(render(view)).not.toMatch(lengthLocked);
 });
 test('busy, uncertain-request and external edit locks disable all lifecycle buttons', () => {
-  for (const [state, disabled] of [[{ ...controls, locked: true }, false], [controls, true]] as const) {
-    expect((render(workspace(), state, disabled).match(/disabled=""/g) ?? []).length).toBe(2);
-  }
+  expect((render(workspace(), { ...controls, locked: true }).match(/disabled=""/g) ?? []).length).toBe(2);
   const html = renderToStaticMarkup(createElement(ProjectControlFeedback, { controls: { ...controls, error: 'Lost response', pending: { action: 'pause', expected_revision: 3, client_request_id: 'same-request' } } }));
   expect(html).toContain('role="alert"'); expect(html).toContain('Retry pause project'); expect(html).toContain('Discard request and reload');
 });

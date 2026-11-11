@@ -15,7 +15,7 @@ import './project-status-panel.css';
  * place, the job bar above My agents (owner decision, 10 November 2026); the panel shows the end time and the time
  * left only to people who do not see that bar. When time is up agents are not ended: they finish their turn and wait.
  */
-export function ProjectStatusPanel({ workspace, controls, disabled = false }: { workspace: Workspace; controls: ProjectControls; disabled?: boolean }) {
+export function ProjectStatusPanel({ workspace, controls }: { workspace: Workspace; controls: ProjectControls }) {
   const titleId = useId();
   const closed = workspace.execution === 'closed', started = !!workspace.project?.started, paused = !!workspace.project?.paused;
   const manager = workspace.role === 'owner';
@@ -46,8 +46,8 @@ export function ProjectStatusPanel({ workspace, controls, disabled = false }: { 
       </div>}
       <div className="k42-status-actions">
         {/* Start lives here, with the project's status (Noa, 26 October 2026). */}
-        {canStart && <StartProject id={`${titleId}-length`} className="k42-ph-thin" disabled={disabled || controls.locked} controls={controls} />}
-        {projectAction && <Button type="button" className="k42-ph-thin" disabled={disabled || controls.locked} title={projectAction === 'pause' ? 'Pauses every agent in this project. Only the owner can do this.' : 'Lets every agent in this project continue.'} onClick={() => void controls.act(projectAction)}>
+        {canStart && <StartProject id={`${titleId}-length`} className="k42-ph-thin" disabled={controls.locked} controls={controls} />}
+        {projectAction && <Button type="button" className="k42-ph-thin" disabled={controls.locked} title={projectAction === 'pause' ? 'Pauses every agent in this project. Only the owner can do this.' : 'Lets every agent in this project continue.'} onClick={() => void controls.act(projectAction)}>
           {projectAction === 'pause' ? <Pause size={18} aria-hidden="true" /> : <Play size={18} aria-hidden="true" />}{projectAction === 'pause' ? 'Pause all agents' : 'Resume all agents'}</Button>}
       </div>
     </div>

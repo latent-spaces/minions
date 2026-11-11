@@ -58,7 +58,7 @@ test('actual project Pause shows pending, confirmed and unreachable agents on Ho
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     await context.route('**/*', (route: any) => ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
     page = await context.newPage(); const errors: string[] = []; page.on('pageerror', (e: Error) => errors.push(e.message));
-    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=control-center&tab=status`);
+    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=control-center`);
     await signInBrowser(page, await idTokenFor('pause-reviewer@example.test'));
     await page.locator('.project-controls-card').getByRole('button',{name:'Pause project',exact:true}).waitFor({timeout:25000});
     await page.locator('.project-controls-card').getByRole('button',{name:'Pause project',exact:true}).click();

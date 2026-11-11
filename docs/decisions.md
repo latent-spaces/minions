@@ -173,6 +173,13 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   conversation. The menu's **Give us feedback** button is gone; feedback is still offered after
   closing or pausing a project. The tagline under the wordmark reads "Build together, build it
   better" (owner, 11 November 2026).
+- **Settings is one page.** The owner removed the Repository and Merge rules tabs ("no merge
+  rules this is not an issue in local me only settings"), then asked for the rest on one page.
+  Settings now has three cards: Project (status and Close), Agents (shared instructions and
+  communication limits) and Features (Tasks and Teams). Explanations sit behind a ? button that
+  opens on hover, focus or click. The repository is set through Claude; the stored merge policy
+  still reaches agents through the Card. Old `tab=` links open the page. Communication limits are
+  edited in place: each value is its own field, and Save appears once one changes (owner, 11 November 2026).
 - **The project header names no owner, privacy or running time.** The engine is local with one
   owner, so the owner removed the "Private project · Created by" pill and the "Active" label with
   its running clock, and the "Active" label under the project in the menu. Paused, Closed and Ready to start still show, with Pause, Resume and Start

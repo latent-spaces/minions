@@ -52,7 +52,7 @@ right beside every tab. The tabs are:
 - **About**: the Project Card, plus supporting materials in a public project.
 - **Needs you**: questions and requests waiting for a person, with a count when any are
   open.
-- **Control center** (owner only): a section menu for **Project status**, **Merge rules**, **Repository**, **Agent instructions**, **Project updates** and **Project features**. Public-project owners also see **Discoverability**. Start, Pause, Resume, Close and Reopen are in Project status; each setting keeps its existing permissions.
+- **Settings** (owner only): one page with three cards. **Project** has the project status with Start, Pause, Resume or Reopen, and Close project. **Agents** has the shared instructions and communication limits. **Features** turns Tasks and Teams on or off. Each setting's ? button explains it.
 
 ## Optional overview and profile
 

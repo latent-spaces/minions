@@ -1,42 +1,29 @@
-.control-center { max-width: none; min-width: 0; }
+.control-center { max-width: 760px; min-width: 0; }
 .control-center-heading { margin: 0 0 24px; }
-.control-center-layout { display: grid; grid-template-columns: 208px minmax(0, 1fr); gap: 20px; align-items: start; }
-.control-center-nav { display: grid; gap: 4px; padding: 8px; border: var(--card-border); border-radius: var(--surface-radius); background: var(--canvas); }
-.control-center-nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; min-height: 44px; box-sizing: border-box; border-radius: var(--radius-button); text-decoration: none; color: var(--ink); font-size: 14px; }
-.control-center-nav svg { flex: none; }
-.control-center-nav a:hover, .control-center-nav a[aria-current="page"] { background: var(--canvas-soft); }
-.control-center-nav a[aria-current="page"] { font-weight: 600; }
-.control-center-panel { min-width: 0; background: var(--canvas); border: var(--card-border); border-radius: var(--surface-radius); padding: 28px; overflow-wrap: anywhere; }
+.control-center-stack { display: grid; gap: 16px; min-width: 0; }
 .control-center-editable { min-width: 0; border: 0; padding: 0; margin: 0; }
-.control-center-editable > [hidden], .control-center [hidden] { display: none; }
-.control-center .project-controls-card { border: 0; padding: 0; margin: 0; background: none; }
+.control-center .settings-card { padding: 24px 28px; }
+.control-center .settings-group-title { margin: 0 0 4px; font-size: 18px; font-weight: 650; }
+/* Each setting is one row: its name and ? note on the left, its control on the right, hairlines between rows. */
+.control-center .settings-card > :not(.settings-group-title) { margin: 0; padding: 20px 0 0; border: 0; }
+.control-center .settings-card > :not(.settings-group-title) ~ :not(.settings-group-title) { margin-top: 20px; border-top: var(--card-border); }
+.control-center .settings-card > .settings-group-title + * { padding-top: 12px; }
+.control-center .project-controls-card { border: 0; padding: 0; margin: 0; background: none; border-radius: 0; }
 .control-center .project-controls-heading { display: none; }
-.control-center .project-controls-body { margin-top: 0; display: grid; justify-content: start; gap: 20px; }
-.control-center .project-controls-status { flex: none; }
-.control-center .project-controls-close-section { border-top: var(--card-border); margin-top: 28px; padding-top: 24px; }
-.control-center .project-controls-close-section h3 { margin: 0 0 8px; font-size: 16px; }
-.control-center .project-controls-close-section p { color: var(--text-muted); margin: 0 0 16px; line-height: 1.5; }
-.control-center .k42-merging-panel { padding: 20px 0; border: 0; border-top: var(--card-border); border-radius: 0; background: none; }
-.control-center .k42-merging > .k42-merging-panel:first-child { padding-top: 0; border-top: 0; }
-.control-center .settings-category-pages .settings-card > .settings-section ~ .settings-section { margin-top: 28px; }
-@media (max-width: 1100px) {
-  .control-center-layout { grid-template-columns: 180px minmax(0, 1fr); gap: 12px; }
-  .control-center-panel { padding: 20px; }
-}
+.control-center .project-controls-body { margin: 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; }
+.control-center .project-controls-close-section { margin-top: 20px; padding-top: 20px; border-top: var(--card-border); }
+.control-center .project-controls-status { flex: 1 1 200px; display: flex; align-items: center; gap: 4px; }
+.control-center .project-controls-status strong { font-size: 14px; font-weight: 600; }
+.control-center .settings-label-row { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
+.control-center .settings-label-row label { margin: 0; }
+.control-center .agent-panel { margin: 0; padding: 0; border: 0; }
+.control-center .settings-card > .agent-panel { padding-top: 20px; border-top: var(--card-border); margin-top: 20px; }
+.control-center .agent-panel-title { display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 600; }
+.control-center .setting-toggle > .setting-toggle-label { font-weight: 600; }
+.control-center .settings-card .settings-section > :is(p.error, [role="alert"]) { margin-bottom: 0; }
 @media (max-width: 700px) {
-  .control-center-layout { grid-template-columns: minmax(0, 1fr); }
-  .control-center-nav { display: flex; overflow-x: auto; overscroll-behavior-x: contain; }
-  .control-center-nav a { flex: none; white-space: nowrap; }
-  .control-center-panel { padding: 20px 16px; }
+  .control-center .settings-card { padding: 20px 16px; }
   .control-center-heading { margin-bottom: 16px; }
 }
-.control-center .settings-card { border: 0; padding: 0; border-radius: 0; background: none; }
-
-.control-center .settings-card > .project-controls-card + .settings-section { border-top: var(--card-border); margin-top: 28px; padding-top: 24px; }
-
-/* Section changes must not anchor the page to the chat below the panel. */
+/* Saves and refreshes must not anchor the page to the chat below the panel. */
 .workspace-content:has(.control-center.is-active) { overflow-anchor: none; }
-@media (min-width: 900px) {
-  /* Leave room below the menu so shorter panels do not clamp page scrolling. */
-  .control-center-layout { min-height: 100dvh; }
-}

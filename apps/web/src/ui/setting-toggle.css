@@ -5,3 +5,4 @@
 .setting-toggle-options > button:hover:not(:disabled):not([aria-pressed="true"]) { background: var(--canvas); color: var(--ink); }
 .setting-toggle-options > button:disabled { cursor: not-allowed; opacity: .55; }
 .setting-toggle-options > button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.setting-toggle-label { display: inline-flex; align-items: center; gap: 4px; }
