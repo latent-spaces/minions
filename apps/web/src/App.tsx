@@ -32,6 +32,7 @@ import { useMediaQuery } from './useMediaQuery';
 // Data refreshes every 30 s while the tab is visible.
 import type { SessionUser } from './session-identity';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { communicationAgentState } from './ui/communication-agent-state';
 import { session, read, community, projects, ProjectScope, ApiError, type AgentRow, type Overview } from './api';
 
 import { MyProjects } from './MyProjects';
@@ -452,7 +453,14 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   // Task assignees, contributors and comment authors can be anyone in the project, not only the first directory page.
   const tasksOn = !!workspace && nativeTasksEnabled(workspace.nativeTasks);
   const tasksShown = visible && currentSection === 'overview' && tasksOn;
-  const taskAgents = useAllPages<TaskAgent>(user, allAgentsPath, 'agents', agentRows.page?.items ?? NO_AGENTS, tick, tasksShown && !!project, REFRESH_MS);
+  const taskLabelRows = useAllPages<TaskAgent>(user, allAgentsPath, 'agents', agentRows.page?.items ?? NO_AGENTS, tick, tasksShown && !!project, REFRESH_MS);
+  // Labels carry no live status; agents on the first full page add their state and coding tool to task avatars.
+  const firstAgents = agentRows.page?.items ?? NO_AGENTS;
+  const liveAgents = useMemo(() => { const at = Date.now(); return firstAgents.map((row): TaskAgent => ({ ...row, state: communicationAgentState(row, at), provider: row.usage?.provider ?? null })); }, [firstAgents, tick]);
+  const taskAgents = useMemo(() => {
+    const live = new Map(liveAgents.map(row => [row.id, row]));
+    return taskLabelRows.map(agent => { const row = live.get(agent.id); return row ? { ...agent, state: row.state, provider: row.provider } : agent; });
+  }, [taskLabelRows, liveAgents]);
   const taskPeople = useAllPages(user, allMembersPath, 'members', members.page?.items ?? NO_PEOPLE, tick, tasksShown, REFRESH_MS);
   // One read labels up to 60 shown actors the paced walks have not reached; it counts once against the viewer budget.
   const taskLabels = useMemo(() => ({
@@ -591,7 +599,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
             <div hidden={allAgents}><Agents user={user} agent={agent} search={search} filter={agentFilter} onAgent={onAgent} tick={tick + agentTick} active={visible && currentSection === 'agents' && !allAgents} go={go} waiting={openRequests.waiting} /></div>
           </div>
           {/* Native tasks replace GitHub Issues as the work record; repositories and pull requests stay where they are. */}
-          {workspace && <div hidden={currentSection !== 'teams'}><ProjectTeams key={`${user.uid}:${projectId}`} api={teams} active={visible && currentSection === 'teams'} refreshToken={tick + teamsTick} disabledNotice={!nativeTeamsEnabled(workspace.nativeTeams)} agents={agentRows.page?.items ?? NO_AGENTS} lookup={project ? taskLabels : undefined} scope={`${user.uid}:${projectId}`} /></div>}
+          {workspace && <div hidden={currentSection !== 'teams'}><ProjectTeams key={`${user.uid}:${projectId}`} api={teams} active={visible && currentSection === 'teams'} refreshToken={tick + teamsTick} disabledNotice={!nativeTeamsEnabled(workspace.nativeTeams)} agents={liveAgents} lookup={project ? taskLabels : undefined} scope={`${user.uid}:${projectId}`} /></div>}
           <div hidden={currentSection !== 'conversations'}><Conversations user={user} thread={thread} messageId={messageId} tick={tick} active={visible && currentSection === 'conversations'} go={go} /></div>
           {/* One mounted composer owns the saved retry across Home and My agents. */}
 

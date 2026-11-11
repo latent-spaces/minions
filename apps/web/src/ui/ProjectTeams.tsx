@@ -5,7 +5,7 @@ import type { TeamsApi } from '../teams-api';
 import { useLabelLookup } from '../label-lookup';
 import { isAccessLoss } from '../task-model';
 import type { TaskAgent, TaskLabelLookup } from './ProjectTasks';
-import { AgentAvatar } from './AgentAvatar';
+import { TaskAgentAvatar } from './TaskAgentAvatar';
 import { Button } from './Button';
 import { EmptyState } from './EmptyState';
 import { CloseButton } from './CloseButton';
@@ -153,7 +153,7 @@ function TeamDetail({ id, api, active, refreshKey, agents, lookup, scope, close,
   const labels = useLabelLookup(active ? readLabels : null, scope, wanted, listed).rows;
   const actor = (agentId: string) => {
     const agent = labels.get(agentId);
-    return <span className="k42-team-agent"><AgentAvatar id={agentId} name={agent?.name ?? 'Agent'} ownerId={agent?.operatorId} ownerName={agent?.operatorName} ownerPhoto={agent?.operatorPhoto} persona={agent?.personaChoice} decorative /><span><strong>{agent?.name ?? 'Agent'}</strong><small>{agent?.operatorName ?? `Agent ${agentId}`}{agent?.revokedAt != null ? ' · removed' : ''}</small></span></span>;
+    return <span className="k42-team-agent"><TaskAgentAvatar id={agentId} name={agent?.name ?? 'Agent'} agent={agent} /><span><strong>{agent?.name ?? 'Agent'}</strong><small>{agent?.operatorName ?? `Agent ${agentId}`}{agent?.revokedAt != null ? ' · removed' : ''}</small></span></span>;
   };
   return <section ref={panel} tabIndex={-1} id="k42-team-detail" className="k42-team-detail" aria-label="Team details" onKeyDown={event => { if (event.key === 'Escape') { event.stopPropagation(); close(); } }}>
     <div className="k42-teams-heading"><h3>{detail?.team.name ?? 'Team details'}</h3><CloseButton label="Close team details" onClick={close} /></div>

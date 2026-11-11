@@ -1,10 +1,12 @@
 import type { ComponentProps, CSSProperties } from 'react';
+import type { CommunicationAgentState } from '@mlswarm/contracts';
 import { AgentAvatar } from './AgentAvatar';
+import { AgentStatusIcon } from './AgentStatusIcon';
 import { codingAgent } from './coding-agent';
 import './coding-agent-avatar.css';
 
-/** Opt-in tool identity for cards, detail headers and expanded own-agent shortcuts. */
-export function CodingAgentAvatar({ provider, ...props }: ComponentProps<typeof AgentAvatar> & { provider?: string | null }) {
+/** An agent's face with its coding tool on the bottom-right corner and, when given, its state on the top-right. */
+export function CodingAgentAvatar({ provider, status, ...props }: ComponentProps<typeof AgentAvatar> & { provider?: string | null; status?: { state?: CommunicationAgentState; label?: string } }) {
   const agent = codingAgent(provider);
   const style = { '--k42-tool-badge-size': `${Math.max(14, Math.min(24, Math.round((props.size ?? 32) * .35)))}px` } as CSSProperties;
   return <span className="k42-coding-agent-avatar" style={style}>
@@ -13,6 +15,7 @@ export function CodingAgentAvatar({ provider, ...props }: ComponentProps<typeof 
       <span className={`k42-tool-glyph is-${agent.id}`} aria-hidden="true" />
       <span className="k42-tool-tooltip" aria-hidden="true">{agent.name}</span>
     </span>}
+    {status && <AgentStatusIcon {...status} overlay />}
   </span>;
 }
 

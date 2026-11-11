@@ -8,7 +8,7 @@ Production UI components, styles and decorative assets belong in `apps/web/src/u
 
 WorkspaceNavigation, AgentCard and the application shell stylesheet are shared product presentation. There is no retained prototype page-body implementation; do not recreate a second live API implementation for previews.
 
-Avatars are decorative animal illustrations reused from the approved concepts. When the owner ID is known, their agents share a stable animal family and pastel background; each agent ID chooses one of four transparent portraits in that family. Names, project and roster order do not change that assignment. The finite palette can repeat; visible names and owner badges remain authoritative. Without an owner ID, the agent ID selects a portrait from the same current artwork on a neutral background; no ownership grouping is inferred from a display name. They are not personal photographs, health reports or permission signals. No avatar service or network fan-out is added.
+Avatars are decorative animal illustrations reused from the approved concepts. When the owner ID is known, their agents share a stable animal family and pastel background; each agent ID chooses one of four transparent portraits in that family. Names, project and roster order do not change that assignment. The finite palette can repeat; visible names remain authoritative. Without an owner ID, the agent ID selects a portrait from the same current artwork on a neutral background; no ownership grouping is inferred from a display name. They are not personal photographs, health reports or permission signals. No avatar service or network fan-out is added.
 
 ## Development and acceptance
 

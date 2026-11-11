@@ -4,13 +4,15 @@ import type { NativeTask, NativeTaskContributor, NativeTaskActor, NativeTaskDeta
 import { closedTask } from '@mlswarm/contracts';
 import { ArrowLeft, Check, ChevronDown, ChevronRight, Columns3, Filter, List, ListTodo, Plus, RefreshCw, Search, X } from 'lucide-react';
 export type TaskAgent = { id: string; name: string; operatorId: string | null; operatorName: string | null; revokedAt: number | null;
-  operatorPhoto?: import('@mlswarm/contracts').PublicProfilePhoto | null; personaChoice?: import('@mlswarm/contracts').PersonaChoice | null; assignable?: boolean };
+  operatorPhoto?: import('@mlswarm/contracts').PublicProfilePhoto | null; personaChoice?: import('@mlswarm/contracts').PersonaChoice | null; assignable?: boolean;
+  /** Live state and coding tool, known only for agents on the first full agents page. */
+  state?: import('@mlswarm/contracts').CommunicationAgentState; provider?: string | null };
 import { hold, projectRoute, taskRoute, type Route } from '../route';
 import { NavLink } from '../navigation-link';
 import type { PublicPhoto } from '../profile-photo-api';
 import { TASK_STATUSES, isAccessLoss, isConflict, isTasksDisabled, isSettledRefusal, taskReferenceView, newestTaskSnapshot, taskSourceHref, taskReferenceFromUrl, statusLabel, statusChangeBlock, taskMutation, singleFlight, readTasksView, writeTasksView, nestTasks, taskFromPrompt, type TasksApi, type TasksView } from '../task-model';
 import type { NativeTaskMutation } from '@mlswarm/contracts';
-import { AgentAvatar } from './AgentAvatar';
+import { TaskAgentAvatar } from './TaskAgentAvatar';
 import { TaskContributorAvatars } from './TaskContributorAvatars';
 import { PersonAvatar } from './PersonAvatar';
 import { Button } from './Button';
@@ -75,7 +77,7 @@ type Directory = ReturnType<typeof useDirectory>;
 function AgentChip({ id, directory, size = 28 }: { id: string; directory: Directory; size?: number }) {
   const row = directory.agent.get(id);
   return <span className="k42-task-actor">
-    <AgentAvatar id={id} name={row?.name ?? 'Agent'} ownerId={row?.operatorId} ownerName={row?.operatorName} ownerPhoto={row?.operatorPhoto} persona={row?.personaChoice} size={size} decorative />
+    <TaskAgentAvatar id={id} name={row?.name ?? 'Agent'} agent={row} size={size} />
     <span>{row?.name ?? 'Agent'}{row?.revokedAt != null && <span className="muted"> (removed)</span>}</span>
   </span>;
 }
@@ -334,7 +336,7 @@ function NewTask({ api, agents, onCreated, onCancel }: { api: TasksApi; agents: 
           const chosen = agentId === agent.id;
           return <button key={agent.id} type="button" className="k42-task-assignee" aria-pressed={chosen} aria-label={agent.operatorName ? `${agent.name}, agent of ${agent.operatorName}` : agent.name}
             onClick={() => setAgentId(chosen ? '' : agent.id)}>
-            <AgentAvatar id={agent.id} name={agent.name} ownerId={agent.operatorId} ownerName={agent.operatorName} ownerPhoto={agent.operatorPhoto} persona={agent.personaChoice} size={40} decorative />
+            <TaskAgentAvatar id={agent.id} name={agent.name} agent={agent} size={40} hideState={chosen} />
             {chosen && <span className="k42-task-assignee-check" aria-hidden="true"><Check size={12} /></span>}
             <span className="k42-task-assignee-tip" aria-hidden="true"><strong>{agent.name}</strong>{agent.operatorName && <span>Agent of {agent.operatorName}</span>}<span>{chosen ? 'Click to unassign' : 'Click to assign'}</span></span>
           </button>;
@@ -710,7 +712,7 @@ function Subtasks({ api, parent, subtasks, directory, readOnly, onOpen, onCreate
 function ContributorSummary({ contributors, directory }: { contributors: NativeTaskContributor[]; directory: Directory }) {
   if (!contributors.length) return <span className="muted">None yet</span>;
   return <span className="k42-task-avatars">{contributors.map(c => <span key={`${c.kind}:${c.id}`} title={directory.name(c)}>
-    <AgentAvatar id={c.id} name={directory.name(c)} ownerId={directory.agent.get(c.id)?.operatorId} ownerName={directory.agent.get(c.id)?.operatorName} ownerPhoto={directory.agent.get(c.id)?.operatorPhoto} persona={directory.agent.get(c.id)?.personaChoice} size={28} decorative /></span>)}
+    <TaskAgentAvatar agent={directory.agent.get(c.id)} id={c.id} name={directory.name(c)} size={28} /></span>)}
     <span className="k42-visually-hidden">{contributors.map(c => directory.name(c)).join(', ')}</span></span>;
 }
 

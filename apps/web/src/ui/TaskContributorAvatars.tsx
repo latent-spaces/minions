@@ -1,6 +1,6 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import type { NativeTaskContributor } from '@mlswarm/contracts';
-import { AgentAvatar } from './AgentAvatar';
+import { TaskAgentAvatar } from './TaskAgentAvatar';
 import type { TaskAgent } from './ProjectTasks';
 
 /** Compact identities from the task record; no additional directory requests. */
@@ -9,7 +9,7 @@ export function TaskContributorAvatars({ contributors, agents }: {
   agents: Map<string, TaskAgent>;
 }) {
   const name = (actor: NativeTaskContributor) => agents.get(actor.id)?.name ?? 'Former agent';
-  const avatar = (actor: NativeTaskContributor) => <AgentAvatar id={actor.id} name={name(actor)} ownerId={agents.get(actor.id)?.operatorId} ownerName={agents.get(actor.id)?.operatorName} ownerPhoto={agents.get(actor.id)?.operatorPhoto} persona={agents.get(actor.id)?.personaChoice} size={28} decorative />;
+  const avatar = (actor: NativeTaskContributor) => <TaskAgentAvatar id={actor.id} name={name(actor)} agent={agents.get(actor.id)} size={28} />;
   const information = (actor: NativeTaskContributor) => <span className="k42-task-contributor-info" key={`${actor.kind}:${actor.id}`}>
     {avatar(actor)}<span><strong>{name(actor)}</strong><small>{agents.get(actor.id)?.operatorName ? `Agent of ${agents.get(actor.id)!.operatorName}` : 'Agent · owner unavailable'}</small></span>
   </span>;

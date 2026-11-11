@@ -145,6 +145,12 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   (`http://127.0.0.1:8787/`). `/viewer/…` redirects permanently to the same page at the
   root, because saved share links, project updates and the connector already running on
   this computer still name it; it can go once no saved record or installed connector does.
+- **Agent avatars show the coding tool and state, not the owner.** A project has one owner, so
+  the owner's circle on an agent's corner said nothing; the owner removed it everywhere. Where the
+  coding tool is known, the Claude or Codex badge sits on the bottom-right corner instead. In the
+  menu (rows, the avatar strip and the collapsed rail), tasks and teams, the agent's state sits on
+  the top-right corner. Tasks and teams know the state and tool of the agents on the first agents
+  page only; the others show their face alone. The owner is still named in the avatar's label.
 - **Task list filters in the headers; fuzzy search.** The owner moved the task toolbar into
   the list's column headers: search in the Task header, Assigned agent and Status as header
   filters, Refresh and New task beside List/Board, with a slim bar kept for the board. Search

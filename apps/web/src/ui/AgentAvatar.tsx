@@ -1,14 +1,12 @@
 import { agentHat } from './agent-hat';
 import type { PersonaChoice } from '@mlswarm/contracts';
-import type { PublicPhoto } from '../profile-photo-api';
 import { useEffect, useState, type CSSProperties } from 'react';
 import { agentPortrait, ANIMAL_ZOOM, ANIMAL_FOCUS } from './animal-family';
-import { PersonAvatar } from './PersonAvatar';
 import './agent-avatar.css';
 
 /** `decorative` hides it from assistive tech where the agent's name is already written beside it.
- *  An agent: a rounded square with its animal portrait (owner, 19 October 2026: faces in place of the bot glyph); its owner's circle sits on the corner when the owner is known (option 4, "Agents belong to people"). */
-export function AgentAvatar({ name, id, ownerName, ownerId, ownerPhoto, size = 32, image, persona, decorative = false }: { name: string; id: string; ownerName?: string | null; ownerId?: string | null; ownerPhoto?: PublicPhoto | null; size?: number; image?: string; persona?: PersonaChoice | null; decorative?: boolean }) {
+ *  An agent: a rounded square with its animal portrait (owner, 19 October 2026: faces in place of the bot glyph). The owner is named in its label only: a project has one owner, so the corner holds the coding tool (owner, 11 November 2026). */
+export function AgentAvatar({ name, id, ownerName, ownerId, size = 32, image, persona, decorative = false }: { name: string; id: string; ownerName?: string | null; ownerId?: string | null; size?: number; image?: string; persona?: PersonaChoice | null; decorative?: boolean }) {
   const portrait = agentPortrait(id, ownerId);
   const src = image ?? portrait.src, [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [src]);
@@ -20,6 +18,5 @@ export function AgentAvatar({ name, id, ownerName, ownerId, ownerPhoto, size = 3
       : <img src={src} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} />}</span>
     {hat && <img className="k42-agent-hat" src={hat.src} alt="" aria-hidden="true" decoding="async"
       style={{width: `${hat.width*100}%`, left: `${hat.left*100}%`, top: `${hat.top*100}%`}} />}
-    {ownerName && <span className="k42-agent-owner"><PersonAvatar id={ownerId ?? undefined} photo={ownerPhoto} name={ownerName} size={Math.round(size * 0.45)} /></span>}
   </span>;
 }
