@@ -312,7 +312,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   // Projects and agents are created from Claude through local MCP (owner, 10 November 2026).
   const projectMenu: ProjectMenu | null = openProject && { id:openProject.id, name:openProject.name, status:executionLabel(openProject), private:openProject.private, cover:covers[openProject.id] ?? null,
     back: { id:'all-projects', label:'All projects', href:formatRoute({ view:'projects' }), onNavigate:() => go({ view:'projects' }) },
-    // The project's sections sit in the menu, above Add task and My agents (owner, 11 November 2026).
+    // The project's sections sit in the menu, below Add task and above My agents (owner, 11 November 2026).
     sections: (openFacts?.sections ?? []).map(({ id, current, locked }) => { const tab = PROJECT_TABS.find(t => t.id === id)!, Icon = tab.icon, to = projectRoute(openProject.id, id);
       return { id, label: tab.label, icon: <Icon size={18} aria-hidden="true" />, href: formatRoute(to), current, locked: locked ? 'Available when the project starts' : undefined, onNavigate: () => { setNavigationOpen(false); go(to); } }; }),
     connect: openFacts?.connect ?? null,

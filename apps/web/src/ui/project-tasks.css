@@ -52,7 +52,7 @@
 .k42-task-status.is-canceled { background: var(--canvas-soft); color: var(--text-muted); }
 .k42-task-status.is-done { background: var(--pastel-mint); color: var(--ink); }
 
-.k42-task-dialog { width: min(520px, calc(100vw - 32px)); max-height: calc(100svh - 32px); overflow: auto; padding: 28px; border: 1px solid var(--hairline); border-radius: 16px; background: var(--canvas); color: var(--ink); }
+.k42-task-dialog { width: min(680px, calc(100vw - 32px)); max-height: calc(100svh - 32px); overflow: auto; padding: 28px; border: 1px solid var(--hairline); border-radius: 16px; background: var(--canvas); color: var(--ink); }
 .k42-task-dialog::backdrop { background: var(--scrim); }
 .k42-task-new { display: grid; gap: 8px; }
 .k42-task-new h2 { margin: 0 40px 8px 0; font-size: 22px; }
@@ -62,6 +62,20 @@
   font: inherit; font-size: 16px; min-height: var(--field-height); border: var(--field-border); border-radius: var(--field-radius); background: var(--field-bg); padding: 0 12px; box-sizing: border-box; width: 100%; }
 .k42-task-textarea { padding: 10px 12px; resize: vertical; }
 .k42-task-actions { display: flex; gap: 8px; margin-top: 8px; }
+/* Assign to: agent avatars with a hover/focus card naming each one (owner, 11 November 2026). */
+.k42-task-assignees { margin: 8px 0 0; padding: 0; border: 0; min-width: 0; }
+.k42-task-assignees legend { padding: 0; margin-bottom: 8px; font-weight: 600; }
+.k42-task-assignees legend .muted { font-weight: 400; }
+.k42-task-assignee-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.k42-task-assignee { position: relative; display: inline-flex; padding: 3px; border: 2px solid transparent; border-radius: 14px; background: transparent; cursor: pointer; }
+.k42-task-assignee:hover { border-color: var(--hairline); }
+.k42-task-assignee[aria-pressed=true] { border-color: var(--ink); }
+.k42-task-assignee:focus-visible { outline: 2px solid var(--focus-ring, currentColor); outline-offset: 2px; }
+.k42-task-assignee-check { position: absolute; top: -6px; right: -6px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: var(--ink); color: var(--on-ink); }
+.k42-task-assignee-tip { position: absolute; bottom: calc(100% + 8px); left: 50%; z-index: 2; display: none; flex-direction: column; gap: 2px; width: max-content; max-width: 220px; padding: 8px 10px; border-radius: 8px; background: #1d2433; color: #fff; font-size: 12px; text-align: left; transform: translateX(-50%); pointer-events: none; }
+.k42-task-assignee-tip strong { font-size: 13px; }
+.k42-task-assignee-tip span { opacity: .8; }
+.k42-task-assignee:hover .k42-task-assignee-tip, .k42-task-assignee:focus-visible .k42-task-assignee-tip { display: flex; }
 .k42-task-inline { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
 .k42-task-inline > select, .k42-task-inline > input { flex: 1; min-width: 0; }
 

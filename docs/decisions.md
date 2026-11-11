@@ -134,6 +134,9 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   reported, and hatches MyLittleSwarm's own setup as Karma42 does. The owner then also
   removed the “Exact values & coverage” section below it, and asked that Claude agents
   report their context window and request input so their share shows too.
+- **Add task above the sections; Assign to as avatars.** The owner then moved Add task
+  above the project's sections, and made the New task dialog's optional Assign to a row of
+  agent avatars with a hover card in place of a dropdown, in a wider dialog.
 - **Task view unchanged.** The List/Board toggle stays, with List as the default. (Later
   the same day the owner replaced the task drawer with a task page and added subtasks; see
   “Task page and first-class subtasks”.)

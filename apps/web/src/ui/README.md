@@ -139,7 +139,9 @@ status panel reads. No browser observation launches work.
 
 The project's sections are Tasks, Preview, Teams, Communication, Usage and Settings
 (`PROJECT_TABS` in `App.tsx`; each hides when its feature or the viewer's role rules it out).
-They are links in the menu, above Add task and My agents; the header has no tab row.
+They are links in the menu, below Add task and above My agents; the header has no tab row.
+The New task dialog's Assign to is optional: a row of agent avatars, where hovering or
+focusing one names the agent and its person, and clicking the chosen one unassigns it.
 Project updates (`ProjectUpdatesFeed.tsx`) are not a tab: they fill a full-height right
 panel (360–460px, growing with the screen) that runs from the top of the page, beside the header and every section. Below 1200px the panel collapses to an Updates button at the bottom right that
 opens it as a drawer. Old `section=tasks` and `section=updates` links fall back to Tasks.

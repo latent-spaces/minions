@@ -282,14 +282,20 @@ function NewTask({ api, agents, onCreated, onCancel }: { api: TasksApi; agents: 
       <textarea id={textId} className="k42-task-textarea" value={text} readOnly={locked} onChange={e => setText(e.target.value)} autoFocus required maxLength={10000} rows={5}
         placeholder="What should be done? The first line becomes the task's title."
         onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
-      {agents.length > 0 && <>
-        <label htmlFor={agentFieldId}>Assign to <span className="muted">(optional)</span></label>
-        <select id={agentFieldId} value={agentId} onChange={e => setAgentId(e.target.value)}>
-          <option value="">Unassigned</option>
-          {agents.map(agent => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
-        </select>
-      </>}
-      <p className="muted">{agentId ? 'The agent finds it in Backlog, assigned to it.' : 'New tasks start unassigned in Backlog.'}</p>
+      {/* Assign to is a row of agent avatars, not a dropdown; hovering one shows who it is, clicking the chosen one again unassigns (owner, 11 November 2026). */}
+      {agents.length > 0 && <fieldset className="k42-task-assignees" aria-describedby={agentFieldId}>
+        <legend>Assign to <span className="muted">(optional)</span></legend>
+        <div className="k42-task-assignee-row">{agents.map(agent => {
+          const chosen = agentId === agent.id;
+          return <button key={agent.id} type="button" className="k42-task-assignee" aria-pressed={chosen} aria-label={agent.operatorName ? `${agent.name}, agent of ${agent.operatorName}` : agent.name}
+            onClick={() => setAgentId(chosen ? '' : agent.id)}>
+            <AgentAvatar id={agent.id} name={agent.name} ownerId={agent.operatorId} ownerName={agent.operatorName} ownerPhoto={agent.operatorPhoto} persona={agent.personaChoice} size={40} decorative />
+            {chosen && <span className="k42-task-assignee-check" aria-hidden="true"><Check size={12} /></span>}
+            <span className="k42-task-assignee-tip" aria-hidden="true"><strong>{agent.name}</strong>{agent.operatorName && <span>Agent of {agent.operatorName}</span>}<span>{chosen ? 'Click to unassign' : 'Click to assign'}</span></span>
+          </button>;
+        })}</div>
+      </fieldset>}
+      <p className="muted" id={agentFieldId}>{agentId ? `${agents.find(agent => agent.id === agentId)?.name ?? 'The agent'} finds it in Backlog, assigned to it.` : 'New tasks start unassigned in Backlog.'}</p>
       {error && <p role="alert" className="error">{error}</p>}
       <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || !text.trim()}>{busy ? 'Adding…' : created.current ? 'Retry assigning' : uncertain ? 'Retry' : 'Add'}</Button><Button type="button" onClick={close} disabled={busy}>Cancel</Button></div>
     </form>
