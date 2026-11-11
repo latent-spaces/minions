@@ -165,6 +165,15 @@ and a quick Add subtask field. An agent's subtask is a proposal: it shows a Prop
 and, for owners, Accept and Decline. The list nests subtasks under their parent
 (`nestTasks` in `task-model.ts`) with a collapse toggle and the ring; the board stays flat.
 
+The list's controls live in its column headers: Task has a search icon (or press /) that opens
+a search field in place, searching as you type; Assigned agent and Status are header filters
+whose filter icon fills, with the chosen value as a pill, while set. Refresh, New task and the
+List/Board switch sit beside the Tasks title. The board, and the list under 720px where the
+headers are hidden, keep a slim bar with search and the filters. Title search is fuzzy
+(`nativeTaskTitleMatches` in the contracts): case and accents are ignored, and every word must
+match in any order, as text in the title or, for words of four or more letters, a title word
+or its start one typo away. The server and agents' `list_tasks` use the same matcher.
+
 On Tasks, `ProjectActivity.tsx` renders the lazily loaded
 `ProjectCommunication` card (see [Conversations on
 Tasks](#conversations-on-tasks)) once the project is set up. Before

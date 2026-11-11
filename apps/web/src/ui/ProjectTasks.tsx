@@ -2,7 +2,7 @@ import { nativeTaskTitleMatches } from '@mlswarm/contracts';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import type { NativeTask, NativeTaskContributor, NativeTaskActor, NativeTaskDetail, NativeTaskStatus, NativeTaskActivity, NativeTaskSummary } from '@mlswarm/contracts';
 import { closedTask } from '@mlswarm/contracts';
-import { ArrowLeft, Check, ChevronDown, ChevronRight, Columns3, List, ListTodo, Plus, RefreshCw, Search } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, ChevronRight, Columns3, Filter, List, ListTodo, Plus, RefreshCw, Search, X } from 'lucide-react';
 export type TaskAgent = { id: string; name: string; operatorId: string | null; operatorName: string | null; revokedAt: number | null;
   operatorPhoto?: import('@mlswarm/contracts').PublicProfilePhoto | null; personaChoice?: import('@mlswarm/contracts').PersonaChoice | null; assignable?: boolean };
 import { hold, projectRoute, taskRoute, type Route } from '../route';
@@ -99,7 +99,7 @@ function Proposed() { return <span className="k42-task-proposed">Proposed</span>
 
 /** The selected simple design: one task per row (title, assigned agent, contributing agents, status, latest update); a task opens as its own page. */
 export function ProjectTasks({ api, agents, people, readOnly = false, active, selfId = null, manager = false, projectId, go, disabledNotice = false, createRequest = 0, taskId = null, viewerUrl, lookup }: ProjectTasksProps) {
-  const [searchDraft, setSearchDraft] = useState('');
+  const [searchDraft, setSearchDraft] = useState(''), [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [assignee, setAssignee] = useState('');
   const assignedAgentId = assignee === 'unassigned' ? null : assignee ? assignee.slice(6) : undefined;
@@ -153,7 +153,27 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
       setError(errorText(e));
     });
   }, [api, status, assignedAgentId, search]);
-  useEffect(() => { pageCursors.current = [null]; setTasks(null); setNext(null); setError(null); return () => { generation.current++; }; }, [api, status, assignedAgentId, search]);
+  useEffect(() => { pageCursors.current = [null]; setTasks(null); setNext(null); setError(null); return () => { generation.current++; }; }, [api, status, assignedAgentId]);
+  // A new search keeps the current rows on screen until its first page replaces them, so typing does not flash the table.
+  useEffect(() => { pageCursors.current = [null]; return () => { generation.current++; }; }, [search]);
+  // Search as you type: the latest text applies after a short pause; Enter applies it at once.
+  useEffect(() => {
+    const value = searchDraft.trim();
+    if (value === search) return;
+    const timer = setTimeout(() => { generation.current++; setSearch(value); }, value ? 250 : 0);
+    return () => clearTimeout(timer);
+  }, [searchDraft, search]);
+  // "/" opens the list's search unless the person is already typing somewhere.
+  useEffect(() => {
+    if (!active || view !== 'list' || openId) return;
+    const onKey = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.key !== '/' || event.metaKey || event.ctrlKey || event.altKey || target?.closest('input, textarea, select, [contenteditable="true"]')) return;
+      event.preventDefault(); setSearchOpen(true);
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [active, view, openId]);
   useEffect(() => {
     if (!active) return;
     const refresh = () => { if (document.visibilityState !== 'hidden') load(); };
@@ -183,6 +203,36 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
   for (const task of tasks ?? []) if (task.assignedAgentId && !filterAgents.has(task.assignedAgentId)) filterAgents.set(task.assignedAgentId, `Agent (${task.assignedAgentId})`);
   if (assignedAgentId && !filterAgents.has(assignedAgentId)) filterAgents.set(assignedAgentId, `Agent (${assignedAgentId})`);
 
+  const submitSearch = (event: FormEvent) => { event.preventDefault(); const value = searchDraft.trim(); if (value === search) load(); else { generation.current++; setSearch(value); } };
+  const clearSearch = () => { setSearchDraft(''); setSearchOpen(false); if (search) { generation.current++; setSearch(''); } };
+  const searchField = (header: boolean) => <form className={header ? 'k42-th-search' : 'k42-tasks-search'} role="search" aria-label="Task titles" onSubmit={submitSearch}>
+    <Search className="k42-tasks-search-icon" size={header ? 14 : 16} aria-hidden="true" />
+    <input type="search" aria-label="Search tasks" value={searchDraft} maxLength={300} placeholder="Search tasks" autoFocus={header && !searchDraft}
+      onChange={event => setSearchDraft(event.target.value)} onKeyDown={event => { if (header && event.key === 'Escape') { event.preventDefault(); clearSearch(); } }}
+      onBlur={() => { if (header && !searchDraft.trim()) setSearchOpen(false); }} />
+    {header && <button type="button" className="k42-th-clear" aria-label="Close search" onClick={clearSearch}><X size={14} aria-hidden="true" /></button>}
+  </form>;
+  // A header filter is the column's name over a native select: it reads like a header, the browser's own picker opens, and the value shows when set.
+  const headerFilter = (label: string, value: string, shownValue: string | null, select: ReactNode) => <span className={`k42-th-filter${value ? ' is-active' : ''}`}>
+    <span className="k42-th-filter-label" aria-hidden="true">{label}{shownValue && <span className="k42-th-filter-value">{shownValue}</span>}<Filter size={13} className="k42-th-filter-icon" fill={value ? 'currentColor' : 'none'} /></span>
+    {select}
+  </span>;
+  const stateFilter = (header: boolean) => {
+    const select = <select className={header ? 'k42-th-select' : 'k42-tasks-filter'} aria-label="State" value={statusChoice} onChange={event => { generation.current++; setStatus(event.target.value as NativeTaskStatus | ''); }}>
+      <option value="">All states</option>
+      {TASK_STATUSES.map(state => <option key={state.id} value={state.id}>{state.label}</option>)}
+    </select>;
+    return header ? headerFilter('Status', statusChoice, statusChoice ? statusLabel(statusChoice) : null, select) : select;
+  };
+  const assigneeFilter = (header: boolean) => {
+    const select = <select className={header ? 'k42-th-select' : 'k42-tasks-filter'} aria-label="Assigned agent" value={assignee} onChange={event => { generation.current++; setAssignee(event.target.value); }}>
+      <option value="">All assignments</option>
+      <option value="unassigned">Unassigned</option>
+      {[...filterAgents].map(([id, name]) => <option key={id} value={`agent:${id}`}>{name}</option>)}
+    </select>;
+    return header ? headerFilter('Assigned agent', assignee, assignee === 'unassigned' ? 'Unassigned' : assignedAgentId ? filterAgents.get(assignedAgentId) ?? 'Agent' : null, select) : select;
+  };
+
   if (openId) return <section className="k42-tasks">
     <TaskPage key={openId} api={api} taskId={openId} directory={directory} agents={assignable} readOnly={readOnly} onActors={setDrawerActors} onChange={replace} onAccessLost={load} onOpen={setOpenId} selfId={selfId} projectId={projectId} go={go} viewerUrl={viewerUrl} />
   </section>;
@@ -190,31 +240,21 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
   return <section className="k42-tasks" aria-labelledby="k42-tasks-title">
     <div className="k42-tasks-head">
       <h2 id="k42-tasks-title">Tasks{tasks && <span className="k42-tasks-heading-count"> ({tasks.length}{next ? '+' : ''})</span>}</h2>
-      <div className="k42-task-segments k42-tasks-view" role="group" aria-label="Tasks view">
-        <button type="button" className="k42-task-segment" aria-pressed={view === 'list'} onClick={() => chooseView('list')}><List size={16} aria-hidden="true" />List</button>
-        <button type="button" className="k42-task-segment" aria-pressed={view === 'board'} onClick={() => chooseView('board')}><Columns3 size={16} aria-hidden="true" />Board</button>
+      {/* Refresh and New task sit beside List/Board; the list's filters live in its column headers (owner, 11 November 2026). */}
+      <div className="k42-tasks-head-actions">
+        <Button className="k42-tasks-refresh" onClick={load} aria-label="Refresh tasks" title="Refresh tasks"><RefreshCw size={16} aria-hidden="true" /></Button>
+        {!readOnly && <Button className="k42-tasks-new" onClick={() => setCreating(true)}><Plus size={18} aria-hidden="true" />New task</Button>}
+        <div className="k42-task-segments k42-tasks-view" role="group" aria-label="Tasks view">
+          <button type="button" className="k42-task-segment" aria-pressed={view === 'list'} onClick={() => chooseView('list')}><List size={16} aria-hidden="true" />List</button>
+          <button type="button" className="k42-task-segment" aria-pressed={view === 'board'} onClick={() => chooseView('board')}><Columns3 size={16} aria-hidden="true" />Board</button>
+        </div>
       </div>
     </div>
-    <div className="k42-tasks-toolbar">
-      <form className="k42-tasks-search" role="search" aria-label="Task titles" onSubmit={event => {
-        event.preventDefault(); const value = searchDraft.trim();
-        if (value === search) load(); else { generation.current++; setSearch(value); }
-      }}>
-        <Search className="k42-tasks-search-icon" size={16} aria-hidden="true" />
-        <input type="search" aria-label="Search tasks" value={searchDraft} maxLength={300} placeholder="Search tasks"
-          onChange={event => { const value = event.target.value; setSearchDraft(value); if (!value.trim() && search) { generation.current++; setSearch(''); } }} />
-      </form>
-      {view === 'list' && <select className="k42-tasks-filter" aria-label="State" value={statusChoice} onChange={event => { generation.current++; setStatus(event.target.value as NativeTaskStatus | ''); }}>
-        <option value="">All states</option>
-        {TASK_STATUSES.map(state => <option key={state.id} value={state.id}>{state.label}</option>)}
-      </select>}
-      <select className="k42-tasks-filter" aria-label="Assigned agent" value={assignee} onChange={event => { generation.current++; setAssignee(event.target.value); }}>
-        <option value="">All assignments</option>
-        <option value="unassigned">Unassigned</option>
-        {[...filterAgents].map(([id, name]) => <option key={id} value={`agent:${id}`}>{name}</option>)}
-      </select>
-      <Button className="k42-tasks-refresh" onClick={load} aria-label="Refresh tasks" title="Refresh tasks"><RefreshCw size={16} aria-hidden="true" /></Button>
-      {!readOnly && <Button className="k42-tasks-new" onClick={() => setCreating(true)}><Plus size={18} aria-hidden="true" />New task</Button>}
+    {/* The board has no headers, and narrow screens hide them, so a slim bar carries the same filters there. */}
+    <div className={`k42-tasks-toolbar${view === 'list' ? ' is-narrow-only' : ''}`}>
+      {searchField(false)}
+      {view === 'list' && stateFilter(false)}
+      {assigneeFilter(false)}
     </div>
     {disabledNotice ? <p className="muted" role="status">Tasks are off. Existing tasks are read-only.</p>
       : readOnly && <p className="muted">This view is read-only.</p>}
@@ -222,12 +262,14 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
       onCancel={() => setCreating(false)} onCreated={task => { replace(task); setCreating(false); setOpenId(task.id); }} />}
     {error && <div role="alert" className="k42-tasks-error"><p>Could not load tasks: {error}</p><Button onClick={load}>Try again</Button></div>}
     {!tasks && !error && <p className="muted" role="status">Loading tasks…</p>}
-    {tasks?.length === 0 && !creating && <EmptyState icon={ListTodo} tone={null} title={next ? 'More tasks to search' : search || assignee ? 'No tasks match these filters' : status ? `No ${statusLabel(status).toLowerCase()} tasks` : 'No tasks yet'}>{next ? 'No matches in this page. Show more to continue searching.' : search || assignee || status ? 'Change the title search, state or assigned agent filter to see more tasks.' : readOnly ? 'Tasks will appear here.' : 'Add the first task. A title is enough; an agent can pick it up from Backlog.'}</EmptyState>}
     {!!tasks?.length && view === 'board' && <TasksBoard api={api} tasks={tasks} directory={directory} readOnly={readOnly} more={!!next}
       canMove={task => !readOnly && (manager || (!!selfId && !!task.assignedAgentId && directory.agent.get(task.assignedAgentId)?.operatorId === selfId))}
       onOpen={setOpenId} onChange={replace} onReload={load} />}
-    {!!tasks?.length && view === 'list' && <div className="k42-tasks-tablewrap"><table className="k42-tasks-table">
-      <thead><tr><th scope="col">Task</th><th scope="col">Assigned agent</th><th scope="col">Agents</th><th scope="col">Status</th><th scope="col">Updated</th></tr></thead>
+    {!!tasks && (tasks.length > 0 || !!(search || assignee || status)) && view === 'list' && <div className="k42-tasks-tablewrap"><table className="k42-tasks-table">
+      <thead><tr>
+        <th scope="col" className="k42-th-task">{searchOpen || searchDraft ? searchField(true)
+          : <button type="button" className="k42-th-filter k42-th-search-open" aria-label="Task · search tasks" title="Search tasks (/)" onClick={() => setSearchOpen(true)}>Task<Search size={13} className="k42-th-filter-icon" aria-hidden="true" /></button>}</th>
+        <th scope="col">{assigneeFilter(true)}</th><th scope="col">Agents</th><th scope="col">{stateFilter(true)}</th><th scope="col">Updated</th></tr></thead>
       <tbody>{nestTasks(tasks, collapsed).map(({ task, depth, children }) => <tr key={task.id} className={depth ? 'is-subtask' : undefined}>
         <th scope="row"><div className="k42-task-cell" style={{ ['--depth' as string]: depth }}>
           {children.length ? <button type="button" className="k42-task-toggle" aria-expanded={!collapsed.has(task.id)} onClick={() => toggle(task.id)}
@@ -243,6 +285,7 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
         <td data-label="Updated" className="muted">{when(task.updatedAt)}</td>
       </tr>)}</tbody>
     </table></div>}
+    {tasks?.length === 0 && !creating && <EmptyState icon={ListTodo} tone={null} title={next ? 'More tasks to search' : search || assignee ? 'No tasks match these filters' : status ? `No ${statusLabel(status).toLowerCase()} tasks` : 'No tasks yet'}>{next ? 'No matches in this page. Show more to continue searching.' : search || assignee || status ? 'Change the title search, state or assigned agent filter to see more tasks.' : readOnly ? 'Tasks will appear here.' : 'Add the first task. A title is enough; an agent can pick it up from Backlog.'}</EmptyState>}
     {next && <Button onClick={more} disabled={loadingMore}>{loadingMore ? 'Loading…' : 'Show more'}</Button>}
   </section>;
 }

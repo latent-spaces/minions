@@ -74,7 +74,21 @@ export function closedTask(task: Pick<NativeTask, 'status'>): boolean { return t
 export interface NativeTaskSettings { enabled: boolean; revision: number }
 export function nativeTasksEnabled(settings?: { enabled?: boolean } | null): boolean { return settings?.enabled !== false; }
 
-/** Literal title substring search, shared by server readers and visible-row updates. */
+const foldText = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('en-US');
+// True when a and b differ by at most one insertion, deletion, substitution or swap of neighbours.
+function withinOneEdit(a: string, b: string): boolean {
+  if (Math.abs(a.length - b.length) > 1) return false;
+  let i = 0; while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  if (a.length === b.length) return a.slice(i + 1) === b.slice(i + 1) || (a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2));
+  return a.length > b.length ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1);
+}
+/**
+ * Fuzzy title search, shared by server readers and visible-row updates. Case and accents are ignored and every
+ * search word must match, in any order: as text anywhere in the title, or, for words of four or more letters,
+ * a title word or its start that is one typo away.
+ */
 export function nativeTaskTitleMatches(title: string, search: string): boolean {
-  return title.toLocaleLowerCase('en-US').includes(search.trim().toLocaleLowerCase('en-US'));
+  const text = foldText(title), words = text.split(/[^\p{L}\p{N}]+/u).filter(Boolean);
+  return foldText(search).split(/\s+/).filter(Boolean).every(token => text.includes(token)
+    || (token.length >= 4 && words.some(word => [-1, 0, 1].some(extra => withinOneEdit(token, word.slice(0, token.length + extra))))));
 }

@@ -141,6 +141,11 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   to show the My agents rows that fit the menu's remaining height, agents that need you
   first, with the rest behind “+N more”, which opens a popover list. It replaces Show more.
   When not even one row fits, a strip of small avatars, named on hover, comes before +N.
+- **Task list filters in the headers; fuzzy search.** The owner moved the task toolbar into
+  the list's column headers: search in the Task header, Assigned agent and Status as header
+  filters, Refresh and New task beside List/Board, with a slim bar kept for the board. Search
+  now runs as you type and is fuzzy; it is one matcher, so agents' `list_tasks` search is
+  fuzzy too (previously a literal substring).
 - **Task view unchanged.** The List/Board toggle stays, with List as the default. (Later
   the same day the owner replaced the task drawer with a task page and added subtasks; see
   “Task page and first-class subtasks”.)

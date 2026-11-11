@@ -368,7 +368,7 @@ test('limit and detail refuse values of the wrong type or range', async () => {
 });
 
 
-test('title search is literal, case-insensitive and continues through empty filtered pages', async () => {
+test('title search is fuzzy, ignores case and accents and continues through empty filtered pages', async () => {
   const { seeded, amber } = await team();
   const created = (await amber.call('create_task', { title: 'Template', description: 'needle is in the description only', client_request_id: 'search-template' })).value.task;
   const collection = db.collection(`${projects.doc(TEST_PROJECT).path}/nativeTasks`);
@@ -400,6 +400,9 @@ test('title search is literal, case-insensitive and continues through empty filt
   };
   expect((await drain('.*')).map(task => task.id)).toEqual(['task_search_204']);
   expect((await drain('café')).map(task => task.id)).toEqual(['task_search_205']);
+  expect((await drain('cafe')).map(task => task.id)).toEqual(['task_search_205']);
+  expect((await drain('parser neddle')).map(task => task.id)).toEqual(['task_search_200']);
+  expect((await drain('neddle')).map(task => task.id)).toEqual(['task_search_200', 'task_search_201', 'task_search_202', 'task_search_203']);
   expect((await amber.call('list_tasks', { search: '   ', limit: 1 })).value.tasks).toHaveLength(1);
   expect((await amber.call('list_tasks', { search: 'x'.repeat(301) })).ok).toBe(false);
   expect((await amber.call('list_tasks', { search: 42 })).ok).toBe(false);

@@ -819,13 +819,14 @@ For an existing database, first settle existing work and stop old writers. Befor
 the affected project IDs to index existing agent messages. New agent messages are indexed
 atomically. Public readers use agent-message storage and never expose steering.
 
-Task-title search in MCP `list_tasks` and the web task view matches literal title
-text anywhere, ignoring case and surrounding search whitespace. `search` accepts
+Task-title search in MCP `list_tasks` and the web task view is fuzzy: case and
+accents are ignored, and every search word must match, in any order, as text
+anywhere in the title or, for words of four or more letters, a title word or its
+start one typo away. `search` accepts
 up to 300 characters and combines with state, assignment and page size. Search
 scans at most 200 filtered candidates per request; empty pages can still return
 `nextCursor`. Keep search and filters across pages until the cursor is null. The
-web search is submitted explicitly and shows Show more when further candidates
-remain. No index backfill is required; title changes affect the next read.
+web search runs as you type and shows Show more when further candidates remain. No index backfill is required; title changes affect the next read.
 
 ### Project preview
 
