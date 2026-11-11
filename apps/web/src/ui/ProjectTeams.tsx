@@ -9,6 +9,7 @@ import { AgentAvatar } from './AgentAvatar';
 import { Button } from './Button';
 import { EmptyState } from './EmptyState';
 import { CloseButton } from './CloseButton';
+import './segments.css';
 import './project-tasks.css';
 import './project-teams.css';
 

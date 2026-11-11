@@ -1,0 +1,7 @@
+/* Soft pill switch (owner, 11 November 2026): a grey track with the chosen option on a white chip, so choosing a view never looks like a primary action. */
+.k42-task-segments { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--pill-radius); background: var(--canvas-soft); width: fit-content; max-width: 100%; flex-wrap: wrap; box-sizing: border-box; }
+.k42-task-segment { font: inherit; font-size: 16px; padding: 6px 12px; border: 0; border-radius: var(--pill-radius); background: transparent; color: var(--text-muted); cursor: pointer; }
+.k42-task-segment:hover:not(:disabled) { color: var(--ink); background: transparent; }
+.k42-task-segment[aria-pressed="true"], .k42-task-segment[aria-pressed="true"]:hover:not(:disabled) { background: var(--canvas); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 0 0 1px var(--hairline-shell); }
+.k42-task-segment:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+.k42-task-segment:disabled:not([aria-pressed="true"]) { color: var(--text-faint); cursor: not-allowed; }

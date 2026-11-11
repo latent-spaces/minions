@@ -18,6 +18,7 @@ import { CloseButton } from './CloseButton';
 import { Dialog } from './Dialog';
 import { EmptyState } from './EmptyState';
 import { useLabelLookup } from '../label-lookup';
+import './segments.css';
 import './project-tasks.css';
 
 export type TaskPerson = { id: string; name: string | null; photo?: PublicPhoto | null };

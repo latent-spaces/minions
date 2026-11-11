@@ -119,6 +119,11 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   the primary black and chose the soft pill switch: a grey track with the chosen option on
   a white chip. It applies to every segmented switch (List / Board, Updates / Map, team
   state, task status), so only real actions are black.
+- **The start prompt can be edited.** Later the same day: beside Copy the prompt, “edit
+  the prompt where it give u to choose between private public github, how many agents or
+  free text”. Edit the prompt opens the choices in the tile (private or public repository,
+  1–10 agents, what to build) and the quoted prompt follows them; the model and the five
+  minutes stay as in the example.
 - **Task view unchanged.** The List/Board toggle stays, with List as the default. (Later
   the same day the owner replaced the task drawer with a task page and added subtasks; see
   “Task page and first-class subtasks”.)
