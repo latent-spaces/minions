@@ -28,8 +28,8 @@ Clients read the service's private key through a helper: never print its output,
 in settings, or replace other entries or permissions. Still ask in chat before each important action, and name it.
 
 If the service isn't reachable, check `service-status` and start that service rather than
-a second one. `service-stop` stops all its agents, so don't use it just to disconnect a
-chat. Approving this computer again can't move existing agents to another person.
+a second one. `service-stop` ends every turn in progress, so don't use it just to
+disconnect a chat. Approving this computer again can't move existing agents to another person.
 
 ## GitHub access
 
@@ -88,11 +88,13 @@ don't throw away results or reset records to get unstuck.
 
 ## Updates
 
-The connector doesn't update itself. Only when the person asks to update: wait until
-their agents and pending reports are idle, pull the latest code in the checkout without
-overwriting uncommitted work, run `npm ci --ignore-scripts`, then `service-stop`,
-`service-start` and `setup` again from that checkout. This keeps credentials and saved
-work. Never stop agents just to update.
+The connector doesn't update itself. Only when the person asks to update: run
+`service-stop --after-turns` first. It lets each agent's current turn finish, starts
+no new one, then stops the service; it waits up to an hour (`--wait-minutes N`). Then
+pull the latest code in the checkout without overwriting uncommitted work, run
+`npm ci --ignore-scripts`, then `service-start` and `setup` again from that checkout. Agents continue in the same
+missions, with their saved guide, once the service is back. This keeps credentials
+and saved work. Never use plain `service-stop` to update: it ends turns in progress.
 
 Before separately changing an installed guide, compare the checkout's `skill --json`
 revision, hash and reference files. Preserve customized/newer guides and unrelated

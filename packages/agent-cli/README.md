@@ -126,8 +126,15 @@ an isolated installation for development/testing. Approved account and agent cre
 remain in `~/.mlswarm/mcp`; test isolation can use `MLSWARM_CREDENTIAL_HOME`. Keep these
 private directories outside repositories. Do not delete them to fix a connection.
 A service stop ends every turn in progress, so don't use it as a client-disconnect
-button; workers between turns keep waiting and continue when the service starts again. Update only after checking affected work is idle; preserve unfinished work and
-pending reports. Native guarded turns retain bounded cleanup after service death.
+button; workers between turns keep waiting and continue when the service starts again.
+`service-stop --after-turns` ends none: the service starts no new turn, keeps serving
+each turn in progress (including its project tools) until it ends, then stops. Every
+worker leaves between turns, so the next service continues it in the same mission,
+including one that had more to do. Missions accepted meanwhile wait for the next
+service. It waits up to 60 minutes (`--wait-minutes N`); after that the service keeps
+finishing and stops by itself, and `service-status` shows `draining` and
+`turnsInProgress`. Repeat the command to keep waiting, or run plain `service-stop` to
+end the remaining turns now. Native guarded turns retain bounded cleanup after service death.
 
 This is a hard cutover. Retired stdio entries and process-local runtime commands are
 removed. Fresh stores use schema 6, including durable steering receipts and the immutable failed-launch archive.
@@ -150,10 +157,14 @@ Approval and runtime availability are separate. Start the existing service with
 
 ## Updating the connector
 
-The connector doesn't update itself and checks no registry. To update, wait until
-affected work and pending reports are idle, pull the checkout without overwriting
-uncommitted work, run `npm ci --ignore-scripts`, then `service-stop`, `service-start`
-and `setup` again. Credentials, approvals and saved work stay where they are.
+The connector doesn't update itself and checks no registry. To update without stopping
+agents, run `service-stop --after-turns` first, so each turn in progress finishes on the
+code it started with. Then pull the checkout without overwriting uncommitted work, run
+`npm ci --ignore-scripts`, then `service-start` and `setup` again. Agents continue in their missions; each keeps the
+instructions and guide snapshot it started with, so its native session resumes, and
+new missions get the updated guide. Pulling while the old service still starts turns
+would mix code versions, which is why the stop comes first. Credentials, approvals,
+pending reports and saved work stay where they are.
 `service-status` reports the running version. Website deployment alone changes no
 installed service.
 
@@ -605,8 +616,9 @@ whose result was never recorded is abandoned and its steering stays uncertain. I
 another running connector still owns the worker, or the end of the processes cannot
 be confirmed, nothing is released, the mission stays in recovery and the same Stop
 can be repeated. Pause is not a stop: it lets the current turn finish, then holds new ones, and keeps the
-mission, its connection and its checkout. Stop is the kill: it ends the worker mid-turn. Closing the project and
-`service-stop` stop every running worker the same way Stop does.
+mission, its connection and its checkout. Stop is the kill: it ends the worker mid-turn. Closing the project stops every running
+worker the same way Stop does; `service-stop` ends turns in progress, and
+`service-stop --after-turns` lets them finish first.
 
 ```sh
 mlswarm-agent run-recover --mission MISSION_UUID --project PROJECT_ID --agent AGENT_ID --generation 1 \

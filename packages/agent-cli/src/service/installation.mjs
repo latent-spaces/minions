@@ -120,33 +120,39 @@ export async function statusInstalledService({ home = installationHome() } = {})
   }
   if (value.running !== true || value.version !== 2 || value.transport !== 'streamable-http' || value.principal?.site !== config.site
     || !Number.isSafeInteger(value.pid) || value.pid < 1 || !/^[a-f0-9-]{36}$/.test(value.incarnation ?? '')) throw fail('The saved endpoint returned an invalid service identity.');
-  return { running: true, installed: true, site: config.site, url: `http://127.0.0.1:${config.port}/mcp`, pid: value.pid, incarnation: value.incarnation, transport: value.transport, ready: value.ready, packageVersion: value.packageVersion, ownerId: value.principal.ownerId };
+  return { running: true, installed: true, site: config.site, url: `http://127.0.0.1:${config.port}/mcp`, pid: value.pid, incarnation: value.incarnation, transport: value.transport, ready: value.ready, packageVersion: value.packageVersion, ownerId: value.principal.ownerId,
+    ...(value.draining === true ? { draining: true, turnsInProgress: Number.isSafeInteger(value.turnsInProgress) ? value.turnsInProgress : null } : {}) };
 }
-export async function stopInstalledService({ home = installationHome(), timeoutMs = 15000 } = {}) {
+// afterTurns: each turn in progress finishes and no new one starts, then the service stops by itself. Workers keep
+// their missions and continue when the service starts again, so an update stops no agent. Waiting gives up after
+// timeoutMs, leaving the service to stop once its turns end.
+export async function stopInstalledService({ home = installationHome(), afterTurns = false, timeoutMs = afterTurns ? 3600000 : 15000, pollMs = afterTurns ? 500 : 50 } = {}) {
   const before = await statusInstalledService({ home });
   if (!before.running) return { stopped: true, alreadyStopped: true };
   ownedFile(join(home, OWNER));
   const holder = readPrivate(join(home, OWNER), true);
   if (holder.pid !== before.pid || typeof holder.nonce !== 'string') throw fail('The service ownership record differs from the authenticated process. No stop was requested.');
-  const response = await control(readInstallation(home), '/service/stop', 'POST', before.incarnation);
-  if (response.stopping !== true || response.incarnation !== before.incarnation) throw fail('The service changed during stop. Inspect status; no PID was signalled.');
+  const response = await control(readInstallation(home), afterTurns ? '/service/drain' : '/service/stop', 'POST', before.incarnation);
+  if (response.stopping !== true || response.incarnation !== before.incarnation || afterTurns && response.afterTurns !== true) throw fail('The service changed during stop. Inspect status; no PID was signalled.');
   const until = Date.now() + timeoutMs;
+  let state;
   do {
-    await new Promise(resolve => setTimeout(resolve, 50));
-    const state = await statusInstalledService({ home });
+    await new Promise(resolve => setTimeout(resolve, pollMs));
+    state = await statusInstalledService({ home });
     if (!state.running) {
       try {
         ownedFile(join(home, OWNER));
         const current = readPrivate(join(home, OWNER), true);
         if (current.nonce !== holder.nonce) throw fail('A different service owns the installation. It was not stopped.');
       } catch (error) {
-        if (error.code === 'ENOENT') return { stopped: true, incarnation: before.incarnation };
+        if (error.code === 'ENOENT') return { stopped: true, ...(afterTurns ? { afterTurns: true } : {}), incarnation: before.incarnation };
         throw error;
       }
       continue; // Listener closed is not yet confirmed controller/guard cleanup.
     }
     if (state.incarnation !== before.incarnation) throw fail('A different service is running. It was not stopped.');
   } while (Date.now() < until);
+  if (afterTurns && state?.draining) throw fail(`The service is still finishing ${state.turnsInProgress ?? 'its'} turn(s) and starts no new one; it stops by itself once they end. Run service-stop --after-turns again to keep waiting, or service-stop to end those turns now.`);
   throw fail('Service shutdown is not confirmed. Inspect status; no process was force-killed.');
 }
 export async function runInstalledService({ home = installationHome(), site, compose } = {}) {
@@ -154,15 +160,18 @@ export async function runInstalledService({ home = installationHome(), site, com
   if (typeof compose !== 'function') throw new TypeError('A trusted application composition is required.');
   const installation = await ensureInstallation({ home, site });
   const release = await claimOwnership(home);
-  let composed, service, closing, resolveClosed;
+  let composed, service, closing, draining, resolveClosed;
   const closed = new Promise(resolve => { resolveClosed = resolve; });
   const close = () => closing ??= (async () => {
     try { await service?.close(); } finally { try { await composed?.close?.(); } finally { await release(); resolveClosed(); } }
   })();
+  // The service keeps serving the turns in progress, including their project tools, until they end.
+  const drain = () => draining ??= (async () => { try { await composed?.controllers?.drain?.(); } finally { await close(); } })();
+  const drainStatus = () => ({ draining: draining !== undefined, turnsInProgress: composed?.controllers?.drainStatus?.().turnsInProgress ?? 0 });
   try {
     composed = await compose({ home, site: installation.site, installation, getService: () => service });
     if (composed.principal?.site !== installation.site) throw fail('The approved account belongs to a different website.');
-    service = await startRuntimeService({ ...composed, home, port: installation.port, token: installation.token, lifecycle: { stop: close } });
+    service = await startRuntimeService({ ...composed, home, port: installation.port, token: installation.token, lifecycle: { stop: close, drain, drainStatus } });
     return { url: service.url, identity: service.identity, close, closed };
   } catch (error) { await close(); throw error; }
 }

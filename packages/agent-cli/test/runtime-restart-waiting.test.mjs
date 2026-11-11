@@ -53,6 +53,7 @@ async function setup(t, turns) {
     // A connector service stop and start: the controllers and the ledger close, then a new service opens them.
     // whileDown runs between the two, as an owner's change on the server while the computer is off.
     async restart(whileDown = () => {}) { await controllers.close(); await store.close(); cloud.sessions.length = 0; whileDown(); await open(); },
+    drain: () => controllers.drain({ pollMs: 10 }),
     accept: input => controllers.accept(input), read: mission => controllers.getMission(query(mission)),
     reports: async mission => (await store.listReports(query(mission))).reports,
     turns: async () => (await nativeEvents(fixtures.events)).filter(event => event.type === 'turn'),
@@ -256,6 +257,7 @@ async function fakeService(t, { lag = 0, orphanStop = async () => {}, turn = asy
   const target = { site: 'https://synthetic.example', ownerId: 'synthetic-owner', projectId: 'garden', agentId: 'claude' };
   return { cloud, runs, orphanStops,
     async restart() { await controllers.close(); await store.close(); await open(); },
+    drain: () => controllers.drain({ pollMs: 10 }), drainStatus: () => controllers.drainStatus(),
     accept: input => controllers.accept(input), read: mission => controllers.getMission(query(mission)),
     start: deadlineAt => ({ version: 2, operationId: randomUUID(), kind: 'start', target, missionId: randomUUID(),
       payload: { scope: 'Synthetic restart acceptance only.', deadlineAt, execution: { provider: 'claude', model: null } } }) };
@@ -358,4 +360,70 @@ test('a paused worker with more to do continues when resumed after a restart', {
   assert.equal(f.runs.length, 1, 'a paused worker starts no turn');
   await f.accept(command(mission, 'resume', { pauseOperationId: pause.operationId }));
   await until(async () => f.runs, runs => runs.length === 2, 'the unfinished work continues without news');
+});
+
+// Updating the connector without stopping agents: service-stop --after-turns lets each turn in progress finish,
+// starts no new one, and the updated service continues every worker in the same mission.
+test('a turn in progress during a connector update finishes, and the worker continues in the same mission after the restart', { timeout: 20000 }, async t => {
+  let release; const gate = new Promise(resolve => { release = resolve; });
+  const f = await fakeService(t, { text: moreFirst, turn: async n => { if (n === 1) await gate; } });
+  const { mission } = await f.accept(f.start(Date.now() + 60000));
+  await until(() => f.read(mission), m => m.currentTurnId, 'first turn running');
+  let drained = false;
+  const draining = f.drain().then(() => { drained = true; });
+  await sleep(150);
+  assert.equal(drained, false, 'the update waits for the turn');
+  assert.deepEqual(f.drainStatus(), { draining: true, turnsInProgress: 1 });
+  assert.equal((await f.read(mission)).state, 'running', 'the turn is not interrupted');
+  release();
+  await draining;
+  const finished = await f.read(mission);
+  assert.equal(finished.state, 'waiting');
+  assert.equal(finished.outcomes.length, 1);
+  assert.equal(finished.outcomes[0].outcome.delivery, 'acknowledged');
+  assert.equal(finished.outcomes[0].outcome.interrupted, false);
+  assert.equal(finished.outcomes[0].outcome.seen.more, true, 'its unfinished work is kept for the next service');
+  await sleep(150);
+  assert.equal(f.runs.length, 1, 'no new turn starts while the connector is updating');
+  await f.restart();
+  await until(async () => f.runs, runs => runs.length === 2, 'the updated service continues the unfinished work');
+  const continued = await until(() => f.read(mission), m => m.outcomes.length === 2, 'second turn recorded');
+  assert.equal(continued.missionId, mission.missionId); assert.equal(continued.generation, mission.generation);
+});
+
+test('workers between turns leave a connector update at once, and one started during it waits for the updated service', { timeout: 20000 }, async t => {
+  const f = await fakeService(t);
+  const { mission } = await f.accept(f.start(Date.now() + 60000));
+  await until(() => f.read(mission), m => m.state === 'waiting' && m.outcomes.length === 1, 'first turn finished');
+  await f.drain();
+  assert.deepEqual(f.drainStatus(), { draining: true, turnsInProgress: 0 });
+  const second = f.start(Date.now() + 60000);
+  second.target = { ...second.target, agentId: 'codex' };
+  const { mission: later } = await f.accept(second);
+  await sleep(200);
+  assert.equal(f.runs.length, 1, 'a mission accepted during the update starts no turn here');
+  assert.equal((await f.read(later)).state, 'accepted');
+  await f.restart();
+  await until(async () => f.runs, runs => runs.length === 2, 'the updated service starts it');
+  assert.equal((await f.read(mission)).state, 'waiting');
+});
+
+test('a native turn in progress during a connector update finishes with confirmed cleanup and resumes its session after the restart', { timeout: 45000 }, async t => {
+  let gate;
+  const f = await setup(t, (label, root) => { gate = join(root, 'release-first-turn'); return [{ gate, result: 'Synthetic first turn.\nWORK_NEXT: runnable' }, {}]; });
+  const { mission } = await f.accept(f.start(Date.now() + 60000));
+  await until(() => f.read(mission), m => m.currentTurnId, 'first native turn running');
+  const draining = f.drain();
+  await sleep(150);
+  assert.equal((await f.read(mission)).state, 'running');
+  await writeFile(gate, '');
+  await draining;
+  const finished = await f.read(mission);
+  assert.equal(finished.state, 'waiting');
+  assert.equal(finished.outcomes[0].outcome.cleanupConfirmed, true);
+  assert.equal(finished.guardPid, null);
+  await f.restart();
+  const turns = await until(() => f.turns(), list => list.length === 2, 'continues in the updated service');
+  assert.equal(turns[1].sessionId, turns[0].sessionId, 'the same native session resumes');
+  assert.equal((await f.reports(mission)).filter(report => report.kind === 'stop_run').length, 0, 'the run was not ended');
 });

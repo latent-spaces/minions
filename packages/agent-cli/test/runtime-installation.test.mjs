@@ -105,3 +105,24 @@ test('unhealthy storage is reported without preventing authenticated service sto
   assert.equal(status.running,true);assert.equal(status.ready,false);
   assert.equal((await stopInstalledService({home})).stopped,true);
 });
+
+test('stop after turns keeps the service up until its turns end, then stops it for an update', async t => {
+  const home = await folder(t);
+  let release, drains = 0, closed = 0;
+  const turns = new Promise(resolve => { release = resolve; });
+  const compose = async ({ site }) => ({ ...composition(site), close: async () => { closed++; },
+    controllers: { health: async () => ({ ready: true }), drain: async () => { drains++; await turns; }, drainStatus: () => ({ draining: drains > 0, turnsInProgress: 1 }) } });
+  const service = await runInstalledService({ home, site, compose });
+  cleanup(home, () => service.close());
+  assert.equal((await statusInstalledService({ home })).draining, undefined, 'a running service is not draining');
+  await assert.rejects(stopInstalledService({ home, afterTurns: true, timeoutMs: 300, pollMs: 20 }), /still finishing 1 turn\(s\).*service-stop --after-turns again/);
+  const status = await statusInstalledService({ home });
+  assert.equal(status.running, true); assert.equal(status.draining, true); assert.equal(status.turnsInProgress, 1);
+  assert.equal(closed, 0, 'the turns in progress keep their service');
+  const again = stopInstalledService({ home, afterTurns: true, pollMs: 20 });
+  await delay(100); release();
+  const stopped = await again;
+  assert.equal(stopped.stopped, true); assert.equal(stopped.afterTurns, true);
+  await service.closed;
+  assert.equal(drains, 1, 'a repeated request joins the same drain'); assert.equal(closed, 1);
+});

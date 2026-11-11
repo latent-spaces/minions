@@ -173,8 +173,8 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
 - [ ] **Develop MyLittleSwarm in MyLittleSwarm.** A project on this repository whose
       agents work in their own clones, preview on an isolated engine with live reload,
       and open PRs; the owner merges and updates their own engine.
-- [ ] **Update a connector without stopping agents.** Updating the guide or the connector
-      stops agents' current runs today.
+- [x] **Update a connector without stopping agents.** `service-stop --after-turns` lets
+      each turn finish, and agents continue in the same missions after the update.
 - [ ] **Move the project tabs into the sidebar.**
 - [ ] **Rethink Tasks beside the communication map.** The two don't look good together
       on the project page. Beside the map the board also shows only about three of its

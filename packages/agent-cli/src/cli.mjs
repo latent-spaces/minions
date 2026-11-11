@@ -34,7 +34,11 @@ Commands:
   mcp-config --client claude|codex|other [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
       Print HTTP registration for another client; changes no client settings.
   service-start / service-status / service-stop
-      Start, inspect or explicitly stop the shared service. Stop ends owned work.
+      Start, inspect or explicitly stop the shared service. Stop ends turns in progress.
+  service-stop --after-turns [--wait-minutes N]
+      Let the turns in progress finish, start no new one, then stop; agents continue
+      in the same missions when the service starts again. Use it to update the
+      connector. Waits up to 60 minutes by default.
       Native Claude/Codex clients connect over HTTP; no stdio runtime exists.
   run-log --mission UUID --project ID --agent ID
       [--after N] [--limit 1..100]
@@ -90,7 +94,7 @@ export const specs = {
   'run-recover': {...runQuerySpec,generation:{type:'string'},'request-id':{type:'string'},action:{type:'string'},reason:{type:'string'},approve:{type:'boolean'},report:{type:'string'},attempts:{type:'string'},'error-code':{type:'string'}},
   'mcp-config': { site: { type: 'string' }, client: { type: 'string' }, 'state-dir': { type: 'string' } },
   setup: {...stateSpec,site:{type:'string'},'wait-seconds':{type:'string'}},
-  'service-start': {...stateSpec,site:{type:'string'}}, 'service-status':stateSpec, 'service-stop':stateSpec, 'service-run':stateSpec,
+  'service-start': {...stateSpec,site:{type:'string'}}, 'service-status':stateSpec, 'service-stop':{...stateSpec,'after-turns':{type:'boolean'},'wait-minutes':{type:'string'}}, 'service-run':stateSpec,
   'project-overview': {...stateSpec,project:{type:'string'}},
   'project-configure': {...stateSpec,project:{type:'string'},repo:{type:'string'},revision:{type:'string'},'request-id':{type:'string'},approve:{type:'boolean'}},
   'project-card': {...stateSpec,project:{type:'string'},'definition-file':{type:'string'},'card-version':{type:'string'},'request-id':{type:'string'},approve:{type:'boolean'}},
@@ -164,7 +168,11 @@ export async function main(args, out = console.log, err = console.error) {
       return await finishSetup(home, site, out, !!(values['state-dir'] || process.env.MLSWARM_SERVICE_HOME || selfHostedWebsiteOrigin()), { screen });
     }
     if (command === 'service-status') { out(JSON.stringify(await statusInstalledService({home}),null,2));return 0; }
-    if (command === 'service-stop') { out(JSON.stringify(await stopInstalledService({home}),null,2));return 0; }
+    if (command === 'service-stop') {
+      const afterTurns = values['after-turns'] === true, minutes = values['wait-minutes'];
+      if (minutes !== undefined && (!afterTurns || !/^[1-9]\d{0,3}$/.test(minutes))) throw new Error('--wait-minutes takes a whole number from 1 to 9999, with --after-turns.');
+      out(JSON.stringify(await stopInstalledService({home,afterTurns,...(minutes ? {timeoutMs:Number(minutes)*60000} : {})}),null,2));return 0;
+    }
     if (command === 'service-run') {
       const service = await runInstalledService({home,compose:composeInstalledRuntime});
       const stop = () => { void service.close().catch(()=>{process.exitCode=1;}); };
