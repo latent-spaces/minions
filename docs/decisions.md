@@ -163,7 +163,7 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   (owner, 11 November 2026).
 - **The project header names no owner, privacy or running time.** The engine is local with one
   owner, so the owner removed the "Private project · Created by" pill and the "Active" label with
-  its running clock. Paused, Closed and Ready to start still show, with Pause, Resume and Start
+  its running clock, and the "Active" label under the project in the menu. Paused, Closed and Ready to start still show, with Pause, Resume and Start
   (owner, 11 November 2026).
 - **The communication map has no owner menu.** A project has one owner, so the owner removed
   the map's **Highlight agents by person** menu and its "N owners · Rings show ownership" line.

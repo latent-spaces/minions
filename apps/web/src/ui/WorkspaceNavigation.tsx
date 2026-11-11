@@ -13,6 +13,8 @@ import { useAnchoredPopover } from './use-anchored-popover';
 export interface WorkspaceNavItem { id: string; label: string; icon?: ReactNode; href: string; current?: boolean; locked?: string; onNavigate: () => void; }
 /** `private` marks a project that is not listed in Explore: a lock on its stamp (shell polish 2026-10-18, section 12). */
 /** `cover` is a loaded image URL for the project's stamp: the screenshot on its newest update. */
+/** A running project says nothing about itself in the menu; only other states are named (owner, 11 November 2026). */
+const shownStatus = (status?: string) => !!status && status !== 'Active';
 export interface WorkspaceShortcut { id: string; name: string; href: string; onNavigate: () => void; current?: boolean; status?: string; locked?: string; private?: boolean; cover?: string | null; }
 /** Project mode (shell polish 2026-10-18, section 12): inside a project the menu shows its identity and own-agent shortcuts. */
 export interface ProjectMenu {
@@ -119,7 +121,7 @@ export function WorkspaceNavigation({ globals, projectsLink, projects, projectSt
         <ul className="k42-nav-back"><li>{link(project.back, <><ArrowLeft size={16} aria-hidden="true" />{text(project.back.label)}</>)}</li></ul>
         <div className="k42-nav-project" title={collapsed ? project.name : undefined}>
           <ProjectStamp project={project} className=" is-large" />
-          <span className={collapsed ? 'k42-nav-text' : 'k42-nav-project-text'}><strong>{project.name}</strong>{project.private && <PrivateNote />}{project.status && <small>{project.status}</small>}</span>
+          <span className={collapsed ? 'k42-nav-text' : 'k42-nav-project-text'}><strong>{project.name}</strong>{project.private && <PrivateNote />}{shownStatus(project.status) && <small>{project.status}</small>}</span>
         </div>
         {/* Add task sits above the project's sections (owner, 11 November 2026). */}
         {project.addTask && <ul className="k42-nav-add-task"><li><button type="button" className="primary k42-nav-add-task-button" onClick={project.addTask} title={collapsed ? 'Add task' : undefined} aria-label={collapsed ? 'Add task' : undefined}>
@@ -157,7 +159,7 @@ export function WorkspaceNavigation({ globals, projectsLink, projects, projectSt
         {!collapsed && projectStatus}
         <ul>{projects.map(shortcut => <li key={shortcut.id}>{link({ id: shortcut.id, label: shortcut.name, href: shortcut.href, locked: shortcut.locked, current: shortcut.current, onNavigate: shortcut.onNavigate }, <>
           {/* Private or shared, at a glance on every row (owner, 19 October 2026): a lock or a globe at the row's end. */}
-          <ProjectStamp project={{ ...shortcut, private: collapsed && shortcut.private }} />{collapsed ? text(<>{shortcut.name}{shortcut.private ? <PrivateNote /> : <span className="visually-hidden">, shared project</span>}</>) : <span>{shortcut.name}{shortcut.private ? <PrivateNote /> : <span className="visually-hidden">, shared project</span>}{shortcut.status && <small>{shortcut.status}</small>}</span>}
+          <ProjectStamp project={{ ...shortcut, private: collapsed && shortcut.private }} />{collapsed ? text(<>{shortcut.name}{shortcut.private ? <PrivateNote /> : <span className="visually-hidden">, shared project</span>}</>) : <span>{shortcut.name}{shortcut.private ? <PrivateNote /> : <span className="visually-hidden">, shared project</span>}{shownStatus(shortcut.status) && <small>{shortcut.status}</small>}</span>}
           {!collapsed && <span className={`k42-project-kind${shortcut.private ? ' is-private' : ''}`} title={shortcut.private ? 'Private project' : 'Shared project'} aria-hidden="true">{shortcut.private ? <LockKeyhole size={14} /> : <Globe size={14} />}</span>}
         </>, 'k42-project-title', { currentKind: 'location' })}</li>)}</ul>
       </nav>}
