@@ -46,7 +46,7 @@ test('MCP pages canonical states across owners and a name prefix, ignoring confl
         phase: 'turn', lastContactAt: contactAt, phaseAt: contactAt });
       expected.set(id, ended ? 'stopped' : contactAt < now - 90_000 ? 'offline' : 'working');
       await runs().doc(id).set({ runId: 'unrelated-history', endedAt: null } as never);
-      await workerPointer(id).set({ missionId: randomUUID(), summary: { runId, phase: 'paused', lastContactAt: now } } as never);
+      await workerPointer(id).set({ missionId: randomUUID(), summary: { runId, phase: 'paused', lastContactAt: now, deadlineAt: now + 60_000 } } as never);
     }
   });
   forbidLegacyReads();
@@ -67,7 +67,7 @@ test('real start, stop and restart are visible to the very next MCP call; supers
   const id = f.agents[0]!.agentId, viewer = f.personIds[0]!;
   const run = await scope(() => startRun(id, { clientRunId: randomUUID(), runnerVersion: 'test', takeover: false }, () => now));
   await scope(() => reportPhase(id, run.run_id, { phase: 'turn' }, () => now));
-  const session = { run_id: run.run_id, missionId: randomUUID(), generation: 1, startedAt: now,
+  const session = { run_id: run.run_id, missionId: randomUUID(), generation: 1, startedAt: now, deadlineAt: now + 600_000,
     remainingSlots: 1, phase: 'working' };
   await scope(() => syncWorkerSession(id, session, () => now));
   forbidLegacyReads();

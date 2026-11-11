@@ -19,7 +19,7 @@ test('an agent queued for an offline computer is picked up on the computer’s f
   const owner = (await seed({ profiles: [{ name: 'Owner', email: 'queue-owner@example.test' }] })).personIds[0], computer = randomUUID();
   await collection('computerConnections').doc(computer).set({ profileId: owner, revokedAt: null, approvedAt: now(), connectionExpiresAt: now() + 86400_000 });
   const workers = () => inProject(TEST_PROJECT, () => listMyWorkers(owner, now));
-  await seedRuntime(TEST_PROJECT, {});
+  await seedRuntime(TEST_PROJECT, { endsAt: now() + 3_600_000 }); // the job has an hour left
 
   const id = randomUUID();
   await createWebAgentStart(owner, { id, connectionId: computer, projectId: TEST_PROJECT, name: 'queued-fox', execution: { provider: 'codex', model: null }, approved: true }, now);

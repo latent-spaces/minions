@@ -12,18 +12,18 @@ import { createFakeAdapterFactory } from './fixtures/runtime-fake-adapter.mjs';
 const principal={site:'https://example.test',ownerId:'synthetic-owner'},projectId='a'.repeat(64);
 const fixture=fileURLToPath(new URL('./fixtures/runtime-fake-native.mjs',import.meta.url));
 async function until(read,predicate){const deadline=Date.now()+8000;while(Date.now()<deadline){const value=await read();if(predicate(value))return value;await new Promise(r=>setTimeout(r,15));}assert.fail('Expected synthetic start observation');}
-async function setup(t,{beforeAccept,prepare,oldGrantMs,available=true,repositoryWait=async()=>({waitingFor:null,code:"ready",checkedAt:Date.now()}),folder}={}){
+async function setup(t,{beforeAccept,prepare,grantMs=300000,available=true,repositoryWait=async()=>({waitingFor:null,code:"ready",checkedAt:Date.now()}),folder}={}){
   const home=await mkdtemp(join(tmpdir(),'mlswarm-web-start-')),store=await openRuntimeStore({directory:join(home,'ledger')});
   const events=join(home,'events.jsonl'),gate=join(home,'gate'),incarnation=randomUUID(),at=Date.now();
-  let request={id:randomUUID(),connectionId:randomUUID(),projectId,name:'synthetic-fox',scope:'Synthetic mission, no model',
-    execution:{provider:'claude',model:null},incarnation,state:'pending',createdAt:at,pickupByAt:at+60000,launchByAt:null,agentId:null};
+  let request={id:randomUUID(),connectionId:randomUUID(),projectId,name:'synthetic-fox',scope:'Synthetic mission, no model',minutes:5,
+    execution:{provider:'claude',model:null},incarnation,state:'pending',createdAt:at,pickupByAt:at+60000,launchByAt:null,deadlineAt:null,agentId:null};
   const receipts=[],readiness=[],accepted=[];let adds=0,clones=0,accepts=0,clock=Date.now();
   const controllers=createRuntimeControllers({store,adapterFactory:createFakeAdapterFactory({command:process.execPath,args:[fixture],cwd:home,env:{PATH:process.env.PATH},initialInput:(_mission,steering)=>({events,gate,steering})})});
   const ownerClient={
     async publishRuntimeReadiness(value){readiness.push(value);return {ok:true};},
     async listAgentStarts(){return {requests:[request],serverTime:clock};},
     async listRepositoryAccess(){return {owned:[],joined:[]};},
-    async acceptAgentStart(_id,input){accepted.push(input);if(input.waitingFor)return {request:{...request,waitingFor:input.waitingFor}};if(request.state==='pending')request={...request,state:'accepted',acceptedAt:clock,launchByAt:clock+180000,...(oldGrantMs===undefined?{}:{deadlineAt:clock+oldGrantMs})};return {request};},
+    async acceptAgentStart(_id,input){accepted.push(input);if(input.waitingFor)return {request:{...request,waitingFor:input.waitingFor}};if(request.state==='pending')request={...request,state:'accepted',acceptedAt:clock,launchByAt:clock+180000,deadlineAt:clock+grantMs};return {request};},
     async acknowledgeAgentStart(_id,value){receipts.push(value);request={...request,state:value.state,...(value.agentId?{agentId:value.agentId}:{})};return {ok:true};},
   };
   const startOptions={home,principal,ownerClient,controllers:{...controllers,async accept(command){accepts++;if(beforeAccept)await beforeAccept(command);return controllers.accept(command);}},incarnation,intervalMs:600000,now:()=>clock,
@@ -65,20 +65,16 @@ test('a run whose first turn misses its launch window is reported expired, not s
   await writeFile(f.gate,'go');
 });
 
-// A job has no time limit. A server from before 10 November 2026 still grants an end time; here it passes while the
-// clone runs, and the start still comes up working with no end time.
-test('an old server\'s end time that passes during preparation is ignored: the start comes up working',async t=>{
-  let f;f=await setup(t,{oldGrantMs:200,prepare:async()=>{await new Promise(r=>setTimeout(r,400));f.setClock(Date.now());}});
-  const ref={missionId:f.request.id,target:{...principal,projectId,agentId:'synthetic-agent'}};
-  await until(()=>f.controllers.getMission(ref),m=>m?.currentTurnStage==='submitted');
-  await writeFile(f.gate,'go');
-  await until(()=>f.controllers.getMission(ref),m=>m?.outcomes.some(o=>o.outcome.delivery==='acknowledged'));
-  await f.poll();await until(()=>f.receipts,r=>r.some(v=>v.state==='working'));
+test('a start whose preparation crosses the job\'s end time comes up waiting for more time instead of expiring',async t=>{
+  // The job had a moment left when the start was accepted; the clone takes longer.
+  let f;f=await setup(t,{grantMs:200,prepare:async()=>{await new Promise(r=>setTimeout(r,400));f.setClock(Date.now());}});
+  await until(()=>f.receipts,r=>r.some(v=>v.state==='working'));
   assert.equal(f.counts.accepts,1,'the controller received the start');
   assert.equal(f.receipts.some(v=>['expired','failed','recovery_required'].includes(v.state)),false);
-  const mission=await f.controllers.getMission(ref);
-  assert.equal(Object.hasOwn(mission,'deadlineAt'),false);
+  const mission=await f.controllers.getMission({missionId:f.request.id,target:{...principal,projectId,agentId:'synthetic-agent'}});
+  assert.ok(mission.deadlineAt<=Date.now());
   assert.ok(!['failed','stopped','blocked','recovery_required'].includes(mission.state));
+  assert.equal(mission.currentTurnId,null,'no turn starts while the time is up');
 });
 
 for(const [reason,label] of [['github','without GitHub access'],['empty_repository','for an empty repository']])test(`a start ${label} waits and starts when the repository is ready`,async t=>{
@@ -130,7 +126,7 @@ test('expiry after slow preparation prevents controller submission',async t=>{
 
 test('a previous service incarnation cannot provision or start an accepted request',async t=>{
   const f=await setup(t,{available:false});await until(()=>f.receipts,r=>r.length>0);await f.closePump();
-  f.setRequest({...f.request,id:randomUUID(),name:'other-fox',state:'accepted',incarnation:randomUUID(),launchByAt:Date.now()+180000});
+  f.setRequest({...f.request,id:randomUUID(),name:'other-fox',state:'accepted',incarnation:randomUUID(),launchByAt:Date.now()+180000,deadlineAt:Date.now()+300000});
   const previous=f.counts;await f.reboot();await until(()=>f.receipts,r=>r.some(v=>v.state==='recovery_required'));
   assert.deepEqual(f.counts,previous);
 });
@@ -139,7 +135,7 @@ test('unknown controller acceptance preserves recovery evidence and cannot submi
   const f=await setup(t,{beforeAccept:()=>{throw Object.assign(new Error('Synthetic lost acceptance'),{code:'storage_failure'});}});
   await until(()=>f.receipts,r=>r.some(v=>v.state==='recovery_required'));
   const saved=JSON.parse(await readFile(join(f.home,'web-starts',`${f.request.id}.json`),'utf8'));
-  assert.equal(saved.command.operationId,f.request.id);assert.deepEqual(Object.keys(saved.command.payload).sort(),['execution','scope']);
+  assert.equal(saved.command.operationId,f.request.id);assert.equal(saved.command.payload.deadlineAt,f.request.deadlineAt);
   const previous=f.counts;f.setRequest({...f.request,state:'accepted'});await f.reboot();
   await until(()=>f.receipts,r=>r.filter(v=>v.state==='recovery_required').length>=2);assert.deepEqual(f.counts,previous);
 });

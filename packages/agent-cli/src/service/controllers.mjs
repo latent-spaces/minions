@@ -1,6 +1,7 @@
 import { fitContextTelemetry } from '../context-measurement.mjs';
 import { controllerPrompt } from '../turn-context.mjs';
 import { randomUUID } from 'node:crypto';
+import { MAX_REMAINING_MS } from '../run-length.mjs';
 import { validateMissionRecovery, missionRecoveryFingerprint, settledExecution, assertRecoveryCheckout } from './mission-recovery.mjs';
 import { createWorkController, newsFingerprint } from '../../runtime/work-controller.mjs';
 import { countedTokens, tokenCapReached } from './token-cap.mjs';
@@ -13,6 +14,8 @@ import { RuntimeError, validateCommand, commandFingerprint, sameTarget, RUNTIME_
 // confirmations by up to 2 s and two local pairs showed slower pause-window delivery with it on (cause open).
 // A Pause confirmation is never spread.
 export const ON_CHANGE_SPREAD_MS = 0;
+// Tolerated clock difference with the server, as for web starts.
+const CLOCK_SKEW_MS = 30000;
 export function createRuntimeControllers({ store, adapterFactory, cloudFactory, onReportsReady = () => {}, inspectRecoveryCheckout, stopOrphanedMission, now = Date.now, observeIntervalMs = 20000, random = Math.random, onChangeSpreadMs = ON_CHANGE_SPREAD_MS }) {
   if (!Number.isSafeInteger(observeIntervalMs) || observeIntervalMs < 1) throw new Error('A positive trusted observation interval is required.');
   if (typeof adapterFactory !== 'function') throw new Error('A mission-local adapter factory is required.');
@@ -84,13 +87,29 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
   }
   const executionHeld = ctrl => ctrl.detached || locallyPaused(ctrl) || ctrl.projectPaused;
   const cloudSession = (ctrl, mission) => ({ missionId: mission.missionId, generation: mission.generation,
-    startedAt: mission.cloudRun.startedAt,
+    startedAt: mission.cloudRun.startedAt, deadlineAt: ctrl.appliedDeadlineAt ?? mission.deadlineAt,
     remainingSlots: Math.max(0, 64 - mission.steering.length), tokens: countedTokens(mission.outcomes),
     ...(projectPauseSettled(ctrl) && ctrl.projectControl?.pauseRequest ? { projectPauseRevision: ctrl.projectControl.pauseRequest.revision } : {}),
     phase: ctrl.cancelled ? 'stopped' : projectPauseSettled(ctrl) ? 'paused' : mission.state === 'paused' ? 'paused' : mission.state === 'pausing' ? 'working' : mission.state === 'running' ? 'working' : mission.state === 'blocked' ? 'blocked' : 'waiting',
     // A worker held by a provider limit says so, with the provider's reset time when it named one.
     ...(!ctrl.cancelled && mission.state === 'waiting' && ctrl.scheduler.status().limited ? { providerLimit: { retryAt: ctrl.scheduler.status().limited.resetAt } } : {}),
   });
+  async function applyExtension(ctrl, deadlineAt) {
+    if (deadlineAt === undefined || deadlineAt <= (ctrl.appliedDeadlineAt ?? ctrl.mission.deadlineAt)) return;
+    await serialize(async () => {
+      const applied = ctrl.appliedDeadlineAt ?? ctrl.mission.deadlineAt;
+      // An end that has passed by the time the reply arrives leaves the worker waiting for more time.
+      if (ctrl.cancelled || ctrl.settled || deadlineAt <= now()) return;
+      // Added time may arrive after the end time passed: the waiting worker then continues. Later, and at most 24 hours away.
+      if (!Number.isSafeInteger(deadlineAt) || deadlineAt <= applied || deadlineAt - now() > MAX_REMAINING_MS + CLOCK_SKEW_MS)
+        throw new RuntimeError('invalid_cloud_reply', 'Cloud deadline authorization is invalid.');
+      const mission = await store.applyCloudDeadline({ missionId: ctrl.mission.missionId, generation: ctrl.mission.generation, deadlineAt });
+      if (ctrl.cancelled || ctrl.settled) return;
+      ctrl.scheduler.setDeadline(deadlineAt); ctrl.scheduler.requestContinuation();
+      ctrl.appliedDeadlineAt = deadlineAt; ctrl.mission = mission;
+      schedule(ctrl);
+    });
+  }
   // The cap is the server's, heard in each session reply; the tokens are counted from the stored outcomes. A worker at
   // the cap waits after the turn that crossed it, and continues once the cap is raised or removed.
   const capReached = ctrl => tokenCapReached(countedTokens(ctrl.mission.outcomes), ctrl.tokenLimit);
@@ -145,7 +164,7 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
   // One held project-control request per project per process, not per mission. The answer is
   // project-level state only (started, paused, closed, revision), identical for every member; it is
   // applied to each member like its own hold would be. It never authorizes work: each mission's own
-  // tick still fences its run and steering. A live member's credential holds; when that
+  // tick still fences its run, deadline and steering. A live member's credential holds; when that
   // member ends, the next one takes over with the same revision.
   const projectWatches = new Map();
   function watchProject(ctrl) {
@@ -236,6 +255,7 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
         if (ctrl.cancelled || ctrl.settled) return;
         if (reply.missionId !== mission.missionId || !Array.isArray(reply.messages) || reply.messages.length > 64)
           throw new RuntimeError('invalid_cloud_reply', 'Cloud steering reply is invalid.');
+        await applyExtension(ctrl, reply.authorizedDeadlineAt);
         applyTokenLimit(ctrl, reply.tokenLimit ?? null);
         if (ctrl.statusPending && !ctrl.cancelled && !ctrl.settled) void sendStatus(ctrl, ctrl.statusPending);
         ctrl.cloudRetryAt = null;
@@ -261,6 +281,9 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
   async function initializeCloud(ctrl) {
     ctrl.cloud ??= await cloudRequest(ctrl, () => cloudFactory(ctrl.mission));
     if (ctrl.cancelled) return;
+    // The server's rule: the end time is at most 24 hours from now. A restored worker's time may have been
+    // added after it started, so its start time is not the measure.
+    if (ctrl.mission.deadlineAt - now() > MAX_REMAINING_MS + CLOCK_SKEW_MS) throw new RuntimeError('invalid_command', 'Cloud work needs an end time at most 24 hours away.');
     // Retry the exact persisted window, including after restart or a lost reply.
     ctrl.mission = await store.prepareCloudRun({ missionId: ctrl.mission.missionId, generation: ctrl.mission.generation,
       startedAt: ctrl.mission.cloudRun?.startedAt ?? ctrl.mission.createdAt });
@@ -270,7 +293,7 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
     ctrl.mission = await store.bindCloudRun({ missionId: ctrl.mission.missionId, generation: ctrl.mission.generation,
       runId: run.runId, cloudGeneration: run.cloudGeneration });
     if (ctrl.cancelled) return;
-    ctrl.cloudInitialized = true;
+    ctrl.cloudInitialized = true; ctrl.appliedDeadlineAt = ctrl.mission.deadlineAt;
     // The periodic tick starts after a one-time random phase in [0.55, 1) intervals, drawn once per mission, so
     // missions that start together (a connector restart, a fleet update, same-second scheduled starts) do not stay
     // phase-locked and land their /wait and session syncs in the same instant every interval. The tick at start below
@@ -422,7 +445,7 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
         const decision = ctrl.scheduler.decide({ news: ctrl.news, steering, pendingDeliveries: ctrl.coordination.pending, notices: ctrl.coordination.notices.length, tokenCap, now: now() });
         if (decision.action === 'stop') { await settle(ctrl, decision.reason); break; }
         if (decision.action !== 'run') {
-          if (['unknown_contact', 'paused', 'token_cap', 'fresh_observation', 'idle', 'pending_delivery'].includes(decision.reason)) { clearTimeout(ctrl.retryTimer); ctrl.retryTimer = setTimeout(() => schedule(ctrl), observeIntervalMs); ctrl.retryTimer.unref?.(); }
+          if (['unknown_contact', 'paused', 'time_up', 'token_cap', 'fresh_observation', 'idle', 'pending_delivery'].includes(decision.reason)) { clearTimeout(ctrl.retryTimer); ctrl.retryTimer = setTimeout(() => schedule(ctrl), observeIntervalMs); ctrl.retryTimer.unref?.(); }
           if (decision.retryAt) { clearTimeout(ctrl.retryTimer); ctrl.retryTimer = setTimeout(() => schedule(ctrl), Math.max(1, decision.retryAt - now())); ctrl.retryTimer.unref?.(); }
           break;
         }
@@ -463,7 +486,7 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
     const notices = pauseUpdate ? [] : ctrl.coordination?.notices ?? [];
     const inbox = { pending: ctrl.news.pending, acknowledged: ctrl.news.acknowledged };
     const {prompt,promptSources,steeringMessages}=controllerPrompt({scope:ctrl.mission.scope,
-      steering:prepared.steering,notices,trigger,inbox});
+      deadlineAt:ctrl.mission.deadlineAt,steering:prepared.steering,notices,trigger,inbox});
     let result, guardPid, focus, observedModel;
     let denials = 0; const denialTools = new Set();
     ctrl.nativeInvoked = true; ctrl.nativeCleanupConfirmed = false;
@@ -525,7 +548,7 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
   }
   function workAllowed(ctrl) {
     const project = ctrl.news?.project;
-    return !ctrl.cancelled && !executionHeld(ctrl)
+    return !ctrl.cancelled && !executionHeld(ctrl) && now() < (ctrl.appliedDeadlineAt ?? ctrl.mission.deadlineAt)
       && ctrl.tokenLimit !== undefined && !capReached(ctrl) && project?.started === true && project.paused === false && project.closed !== true;
   }
   // Turns saved before this was recorded leave it unknown: the restored worker then runs one catch-up turn.
@@ -537,7 +560,7 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
       ...(last.limit ? { limitedUntil: last.limit.retryAt, limitResetAt: last.limit.resetAt, limitStreak: last.limit.streak } : {}) };
   }
   function createController(mission, { restored = false } = {}) {
-    const ctrl = { mission, lifetime: new AbortController(), scheduler: createWorkController({ now, first: mission.outcomes.length === 0, seen: restored ? restoredSeen(mission) : null }), news: null, cancelled: false, paused: restored && mission.state === 'paused', pauseRequests: new Set(), settled: false, requested: false, pumping: false, stopBarrier: Promise.resolve(),
+    const ctrl = { mission, lifetime: new AbortController(), scheduler: createWorkController({ deadline: mission.deadlineAt, now, first: mission.outcomes.length === 0, seen: restored ? restoredSeen(mission) : null }), news: null, cancelled: false, paused: restored && mission.state === 'paused', pauseRequests: new Set(), settled: false, requested: false, pumping: false, stopBarrier: Promise.resolve(),
       // A restored mission may have left detached processes and a dead connector's checkout claim behind.
       orphaned: restored };
     controllers.set(mission.missionId, ctrl);

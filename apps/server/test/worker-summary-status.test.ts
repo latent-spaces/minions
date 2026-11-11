@@ -26,7 +26,7 @@ async function worker() {
   const run = await scope(() => startRun(agent, { clientRunId: randomUUID(), runnerVersion: 'test', takeover: false }, now));
   await scope(() => reportPhase(agent, run.run_id, { phase: 'turn' }, now));
   const sync = (phase: string, projectPauseRevision?: number) => scope(() => syncWorkerSession(agent, { run_id: run.run_id, missionId,
-    startedAt: at, phase, remainingSlots: 64, generation: 1, ...(projectPauseRevision ? { projectPauseRevision } : {}) }, now));
+    startedAt: at, deadlineAt: at + 3_600_000, phase, remainingSlots: 64, generation: 1, ...(projectPauseRevision ? { projectPauseRevision } : {}) }, now));
   return { agent, reader: f.personIds[0], missionId, sync };
 }
 const observe = async (agent: string, reader: string) => {

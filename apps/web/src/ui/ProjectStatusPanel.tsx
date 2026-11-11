@@ -1,9 +1,10 @@
-import { useId } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Archive, CircleAlert, Hourglass, Pause, Play } from 'lucide-react';
 import type { Workspace } from '../project-api';
 import { Button } from './Button';
 import { ActiveTimer } from './ProjectHeader';
 import { StartProject, startWork, type ProjectControls } from './ProjectControls';
+import { timeLeft } from '../observation-time';
 import './project-header.css';
 import './project-status-panel.css';
 
@@ -11,8 +12,9 @@ import './project-status-panel.css';
  * Home's project status panel (Noa, 26 October 2026): the project's state on one line. Only the owner
  * starts, pauses or resumes the whole project (owner decision, 27 October 2026). Start and Close stay in
  * Settings. A requested pause links to Updates, where the map holds the per-agent confirmations.
- * A job has no time limit (owner decision, 10 November 2026): agents work until the owner pauses or kills them, or
- * they reach the token cap.
+ * The job has one end time for every agent (owner decision, 9 November 2026). The owner sees it and adds time in one
+ * place, the job bar above My agents (owner decision, 10 November 2026); the panel shows the end time and the time
+ * left only to people who do not see that bar. When time is up agents are not ended: they finish their turn and wait.
  */
 export function ProjectStatusPanel({ workspace, controls, disabled = false }: { workspace: Workspace; controls: ProjectControls; disabled?: boolean }) {
   const titleId = useId();
@@ -20,9 +22,13 @@ export function ProjectStatusPanel({ workspace, controls, disabled = false }: { 
   const manager = workspace.role === 'owner';
   const since = workspace.startAnnouncement?.startedAt;
   const waiting = startWork(workspace);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
+  const endsAt = workspace.endsAt ?? null, showTime = started && !closed && !manager, timeUp = showTime && (endsAt === null || endsAt <= now);
   const status = closed ? 'Closed' : !started ? manager ? 'Ready to start' : 'Waiting for the owner to start' : paused ? 'Paused' : 'Active';
   const help = closed ? 'Read-only. History is kept.'
     : paused ? 'Agents take no new turns. Chat stays open.'
+    : timeUp ? 'Agents finish their turn, then wait until the owner adds time.'
     : started ? null
     : waiting?.scheduled ? `Starts by itself on ${waiting.scheduled}.`
     : null;
@@ -34,12 +40,14 @@ export function ProjectStatusPanel({ workspace, controls, disabled = false }: { 
     <div className="k42-status-line">
       {Icon ? <span className="k42-notice-icon k42-status-tile" aria-hidden="true"><Icon size={20} /></span> : <i className="k42-ph-live-dot" aria-hidden="true" />}
       <div className="k42-status-text">
-        <strong>{status}{status === 'Active' && since ? <> · <ActiveTimer since={since} /></> : null}</strong>
+        <strong>{status}{status === 'Active' && since ? <> · <ActiveTimer since={since} /></> : null}
+          {showTime && (timeUp ? <> · <span className="k42-status-time">Time is up</span></>
+            : <> · <span className="k42-status-time" title={`The job ends ${new Date(endsAt!).toLocaleString()}`}>{timeLeft(endsAt! - now)} · ends {new Date(endsAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></>)}</strong>
         {help && <span>{help}</span>}
       </div>
       <div className="k42-status-actions">
         {/* Start lives here, with the project's status (Noa, 26 October 2026). */}
-        {canStart && <StartProject className="k42-ph-thin" disabled={disabled || controls.locked} controls={controls} />}
+        {canStart && <StartProject id={`${titleId}-length`} className="k42-ph-thin" disabled={disabled || controls.locked} controls={controls} />}
         {projectAction && <Button type="button" className="k42-ph-thin" disabled={disabled || controls.locked} title={projectAction === 'pause' ? 'Pauses every agent in this project. Only the owner can do this.' : 'Lets every agent in this project continue.'} onClick={() => void controls.act(projectAction)}>
           {projectAction === 'pause' ? <Pause size={18} aria-hidden="true" /> : <Play size={18} aria-hidden="true" />}{projectAction === 'pause' ? 'Pause all agents' : 'Resume all agents'}</Button>}
       </div>

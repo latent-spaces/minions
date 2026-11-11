@@ -1,3 +1,4 @@
+import { RUN_LENGTH } from '@mlswarm/contracts';
 import { isPrivateProject } from './schema.js';
 // The private scheduler advances project lifecycle only. It never creates native model work.
 import { FieldPath } from '../firestore.js';
@@ -30,8 +31,10 @@ export async function startScheduledProject(id: string, now: () => number): Prom
     const before = runtimeWithCard(record, card.data());
     if (!before) return { started: false, lagMs: 0 };
     const revision = record.revision + 1;
-    // A scheduled start starts the job with no end, like a manual start.
-    const project = { ...before, revision, started: true, paused: false, awaitingKickoff: false, startsAt: scheduledAt };
+    // A scheduled start chooses no length, so like a manual start without one it adds the default length to time
+    // already given, or to now. It cannot refuse, so it keeps the job within 24 hours instead.
+    const endsAt = Math.min(Math.max(before.endsAt ?? 0, at) + RUN_LENGTH.defaultMinutes * 60_000, at + RUN_LENGTH.maxMinutes * 60_000);
+    const project = { ...before, revision, started: true, paused: false, awaitingKickoff: false, startsAt: scheduledAt, endsAt };
     tx.set(projects.doc(id), recordWithRuntime(record, project));
     tx.create(projectCollection('projectHistory').doc(String(revision).padStart(12, '0')), {
       at, operatorId: null, source: 'scheduled_start', scheduledAt, control: { action: 'start' }, project,

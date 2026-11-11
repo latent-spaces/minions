@@ -15,6 +15,8 @@ export type Workspace = {
   startAnnouncement?: import('@mlswarm/contracts').ProjectStartAnnouncement | null;
   archived?: boolean; archiveRevision?: number; starred?: boolean;
   setupPlan?: import('@mlswarm/contracts').ProjectSetupPlan; coverImage?: string; conceptImages?: { src: string; title: string }[]; id: string; role: ProjectRole | 'guest'; listed?: boolean; state?: ProjectLifecycle;
+  /** When the job's time runs out (Unix ms); null until a length is chosen. Agents then finish their turn and wait. */
+  endsAt?: number | null;
   /** The job's token cap, one pool for all the owner's agents in the project; null or absent for no cap. */
   tokenLimit?: { tokens: number } | null; tokensUsed?: number; project: NonNullable<Overview['project']> | null; revision: number; execution: ProjectEntry['execution']; canConfigure: boolean;
   privacy?: { visibility: 'private'; messageProtection: 'server_readable_v1'; createdAt: number; memberLimit: number };

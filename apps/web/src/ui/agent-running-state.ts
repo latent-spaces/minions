@@ -17,9 +17,10 @@ export function groupAgents<T extends { status: string; waiting?: boolean }>(age
     .sort((a, b) => AGENT_GROUPS.indexOf(a.group) - AGENT_GROUPS.indexOf(b.group));
 }
 
-// A job has no time limit (owner decision, 10 November 2026): an agent works until it is paused or killed, or the
-// job's token cap is reached. A stored end time from before that decision is ignored.
-export type AgentStatus = { label: 'Working' | 'Idle' | 'Paused' | 'Waiting' | 'Stopped' | 'Blocked' | 'Offline' | 'Recovery' | 'Stopping' | 'Pausing' | 'Pause unconfirmed' | 'Unknown'; title: string };
+export type AgentStatus = { label: 'Working' | 'Idle' | 'Paused' | 'Waiting' | 'Stopped' | 'Blocked' | 'Offline' | 'Recovery' | 'Stopping' | 'Pausing' | 'Pause unconfirmed' | 'Unknown'; title: string; timeLeft: number | null; pastEnd?: true };
+
+// What an agent shows once the job's end time has passed: it is never ended, it finishes its turn and then waits.
+export const PAST_END = { finishing: 'Past the end time, finishing its turn', waiting: 'Time is up. Waiting for more time' } as const;
 
 // A worker at the job's token cap finished the turn that crossed it and waits until the owner raises or removes the cap.
 export const TOKEN_CAP = 'Token cap reached. Waiting for a higher cap';
@@ -27,6 +28,8 @@ export const TOKEN_CAP = 'Token cap reached. Waiting for a higher cap';
 const clock = (at: number) => new Date(at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 export const providerLimitText = (s: Pick<WorkerSteeringSession, 'providerLimit'> | null | undefined) => !s?.providerLimit ? null
   : s.providerLimit.retryAt === null ? 'Provider limit reached. Trying again' : `Provider limit reached. Trying again at ${clock(s.providerLimit.retryAt)}`;
+// Past the end time and at the cap: it continues only once both are lifted.
+export const TIME_AND_TOKEN_CAP = 'Time is up and token cap reached. Waiting for more time and a higher cap';
 type TokenSession = Pick<WorkerSteeringSession, 'tokens' | 'tokenLimit'>;
 // The cap is one pool for all the person's agents in the project; othersUsed is what it counted outside this mission.
 const used = (s: TokenSession) => s.tokenLimit && s.tokens ? s.tokens.counted + s.tokenLimit.othersUsed : null;
@@ -41,23 +44,27 @@ export function tokenUsageNote(s: TokenSession | null | undefined) {
 
 /** What a run that has not started yet is waiting for; also shown for a new agent queued from the website. */
 export const waitingTitle = (waitingFor?: StartWait | null, repository?:RepositoryReadiness|null) => waitingFor === 'project' ? 'Waiting for the owner to start the project.'
+  : waitingFor === 'time' ? 'Waiting for more time.'
   : waitingFor === 'computer' ? 'Waiting for your computer to come online with MyLittleSwarm running.'
   : waitingFor === 'github' ? repositoryWaitMessage(repository)
   : waitingFor === 'empty_repository' ? 'Waiting for a first commit in the project’s GitHub repository, such as a README.' : 'Starting on your computer.';
 /** Only confirmed terminal observations offer Play; uncertainty and cleanup retain their own states. */
 export function workerAgentStatus(agent: AgentObservation, now: number): AgentStatus {
   const b = agent.backgroundControl, s = agent.worker.session, run = agent.run;
-  const result = (label: AgentStatus['label'], title: string): AgentStatus => ({ label, title });
+  const result = (label: AgentStatus['label'], title: string, deadline?: number): AgentStatus => ({
+    label, title, timeLeft: deadline === undefined ? null : Math.max(0, deadline - now),
+  });
+  const pastEnd = (working: boolean, capped = false): AgentStatus => ({ ...result(working ? 'Working' : 'Waiting', working ? PAST_END.finishing : capped ? TIME_AND_TOKEN_CAP : PAST_END.waiting), pastEnd: true });
   const fresh = (at: number) => at <= now && now - at < 90_000;
   const capped = !!s && (!b || b.missionId === s.missionId) && atTokenCap(s);
-  const activity = (phase: string) => phase === 'blocked' ? result('Blocked', 'The agent is stuck. Open it to see why.')
-    : phase === 'waiting' && capped ? result('Waiting', `${TOKEN_CAP}. ${tokenUsageNote(s)} Raise the cap to continue.`)
-    : phase === 'waiting' && s && (!b || b.missionId === s.missionId) && s.providerLimit ? result('Waiting', `${providerLimitText(s)}.`)
-    : phase === 'waiting' ? result('Idle', 'Between turns. It wakes on new messages or a steer.') : result('Working', 'Working on its own.');
+  const activity = (phase: string, deadline: number) => deadline <= now ? pastEnd(phase === 'working', phase === 'waiting' && capped) : phase === 'blocked' ? result('Blocked', 'The agent is stuck. Open it to see why.', deadline)
+    : phase === 'waiting' && capped ? result('Waiting', `${TOKEN_CAP}. ${tokenUsageNote(s)} Raise the cap to continue.`, deadline)
+    : phase === 'waiting' && s && (!b || b.missionId === s.missionId) && s.providerLimit ? result('Waiting', `${providerLimitText(s)}.`, deadline)
+    : phase === 'waiting' ? result('Idle', 'Between turns. It wakes on new messages or a steer.', deadline) : result('Working', 'Working on its own.', deadline);
   if (b?.state === 'recovery_required' || run?.state === 'recovery_required')
     return result('Recovery', 'Needs a fix on your computer. Check the agent before starting new work.');
   if (b?.state === 'stopping') return result('Stopping', 'Stopping and confirming process cleanup.');
-  if (b?.state === 'pausing') return result('Pausing', 'Finishing its current turn, then it pauses.');
+  if (b?.state === 'pausing') return result('Pausing', 'Finishing its current turn, then it pauses.', b.deadlineAt);
   if (run && ['pending', 'accepted', 'starting'].includes(run.state))
     return result('Waiting', waitingTitle(run.waitingFor,run.repository));
   if (b && s && b.missionId !== s.missionId)
@@ -65,12 +72,12 @@ export function workerAgentStatus(agent: AgentObservation, now: number): AgentSt
   const pause = agent.projectPause;
   if (pause && (!b || !['stopped','failed'].includes(b.state))) {
     if (pause.confirmedAt !== null && fresh(pause.confirmedAt))
-      return result('Paused', 'Runtime confirmed project Pause. Resume the project to continue.');
+      return result('Paused', 'Runtime confirmed project Pause. Resume the project to continue.', s?.deadlineAt);
     // Pause lets the turn finish (owner decision, 9 November 2026): a worker in contact and in its turn is not unconfirmed.
     const finishingTurn = s?.phase === 'working';
     if (pause.externalChat || !s || now - s.lastContactAt >= 90_000 || (!finishingTurn && now - pause.requestedAt >= 30000))
-      return result('Pause unconfirmed', pause.externalChat ? 'Pause this external coding chat directly. MyLittleSwarm cannot interrupt its host.' : 'Project Pause requested. Runtime confirmation is unavailable.');
-    return result('Pausing', finishingTurn ? 'Project Pause requested. Finishing its current turn, then it pauses.' : 'Project Pause requested. Waiting for runtime feedback.');
+      return result('Pause unconfirmed', pause.externalChat ? 'Pause this external coding chat directly. MyLittleSwarm cannot interrupt its host.' : 'Project Pause requested. Runtime confirmation is unavailable.', s?.deadlineAt);
+    return result('Pausing', finishingTurn ? 'Project Pause requested. Finishing its current turn, then it pauses.' : 'Project Pause requested. Waiting for runtime feedback.', s.deadlineAt);
   }
   // Both observations describe the same local mission: the computer's snapshot arrives on its owner tick, the worker's
   // session at turn end and every 20 s. For activity (working, between turns, stuck) the one asserted last wins, as on
@@ -78,24 +85,24 @@ export function workerAgentStatus(agent: AgentObservation, now: number): AgentSt
   // older (owner decision, 2 November 2026). Pause, stop and recovery stay with the computer.
   if (b && s && b.missionId === s.missionId && ['running', 'waiting', 'blocked'].includes(b.state)
     && ['working', 'waiting', 'blocked'].includes(s.phase) && s.lastContactAt > b.deviceLastSeenAt && fresh(s.lastContactAt))
-    return activity(s.phase);
+    return activity(s.phase, s.deadlineAt);
   if (b) {
     if (['stopped', 'failed'].includes(b.state)) return result('Stopped', b.state === 'failed' ? 'Last run failed. Inspect the failure before starting again.' : 'Stopped. Press Play to start it.');
     if (b.deviceLastSeenAt > now) return result('Unknown', 'The device observation has an unexpected timestamp.');
-    if (!fresh(b.deviceLastSeenAt)) return result('Offline', 'Computer offline. Current activity is unconfirmed.');
+    if (!fresh(b.deviceLastSeenAt)) return result('Offline', 'Computer offline. Current activity is unconfirmed.', b.deadlineAt);
     switch (b.state) {
-      case 'paused': return result('Paused', 'Paused.');
-      case 'running': case 'waiting': case 'blocked': return activity(b.state === 'running' ? 'working' : b.state);
-      case 'accepted': case 'starting': return result('Waiting', 'Starting on your computer.');
+      case 'paused': return b.deadlineAt <= now ? pastEnd(false) : result('Paused', 'Paused.', b.deadlineAt);
+      case 'running': case 'waiting': case 'blocked': return activity(b.state === 'running' ? 'working' : b.state, b.deadlineAt);
+      case 'accepted': case 'starting': return b.deadlineAt <= now ? pastEnd(false) : result('Waiting', 'Starting on your computer.', b.deadlineAt);
       default: return result('Unknown', 'Status not confirmed yet.');
     }
   }
   if (s) {
     if (['stopped', 'completed'].includes(s.phase)) return result('Stopped', 'Not running. Press Start to run it.');
     if (s.lastContactAt > now) return result('Unknown', 'Status has an unexpected time. Refresh to check.');
-    if (!fresh(s.lastContactAt)) return result('Offline', 'Not heard from recently. What it is doing now is unconfirmed.');
-    if (s.phase === 'paused') return result('Paused', 'Paused.');
-    if (['working', 'waiting', 'blocked'].includes(s.phase)) return activity(s.phase);
+    if (!fresh(s.lastContactAt)) return result('Offline', 'Not heard from recently. What it is doing now is unconfirmed.', s.deadlineAt);
+    if (s.phase === 'paused') return s.deadlineAt <= now ? pastEnd(false) : result('Paused', 'Paused.', s.deadlineAt);
+    if (['working', 'waiting', 'blocked'].includes(s.phase)) return activity(s.phase, s.deadlineAt);
   }
   if (run && ['failed', 'expired'].includes(run.state)) return result('Stopped', 'The last start did not complete. Inspect it before trying again.');
   return result('Unknown', 'Not running right now.');
@@ -106,7 +113,7 @@ export function workerAgentStatus(agent: AgentObservation, now: number): AgentSt
 export const CONTROL_LABEL: Record<BackgroundControlInput['kind'], string> = { pause: 'Pause', resume: 'Resume', stop: 'Kill' };
 export const controlLabel = (kind: BackgroundControlInput['kind']) => CONTROL_LABEL[kind];
 
-export function backgroundControlStatus(view: BackgroundControlView): string {
+export function backgroundControlStatus(view: BackgroundControlView, now: number): string {
   if (view.state === 'recovery_required') return 'Needs a fix on your computer';
   // A mission also stops without a Kill (project closed, run refused by the cloud, MyLittleSwarm shutting down, repeated failures): only a Kill says Killing or Killed.
   const killed = view.pending?.kind === 'stop' && !['failed', 'expired'].includes(view.pending.state);
@@ -116,5 +123,6 @@ export function backgroundControlStatus(view: BackgroundControlView): string {
   if (view.state === 'pausing') return 'Pausing · finishing its turn';
   if (view.pending?.state === 'queued') return `${CONTROL_LABEL[view.pending.kind]} saved · waiting for your computer`;
   if (view.pending?.state === 'accepted') return `${view.pending.kind === 'stop' ? 'Killing' : view.pending.kind === 'pause' ? 'Pausing' : 'Resuming'} on your computer`;
+  if (view.deadlineAt <= now) return view.state === 'running' ? PAST_END.finishing : PAST_END.waiting;
   return ({ accepted: 'Starting', starting: 'Starting', running: 'Working', waiting: 'Idle', blocked: 'Blocked', paused: 'Paused', stopping: 'Stopping', stopped: 'Stopped', failed: 'Failed' } as Partial<Record<BackgroundControlView['state'], string>>)[view.state] ?? view.state;
 }

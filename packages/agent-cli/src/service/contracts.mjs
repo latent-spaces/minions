@@ -35,12 +35,9 @@ export function validateCommand(command) {
   if (command.version !== 2) fail('unsupported command version');
   validateUuid(command.operationId, 'operationId'); validateUuid(command.missionId, 'missionId'); validateTarget(command.target);
   if (kind === 'start') {
-    // A job has no time limit. deadlineAt is accepted and ignored: a start saved on this computer before 10 November
-    // 2026 (a reserved website start, or a receipt retried with its identical input) still carries one. Remove it with
-    // the next local schema version.
-    if (command.payload?.deadlineAt !== undefined && !Number.isSafeInteger(command.payload.deadlineAt)) fail('deadlineAt must be an integer');
-    exact(command.payload, ['scope', 'execution', ...(command.payload?.deadlineAt === undefined ? [] : ['deadlineAt'])], 'start payload'); boundedText(command.payload.scope, 'scope', RUNTIME_LIMITS.scopeBytes);
+    exact(command.payload, ['scope', 'deadlineAt', 'execution'], 'start payload'); boundedText(command.payload.scope, 'scope', RUNTIME_LIMITS.scopeBytes);
     validateExecution(command.payload.execution);
+    if (!Number.isSafeInteger(command.payload.deadlineAt) || command.payload.deadlineAt < 1) fail('deadlineAt must be an epoch millisecond integer');
   } else {
     validateGeneration(command.generation);
     exact(command.payload, kind === 'steer' ? ['message', ...(command.payload?.threadId === undefined ? [] : ['threadId'])] : kind === 'resume' ? ['pauseOperationId'] : [], `${kind} payload`);

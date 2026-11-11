@@ -1,6 +1,7 @@
 import { prepareCurrentStateProgress } from '../view/current-state-progress.js';
 import { personaChoice } from '@mlswarm/contracts';
 import type { ProjectWorkersView, SteeringView, WorkerSteeringSession } from '@mlswarm/contracts';
+import { RUN_LENGTH } from '@mlswarm/contracts';
 import { latestAgentRun, queuedStarts } from '../owner/web-agent-starts.js';
 import { workSettings } from '../onboarding/store.js';
 import type { Transaction } from '../firestore.js';
@@ -18,11 +19,9 @@ import { prepareSteeringEnd } from './steering.js';
 import { projects } from './records.js';
 
 const uuid = z.string().uuid();
-// A job has no time limit, so a worker reports no end time. deadlineAt is accepted and dropped: a stop report that a
-// computer queued in its local store before 10 November 2026 still carries the job's end time, and must still deliver.
-// Remove it once such queued reports can no longer exist (the connector's next local schema version).
+// The job's end time can come before a worker starts: a start that finishes preparing after it comes up waiting.
 export const WORKER_SESSION = z.object({ run_id: uuid, missionId: uuid, generation: z.number().int().positive(),
-  startedAt: z.number().int().nonnegative(), deadlineAt: z.number().int().nonnegative().optional(),
+  startedAt: z.number().int().nonnegative(), deadlineAt: z.number().int().nonnegative(),
   remainingSlots: z.number().int().min(0).max(64),
   phase: z.enum(['waiting', 'working', 'paused', 'blocked', 'stopped', 'completed']),
   projectPauseRevision: z.number().int().positive().optional(),
@@ -34,49 +33,51 @@ export const WORKER_SESSION = z.object({ run_id: uuid, missionId: uuid, generati
 type Session = WorkerSteeringSession & { profileId: string };
 // The pointer is retained for action authority and names the current mission. Status uses only the canonical
 // worker group; the superseded pointer summary is no longer written or read.
-export type WorkerSummary = Pick<WorkerSteeringSession, 'runId' | 'phase' | 'lastContactAt' | 'projectPauseRevision'>;
+export type WorkerSummary = Pick<WorkerSteeringSession, 'runId' | 'phase' | 'lastContactAt' | 'deadlineAt' | 'projectPauseRevision'>;
 export const workerPointer = (id: string) => projectCollection<{ missionId: string }>('workerSessions').doc(id);
 export const workerSessions = (id: string) => projectCollection<Session>(`workerSessions/${id}/runs`);
 const pointer = workerPointer, sessions = workerSessions;
 const parse = <T>(s: z.ZodType<T>, v: unknown): T => { const p = s.safeParse(v); if (!p.success) throw new Refusal('bad_input', 'Use the documented worker fields.'); return p.data; };
+// A worker past the job's end time has not ended: it finishes its turn, then waits for more time.
 export const workerAvailable = (s: Session | undefined, at: number) => !!s && !['stopped', 'completed'].includes(s.phase) && s.lastContactAt >= at - 90_000 && s.lastContactAt <= at;
 const available = workerAvailable;
-// A session stored before 10 November 2026 can hold the job's end time (deadlineAt, authorizedDeadlineAt). A job has
-// no time limit now: they are not read or returned. Remove this once no stored worker session has them.
-const view = (id: string, s: Session | undefined, at: number): SteeringView => ({ agentId: id, session: s ? (({profileId: _person, deadlineAt: _end, authorizedDeadlineAt: _authorized, ...session}: Session & { deadlineAt?: unknown; authorizedDeadlineAt?: unknown })=>session)(s) : null, available: available(s, at), serverTime: at });
+const view = (id: string, s: Session | undefined, at: number): SteeringView => ({ agentId: id, session: s ? (({profileId: _person,...session})=>session)(s) : null, available: available(s, at), serverTime: at });
 export async function syncWorkerSession(agentId: string, input: unknown, now: () => number) {
   return db.runTransaction(async tx => { const prepared = await prepareWorkerSession(tx, agentId, input, now); prepared.commit(); return prepared.reply; });
 }
 // `fenced`: the caller already checked this agent's current run and membership in this same transaction (the
 // merged heartbeat), so it is not read again. Every other caller fences here.
 export async function prepareWorkerSession(tx: Transaction, agentId: string, input: unknown, now: () => number, { terminalOnly = false, fencedRunId }: { terminalOnly?: boolean; fencedRunId?: string } = {}) {
-  const { deadlineAt: _oldEnd, ...v } = parse(WORKER_SESSION,input);
+  const v = parse(WORKER_SESSION,input);
   if (terminalOnly && (!['stopped','completed'].includes(v.phase) || v.remainingSlots !== 0)) throw new Refusal('bad_input','Final worker contact must be terminal.');
   if (fencedRunId === undefined || fencedRunId !== v.run_id) await assertRunInTransaction(tx,agentId,v.run_id);
   const a = (await tx.get(agents().doc(agentId))).data()!;
   const ref=sessions(agentId).doc(v.missionId), prior=(await tx.get(ref)).data(), p=(await tx.get(pointer(agentId))).data();
   const current=p ? (await tx.get(sessions(agentId).doc(p.missionId))).data() : undefined;
-  if (prior && (prior.profileId !== a.ownerProfileId || prior.runId !== v.run_id || prior.generation !== v.generation || prior.startedAt !== v.startedAt)) throw new Refusal('bad_input','Worker identity changed.');
+  if (prior && (prior.profileId !== a.ownerProfileId || prior.runId !== v.run_id || prior.generation !== v.generation || prior.startedAt !== v.startedAt || ![prior.deadlineAt,prior.authorizedDeadlineAt ?? prior.deadlineAt].includes(v.deadlineAt))) throw new Refusal('bad_input','Worker identity or deadline changed.');
   if (prior && ['stopped','completed'].includes(prior.phase) && v.phase !== prior.phase) throw new Refusal('bad_input','This worker already ended.');
   if (current && current.runId === v.run_id && current.missionId !== v.missionId && current.startedAt >= v.startedAt) throw new Refusal('bad_input','A newer mission replaced this one.');
+  if (!prior && v.deadlineAt-v.startedAt > RUN_LENGTH.maxMinutes*60_000) throw new Refusal('bad_input','Initial deadline exceeds 24 hours.');
   const project=(await tx.get(projects.doc(currentProjectId()))).data();
   if (v.projectPauseRevision !== undefined && v.phase !== 'paused')
     throw new Refusal('bad_input','Confirm project Pause only after execution has paused.');
   // An older confirmation can arrive after Resume or another Pause. It confirms neither.
   const confirmsPause = project?.execution.paused && project.execution.pauseRequest?.revision === v.projectPauseRevision;
   const tokenLimit = project?.execution.tokenLimit ? { ...project.execution.tokenLimit, othersUsed: await jobTokensCounted(a.ownerProfileId, project.execution.startsAt, { agentId, missionId: v.missionId }) } : null;
-  const session: Session={missionId:v.missionId,runId:v.run_id,generation:v.generation,profileId:a.ownerProfileId,startedAt:v.startedAt,phase:v.phase,lastContactAt:now(),remainingSlots:v.remainingSlots,
+  const session: Session={missionId:v.missionId,runId:v.run_id,generation:v.generation,profileId:a.ownerProfileId,startedAt:v.startedAt,deadlineAt:v.deadlineAt,
+    // Time added to the job reaches every worker here: the reply carries the job's end time once it is later.
+    authorizedDeadlineAt:Math.max(prior?.authorizedDeadlineAt ?? v.deadlineAt,project?.execution.endsAt ?? 0),phase:v.phase,lastContactAt:now(),remainingSlots:v.remainingSlots,
     ...(confirmsPause && v.projectPauseRevision !== undefined ? {projectPauseRevision:v.projectPauseRevision} : {}),
     // A contact without a count (an older stop report) keeps the stored one: a killed agent's tokens stay in the pool.
     ...(v.tokens ?? prior?.tokens ? {tokens:v.tokens ?? prior!.tokens!} : {}), tokenLimit,
     ...(v.providerLimit && v.phase === 'waiting' ? {providerLimit:v.providerLimit} : {})};
   const end = ['stopped','completed'].includes(v.phase) ? await prepareSteeringEnd(tx,agentId,v.missionId,now()) : null;
-  const summary: WorkerSummary = {runId:session.runId,phase:session.phase,lastContactAt:session.lastContactAt,
+  const summary: WorkerSummary = {runId:session.runId,phase:session.phase,lastContactAt:session.lastContactAt,deadlineAt:session.deadlineAt,
     ...(session.projectPauseRevision !== undefined ? {projectPauseRevision:session.projectPauseRevision} : {})};
   const statusProgress = await prepareCurrentStateProgress(tx, [presence().doc(agentId)]);
   // The canonical worker group is replaced whole and tagged with the run in the SAME transaction as the
   // fenced session and authority pointer. Progress was prepared above, before any writes in this callback.
-  return {reply:{missionId:v.missionId,tokenLimit},commit:()=>{end?.();tx.set(ref,session);
+  return {reply:{missionId:v.missionId,authorizedDeadlineAt:session.authorizedDeadlineAt,tokenLimit},commit:()=>{end?.();tx.set(ref,session);
     statusProgress(presence().doc(agentId));
     tx.set(presence().doc(agentId),{worker:summary} as never,{mergeFields:['worker']});
     tx.set(pointer(agentId),{missionId:v.missionId});}};

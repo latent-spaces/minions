@@ -6,7 +6,7 @@ import { endProjectWork } from './close-work.js';
 import { readStartAnnouncement, writeStartAnnouncement } from './start-announcement.js';
 import { archiveState, projectArchives, projectStars, starState } from './personal-archive.js';
 import { DEFAULT_WORKSPACE_ID } from '../workspaces/schema.js';
-import { deriveProjectLifecycle, projectExecution, type ProjectLifecycle } from '@mlswarm/contracts';
+import { deriveProjectLifecycle, projectExecution, RUN_LENGTH, validRunMinutes, type ProjectLifecycle } from '@mlswarm/contracts';
 import { platformSettings } from '../platform/settings.js';
 import { FieldPath, type Transaction } from '../firestore.js';
 import { z } from 'zod';
@@ -32,9 +32,17 @@ export const CONFIGURE = z.object({
   client_request_id: z.string().regex(/^[\w-]{1,64}$/), expected_revision: z.number().int().nonnegative(),
   repoUrl: z.string().max(300).refine(url => githubRepositoryUrl(url) !== null).transform(url => githubRepositoryUrl(url)!),
 }).strict();
-export const CONTROL = z.object({ client_request_id: z.string().regex(/^[\w-]{1,64}$/), expected_revision: z.number().int().nonnegative(), action: z.enum(['start', 'pause', 'resume', 'close', 'reopen', 'set_tokens']), start_without_minimum: z.boolean().optional(),
+export const CONTROL = z.object({ client_request_id: z.string().regex(/^[\w-]{1,64}$/), expected_revision: z.number().int().nonnegative(), action: z.enum(['start', 'pause', 'resume', 'close', 'reopen', 'add_time', 'set_tokens']), start_without_minimum: z.boolean().optional(),
+  // The job's time: required for add_time; a start without it gets RUN_LENGTH.defaultMinutes.
+  minutes: z.number().refine(validRunMinutes).optional(),
   // set_tokens only: the job's token cap, one pool for all the owner's agents, or null for no cap.
   tokens: z.number().int().positive().max(Number.MAX_SAFE_INTEGER).nullable().optional() }).strict();
+// The job's one end time, shared by all its workers. Time is added from now once the end has passed.
+function endAfterAdding(endsAt: number | undefined, minutes: number, at: number) {
+  const next = Math.max(endsAt ?? 0, at) + minutes * 60_000;
+  if (next - at > RUN_LENGTH.maxMinutes * 60_000) throw new Refusal('bad_input', 'A job can have up to 24 hours left. Choose a shorter time.');
+  return next;
+}
 
 export const FINALIZE = z.object({ client_request_id: z.string().regex(/^[\w-]{1,64}$/), expected_revision: z.number().int().nonnegative(),
   minContributors: z.number().int().min(1).max(10000).optional(), startDeadline: z.iso.datetime().optional(),
@@ -193,7 +201,7 @@ export async function readWorkspace(operator: WithId<Profile>, id: string) {
     ...(isPrivateProject(approved) ? { privacy: { ...approved.privacy, memberLimit: (await db.runTransaction(tx => readProjectAdmission(tx, id, approved.ownerProfileId))).capacity } } : {}),
     ...(role === 'owner' && approved.setupPlan ? { setupPlan: approved.setupPlan } : {}),
     startAnnouncement: await readStartAnnouncement(operator.id, id),
-    communityRules: communityRulesView(rulesSnap.data()), previewUrl: previewView(previewSnap.data()), setup, participantCount, execution, tokenLimit: approved.execution.tokenLimit ?? null,
+    communityRules: communityRulesView(rulesSnap.data()), previewUrl: previewView(previewSnap.data()), setup, participantCount, execution, endsAt: approved.execution.endsAt ?? null, tokenLimit: approved.execution.tokenLimit ?? null,
     // What the job's token pool has counted, for the owner's job bar; read only while a cap is set.
     ...(role === 'owner' && approved.execution.tokenLimit ? { tokensUsed: await inProject(id, () => jobTokensCounted(approved.ownerProfileId, approved.execution.startsAt)) } : {}), canConfigure: role === 'owner' };
 }
@@ -201,8 +209,7 @@ export async function readWorkspace(operator: WithId<Profile>, id: string) {
 async function mutate(operator: WithId<Profile>, id: string, input: z.infer<typeof CONFIGURE> | z.infer<typeof CONTROL>, now: () => number) {
   return inProject(id, async () => {
     const requestId = hashToken(`${operator.id}:${input.client_request_id}`);
-    type ControlResult = { revision: number; execution: string; tokenLimit?: { tokens: number } | null; replayed: boolean };
-    const receipts = projectCollection<{ fingerprint: string; result: ControlResult }>('projectOperations');
+    const receipts = projectCollection<{ fingerprint: string; result: { revision: number; execution: string; endsAt: number | null; tokenLimit?: { tokens: number } | null; replayed: boolean } }>('projectOperations');
     const fingerprint = hashToken(JSON.stringify(input));
     const result = await db.runTransaction(async tx => {
       const [person, approved, receipt, cardSnap] = await Promise.all([
@@ -213,9 +220,7 @@ async function mutate(operator: WithId<Profile>, id: string, input: z.infer<type
       if (!owner) throw new Refusal('forbidden', 'Only the project owner can do this.');
       if (receipt.exists) {
         if (receipt.data()!.fingerprint !== fingerprint) throw new Refusal('bad_input', 'This request ID was already used with different details. Send the original request again, or use a new request ID.');
-        // A receipt saved before 10 November 2026 can hold the job's end time; it is not returned.
-        const { endsAt: _endsAt, ...saved } = receipt.data()!.result as ControlResult & { endsAt?: unknown };
-        return { result: { ...saved, replayed: true }, fanout: null };
+        return { result: { ...receipt.data()!.result, replayed: true }, fanout: null };
       }
       const record = approved.data()!;
       if (record.execution.completedAt !== null && (!('action' in input) || input.action !== 'reopen')) throw new Refusal('bad_input', 'Reopen this closed project before changing it.');
@@ -227,13 +232,15 @@ async function mutate(operator: WithId<Profile>, id: string, input: z.infer<type
         const next = { ...record, revision, execution: { ...record.execution, paused: true, completedAt: input.action === 'close' ? at : null } };
         tx.set(projects.doc(id), next);
         tx.create(projectCollection('projectHistory').doc(String(revision).padStart(12, '0')), { at, operatorId: operator.id, control: { action: input.action }, execution: next.execution });
-        const result = { revision, execution: input.action === 'close' ? 'closed' : 'not_configured', replayed: false };
+        const result = { revision, execution: input.action === 'close' ? 'closed' : 'not_configured', endsAt: record.execution.endsAt ?? null, replayed: false };
         tx.create(receipts.doc(requestId), { fingerprint, result });
         return { result, fanout: null };
       }
       let project: WorkspaceProject, kind: 'card_changed' | 'project_started' | 'paused' | 'resumed' | null;
       if ('action' in input) {
         if (!before) throw new Refusal('bad_input', 'Add the GitHub repository in Settings first.');
+        if (input.action === 'add_time' ? input.minutes === undefined : input.action !== 'start' && input.minutes !== undefined)
+          throw new Refusal('bad_input', input.action === 'add_time' ? 'Choose how much time to add.' : 'Time can be set only when starting the project or adding time.');
         if (input.action === 'set_tokens' ? input.tokens === undefined : input.tokens !== undefined)
           throw new Refusal('bad_input', input.action !== 'set_tokens' ? 'A token cap can be set only with set_tokens.' : 'Choose a token amount, or null for no cap.');
         if (input.action === 'reopen' ? before.completedAt == null : before.completedAt != null) throw new Refusal('bad_input', input.action === 'reopen' ? 'This project is not closed.' : 'Reopen this project before starting, pausing or resuming it.');
@@ -251,17 +258,17 @@ async function mutate(operator: WithId<Profile>, id: string, input: z.infer<type
         }
         if (input.action === 'start' && before.started) throw new Refusal('bad_input', 'This project has already started.');
         if (['pause', 'resume'].includes(input.action) && !before.started) throw new Refusal('bad_input', 'Start the project first.');
-        project = { ...before, revision, ...(input.action === 'start' ? { started: true, paused: false, awaitingKickoff: false, startsAt: at } : input.action === 'close' ? { completedAt: at, paused: true } : input.action === 'reopen' ? { paused: true } : input.action === 'set_tokens' ? {} : { paused: input.action === 'pause' }) };
-        // A job has no time limit. An end time stored by a start before 10 November 2026 is kept as it is and never read.
+        project = { ...before, revision, ...(input.action === 'start' ? { started: true, paused: false, awaitingKickoff: false, startsAt: at } : input.action === 'close' ? { completedAt: at, paused: true } : input.action === 'reopen' ? { paused: true } : ['add_time', 'set_tokens'].includes(input.action) ? {} : { paused: input.action === 'pause' }),
+          ...(input.minutes !== undefined || input.action === 'start' ? { endsAt: endAfterAdding(before.endsAt, input.minutes ?? RUN_LENGTH.defaultMinutes, at) } : {}) };
         if (input.action === 'pause') project.pauseRequest = { revision, requestedAt: at };
-        else if (input.action !== 'set_tokens') delete project.pauseRequest;
+        else if (!['add_time', 'set_tokens'].includes(input.action)) delete project.pauseRequest;
         if (input.action === 'reopen') delete project.completedAt;
         if (input.action === 'set_tokens') {
           if (input.tokens) project.tokenLimit = { tokens: input.tokens };
           else delete project.tokenLimit;
         }
-        // The token cap reaches each worker in the reply to its own contact; nothing is announced to agents.
-        kind = input.action === 'set_tokens' ? null : input.action === 'start' ? 'project_started' : ['pause', 'close', 'reopen'].includes(input.action) ? 'paused' : 'resumed';
+        // Added time and the token cap reach each worker in the reply to its own contact; nothing is announced to agents.
+        kind = ['add_time', 'set_tokens'].includes(input.action) ? null : input.action === 'start' ? 'project_started' : ['pause', 'close', 'reopen'].includes(input.action) ? 'paused' : 'resumed';
       } else {
         if (before && canonicalGithubRepo(before.repoUrl) !== canonicalGithubRepo(input.repoUrl)) {
           const active = await tx.get(agents().where('revokedAt', '==', null).limit(1));
@@ -276,9 +283,9 @@ async function mutate(operator: WithId<Profile>, id: string, input: z.infer<type
       }
       tx.set(projects.doc(id), recordWithRuntime(approved.data()!, project));
       if ('action' in input && input.action === 'start') writeStartAnnouncement(tx, { revision, startedAt: at, actorName: person.data()!.name, scheduled: false });
-      tx.create(projectCollection('projectHistory').doc(String(revision).padStart(12, '0')), { at, operatorId: operator.id, project, ...('action' in input ? { control: { action: input.action, startWithoutMinimum: input.start_without_minimum === true, ...(input.tokens !== undefined ? { tokens: input.tokens } : {}) } } : {}) });
+      tx.create(projectCollection('projectHistory').doc(String(revision).padStart(12, '0')), { at, operatorId: operator.id, project, ...('action' in input ? { control: { action: input.action, startWithoutMinimum: input.start_without_minimum === true, ...(input.minutes !== undefined ? { minutes: input.minutes } : {}), ...(input.tokens !== undefined ? { tokens: input.tokens } : {}) } } : {}) });
       const fanout = kind ? createFanout(tx, kind, { projectId: id, revision }, at) : null;
-      const result = { revision, execution: projectExecution(project), tokenLimit: project.tokenLimit ?? null, replayed: false };
+      const result = { revision, execution: projectExecution(project), endsAt: project.endsAt ?? null, tokenLimit: project.tokenLimit ?? null, replayed: false };
       tx.create(receipts.doc(requestId), { fingerprint, result });
       return { result, fanout };
     });

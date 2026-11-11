@@ -33,9 +33,8 @@ async function setup(t,{selections,firstResult,hooks={}}={}) {
       observe:async()=>({project:{started:true,paused:false,closed:false},pending:0,acknowledged:0}),
       workerSession:async()=>({missionId:mission.missionId,messages:[]}),phase:async()=>{},reportStatus:async()=>{}})});
   t.after(async()=>{await controllers.close();await store.close();await rm(root,{recursive:true,force:true});});
-  // oldDeadlineAt imitates a start saved before 10 November 2026, when a job had an end time.
-  const initial=(binding,oldDeadlineAt)=>({version:2,operationId:randomUUID(),kind:'start',target:binding.target,missionId:randomUUID(),
-    payload:{scope:'Synthetic Pause/Resume acceptance only.',...(oldDeadlineAt===undefined?{}:{deadlineAt:oldDeadlineAt}),execution:{provider:binding.target.agentId,model:null}}});
+  const initial=(binding,deadline=Date.now()+45000)=>({version:2,operationId:randomUUID(),kind:'start',target:binding.target,missionId:randomUUID(),
+    payload:{scope:'Synthetic Pause/Resume acceptance only.',deadlineAt:deadline,execution:{provider:binding.target.agentId,model:null}}});
   return {...fixtures,root,store,controllers,initial,applied,read:mission=>controllers.getMission(query(mission)),
     turns:async()=> (await nativeEvents(fixtures.events)).filter(event=>event.type==='turn')};
 }
@@ -44,7 +43,7 @@ const acknowledged = (f,mission) => until(()=>f.read(mission),m=>m.currentTurnId
 
 const gate=(f,mission,turn)=>writeFile(join(f.root,`${mission.target.projectId}-${mission.target.agentId}-${turn}`),'go');
 
-test('mixed projects pause only selected workers, letting the turn finish; exact Resume retains results, steering and identity', {timeout:45000},async t=>{
+test('mixed projects pause only selected workers, letting the turn finish; exact Resume retains results, steering, identity and deadline', {timeout:45000},async t=>{
   const f=await setup(t),missions=(await Promise.all(f.bindings.map(b=>f.controllers.accept(f.initial(b))))).map(result=>result.mission);
   await until(f.turns,events=>events.length===4,'four fake native turns');
   for(const mission of [missions[0],missions[3]]){
@@ -94,17 +93,17 @@ test('mixed projects pause only selected workers, letting the turn finish; exact
   }
 });
 
-test('an old end time that passes while paused neither ends the worker nor holds it after Resume',{timeout:15000},async t=>{
-  const f=await setup(t,{selections:[['park','claude']],firstResult:'Synthetic first turn.\nWORK_NEXT: runnable'});
-  const oldEnd=Date.now()+1500;
-  const {mission}=await f.controllers.accept(f.initial(f.bindings[0],oldEnd));
+test('the job\'s time keeps counting while paused; the end time does not end a paused worker, and Resume after it waits for more time',{timeout:15000},async t=>{
+  const f=await setup(t,{selections:[['park','claude']]});
+  const {mission}=await f.controllers.accept(f.initial(f.bindings[0],Date.now()+3500));
   await until(f.turns,e=>e.length===1,'initial native');await acknowledged(f,mission);const pause=command(mission,'pause');await f.controllers.accept(pause);
-  await gate(f,mission,'first');await until(()=>f.read(mission),m=>m.state==='paused','paused before the old end time');
-  await sleep(Math.max(0,oldEnd-Date.now())+300);
-  assert.equal((await f.read(mission)).state,'paused');
+  await gate(f,mission,'first');await until(()=>f.read(mission),m=>m.state==='paused','paused before the end time');
+  await sleep(Math.max(0,mission.deadlineAt-Date.now())+300);
+  const held=await f.read(mission);assert.equal(held.state,'paused');assert.equal(held.deadlineAt,mission.deadlineAt);
   await f.controllers.accept(resume(mission,pause));
-  await until(f.turns,e=>e.length===2,'Resume continues the work after the old end time');
-  await gate(f,mission,'second');
+  await until(()=>f.read(mission),m=>m.state==='waiting','resumed worker waits for more time');
+  await sleep(300);
+  assert.equal((await f.turns()).length,1);
   assert.equal((await f.store.listReports(query(mission))).reports.filter(r=>r.kind==='stop_run').length,0);
 });
 

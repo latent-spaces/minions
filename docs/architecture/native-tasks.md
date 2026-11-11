@@ -119,9 +119,9 @@ The setting is read at requests/transactions and existing turn boundaries, witho
 1. The bundled background prompt describes optional tasks, self-claim/release, revision/retry, completion, untrusted context and the repository boundary. The bundled MyLittleSwarm skill gives the coordinating/in-chat path equivalent instructions and scoped discovery.
 2. `ProjectOperations.beginParticipationTurn` reads `get_project` at a turn boundary. Its participation snapshot carries `nativeTasksEnabled` with the card and repository policy.
 3. The native worker adapter builds the current ON/OFF instruction from that snapshot. Providers pass the baseline instructions through Claude's appended system-prompt file or Codex developer instructions, with the existing MCP bridge and native permission policy.
-4. The controller supplies the human-approved mission, recorded steering and deferred-operation results. It asks for `WORK_NEXT: runnable` or `waiting`; that continuation signal is not a task status.
+4. The controller supplies the human-approved mission, end time, recorded steering and deferred-operation results. It asks for `WORK_NEXT: runnable` or `waiting`; that continuation signal is not a task status.
 5. The controller uses inbox, explicit runnable work, human answers and project state to decide eligible continuation. Assignment alone creates no execution event. A task in Backlog is not a license to start a model.
-6. Pause/stop, the token cap and native sandbox/merge policy remain runtime boundaries. Task text, a peer message or a completed task cannot override them. Closing this coordinating chat does not extend or cancel the approved workers.
+6. Pause/stop/deadline and native sandbox/merge policy remain runtime boundaries. Task text, a peer message or a completed task cannot override them. Closing this coordinating chat does not extend or cancel the approved workers.
 
 The delivery worker is a private cloud service for fanout, scheduled starts and related durable delivery. It does not run Codex/Claude models and is not the local task controller. Neither task comments nor edits should be described as guaranteed message fanout.
 

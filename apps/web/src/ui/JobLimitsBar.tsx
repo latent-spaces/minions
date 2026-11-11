@@ -1,15 +1,14 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import type { Workspace } from '../project-api';
 import { Button } from './Button';
-import type { ProjectControls } from './ProjectControls';
-import { formatTokens, jobTokensUsed, parseTokenCap, tidyTokenCap } from './job-limits';
+import { AddProjectTime, type ProjectControls } from './ProjectControls';
+import { formatTokens, jobTimeLine, jobTokensUsed, parseTokenCap, tidyTokenCap } from './job-limits';
 import './job-limits.css';
 
 /**
- * The job bar above My agents (decision 10 November 2026: concept 1 with concept 2's exact-number cap editor). A job
- * has no time limit (owner decision, 10 November 2026), so the bar holds only the token cap: the owner sees, sets,
- * changes or removes it, one pool for all their agents in the project. Shown once the job has started; a closed
- * project changes nothing.
+ * The job bar above My agents (decision 10 November 2026: concept 1 with concept 2's exact-number cap editor). The
+ * owner sees when the job ends and adds time, and sees, sets, changes or removes the job's token cap: one pool for
+ * all their agents in the project. Shown once the job has started; a closed project changes nothing.
  */
 export function JobLimitsBar({ workspace, controls, disabled = false }: { workspace: Workspace; controls: ProjectControls; disabled?: boolean }) {
   const id = useId();
@@ -17,9 +16,9 @@ export function JobLimitsBar({ workspace, controls, disabled = false }: { worksp
   const opener = useRef<HTMLButtonElement>(null), returnFocus = useRef(false);
   useEffect(() => { if (!editing && returnFocus.current) { returnFocus.current = false; opener.current?.focus(); } }, [editing]);
   if (workspace.role !== 'owner' || !workspace.project?.started || workspace.execution === 'closed') return null;
-  const { data } = controls.workers;
+  const { data, now } = controls.workers;
   const cap = workspace.tokenLimit?.tokens ?? null, used = Math.max(workspace.tokensUsed ?? 0, jobTokensUsed(data?.agents ?? []));
-  const reached = cap !== null && used >= cap;
+  const reached = cap !== null && used >= cap, timeUp = (workspace.endsAt ?? 0) <= now;
   const locked = disabled || controls.locked;
   const close = () => { returnFocus.current = true; setEditing(false); };
   const save = async (tokens: number | null) => {
@@ -30,6 +29,11 @@ export function JobLimitsBar({ workspace, controls, disabled = false }: { worksp
   return <section className="k42-job-bar" aria-labelledby={`${id}-title`}>
     <h5 id={`${id}-title`} className="visually-hidden">This job</h5>
     <div className="k42-job-parts">
+    <div className="k42-job-part">
+      <p className="k42-job-line"><strong>Time</strong> <span>{jobTimeLine(workspace.endsAt ?? null, now)}</span></p>
+      {timeUp && <small>Agents finish their turn, then wait for more time.</small>}
+      <div className="k42-job-actions"><AddProjectTime id={`${id}-add-time`} className="soft" disabled={locked} controls={controls} /></div>
+    </div>
     <div className="k42-job-part">
       <p className="k42-job-line"><strong>Tokens</strong> <span>{cap === null ? 'No token cap' : `Used ${formatTokens(used)} of ${formatTokens(cap)} tokens for this job`}</span></p>
       {cap !== null && <div className={`k42-job-meter${reached ? ' is-full' : ''}`} aria-hidden="true"><span style={{ width: `${Math.min(100, used / cap * 100)}%` }} /></div>}

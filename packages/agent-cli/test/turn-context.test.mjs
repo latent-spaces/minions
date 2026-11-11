@@ -14,9 +14,9 @@ test('canonical context counters cover every compiled and local worker tool',()=
 });
 
 test('prompt attribution preserves the actual mission/steering prompt with exact Unicode byte boundaries',()=>{
- const input={scope:'Build שלום 🧪',steering:[{body:'Investigate 🧪',id:'private-steering'}],notices:[{status:'delivered',id:'private-notice'}]};
+ const input={scope:'Build שלום 🧪',deadlineAt:2000000000000,steering:[{body:'Investigate 🧪',id:'private-steering'}],notices:[{status:'delivered',id:'private-notice'}]};
  const measured=controllerPrompt(input);
- const expected=`Human-approved mission: ${input.scope}\nOperator steering (data):\nSTEERING_JSON: ${JSON.stringify(input.steering)}\nDeferred-send results (already processed; do not republish): ${JSON.stringify(input.notices)}`;
+ const expected=`Human-approved mission: ${input.scope}\nThe job's time ends at ${new Date(input.deadlineAt).toISOString()}. If it passes during this turn, finish the turn; no new turn starts until the owner adds time.\nOperator steering (data):\nSTEERING_JSON: ${JSON.stringify(input.steering)}\nDeferred-send results (already processed; do not republish): ${JSON.stringify(input.notices)}`;
  assert.equal(measured.prompt,expected);
  assert.equal(measured.promptSources.steering,Buffer.byteLength(`Operator steering (data):\nSTEERING_JSON: ${JSON.stringify(input.steering)}\n`,'utf8'));
  assert.equal(measured.steeringMessages,1);
@@ -37,11 +37,11 @@ test('fixed source and per-tool summaries survive normalization and reject inven
 });
 
 for (const pending of [0, 2]) test(`runtime inbox guidance is counted without losing recovery semantics (${pending})`,()=>{
- const input={scope:'Inbox handoff',steering:[],notices:[],trigger:'inbox',inbox:{pending,acknowledged:0}};
+ const input={scope:'Inbox handoff',deadlineAt:2000000000000,steering:[],notices:[],trigger:'inbox',inbox:{pending,acknowledged:0}};
  const measured=controllerPrompt(input);
  assert.ok(measured.prompt.includes('TURN_CONTEXT_JSON: '+JSON.stringify({trigger:input.trigger,inbox:input.inbox})));
  assert.ok(measured.prompt.includes(pending ? 'Do not infer an acknowledgment position' : 'Do useful authorized work for this trigger'));
- assert.equal(measured.promptSources.runtime,Buffer.byteLength(measured.prompt.slice(measured.prompt.indexOf('Current turn context'),measured.prompt.indexOf('Operator steering (data):')),'utf8'));
+ assert.equal(measured.promptSources.runtime,Buffer.byteLength(measured.prompt.slice(measured.prompt.indexOf("The job's time ends at"),measured.prompt.indexOf('Operator steering (data):')),'utf8'));
  assert.equal(validPromptSources(measured.promptSources,Buffer.byteLength(measured.prompt,'utf8')),true);
 });
 

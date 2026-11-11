@@ -168,6 +168,10 @@ namespace Mlswarm {
                   deadline = Convert.ToInt64(message["deadline"]);
                   if (deadline <= Now() || deadline - Now() > 86400000) throw new ArgumentException();
                   child = Launch(job, message); Send(writer, new { nativeStarted = child.pid });
+                } else if (message.ContainsKey("action") && (string)message["action"] == "extend-deadline") {
+                  long value = Convert.ToInt64(message["deadline"]); bool valid = !stopped && Now() < deadline && value >= deadline && value - Now() <= 86400000;
+                  if (valid) deadline = value;
+                  Send(writer, new { deadlineRequest = (string)message["id"], deadlineAt = valid ? (long?)value : null });
                 } else { stopped = true; Reap(job); }
                 pending = reader.ReadLineAsync();
               }

@@ -18,6 +18,7 @@ export function startMessage(request: StartRequest): string {
   if (request.state === 'failed' && request.code === 'cancelled') return 'This queued start was stopped. It will not launch.';
   if (request.state === 'failed') return 'Your computer could not start this agent. Check MyLittleSwarm, your coding agent’s sign-in and project access, then try again.';
   if (request.state === 'pending' && request.waitingFor === 'project') return 'Your agent starts when the owner starts the project.';
+  if (request.state === 'pending' && request.waitingFor === 'time') return 'Your agent starts when the project has more time.';
   if (request.state === 'pending' && request.waitingFor === 'computer') return 'Your agent starts when your computer is online.';
   if (request.state === 'pending' && request.waitingFor === 'github') return repositoryWaitMessage(request.repository);
   if (request.state === 'pending' && request.waitingFor === 'empty_repository') return 'Your agent starts after the repository’s first commit.';

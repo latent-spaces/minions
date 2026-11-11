@@ -81,7 +81,7 @@ function snapshot(row) {
     version: 2, missionId: row.missionId, generation: row.generation, target: JSON.parse(row.target), scope: row.scope, execution: JSON.parse(row.execution),
     reportDelivery: reportCounts(row.missionId),
     cloudRun: row.cloudRunId ? { runId: row.cloudRunId, generation: row.cloudGeneration, startedAt: row.cloudStartedAt } : null,
-    state: blocked ? 'blocked' : row.state, guardPid: row.guardPid, currentTurnId: row.currentTurnId, currentTurnStage: row.currentTurnStage,
+    deadlineAt: row.deadlineAt, state: blocked ? 'blocked' : row.state, guardPid: row.guardPid, currentTurnId: row.currentTurnId, currentTurnStage: row.currentTurnStage,
     createdAt: row.createdAt, updatedAt: row.updatedAt, reason: blocked ? 'report_attention' : row.reason,
     ...(blocked ? {blockedBy:blocked} : {}),
     ...missionControlView(row),
@@ -217,7 +217,7 @@ function settleMissionRow(row, reason, cleanupConfirmed, abandonExecution = fals
     const reportId = stopReportId(row.missionId,row.generation);
     if (!statement('SELECT 1 FROM reports WHERE reportId=?').get(reportId)) {
       const payload={phase:'stopping',...(['operator','repeated_failures','superseded','checkout_missing','controller_failed'].includes(reason)?{reason}:{}),
-        worker_session:{run_id:row.cloudRunId,missionId:row.missionId,generation:row.generation,startedAt:row.cloudStartedAt,
+        worker_session:{run_id:row.cloudRunId,missionId:row.missionId,generation:row.generation,startedAt:row.cloudStartedAt,deadlineAt:row.deadlineAt,
           // A killed agent's tokens stay in the pool (owner decision, 10 November 2026): the final contact keeps its count.
           remainingSlots:0,phase:'stopped',tokens:countedTokens(snapshot(row).outcomes)}};
       enqueueReport(row,{reportId,kind:'stop_run',payload,expectedReceiptId:reportId});
@@ -307,7 +307,7 @@ const operations = {
     return transaction(() => keys.map(key => statement('SELECT * FROM missions WHERE targetKey=? ORDER BY generation DESC LIMIT 1').get(key))
       .filter(Boolean).map(row => {
         const view=missionControlView(row),blocked=reportBlock(row);
-        return {target:JSON.parse(row.target),missionId:row.missionId,generation:row.generation,
+        return {target:JSON.parse(row.target),missionId:row.missionId,generation:row.generation,deadlineAt:row.deadlineAt,
           state:view.state??(blocked?'blocked':row.state),pauseOperationId:view.pauseOperationId??null,
           cloudRun:row.cloudGeneration?{runId:row.cloudRunId,generation:row.cloudGeneration}:null,updatedAt:row.updatedAt};
       }));
@@ -390,16 +390,16 @@ const operations = {
       }
       const acceptedAt = Date.now(); let row;
       if (command.kind === 'start') {
+        // A deadline that has already passed starts the mission waiting for more time, like a worker past the job's end time.
+        if (command.payload.deadlineAt > acceptedAt + MAX_REMAINING_MS) error('invalid_command', 'New mission deadline must be within 24 hours');
         expireParticipationRows();
         if (statement('SELECT 1 FROM missions WHERE missionId=?').get(command.missionId) || statement('SELECT 1 FROM participations WHERE participationId=?').get(command.missionId)) error('conflict', 'Work identity already exists');
         const key = targetKey(command.target);
         assertAgentFree(key);
         reportCapacity({targetKey:key});
         const generation = nextAgentGeneration(key);
-        // A job has no time limit (owner decision, 10 November 2026). The schema-6 column deadlineAt stays NOT NULL in
-        // existing stores, so a new mission writes 0 and nothing reads it. Remove the column with the next schema version.
         statement('INSERT INTO missions(missionId,targetKey,target,generation,scope,execution,deadlineAt,state,createdAt,updatedAt) VALUES(?,?,?,?,?,?,?,?,?,?)')
-          .run(command.missionId, key, JSON.stringify(command.target), generation, command.payload.scope, JSON.stringify(command.payload.execution), 0, 'accepted', acceptedAt, acceptedAt);
+          .run(command.missionId, key, JSON.stringify(command.target), generation, command.payload.scope, JSON.stringify(command.payload.execution), command.payload.deadlineAt, 'accepted', acceptedAt, acceptedAt);
         row = missionRow(command.missionId);
       } else {
         row = missionRow(command.missionId, command.generation); requireTarget(row, command.target);
@@ -611,7 +611,7 @@ const operations = {
     if(!Number.isInteger(limit)||limit<1||limit>100)error('invalid_command','List limit must be 1–100');
     if(after!==undefined)validateUuid(after,'after');
     const rows=statement("SELECT * FROM missions WHERE json_extract(target,'$.site')=? AND json_extract(target,'$.ownerId')=? AND (? IS NULL OR json_extract(target,'$.projectId')=?) AND (? IS NULL OR missionId>?) ORDER BY missionId LIMIT ?").all(site,ownerId,projectId??null,projectId??null,after??null,after??null,limit+1);
-    return {version:2,missions:rows.slice(0,limit).map(row=>{const block=reportBlock(row);return {version:2,missionId:row.missionId,generation:row.generation,target:JSON.parse(row.target),execution:JSON.parse(row.execution),scope:row.scope,state:block?'blocked':row.state,reason:block?'report_attention':row.reason,...(block?{blockedBy:block}:{}),...missionControlView(row),createdAt:row.createdAt,updatedAt:row.updatedAt};}),next:rows.length>limit?rows[limit-1].missionId:null};
+    return {version:2,missions:rows.slice(0,limit).map(row=>{const block=reportBlock(row);return {version:2,missionId:row.missionId,generation:row.generation,target:JSON.parse(row.target),execution:JSON.parse(row.execution),scope:row.scope,state:block?'blocked':row.state,reason:block?'report_attention':row.reason,...(block?{blockedBy:block}:{}),...missionControlView(row),deadlineAt:row.deadlineAt,createdAt:row.createdAt,updatedAt:row.updatedAt};}),next:rows.length>limit?rows[limit-1].missionId:null};
   },
   settleMission({ missionId, generation, reason, cleanupConfirmed, abandonExecution = false }) {
     boundedText(reason,'reason',2048);
@@ -680,6 +680,13 @@ const operations = {
       statement('UPDATE reports SET state=?,attempts=attempts+1,nextAt=?,errorCode=?,updatedAt=? WHERE reportId=?').run(retryAt===null?'attention':'pending',retryAt??0,errorCode,Date.now(),reportId);
       return reportSnapshot(reportRow(reportId));
     });
+  },
+  applyCloudDeadline({missionId,generation,deadlineAt}) {
+    if(!Number.isSafeInteger(deadlineAt)||deadlineAt<=Date.now())error('invalid_command','Deadline must be in the future');
+    return transaction(()=>{const row=missionRow(missionId,generation);
+      if(!row.cloudRunId||(!['accepted','starting','running','waiting'].includes(row.state)&&!operatorPaused(row)))error('conflict','Mission cannot accept an extension');
+      if(deadlineAt<row.deadlineAt||deadlineAt-Date.now()>MAX_REMAINING_MS)error('conflict','Cloud extension exceeds the authorized window');
+      statement('UPDATE missions SET deadlineAt=?,updatedAt=? WHERE missionId=?').run(deadlineAt,Date.now(),missionId);return snapshot(missionRow(missionId));});
   },
   health() { return { version: 2, ready: true, schemaVersion: 6, reports: reportCounts() }; },
   close() { db.close(); releaseLock(); return null; },

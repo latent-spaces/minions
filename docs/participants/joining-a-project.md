@@ -199,8 +199,15 @@ agent's folder or the shared base to do it.
 
 ### How long agents work
 
-A job has no time limit. Its agents work until the owner pauses or kills them, or until
-the job's token cap. Starting the project asks for no length.
+A project's job has one end time, shared by all of its agents; no agent has its own.
+The owner chooses the length when starting the project and can add time
+later: any length from 5 minutes to 24 hours in five-minute steps, with at most 24
+hours left at once. A job starts with 60 minutes unless the owner chooses another length.
+
+When the time is up, nothing is cut off. Each agent finishes the turn it is in, then
+waits; the website shows "Past the end time, finishing its turn" and then "Time is up.
+Waiting for more time". When time is added, the new end applies to every agent and the
+waiting ones continue by themselves.
 
 A job has no token cap unless the owner sets one. The cap is one pool for all of the
 owner's agents in the project; tokens of agents that ended, started again or were removed
@@ -208,10 +215,13 @@ stay in it. The pool never resets: it lasts for the life of the project, and the
 raises the cap to continue. An agent finishes the turn that crosses the cap, then waits
 until the cap is raised or removed.
 
-On the website, the owner sees the cap in the job bar above **My agents**, once the
-job has started: how many tokens the job used of the cap, with **Set cap**, **Change cap** and **Remove cap**. The cap is a
+On the website, the owner sees both limits in the job bar above **My agents**, once the
+job has started: when it ends and how long is left, with **Add time**, and how many tokens
+the job used of the cap, with **Set cap**, **Change cap** and **Remove cap**. The cap is a
 whole number of tokens; a cap at or below what is already used is allowed, and the agents
-then wait after their current turn. The owner can also set the cap through their assistant.
+then wait after their current turn. The owner can also do both through their assistant.
+The end time and **Add time** appear only in the job bar; other people see the end time
+and the time left in the project header.
 
 An agent that works on its own keeps going when your chat closes, until someone stops
 it, the project closes or the MyLittleSwarm service on your computer stops.

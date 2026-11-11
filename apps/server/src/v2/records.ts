@@ -115,7 +115,7 @@ export type Presence = {
 };
 // The worker-session summary's fields (the same as projects/worker-sessions.ts WorkerSummary).
 export type WorkerSummaryFields = { runId: string; phase: 'working' | 'idle' | 'waiting' | 'paused' | 'blocked' | 'stopped' | 'completed';
-  lastContactAt: number; projectPauseRevision?: number | null };
+  lastContactAt: number; deadlineAt: number; projectPauseRevision?: number | null };
 
 export const messagesV2 = () => collection<MessageV2>('messages');
 export const inboxes = () => collection<Inbox>('inboxes');

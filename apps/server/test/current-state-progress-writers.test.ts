@@ -42,7 +42,7 @@ test('start/contact/phase/worker writes atomically change progress, rejected old
   await scope(() => recordContact(id, started.run_id, at)); expect(await sameCommit(id)).toBe(3);
   await scope(() => reportPhase(id, started.run_id, { phase: 'turn' }, () => at)); expect(await sameCommit(id)).toBe(4);
   const session = { run_id: started.run_id, missionId: randomUUID(), generation: 1, startedAt: at,
-    remainingSlots: 0, phase: 'working' };
+    deadlineAt: at + 600_000, remainingSlots: 0, phase: 'working' };
   await scope(() => syncWorkerSession(id, session, () => at)); expect(await sameCommit(id)).toBe(5);
   at += 1_000;
   await scope(() => startRun(id, { clientRunId: randomUUID(), runnerVersion: 'P1-test', takeover: true }, () => at));

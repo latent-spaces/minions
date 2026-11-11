@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto';
 import type {Server} from 'node:http';
 import {beforeAll,afterAll,beforeEach,expect,test} from 'vitest';
 import {hashToken,newToken} from '../src/auth.js';
-import {agents,collection,db,inProject,projectDoc} from '../src/firestore.js';
+import {agents,collection,db,inProject} from '../src/firestore.js';
 import {ownerRoutes,computerConnections} from '../src/owner/routes.js';
 import {connectOwnAgent} from '../src/owner/agents.js';
 import {createWebAgentStart,publishRuntimeReadiness,readAgentStarts,queuedStarts,readWebAgentStart,acceptAgentStart,receiptAgentStart} from '../src/owner/web-agent-starts.js';
@@ -18,7 +18,8 @@ beforeEach(async()=>{await resetEmulator();at=2_000_000_000_000;});
 async function http(path:string,token?:string,body?:object,profileId?:string){const r=await fetch(base+path,{method:body?'POST':'GET',headers:{'content-type':'application/json',...(token?{authorization:`Bearer ${token}`}:{}) ,...(profileId?{'X-Mlswarm-Profile-Id':profileId}:{})},...(body?{body:JSON.stringify(body)}:{})});return {status:r.status,body:await r.json()};}
 async function fixture(){
   const f=await seed({profiles:[{name:'Owner',email:'owner@example.test'},{name:'Other',email:'other@example.test'}]});
-  await seedRuntime(TEST_PROJECT,{});
+  // The job has ten minutes left.
+  await seedRuntime(TEST_PROJECT,{endsAt:at+600_000});
   const owner=f.personIds[0],other=f.personIds[1],computer=randomUUID(),incarnation=randomUUID();
   await collection('computerConnections').doc(computer).set({profileId:owner,revokedAt:null,approvedAt:at,connectionExpiresAt:at+30*86400_000});
   const readiness={protocol:1,version:'0.1.0',incarnation,platform:'darwin',providers:[{id:'codex',available:true,reason:'ready'},{id:'claude',available:false,reason:'unavailable'}]};
@@ -56,7 +57,7 @@ test('an online computer must offer the provider; an offline one queues the star
   expect(await queued(f.owner)).toEqual([{id:f.input.id,name:f.input.name,waitingFor:'computer'}]);
   expect(await queued(f.other)).toEqual([]);
 });
-test('project start releases only the existing approved request and preserves its identity',async()=>{
+test('project start releases only the existing approved request and preserves its identity and work window',async()=>{
   const f=await fixture();await seedRuntime(TEST_PROJECT,{started:false,paused:true,awaitingKickoff:true});
   await f.create();
   expect((await readWebAgentStart(f.owner,f.input.id,now)).request.waitingFor).toBe('project');
@@ -64,33 +65,33 @@ test('project start releases only the existing approved request and preserves it
   expect((await inProject(TEST_PROJECT,()=>agents().get())).size).toBe(0);
   await seedRuntime(TEST_PROJECT,{started:true,paused:false,awaitingKickoff:false});
   const accepted=await f.accept();
-  expect(accepted.request).toMatchObject({id:f.input.id,state:'accepted'});
-  expect(accepted.request).not.toHaveProperty('deadlineAt');
+  expect(accepted.request).toMatchObject({id:f.input.id,state:'accepted',deadlineAt:at+10*60_000});
   expect((await f.accept()).request).toEqual(accepted.request);
   expect((await inProject(TEST_PROJECT,()=>agents().get())).size).toBe(0);
 });
-// A project started before 10 November 2026 can hold an end time that has passed; it holds nothing back.
-test('a start never waits for time: a passed stored end time does not hold a queued start, and no length is accepted',async()=>{
-  const f=await fixture();
-  await inProject(TEST_PROJECT,()=>projectDoc().update({'execution.endsAt':at-60_000}));
-  await seedRuntime(TEST_PROJECT,{paused:true});await f.create();
+test('a start waits for the job to have time, then works until the job end time',async()=>{
+  const f=await fixture();await f.create();
   const queued=()=>inProject(TEST_PROJECT,()=>db.runTransaction(tx=>queuedStarts(tx,f.owner,TEST_PROJECT,at)));
+  for(const endsAt of [undefined,at]){
+    await seedRuntime(TEST_PROJECT,{endsAt});
+    expect((await readWebAgentStart(f.owner,f.input.id,now)).request).toMatchObject({state:'pending',waitingFor:'time'});
+    expect(await queued()).toEqual([{id:f.input.id,name:f.input.name,waitingFor:'time'}]);
+    expect((await f.accept()).request).toMatchObject({state:'pending',deadlineAt:null});
+  }
+  // A project that isn't running is still what the start waits for first.
+  await seedRuntime(TEST_PROJECT,{paused:true});
   expect((await readWebAgentStart(f.owner,f.input.id,now)).request.waitingFor).toBe('project');
-  expect(await queued()).toEqual([{id:f.input.id,name:f.input.name,waitingFor:'project'}]);
-  await seedRuntime(TEST_PROJECT,{paused:false});
-  expect((await inProject(TEST_PROJECT,()=>projectDoc().get())).data()?.execution.endsAt).toBe(at-60_000);
+  await seedRuntime(TEST_PROJECT,{paused:false,endsAt:at+45*60_000});
   expect((await readWebAgentStart(f.owner,f.input.id,now)).request.waitingFor).toBeNull();
-  expect(await queued()).toEqual([{id:f.input.id,name:f.input.name,waitingFor:null}]);
   const accepted=await f.accept();
-  expect(accepted.request).toMatchObject({state:'accepted',launchByAt:at+180_000});
-  expect(accepted.request).not.toHaveProperty('deadlineAt');
+  expect(accepted.request).toMatchObject({state:'accepted',deadlineAt:at+45*60_000});
   expect(accepted.request).not.toHaveProperty('minutes');
   await expect(f.create({...f.input,id:randomUUID(),name:'Timed',minutes:10})).rejects.toMatchObject({code:'bad_input'});
 });
-test('an accepted start stays listed for its launch window, and a working one is not listed',async()=>{
-  const f=await fixture();await f.create();
-  expect((await f.accept()).request).toMatchObject({state:'accepted',launchByAt:at+180_000});
-  // Inside the launch window the computer still sees it.
+test('a start accepted just before the job end time stays listed for its launch window, and a working one is not listed',async()=>{
+  const f=await fixture();await seedRuntime(TEST_PROJECT,{endsAt:at+30_000});await f.create();
+  expect((await f.accept()).request).toMatchObject({state:'accepted',deadlineAt:at+30_000,launchByAt:at+180_000});
+  // Past the end time, inside the launch window: the computer still sees it and starts it waiting for more time.
   at+=60_000;await f.publish();
   expect((await readAgentStarts(f.owner,f.computer,{},now)).requests.map(r=>[r.id,r.state])).toEqual([[f.input.id,'accepted']]);
   const connected=await f.connect();
@@ -107,9 +108,9 @@ test('pickup expiry is not a delayed launch; boot fencing, revocation, membershi
   await computerConnections.doc(g.computer).update({revokedAt:null});await membershipDoc(TEST_PROJECT,g.owner).update({status:'left'});await expect(g.accept()).rejects.toMatchObject({code:'unauthorized'});
   await membershipDoc(TEST_PROJECT,g.owner).update({status:'active'});await seedRuntime(TEST_PROJECT,{completedAt:at,paused:true});await expect(g.accept()).rejects.toMatchObject({code:'forbidden'});
 });
-test('an accepted start is immutable; registration is new-only, exact token replay and owned receipt are fenced',async()=>{
+test('accepted deadline is immutable; registration is new-only, exact token replay and owned receipt are fenced',async()=>{
   const f=await fixture();await f.create();const accepted=await f.accept();
-  expect(accepted.request).toMatchObject({acceptedAt:at,launchByAt:at+180_000});
+  expect(accepted.request).toMatchObject({acceptedAt:at,deadlineAt:at+600_000,launchByAt:at+180_000});
   at+=1000;expect((await f.accept()).request).toEqual(accepted.request);
   await expect(receiptAgentStart(f.owner,f.computer,f.input.id,{incarnation:f.incarnation,state:'working'},now)).rejects.toMatchObject({code:'runtime_conflict'});
   const connected=await f.connect();expect(connected.created).toBe(true);expect(connected.settings).toEqual({involvement:'on_own'});

@@ -6,10 +6,10 @@ const news = (project = {}, extra = {}) => ({ project: { started: true, paused: 
 const controller = (options = {}) => createWorkController({ random: () => 0.5, now: () => 1000, ...options });
 const turn = (work, observed, outcome = {}) => { work.beginTurn(observed); work.recordOutcome({ kind: 'ok', news: observed, now: 1000, ...outcome }); };
 
-test('the first observation runs; closed and paused projects do not; a job has no time limit', () => {
+test('the first observation runs; closed and paused projects do not, and a job whose time is up waits', () => {
   assert.deepEqual(controller().decide({ news: news(), now: 1000 }), { action: 'run', reason: 'first' });
-  // An old end time passed in (from a saved mission) is ignored: the job still runs.
-  assert.deepEqual(controller({ deadline: 1 }).decide({ news: news(), now: 1000 }), { action: 'run', reason: 'first' });
+  assert.deepEqual(controller({ deadline: 1000 }).decide({ news: news(), now: 1000 }), { action: 'wait', reason: 'time_up', interrupt: false });
+  assert.deepEqual(controller({ deadline: 1000 }).decide({ news: news({ closed: true }), now: 1000 }), { action: 'stop', reason: 'project_closed' });
   assert.deepEqual(controller().decide({ news: news({ closed: true }), now: 1000 }), { action: 'stop', reason: 'project_closed' });
   assert.equal(controller().decide({ news: news({ paused: true }), now: 1000 }).reason, 'paused');
   assert.equal(controller().decide({ news: news({ started: false }), now: 1000 }).reason, 'paused');
@@ -130,4 +130,11 @@ test('a restored worker keeps its provider limit wait', () => {
   const work = controller({ first: false, seen: { fingerprint: null, handledRevision: -1, limitedUntil: 90_000, limitResetAt: 90_000, limitStreak: 2 } });
   assert.deepEqual(work.decide({ news: news(), now: 1000 }), { action: 'wait', reason: 'provider_limit', retryAt: 90_000 });
   assert.deepEqual(work.decide({ news: news(), now: 90_000 }), { action: 'run', reason: 'continuation' });
+});
+
+test('an extended deadline must increase and lets work continue', () => {
+  const work = controller({ deadline: 2000 });
+  assert.throws(() => work.setDeadline(2000), /increase/);
+  work.setDeadline(5000); work.requestContinuation();
+  assert.equal(work.decide({ news: news(), now: 3000 }).action, 'run');
 });

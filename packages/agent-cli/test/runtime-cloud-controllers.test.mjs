@@ -42,7 +42,7 @@ async function setup(t, options = {}) {
       return options.observe ? options.observe(ctx, news()) : news();
     },
     async workerSession(mission, session, args) { ctx.sessions.push(structuredClone(session)); return options.steering ? options.steering(ctx, mission, session, args)
-      : { missionId: mission.missionId,
+      : { missionId: mission.missionId, authorizedDeadlineAt: mission.deadlineAt,
         messages: ctx.messages.map(item=>({...item,missionId:mission.missionId,generation:mission.generation})) }; },
     async phase(mission, phase, args) { ctx.phases.push(phase); return options.phase?.(ctx, mission, phase, args); },
     async reportStatus(...args) { return options.reportStatus?.(ctx, ...args); },
@@ -84,7 +84,7 @@ async function setup(t, options = {}) {
   t.after(async () => { await controllers.close(); await store.close(); await rm(directory, { recursive: true, force: true }); });
   ctx.start = async () => {
     const input = { version: 2, operationId: randomUUID(), missionId: randomUUID(), kind: 'start', target,
-      payload: { scope: 'Synthetic cloud controller acceptance', ...(options.oldDeadlineAt === undefined ? {} : { deadlineAt: options.oldDeadlineAt }), execution: { provider: 'codex', model: null } } };
+      payload: { scope: 'Synthetic cloud controller acceptance', deadlineAt: Date.now() + (options.deadlineMs ?? 300000), execution: { provider: 'codex', model: null } } };
     ctx.mission = (await controllers.accept(input)).mission; return ctx.mission;
   };
   ctx.inspect = () => store.getMission({ missionId: ctx.mission.missionId, target });
@@ -117,24 +117,30 @@ test('an inbox retry explains the pending handoff and becomes idle after actual 
   assert.equal((await ctx.inspect()).state, 'waiting');
 });
 
-// A job has no time limit. A start saved before 10 November 2026 carries an end time, and an older server still replies
-// with one; both have passed here and are ignored, so the worker keeps starting turns instead of waiting.
-test('an end time that has already passed, in the saved start or the server reply, leaves the worker working', async t => {
-  const past = Date.now() - 60_000;
-  const ctx = await setup(t, { oldDeadlineAt: past,
-    run: () => result('WORK_NEXT: runnable'),
-    steering: (ctx, mission) => ({ missionId: mission.missionId, authorizedDeadlineAt: past, messages: [] }) });
+test('at the end of the job\'s time a turn finishes, the worker waits, and added time continues it', async t => {
+  const ctx = await setup(t, { deadlineMs: 400,
+    run: (ctx, frame) => ctx.frames.length === 1 ? hold(frame) : result(),
+    steering: (ctx, mission) => ({ missionId: mission.missionId, authorizedDeadlineAt: ctx.authorized ?? mission.deadlineAt, messages: [] }) });
   const mission = await ctx.start();
-  await until(() => ctx.frames.length, count => count >= 2, 'turns continue past the old end time');
-  const saved = await ctx.inspect();
-  assert.equal(Object.hasOwn(saved, 'deadlineAt'), false, 'no end time is reported');
-  assert.equal(ctx.frames.some(frame => /time ends|end time/i.test(frame.options.prompt)), false);
-  assert.equal(mission.deadlineAt, undefined);
+  await until(() => ctx.frames.length, count => count === 1, 'first turn');
+  await sleep(Math.max(0, mission.deadlineAt - Date.now()) + 150);
+  assert.equal(ctx.frames[0].aborted, false, 'the end time does not interrupt a running turn');
+  assert.equal((await ctx.inspect()).state, 'running');
+  ctx.frames[0].finish('Finished past the end time.\nWORK_NEXT: runnable');
+  await sleep(200);
+  assert.equal(ctx.frames.length, 1, 'no new turn starts while the time is up');
+  const waiting = await ctx.inspect();
+  assert.equal(waiting.state, 'waiting'); assert.equal(waiting.deadlineAt, mission.deadlineAt);
+  assert.equal((await ctx.store.listReports({ target, missionId: mission.missionId, limit: 100 })).reports.some(report => report.kind === 'stop_run'), false);
+  ctx.authorized = Date.now() + 300000;
+  await until(() => ctx.frames.length, count => count === 2, 'added time continues the waiting worker');
+  assert.equal((await ctx.inspect()).deadlineAt, ctx.authorized);
+  assert.match(ctx.frames[1].options.prompt, new RegExp(new Date(ctx.authorized).toISOString().replace(/[.]/g, '\\.')));
 });
 
 // A Codex turn: 1000 input of which 600 cached, 100 output, so it counts 500 tokens toward the cap.
 const codexUsage = { provider: 'codex', inputSemantics: 'includes-cache', model: null, modelSource: 'unknown', tokens: { input: 1000, output: 100, cacheRead: 600, cacheWrite: 0, modelCalls: null } };
-const capSteering = (ctx, mission) => ({ missionId: mission.missionId, messages: [], tokenLimit: ctx.tokenLimit ?? null });
+const capSteering = (ctx, mission) => ({ missionId: mission.missionId, authorizedDeadlineAt: mission.deadlineAt, messages: [], tokenLimit: ctx.tokenLimit ?? null });
 
 test('a turn that crosses the token cap finishes, the worker waits at the cap, and raising the cap continues it', async t => {
   const ctx = await setup(t, { steering: capSteering,
@@ -210,7 +216,7 @@ test('a cloud worker with fresh contact starts no turn until a session reply arr
   t.after(() => reply.resolve());
   const ctx = await setup(t, { steering: (ctx, mission) => {
     if (ctx.sessions.length === 1) throw Object.assign(new Error('Synthetic session loss'), { code: 'unavailable' });
-    return reply.promise.then(() => ({ missionId: mission.missionId, messages: [] }));
+    return reply.promise.then(() => ({ missionId: mission.missionId, authorizedDeadlineAt: mission.deadlineAt, messages: [] }));
   } });
   await ctx.start();
   await until(() => ctx.sessions.length, count => count >= 2, 'the second session sync is in flight after a fresh observation');
@@ -218,6 +224,26 @@ test('a cloud worker with fresh contact starts no turn until a session reply arr
   assert.equal(ctx.frames.length, 0, 'no turn before a session reply');
   reply.resolve();
   await until(() => ctx.frames.length, count => count === 1, 'an old server\'s reply allows work', 15000);
+});
+
+test('added time that has already passed when it arrives leaves the worker waiting in contact, and messages still flow', async t => {
+  const ctx = await setup(t, { deadlineMs: 300,
+    steering: (ctx, mission) => ({ missionId: mission.missionId, authorizedDeadlineAt: ctx.authorized ?? mission.deadlineAt,
+      messages: ctx.messages.map(item => ({ ...item, missionId: mission.missionId, generation: mission.generation })) }) });
+  const mission = await ctx.start();
+  await until(() => ctx.frames.length, count => count === 1, 'first turn');
+  await sleep(Math.max(0, mission.deadlineAt - Date.now()) + 100);
+  // The owner added time, but the computer only hears of it after the new end passed too.
+  ctx.authorized = mission.deadlineAt + 50;
+  ctx.messages = [{ id: randomUUID(), body: 'Synthetic steer while time is up' }];
+  const seen = ctx.sessions.length;
+  await until(() => ctx.sessions.length, count => count >= seen + 3, 'contact continues');
+  const waiting = await ctx.inspect();
+  assert.equal(waiting.state, 'waiting');
+  assert.equal(waiting.steering.length, 1, 'a message in the same reply is still received');
+  assert.equal(ctx.frames.length, 1, 'no turn starts while the time is up');
+  ctx.authorized = Date.now() + 300000;
+  await until(() => ctx.frames.length, count => count === 2, 'time added later still continues the worker');
 });
 
 test('project Pause lets the turn finish and confirms only after native cleanup; Resume preserves the mission', async t => {

@@ -32,7 +32,7 @@ test('live smoke harness uses current shared steering and saves two turns throug
   await client.connect(new StreamableHTTPClientTransport(new URL(service.url), { requestInit: { headers: { Authorization: `Bearer ${service.token}` } } }));
   const call = async (name, args) => { const reply = await client.callTool({ name, arguments: args }); assert.ok(!reply.isError, JSON.stringify(reply)); return JSON.parse(reply.content[0].text); };
   const target = { projectId: 'synthetic-project', agentId: 'synthetic-agent' }, missionId = randomUUID();
-  const { mission } = await call('control_agent', { operationId: randomUUID(), missionId, kind: 'start', target, payload: { scope: 'Synthetic smoke wiring', execution: { provider: 'claude', model: 'synthetic' } } });
+  const { mission } = await call('control_agent', { operationId: randomUUID(), missionId, kind: 'start', target, payload: { scope: 'Synthetic smoke wiring', deadlineAt: Date.now() + 30000, execution: { provider: 'claude', model: 'synthetic' } } });
   const read = () => call('get_agent_run', { target, missionId });
   const until = async predicate => { for (const end = Date.now() + 15000; Date.now() < end;) { const state = await read(); if (predicate(state)) return state; await new Promise(resolve => setTimeout(resolve, 20)); } assert.fail('Smoke harness state did not settle.'); };
   await until(state => state.currentTurnStage === 'submitted');

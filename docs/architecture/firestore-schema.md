@@ -379,7 +379,7 @@ is under 45 seconds old.
 request UUID. **Add agent** on the website writes one, as do **Start** beside a stopped
 agent and `add_project_agent` (unless a coding agent calls it with `start: false`). It
 holds the computer, project, agent name, task (by default "Work toward the project's
-goal."), provider and model, `agentId`, and a state (pending, accepted,
+goal."), run length, provider and model, `agentId`, and a state (pending, accepted,
 starting, working, failed, expired or recovery_required). A request for an existing
 agent names it; `add_project_agent` creates its agent before it writes the request. An
 **Add agent** request starts with no `agentId`: the computer's service creates the agent
@@ -481,9 +481,10 @@ Inclusion is a worker report, not proof of compliance or a successful result. Wh
 mission ends, undelivered messages become uncertain. Reading steering grants no
 steering authority and does not deliver it to other agents.
 
-A job has no time limit. Projects started before 10 November 2026 may still store an
-end time in `execution.endsAt`; it is read and ignored, and nothing writes it. Worker
-sessions and web start requests stored with a `deadlineAt` are read the same way.
+A project's workers share the job's end time, `execution.endsAt` on the project. The
+owner sets it at start and moves it by adding time through the project
+control; time left stays within 24 hours. Each worker-session contact returns it as the
+mission's authorized deadline, including after the previous end has passed.
 
 The job's optional token cap is `execution.tokenLimit` (`{ tokens }`, absent for
 no cap), set and removed through the project control's `set_tokens`. It is one pool for all

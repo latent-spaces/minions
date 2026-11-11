@@ -14,7 +14,7 @@ async function fixture(){
   const recipients=[];
   for(const a of f.agents){
     const run=await scope(()=>startRun(a.agentId,{clientRunId:randomUUID(),runnerVersion:'fake',takeover:false},()=>1000));
-    const session={run_id:run.run_id,missionId:run.run_id,startedAt:1000,remainingSlots:64,phase:'waiting' as const,generation:1};
+    const session={run_id:run.run_id,missionId:run.run_id,startedAt:1000,deadlineAt:901000,remainingSlots:64,phase:'waiting' as const,generation:1};
     await scope(()=>syncWorkerSession(a.agentId,session,()=>1100));
     recipients.push({agentId:a.agentId,missionId:session.missionId,generation:1,operationId:randomUUID()});
   }
@@ -46,13 +46,13 @@ test('foreign, stale, duplicate or full recipients reject the entire send withou
     expect(await scope(()=>pendingSteering(x.recipients[0].agentId,x.recipients[0].missionId,()=>1300))).toEqual([]);
   }
   const d=x.recipients[1];
-  await scope(()=>syncWorkerSession(d.agentId,{run_id:d.missionId,missionId:d.missionId,startedAt:1000,remainingSlots:0,phase:'waiting',generation:1},()=>1150));
+  await scope(()=>syncWorkerSession(d.agentId,{run_id:d.missionId,missionId:d.missionId,startedAt:1000,deadlineAt:901000,remainingSlots:0,phase:'waiting',generation:1},()=>1150));
   await expect(scope(()=>submitSteering(x.owner,x.input,()=>1200))).rejects.toMatchObject({code:'limit_reached'});
   expect((await scope(()=>conversationEntries().get())).size).toBe(0);
 });
 test('ending one run does not overwrite other recipients and late inclusion remains authoritative',async()=>{
   const x=await fixture();const sent=await scope(()=>submitSteering(x.owner,x.input,()=>1200));const d=x.recipients[0];
-  await scope(()=>syncWorkerSession(d.agentId,{run_id:d.missionId,missionId:d.missionId,startedAt:1000,remainingSlots:64,phase:'stopped',generation:1},()=>1300));
+  await scope(()=>syncWorkerSession(d.agentId,{run_id:d.missionId,missionId:d.missionId,startedAt:1000,deadlineAt:901000,remainingSlots:64,phase:'stopped',generation:1},()=>1300));
   expect((await scope(()=>conversationEntries().doc(sent.message.id).get())).data()).toMatchObject({deliveries:[{state:'uncertain'},{state:'queued'}]});
   await scope(()=>observeSteering(d.agentId,receipt(d,'included',3),()=>1400));
   expect((await scope(()=>conversationEntries().doc(sent.message.id).get())).data()).toMatchObject({deliveries:[{state:'included'},{state:'queued'}]});

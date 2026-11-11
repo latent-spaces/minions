@@ -14,7 +14,7 @@ function pending(id: string, changes: Partial<WebAgentStart> = {}): WebAgentStar
     scope: 'Synthetic visibility test', execution: { provider: 'codex', model: null },
     fingerprint: 'synthetic', incarnation: null, state: 'pending', createdAt: at - 100,
     activeUntil: at + 1000, pickupByAt: at + 1000, acceptedAt: null, launchByAt: null,
-    agentId: null, ...changes };
+    deadlineAt: null, agentId: null, ...changes };
 }
 const ownQueue = () => inProject(TEST_PROJECT, () => db.runTransaction(tx => queuedStarts(tx, owner, TEST_PROJECT, at)));
 
@@ -30,9 +30,9 @@ test('expired pending requests cannot hide a live request from either queued-age
 test('missed launch windows cannot hide a live starting request', async () => {
   const batch = db.batch();
   for (let i = 0; i < 20; i++) batch.set(webAgentStarts.doc(`a-${i}`), pending(`stale-${i}`, {
-    state: 'accepted', acceptedAt: at - 200, launchByAt: at,
+    state: 'accepted', acceptedAt: at - 200, launchByAt: at, deadlineAt: at + 1000,
   }));
-  batch.set(webAgentStarts.doc('z-live'), pending('live', { state: 'starting', launchByAt: at + 1000 }));
+  batch.set(webAgentStarts.doc('z-live'), pending('live', { state: 'starting', launchByAt: at + 1000, deadlineAt: at + 2000 }));
   await batch.commit();
   expect((await ownQueue()).map(row => row.id)).toEqual(['live']);
 });

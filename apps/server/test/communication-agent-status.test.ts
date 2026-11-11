@@ -38,7 +38,7 @@ const observe = (agent: string, reader: string) => scope(() => communicationAgen
 test('member-only batch returns focus and current state, without private worker content or credentials', async () => {
   const f = await fixture(), missionId = randomUUID();
   await scope(() => agents().doc(f.agent).update({ focus: { text: 'Finishing the map controls.', updatedAt: at, runId: f.run.run_id } }));
-  await scope(() => syncWorkerSession(f.agent, { run_id: f.run.run_id, missionId, startedAt: at,
+  await scope(() => syncWorkerSession(f.agent, { run_id: f.run.run_id, missionId, startedAt: at, deadlineAt: at + 3600000,
     phase: 'working', remainingSlots: 64, generation: 1 }, () => at));
   await scope(() => projectCollection(`agentSteering/${f.agent}/missions`).doc(missionId).set({ messages: [{ body: 'PRIVATE STEERING', id: 'secret' }] }));
   const result = await get(f.agent, f.token);
@@ -69,7 +69,7 @@ test('fresh runner phases distinguish working and idle; expired and superseded o
 test('project Pause stays visible until its exact runtime confirmation; stale and expired feedback cannot confirm it', async () => {
   const f = await fixture(), missionId = f.run.run_id;
   const sync = (phase: string, revision?: number) => scope(() => syncWorkerSession(f.agent, { run_id: missionId, missionId,
-    startedAt: at, phase, remainingSlots: 64, generation: 1,
+    startedAt: at, deadlineAt: at + 3600000, phase, remainingSlots: 64, generation: 1,
     ...(revision === undefined ? {} : {projectPauseRevision: revision}) }, () => at));
   await sync('working');
   await seedRuntime(TEST_PROJECT, { paused: true, revision: 1, pauseRequest: { revision: 1, requestedAt: at } });
@@ -188,7 +188,7 @@ test('a known explicit no-run marker makes the worker pointer irrelevant, withou
   const created = await scope(() => registerAgent(f.personIds[0], 'pointer-not-needed', () => at));
   const { workerPointer } = await import('../src/projects/worker-sessions.js');
   await scope(() => workerPointer(created.agentId).set({ missionId: randomUUID(), summary: { runId: randomUUID(),
-    phase: 'working', lastContactAt: at } } as never));
+    phase: 'working', lastContactAt: at, deadlineAt: at + 60_000 } } as never));
   const [agent, status] = await scope(() => Promise.all([agents().doc(created.agentId).get(), readReadyCanonicalContacts([created.agentId])]));
   const baseline = await scope(() => readCanonicalAgentStates([agent], f.personIds[0], at));
   resetStatusSourceReads();

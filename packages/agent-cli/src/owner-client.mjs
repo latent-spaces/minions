@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
+import { validRunMinutes } from './run-length.mjs';
 import { dirname, join, isAbsolute } from 'node:path';
 import { mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { assertStateOutsideWorkspace, canonicalPath, connectionDir, ensureHome, privateDir, readPrivate, writePrivate, lstatExists, digest, save as saveConnection } from './state.mjs';
@@ -214,12 +215,13 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
       if (args.approved !== true || !Number.isSafeInteger(args.expected_revision) || args.expected_revision < 0 || !/^[\w-]{1,64}$/.test(args.client_request_id ?? '')) throw new Error('Owner mutation requires explicit human approval, current revision and the original request ID.');
       body = { expected_revision:args.expected_revision, client_request_id:args.client_request_id };
       if (name === 'control_project') {
-        if (!['start','pause','resume','set_tokens','close','reopen'].includes(args.action)) throw new Error('Choose start, pause, resume, set_tokens, close or reopen.');
-        if (args.minutes !== undefined) throw new Error('A job has no time limit: agents work until you pause or kill them, or they reach the token cap.');
+        if (!['start','pause','resume','add_time','set_tokens','close','reopen'].includes(args.action)) throw new Error('Choose start, pause, resume, add_time, set_tokens, close or reopen.');
+        if (args.action === 'add_time' ? !validRunMinutes(args.minutes) : args.minutes !== undefined && (args.action !== 'start' || !validRunMinutes(args.minutes))) throw new Error('Minutes belong to start or add_time: 5 minutes to 24 hours in 5-minute steps.');
         if (args.start_without_minimum !== undefined && (args.action !== 'start' || typeof args.start_without_minimum !== 'boolean')) throw new Error('The minimum override belongs only to an explicitly approved start.');
         if (args.action === 'set_tokens' ? !(args.tokens === null || Number.isSafeInteger(args.tokens) && args.tokens > 0)
           : args.tokens !== undefined) throw new Error('tokens belong to set_tokens: a positive whole number of tokens, or null for no cap.');
         body.action = args.action; body.approved = true;
+        if (args.minutes !== undefined) body.minutes = args.minutes;
         if (args.tokens !== undefined) body.tokens = args.tokens;
         if (args.start_without_minimum !== undefined) body.start_without_minimum = args.start_without_minimum;
       }

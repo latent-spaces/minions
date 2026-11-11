@@ -9,3 +9,4 @@ export function time(ms: number, relative = true, now = Date.now()): string {
   const since = relative ? ago(ms, now) : null;
   return since ? `${absolute} (${since})` : absolute;
 }
+export const timeLeft = (ms: number) => { const m = Math.ceil(ms / 60000); return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min left` : `${m} min left`; };

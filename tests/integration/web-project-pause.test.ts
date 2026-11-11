@@ -38,7 +38,7 @@ test('actual project Pause shows pending, confirmed and unreachable agents on Ho
         await updateCanonicalStatus(agent.agentId, {runMode:'current_chat'});
       }
       else await syncWorkerSession(agent.agentId,{run_id:run.run_id,missionId:run.run_id,generation:1,startedAt:at,
-        phase:'working',remainingSlots:64},()=>i===1?at-100000:at);
+        deadlineAt:at+3600000,phase:'working',remainingSlots:64},()=>i===1?at-100000:at);
     }
   });
   const api = spawn(process.execPath, ['--import', 'tsx', 'apps/server/test/api-process.ts'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'],
@@ -78,7 +78,7 @@ test('actual project Pause shows pending, confirmed and unreachable agents on Ho
     await page.screenshot({animations:'disabled',path:join(directory,'desktop-pending.png')});
     const pause=await inProject(TEST_PROJECT,async()=> (await projectDoc().get()).data()!.execution.pauseRequest!);
     await inProject(TEST_PROJECT,()=>syncWorkerSession(fixture.agents[0].agentId,{run_id:missions[0],missionId:missions[0],generation:1,startedAt:at,
-      phase:'paused',remainingSlots:64,projectPauseRevision:pause.revision},Date.now));
+      deadlineAt:at+3600000,phase:'paused',remainingSlots:64,projectPauseRevision:pause.revision},Date.now));
     const worker=page.getByRole('button',{name:/^Select agent Synthetic worker\. Current status: Paused\./});
     await worker.waitFor({timeout:15000});
     const sidebarWorker=page.getByRole('navigation',{name:'My agents',exact:true}).locator('a').filter({hasText:'Synthetic worker'});

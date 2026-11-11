@@ -28,16 +28,16 @@ test('owner sees only the applicable lifecycle action', () => {
     expect(html.includes('Close project')).toBe(execution !== 'closed');
   }
 });
-// A blocked start turns the Start button off.
-const startLocked = /<button[^>]*disabled=""[^>]*>.*?Start project/s;
+// Start needs a job length first, so the button itself is off until one is chosen; a blocked start also locks the choice.
+const lengthLocked = /<select[^>]*disabled=""/;
 test('setup and below-minimum blockers remain visible; the owner can override minimum', () => {
   const setup = { required: true, finalizedAt: 10, minContributors: 3, startDeadline: null };
   for (const project of [null, { started: false }]) {
     const html = render(workspace({ project: project as Workspace['project'], setup: { ...setup, finalizedAt: null } }));
-    expect(html).toMatch(startLocked); expect(html).toContain(project ? 'Publish the project' : 'Add a repository');
+    expect(html).toMatch(lengthLocked); expect(html).toContain(project ? 'Publish the project' : 'Add a repository');
   }
   const view = workspace({ project: { started: false } as Workspace['project'], setup, participantCount: 1 });
-  expect(render(view)).toContain('start with fewer'); expect(render(view)).not.toMatch(startLocked);
+  expect(render(view)).toContain('start with fewer'); expect(render(view)).not.toMatch(lengthLocked);
 });
 test('busy, uncertain-request and external edit locks disable all lifecycle buttons', () => {
   for (const [state, disabled] of [[{ ...controls, locked: true }, false], [controls, true]] as const) {
@@ -51,20 +51,29 @@ test('participant waiting notice remains without duplicating a manager Start act
   expect(renderToStaticMarkup(createElement(ProjectStatusPanel, { workspace: view, controls }))).toContain('Start project');
   expect(renderToStaticMarkup(createElement(ProjectStatusPanel, { workspace: { ...view, role: 'member' }, controls }))).toContain('Waiting for the owner');
 });
-// A job has no time limit (owner decision, 10 November 2026): Start is one button with no length to choose.
-test('starting is one enabled Start button with no job length to choose, in Settings and on Home', () => {
+// Owner decision, 9 November 2026: one job end time for every agent, and no length is chosen for the person.
+test('starting offers the job length with one hour preselected and Start enabled, in Settings and on Home', () => {
   const view = workspace({ execution: 'ready', project: { started: false } as Workspace['project'] });
   for (const html of [render(view), renderToStaticMarkup(createElement(ProjectStatusPanel, { workspace: view, controls }))]) {
-    expect(html).not.toContain('How long should agents work?'); expect(html).not.toContain('<select');
+    expect(html).toContain('How long should agents work?');
+    expect(html).toMatch(/<option value="60" selected="">1 hour<\/option>/);
+    for (const preset of ['30 minutes', '1 hour', '4 hours', 'Other…']) expect(html).toContain(preset);
+    expect(html).not.toContain('Until the project ends');
     expect(html).toMatch(/<button(?![^>]*disabled)[^>]*>.*?Start project/s);
   }
 });
-test('an old stored end time shows no end time, time left, time up or Add time to anyone', () => {
+test('the owner sees the job end time and Add time only in the job bar; others see the end time in the status panel', () => {
   const panel = (patch: Partial<Workspace>) => renderToStaticMarkup(createElement(ProjectStatusPanel, { workspace: workspace(patch), controls }));
-  const old = { endsAt: Date.now() - 1000 } as Partial<Workspace>, later = { endsAt: Date.now() + 45 * 60_000 } as Partial<Workspace>;
-  for (const role of ['owner', 'member'] as const) for (const execution of ['active', 'paused', 'closed'] as const) for (const time of [old, later]) {
-    const html = panel({ role, execution, ...time });
-    for (const text of ['Time is up', 'Add time', 'min left', 'ends ', 'more time', 'adds time']) expect(html).not.toContain(text);
+  for (const endsAt of [Date.now() + 45 * 60_000 - 5000, null, Date.now() - 1000]) {
+    const owner = panel({ endsAt });
+    expect(owner).not.toContain('Add time'); expect(owner).not.toContain('min left'); expect(owner).not.toContain('Time is up');
   }
-  expect(panel({ execution: 'paused', project: { started: true, paused: true } as Workspace['project'], ...old })).toContain('Resume all agents');
+  const paused = panel({ execution: 'paused', project: { started: true, paused: true } as Workspace['project'], endsAt: Date.now() + 45 * 60_000 - 5000 });
+  expect(paused).not.toContain('Add time'); expect(paused).toContain('Resume all agents');
+  const member = panel({ role: 'member', endsAt: Date.now() + 45 * 60_000 - 5000 });
+  expect(member).toContain('45 min left'); expect(member).toContain('ends '); expect(member).not.toContain('Add time');
+  const late = panel({ role: 'member', endsAt: Date.now() - 1000 });
+  expect(late).toContain('Time is up'); expect(late).toContain('wait until the owner adds time'); expect(late).not.toContain('Add time');
+  const closed = panel({ role: 'member', execution: 'closed', endsAt: Date.now() + 60_000 });
+  expect(closed).not.toContain('min left'); expect(closed).not.toContain('Time is up');
 });

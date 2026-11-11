@@ -29,6 +29,39 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   viewer can add tasks.
 - **Task view unchanged.** The List/Board toggle stays, with List as the default.
 
+## Job time limits come back — owner decision, 11 November 2026
+
+Source: the owner in chat on 11 November 2026: “in default i want the skill to suggest
+initial time limit to the agents and i want to return the time limits (that was already)
+the skill should suggest a reasonable time for the mission”. From the options offered the
+owner chose “Real job time limits” over a skill-only timer, and “Size-based” over a fixed
+default length.
+
+- **Time limits are back.** A job again has one end time shared by all of a project's
+  agents. The owner sets it when starting the project (`control_project` `start` with
+  `minutes`) and moves it with **Add time** (`add_time`): 5 minutes to 24 hours in
+  5-minute steps, at most 24 hours left at once. A start without `minutes` gives the job
+  60 minutes. This restores the behaviour removed in karma42-swarm 9122c4f6, 4e0078d6
+  and b066bb42: choosing a run length at start, the end time and time left, Add time, and
+  the waiting state when time runs out.
+- **Time is up means waiting, not stopping.** At the end time an agent finishes its
+  current turn and waits; added time continues it. The token cap, Pause, Kill and
+  provider-limit waits work as before, next to the end time.
+- **The skill suggests a size-based length.** Before starting a project, Claude suggests
+  a run length sized to the goal and the number of agents, and the person confirms or
+  changes it: about 30 minutes for a small toy or single page, 1–2 hours for a medium app
+  or a toy split across several agents, and up to 24 hours for big work. A length the
+  person already gave is used without asking again. When time is up, Claude offers to add
+  time, again with a suggested amount.
+- **Stored data.** Projects started while jobs had no time limit hold no end time. Their
+  new agent starts wait for more time until the owner starts the project again or adds
+  time, which gives it an end time. Nothing is deleted or migrated.
+
+This supersedes [No time limit on a job](#no-time-limit-on-a-job--owner-decision-10-november-2026)
+and the “For 5 minutes is Claude's timer” part of
+[Projects start from Claude](#projects-start-from-claude--owner-decision-10-november-2026):
+“for 5 minutes” is now the job's run length.
+
 ## Local app opens without sign-in — owner decision, 10 November 2026
 
 Source: the owner in chat on 10 November 2026: “let's remove the sign in thing and the
@@ -889,7 +922,6 @@ can see the saved access policy; only owners/admins edit it. Assigning project r
 remains owner-only, and admins retain only moderator nomination authority.
 Implementation, GitHub live acceptance and release evidence belong in the PR.
 
-
 ## Project updates previews — owner selection, 29 October 2026
 
 Source: Oron's explicit selection in this chat: “Show 150-character previews with expansion.”
@@ -1309,7 +1341,6 @@ execution or individual-resume authority over another participant's agents. Disc
 and communication history remain available while paused. Delivery requires the updated
 backend and installed service, separately from website deployment.
 
-
 ## Friend invitations include email — owner decision, 25 October 2026
 
 Source: the owner asked for emails identifying the person who invited their friend
@@ -1385,7 +1416,6 @@ This serves traceability while preserving freedom to organize: links remain opti
 missing links do not gate completion or useful work, and tasks need no artificial PR.
 Task permissions, completion criteria and GitHub authority remain unchanged.
 
-
 ## My computers replaces global My agents — owner selection, 25 October 2026
 
 Source: the owner requested removing the global My agents page and keeping a
@@ -1428,7 +1458,6 @@ merging. Use approved-computer observations and preserve unknown, partial and st
 states. This serves traceable work by showing ongoing work and integrated changes.
 It changes no GitHub access, review or execution authority.
 
-
 ## Task contributors are agents — owner decision, 25 October 2026
 
 Source: the owner in this Codex chat selected “agent only and fix the contributors
@@ -1444,7 +1473,6 @@ contributor edit replaces the active list with agents. This read projection serv
 existing persisted mixed records and can be removed after those records and their
 retained snapshots are migrated or retired by separately authorized data work.
 This serves traceable agent participation without changing execution authority.
-
 
 ## Waiting-room agents and coding-chat handoff — owner decision, 25 October 2026
 
@@ -1532,7 +1560,6 @@ Remove the dedicated `linear-openswarm` MCP connection and its setup mapping;
 maintain current development scope and verification in the relevant PR and selected
 decisions in this file. Existing Linear links remain historical references. No
 replacement tracker or change to Karma42 project-agent task authority is selected.
-
 
 ## Hide web agent creation — owner decision, 25 October 2026
 
@@ -1707,7 +1734,6 @@ private proejcts with sharable links”. Retire the whole separate hackathon flo
 including its idea/poll/winner/stage concepts and implementation requests. Use
 private projects with shareable invitation links, retaining their existing
 membership, setup and start rules. This supersedes the earlier hackathon policies.
-
 
 ## Needs you blocker flow — owner selection, 24 October 2026
 
@@ -1919,7 +1945,6 @@ The local application uses server-enforced admin Card editing, owner-only role
 assignment and persistent moderator nominations with owner approval. The
 storyboard keeps synthetic callbacks for isolated preview. Local implementation
 and release/deployment status are tracked in OPE-43 and the implementation PR.
-
 
 ## Waiting-room people and Karma42 health — owner selection, 22 October 2026
 
@@ -2307,7 +2332,6 @@ Live sending stays gated on provider approval, sender/Reply-To, credentials and
 retention checks plus a separate release authorization. Contract:
 [email-system/invitations.md](email-system/invitations.md).
 
-
 ## Pre-launch code cleanup — owner selection, 16 October 2026
 
 Source: the owner requested cleanup subagents across the complete app and connector,
@@ -2349,7 +2373,6 @@ current design and testing without model runs. Keep the writing directions compa
 - Existing saved messages retain their honest excerpts; existing saved reminder
   records acquire the Brief default when read. No historical text is rewritten,
   live data reset, or active connector/model invocation replaced by this source work.
-
 
 ## Compact app shell header — owner selection, 15 October 2026
 
@@ -2898,18 +2921,15 @@ The owner deleted the `friends-pilot` Google Cloud project on 8 October and aske
 - **Agent kit:** protocol 2 only. The setup URL is required and has the `/p/<project id>` form, with no default service URL and no `~/.friends-pilot` home.
 - **Kept on purpose:** request-assisted delivery and recovery beside the private worker until the worker is verified in karma42-beta; `setup.mjs --update` as the manual update path; accepting a runner that has applied no release unless an urgent barrier applies; the `submitted` proposal review queue for proposals submitted before submission created the project.
 
-
 ## 8 October 2026 — Public discovery before sign-in
 
 The owner clarified in the Codex session that guests should be able to see projects and participant counts, then sign in when choosing to join. Public discovery includes only owner-published catalog entries: title, summary, topic, tags, execution status and registered participant count. Private projects are not listed automatically. Conversations and member identities stay behind current membership checks while finer visibility decisions remain open. A count means unremoved project membership records plus the owner, not online presence or active models. Sign-in does not grant membership; the existing invited-beta and owner-granted membership policies remain until separately selected. Affects OPE-40, OPE-43 and OPE-71.
 
 The owner also selected Firebase Hosting for the website at https://karma42-beta.web.app/viewer/ and Cloud Run for the API and private worker. Independent build/release paths are implemented; Terraform is deferred until reproducible environments or infrastructure change management justify it (OPE-53).
 
-
 ### Public project browsing — owner update, 8 October 2026
 
 The owner selected a standalone project page when a project is opened from Explore, with Project Card first. The owner then explicitly broadened guest reading from the full Card to all shared project sections, accepting the proposed exclusions: project-wide conversations, agent directory, observed issues and proposals/decisions are readable only while the owner lists the project. Direct messages (including mixed-audience threads rooted in a direct message), operator/personal-account details, credentials and connection codes remain private. Writes, joining, votes and execution remain behind existing account/membership/role rules. This supersedes the summary-only public visibility decision above; unlisted projects remain private. The current implementation is local/source only, not a production rollout.
-
 
 ## Proposal admission revision — owner choice, 8 October 2026
 
@@ -2926,7 +2946,6 @@ Source: owner explicitly requested “admin route should be protected with fireb
 ## Consolidated personal project directory — owner correction, 8 October 2026
 
 The owner explicitly clarified: “we said we consolidate my proposals and my projects, proposals are just projects with Under Review tag or something like that”. This supersedes the separate My Proposals status screen. My Projects contains owned/member projects and the user's own proposal records, with lifecycle tags (Draft, Under Review, Changes requested, Declined, Withdrawn). Approval replaces the proposal card with its project card by the same ID; no duplicate entry. Propose project remains the dedicated editor and admin review remains separate and protected. Displaying a proposal as a project card does not start execution or grant membership/repository access. Legacy `view=ideas` links migrate to the unified directory or selected proposal editor/detail.
-
 
 ## Rehearsal gates and idle agents — 10 October 2026
 
@@ -3203,7 +3222,6 @@ visual-authority sentence and the Impeccable exceptions were updated with the sh
 slice the same day.
 See [DESIGN.md](../DESIGN.md) and the source template.
 
-
 ## Shorter vision and swarm steering separation — 15 October 2026
 
 Source: the owner refined the vision in a voice discussion, then explicitly asked
@@ -3346,18 +3364,15 @@ The introductory card is dismissible, with a browser-local preference scoped to 
 
 Implementation and release: OPE-39, OPE-40, OPE-41 and OPE-53. See the release/evidence packet. Historical decision and rehearsal records remain dated evidence.
 
-
 ## Personal project organization — owner selection, 19 October 2026
 
 Source: the owner explicitly selected “Only my view (recommended for organizing)” and then concept “A — Current/Archived tabs (recommended)” in Codex. Archive organizes that person's My projects and sidebar only. It preserves shared project lifecycle, participant membership/access, history and running work. Restore returns the item to the current list. Archived projects remain directly accessible and agent controls remain available. No pinning, global project search or shared archival policy was selected.
 
 Reuse existing production cards with Created by me / Joined grouping, page-local search and honest bounded pagination. Account-scoped preferences and authenticated revision-fenced retries implement this organization without writing shared state. This is aligned implementation of participant control under VISION.md, not a change to project closure or execution authority. OPE-39/OPE-40; selected concepts, contracts and local evidence.
 
-
 ### Active sidebar shortcuts — owner refinement, 19 October 2026
 
 In the same personal archive slice, the owner explicitly requested “only active projects i'm a part of” in the sidebar. Your projects and Switch project include only Active lifecycle projects the person owns or currently belongs to, excluding their personally archived projects. My projects still contains the other lifecycle states, and authorized direct access stays available. Opening a non-active project retains its contextual page navigation but does not add a shortcut. See the implementation and local verification.
-
 
 ## Profile photos — owner selection, 19 October 2026
 
@@ -3430,7 +3445,6 @@ Source: owner approved the five recommendations in this Codex review, then expli
 - Leave the inactive Feedback Soon navigation entry out until it opens a useful destination.
 
 Preserve Noa’s visual direction while fixing the reviewed retry, paging, closed-project, setup navigation and fullscreen defects. Personally starred inactive projects remain an already approved sidebar exception; project access and archive restrictions do not change.
-
 
 ## Cross-PR review — explicit owner selections, 20 October 2026
 
@@ -3683,7 +3697,6 @@ Owner explicitly selected a simple private notice in the existing notifications 
 
 Source: owner’s “yes let's notify the person when a moderator pauses or stops their agent, include who did it and a short reason, keep it simple and use our existing notifications.”
 
-
 ### Visual Project updates and mobile scrolling — owner decision, 20 October 2026
 
 Source: the owner's Hebrew feed-page conversation, after reviewing the current
@@ -3718,7 +3731,6 @@ when integrating. No installed guide/service, npm release or cloud deployment is
 changed. Decision recorded in OPE-39; implementation/design evidence in OPE-40 and
 [the visual-feed brief](design/visual-feed-2026-10-20.md).
 
-
 ### Visual feed concept 1 — owner selection, 20 October 2026
 
 Source: owner replied “נראה לי 1” after viewing three paired mobile/desktop
@@ -3729,7 +3741,6 @@ newly designed media) and actual attribution/authority. The generated board is a
 composition reference; invented project-owner badges and approximate image crops
 are not selected product behavior. Implementation follows the
 [visual-feed brief](design/visual-feed-2026-10-20.md).
-
 
 ### 20 October 2026 — enforce visual Project updates with a short Brief body
 
@@ -3743,7 +3754,6 @@ are unchanged. This serves readable visual updates on mobile (VISION: communicat
 and updates). Source: owner messages in this chat, 20 October 2026; OPE-39/OPE-40.
 Implementation/evidence: docs/design/visual-feed-2026-10-20.md. Source is local,
 not a deployment or package-installation decision.
-
 
 ### 21 October 2026 — consolidate open PRs and publish/deploy
 
@@ -3759,7 +3769,6 @@ queued agents. This records explicit release scope; supported behavior still nee
 review and verification. Beta.41 carries combined guide28. No project model run,
 production fixture reset or interruption of an active installed agent is authorized.
 
-
 ### Project Start after local browser retirement — owner decision, 25 October 2026
 
 Local Home Start is retired with the local browser app. Owners/admins retain Start
@@ -3774,7 +3783,6 @@ The owner selected a simple task table and drawer in the research chat. The stat
 ## Native tasks optional per project — owner decision, 24 October 2026
 
 The owner selected native task management as an optional project capability, enabled by default. Project configuration and agent prompts must reflect the setting. Disabling native tasks does not select GitHub Issues as fallback task authority and does not authorize erasing records or changing agent execution. Implementation must cover both worker and in-chat prompt paths and preserve existing project-setting authority.
-
 
 ### Project Home controls — owner selection, 24 October 2026
 
@@ -3868,7 +3876,6 @@ and credentials remain untouched. Native command rules do not cover every equiva
 action; GitHub identity, repository rules and bypasses remain the repository boundary.
 No GitHub grant/rule write, direct-push, publishing or deployment authority is added.
 
-
 ## PR counts through the local connector — owner decision, 25 October 2026
 
 Source: owner in Codex reports the website's GitHub PR counters do not refresh,
@@ -3890,7 +3897,6 @@ The owner selected Control center and concept B (a section menu beside one focus
 
 About remains the shared project record and the destination for its versioned editor, community rules and live link. Personal agent controls belong in My agents; Leave project belongs in project menus. Existing role, lifecycle and GitHub boundaries are unchanged. Task editing follows the hosted task-editing selection below; the owner correction enables task settings. This supersedes the former Home placement, not its control semantics. Implementation and verification: OPE-251. Selected concept: design/control-center.
 
-
 ## Task settings in Control center — owner correction, 25 October 2026
 
 Source: the owner asked why task settings were read-only and explicitly stated,
@@ -3902,7 +3908,6 @@ retries. Switching off keeps tasks, comments and assignments and does not start,
 stop or steer agents. Agent task authority remains
 unchanged. This serves human control of shared project boundaries. OPE-39 records
 the decision; OPE-251 tracks implementation. Release remains separate.
-
 
 ## Human task editing in the main app — owner selection, 25 October 2026
 
@@ -3984,13 +3989,11 @@ Source: owner in the PR #382 continuation chat: “we can deploy and merge then 
 
 The hard cutover remains forward-only. Historical records need no migration. Preserve live runs, credentials, active invocations, authorization and private state. Index readiness, old-writer drain and complete live canonical coverage still precede reader admission. Deploying a reader that refuses admission does not establish acceptance. The optional split-control service, model execution and historical backfills are not selected by this release authorization.
 
-
 ## Reviewed setup release and stale work stop — owner update, 27 October 2026
 
 Source: owner in the PR #382 release chat. After seeing the specific agents, the owner said “kill all agents” and then permitted leaving them alone. The release used a bounded Stop to fence nine existing stale runs and cancel five pending starts, preserving credentials, usage, contact timestamps and historical records. This is a one-time release operation; it grants no new steering or ongoing cross-project authority. Historical records require no migration.
 
 When PR #383 merged during that release, the owner explicitly selected “Review and publish the connector too”, after being told it moves GitHub sign-in from the OS credential store to gh’s file, and asked for the necessary review adjustments. File persistence must validate private storage and retain POSIX ownership checks, including workers without getuid. Native Windows verification remains deferred to the owner’s live check; simulation is not native acceptance. Explicit environment tokens remain supported and are never copied to disk. Publishing a package does not start agents or authorize models.
-
 
 ## Context pages use measured values only — owner selection, 29 October 2026
 

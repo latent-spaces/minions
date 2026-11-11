@@ -91,7 +91,7 @@ test('coordinator queues a separate agent, disconnects, and project readiness la
     const input = { project_id: f.projectId, agent_name: 'background-fox', provider: 'codex', model: 'synthetic-model', task: 'Synthetic bounded work' };
     const added = parse(await client.callTool({ name: 'add_project_agent', arguments: input }));
     expect(added.run).toMatchObject({ state: 'pending', provider: 'codex', model: 'synthetic-model', task: input.task });
-    expect(await f.request(added.run.id)).not.toHaveProperty('deadlineAt');
+    expect((await f.request(added.run.id)).deadlineAt).toBeNull();
     const retry = parse(await client.callTool({ name: 'add_project_agent', arguments: input }));
     expect(retry.run.id).toBe(added.run.id);
     expect((await f.agents()).size).toBe(1);
@@ -100,7 +100,8 @@ test('coordinator queues a separate agent, disconnects, and project readiness la
     await client.close();
 
     // Project start alone cannot bypass pause or repository readiness.
-    await seedRuntime(f.projectId, { started: true, paused: true }); await f.pump.poll();
+    const endsAt = Date.now() + 60 * 60_000;
+    await seedRuntime(f.projectId, { started: true, paused: true, endsAt }); await f.pump.poll();
     expect((await f.request(added.run.id)).state).toBe('pending');
     await seedRuntime(f.projectId, { paused: false }); await f.pump.poll();
     await until(() => f.request(added.run.id), request => request.waitingFor === 'github');
@@ -113,11 +114,11 @@ test('coordinator queues a separate agent, disconnects, and project readiness la
     await until(() => f.controllers.getMission(ref), mission => mission?.currentTurnStage === 'applied');
     await f.pump.poll();
     const working = await until(() => f.request(added.run.id), request => request.state === 'working');
-    // A job has no time limit, so the run has no end time.
-    expect(working).not.toHaveProperty('deadlineAt');
+    // The run's deadline is the job's end time, not a length of its own.
+    expect(working.deadlineAt).toBe(endsAt);
     expect(working.acceptedAt).toBeGreaterThan(working.createdAt);
 
-    // Reconnecting or replaying the same add doesn't restart work.
+    // Reconnecting or replaying the same add doesn't restart work or extend its time.
     const reconnected = await f.connect();
     const replay = parse(await reconnected.callTool({ name: 'add_project_agent', arguments: input }));
     expect(replay.run).toMatchObject({ id: added.run.id, state: 'working' });
@@ -148,7 +149,7 @@ test('Alon regression: failed repository access is diagnosable over MCP and Stop
     const client=await f.connect();
     const addInput={project_id:f.projectId,agent_name:'alon-regression',provider:'codex'};
     const added=parse(await client.callTool({name:'add_project_agent',arguments:addInput}));
-    await seedRuntime(f.projectId,{started:true,paused:false});await f.pump.poll();
+    await seedRuntime(f.projectId,{started:true,paused:false,endsAt:Date.now()+60*60_000});await f.pump.poll();
     await until(()=>f.request(added.run.id),r=>r.repository?.code==='git_authentication_failed');
     const query={missionId:added.run.id,target:{projectId:f.projectId,agentId:added.agent_id}};
     const diagnostics=parse(await client.callTool({name:'get_agent_run_diagnostics',arguments:query}));

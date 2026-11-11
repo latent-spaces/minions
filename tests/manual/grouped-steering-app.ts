@@ -27,7 +27,7 @@ const fixture=await seed({project:{name:'Steering check · synthetic'},profiles:
 await profiles.doc(fixture.personIds[0]).update({onboardingCompletedAt:now});
 const scope=<T>(f:()=>T)=>inProject(TEST_PROJECT,f);
 const recipients=[];
-for(const agent of fixture.agents){const run=await scope(()=>startRun(agent.agentId,{clientRunId:randomUUID(),runnerVersion:'synthetic-no-model',takeover:false},()=>now));await scope(()=>syncWorkerSession(agent.agentId,{run_id:run.run_id,missionId:run.run_id,startedAt:now,remainingSlots:64,phase:'waiting',generation:1},()=>now));recipients.push({agentId:agent.agentId,missionId:run.run_id,generation:1,operationId:randomUUID()});}
+for(const agent of fixture.agents){const run=await scope(()=>startRun(agent.agentId,{clientRunId:randomUUID(),runnerVersion:'synthetic-no-model',takeover:false},()=>now));await scope(()=>syncWorkerSession(agent.agentId,{run_id:run.run_id,missionId:run.run_id,startedAt:now,deadlineAt:now+600000,remainingSlots:64,phase:'waiting',generation:1},()=>now));recipients.push({agentId:agent.agentId,missionId:run.run_id,generation:1,operationId:randomUUID()});}
 const instruction='Focus on finishing the onboarding flow. Synthetic instruction; no models run.';
 const sent=await scope(()=>submitSteering(fixture.personIds[0],{operationId:recipients[0].operationId,recipients,body:instruction,origin:'coding_chat'},()=>now+1));
 const d=recipients[0];await scope(()=>observeSteering(d.agentId,{receiptId:createHash('sha256').update(JSON.stringify(['steering',d.missionId,d.operationId,'included'])).digest('hex'),operationId:d.operationId,missionId:d.missionId,generation:1,state:'included',sequence:3,observedAt:now+2,turnId:randomUUID()},()=>now+2));

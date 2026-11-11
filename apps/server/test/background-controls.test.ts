@@ -21,7 +21,7 @@ async function fixture(){
   const owner=f.personIds[0];await collection('computerConnections').doc(computer).set({profileId:owner,revokedAt:null,approvedAt:at,connectionExpiresAt:at+86400_000});
   const agentId=f.agents[0].agentId,missionId=randomUUID();
   const run=await scope(()=>startRun(agentId,{clientRunId:missionId,runnerVersion:'synthetic-background',takeover:false},()=>at));
-  const snapshot={target:{site:'https://karma42.ai',ownerId:owner,projectId:TEST_PROJECT,agentId},missionId,generation:17,
+  const snapshot={target:{site:'https://karma42.ai',ownerId:owner,projectId:TEST_PROJECT,agentId},missionId,generation:17,deadlineAt:at+900_000,
     state:'running' as const,pauseOperationId:null as string|null,updatedAt:at,cloudRun:{runId:run.run_id,generation:run.generation}};
   const sync=(value:object=snapshot,device=computer)=>syncBackgrounds(owner,device,{backgrounds:[value]},()=>at);
   await sync();
@@ -34,7 +34,6 @@ test('foreign admin, wrong computer, invalid approval/generation and stale exact
   await expect(scope(()=>requestBackgroundControl(f.owner,f.agentId,{...pause,approved:false},()=>at))).rejects.toMatchObject({code:'bad_input'});
   await expect(scope(()=>requestBackgroundControl(f.owner,f.agentId,{...pause,generation:18},()=>at))).rejects.toMatchObject({code:'runtime_conflict'});
   await expect(scope(()=>requestBackgroundControl(f.owner,f.agentId,{...pause,minutes:30},()=>at))).rejects.toMatchObject({code:'bad_input'});
-  await expect(f.sync({...f.snapshot,deadlineAt:at+900_000})).rejects.toMatchObject({code:'bad_input'});
   await expect(f.sync(f.snapshot,otherComputer)).rejects.toMatchObject({code:'runtime_conflict'});
   await expect(f.sync({...f.snapshot,cloudRun:null})).rejects.toMatchObject({code:'runtime_conflict'});
   await expect(f.sync({...f.snapshot,cloudRun:{...f.snapshot.cloudRun,generation:999}})).rejects.toMatchObject({code:'runtime_conflict'});
@@ -44,8 +43,8 @@ test('foreign admin, wrong computer, invalid approval/generation and stale exact
   at+=10;await f.sync({...f.snapshot,state:'paused',pauseOperationId:randomUUID(),updatedAt:at});
   await expect(scope(()=>requestBackgroundControl(f.owner,f.agentId,f.request('resume',pause.id),()=>at))).rejects.toMatchObject({code:'runtime_conflict'});
 });
-test('pause and stop are accepted and delivered long after the mission started; a command carries its own expiry',async()=>{
-  const f=await fixture();at+=60*60_000;
+test('pause and stop are accepted and delivered after the job end time; a command carries its own expiry',async()=>{
+  const f=await fixture();at=f.snapshot.deadlineAt+60_000;
   await f.sync({...f.snapshot,state:'waiting',updatedAt:at});
   const pause=f.request('pause');
   expect(await scope(()=>requestBackgroundControl(f.owner,f.agentId,pause,()=>at))).toMatchObject({background:{available:true,pending:{id:pause.id,state:'queued'}}});

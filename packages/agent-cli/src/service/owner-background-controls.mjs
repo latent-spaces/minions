@@ -23,8 +23,8 @@ export function createOwnerBackgroundControls({store,controllers,ownerClient,own
       if(!Array.isArray(rows)||rows.length>batch.length||rows.some(row=>!batch.some(target=>sameTarget(target,row?.target))))
         throw new RuntimeError('invalid_snapshot','Background snapshots are unavailable.');
       // Never publish scope, native PIDs, paths, model output or local credentials.
-      const backgrounds=rows.map(({target,missionId,generation,state,pauseOperationId,cloudRun,updatedAt})=>({
-        target:structuredClone(target),missionId,generation,state,pauseOperationId:pauseOperationId??null,
+      const backgrounds=rows.map(({target,missionId,generation,deadlineAt,state,pauseOperationId,cloudRun,updatedAt})=>({
+        target:structuredClone(target),missionId,generation,deadlineAt,state,pauseOperationId:pauseOperationId??null,
         cloudRun:cloudRun?{runId:cloudRun.runId,generation:cloudRun.generation}:null,updatedAt}));
       if(required&&!backgrounds.some(row=>row.missionId===required.missionId&&row.generation===required.generation))
         throw new RuntimeError('invalid_snapshot','The exact background mission snapshot is unavailable.');

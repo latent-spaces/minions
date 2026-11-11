@@ -16,10 +16,8 @@ const target = z.object({ site: z.string().max(300).refine(value => {
     || url.protocol === 'http:' && ['127.0.0.1','localhost'].includes(url.hostname)); } catch { return false; }
 }), ownerId: identifier, projectId: z.string().regex(/^[a-f0-9]{64}$/), agentId: identifier }).strict();
 const missionState = z.enum(['accepted','starting','running','waiting','blocked','pausing','paused','stopping','stopped','failed','recovery_required']);
-// A job has no time limit, so a mission reports no end time. A snapshot saved before 10 November 2026 can still hold
-// one (deadlineAt); publicView does not return it, and the next sync replaces the saved snapshot whole.
 export const BACKGROUND_SNAPSHOT = z.object({ target, missionId: uuid, generation: z.number().int().positive(),
-  state: missionState, pauseOperationId: uuid.nullable(), updatedAt: time,
+  deadlineAt: time, state: missionState, pauseOperationId: uuid.nullable(), updatedAt: time,
   cloudRun: z.object({ runId: uuid, generation: z.number().int().positive() }).strict().nullable(),
 }).strict().superRefine((value, ctx) => {
   if (['pausing','paused'].includes(value.state) && value.pauseOperationId === null)
@@ -51,6 +49,7 @@ const key = (profileId: string, id: string) => createHash('sha256').update(JSON.
 const parse = <T>(schema: z.ZodType<T>, value: unknown): T => { const result = schema.safeParse(value);
   if (!result.success) throw new Refusal('bad_input','Some fields in this request are missing or not in the expected form.'); return result.data; };
 const unresolved = (mail: Mail | undefined): mail is Mail & {state:'queued'|'accepted'} => !!mail && ['queued','accepted'].includes(mail.state);
+// The job's end time does not end a mission: its worker finishes the turn and waits, and can still be paused, resumed or stopped.
 const ended = (saved: Snapshot) => ['stopped','failed'].includes(saved.state);
 async function own(tx: Transaction, profileId: string, agentId: string) {
   if (!identifier.safeParse(agentId).success) throw new Refusal('not_found','This agent wasn’t found.');
@@ -60,7 +59,7 @@ async function own(tx: Transaction, profileId: string, agentId: string) {
   await assertAgentMembership(tx,agentId);
 }
 function publicView(saved: Saved, pending: Mail | undefined, at: number): BackgroundControlView {
-  return {target:saved.target,missionId:saved.missionId,generation:saved.generation,
+  return {target:saved.target,missionId:saved.missionId,generation:saved.generation,deadlineAt:saved.deadlineAt,
     state:saved.state,pauseOperationId:saved.pauseOperationId,updatedAt:saved.updatedAt,deviceLastSeenAt:saved.deviceLastSeenAt,
     available:!ended(saved) && saved.deviceLastSeenAt >= at-90_000 && !['stopping','recovery_required'].includes(saved.state),
     pending:pending ? {id:pending.id,kind:pending.command.kind,...(pending.actorProfileId ? {actorProfileId:pending.actorProfileId}:{}),state:unresolved(pending) && pending.deadlineAt<=at ? 'expired':pending.state,
@@ -102,6 +101,7 @@ export async function syncBackgrounds(profileId: string, connectionId: string, i
       if(same && snapshot.updatedAt<saved!.updatedAt) throw new Refusal('runtime_conflict','A newer background observation already exists.');
       if(same && ['stopped','failed'].includes(saved!.state) && snapshot.state!==saved!.state)
         throw new Refusal('runtime_conflict','A delayed observation cannot reopen ended work.');
+      if(same && snapshot.deadlineAt<saved!.deadlineAt) throw new Refusal('runtime_conflict','A delayed observation cannot shorten the approved deadline.');
       if(snapshot.cloudRun && (snapshot.cloudRun.runId!==snapshot.missionId || run?.runId!==snapshot.missionId
         || run.generation!==snapshot.cloudRun.generation || run.mode==='current_chat'))
         throw new Refusal('runtime_conflict','The cloud has not confirmed this exact background run.');

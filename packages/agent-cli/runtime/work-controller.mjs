@@ -8,7 +8,7 @@ export const newsFingerprint = news => createHash('sha256').update(JSON.stringif
 // A restored worker passes what its earlier turns saw (`seen`), so it runs only for news since then.
 // A provider usage or rate limit is not a failure (owner, 10 November 2026): the worker waits and tries again at the
 // provider's reset time when it named one, otherwise after a growing wait up to `limitMaxWaitMs`, and never stops for it.
-export function createWorkController({ quietIntervalMs = 0, quietJitterMs = quietIntervalMs * 0.1, announcementJitterMs = 120000, retryBaseMs = 10000, maxFailures = 3, limitMaxWaitMs = 15 * 60_000, random = Math.random, now = Date.now, first: initial = true, seen = null } = {}) {
+export function createWorkController({ quietIntervalMs = 0, quietJitterMs = quietIntervalMs * 0.1, announcementJitterMs = 120000, retryBaseMs = 10000, maxFailures = 3, limitMaxWaitMs = 15 * 60_000, random = Math.random, now = Date.now, deadline = Infinity, first: initial = true, seen = null } = {}) {
   let first = initial, active = false, continuation = seen?.continuation === true, failures = 0, blocked = false;
   let freshAfter = null, fingerprintSeen = seen?.fingerprint ?? null, handledRevision = seen?.handledRevision ?? -1, retryAt = null, announcementAt = null;
   let turnRevision = null, inboxAtTurn = null, awaitingAck = null;
@@ -21,6 +21,7 @@ export function createWorkController({ quietIntervalMs = 0, quietJitterMs = quie
   function status() { return { first, active, continuation, failures, blocked, handledRevision, retryAt, quietAt, limited: limited && { ...limited } }; }
   return {
     status,
+    setDeadline(value) { if (!Number.isSafeInteger(value) || value <= deadline) throw new Error('Worker deadline must increase.'); deadline = value; },
     requestContinuation() { continuation = true; blocked = false; failures = 0; retryAt = limited?.retryAt ?? null; freshAfter = null; awaitingAck = null; },
     beginTurn(news) { active = true; continuation = false; turnRevision = news.work?.revision; inboxAtTurn = { pending: news.pending, acknowledged: news.acknowledged }; fingerprintSeen = fingerprint(news); announcementAt = null; },
     recordOutcome({ kind, continuation: next = false, news, now: time = now(), retryable = true, providerLimited = false, resetAt = null }) {
@@ -51,6 +52,8 @@ export function createWorkController({ quietIntervalMs = 0, quietJitterMs = quie
       if (!news?.project || typeof news.project.started !== 'boolean' || typeof news.project.paused !== 'boolean') return { action: 'wait', reason: 'unknown_contact' };
       // A closed project ends all of its agents' work; pausing only waits.
       if (news.project.closed) return { action: 'stop', reason: 'project_closed' };
+      // The job's end time never ends a worker: it starts no new turn and waits until the owner adds time.
+      if (time >= deadline) return { action: 'wait', reason: 'time_up', interrupt: false };
       // At the job's token cap, checked between turns: it waits until the owner raises or removes the cap.
       if (tokenCap) return { action: 'wait', reason: 'token_cap', interrupt: false };
       if (!news.project.started || news.project.paused || paused) return { action: 'wait', reason: 'paused', interrupt: false };

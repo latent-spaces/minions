@@ -136,7 +136,7 @@ export function createRuntimeApplication({ controllers, principal, ownerClient, 
                 id = uuidFrom(`next-run:${id}`);
               }
               const savedRun = queued.request;
-              run = { id: savedRun.id, state: savedRun.state, code:savedRun.code??null, provider: savedRun.execution.provider, model: savedRun.execution.model, task: savedRun.scope, starts: savedRun.code==='cancelled'?'cancelled; this request will not start. A new run needs a separate approved start.':'when the project has started, and the computer and repository are ready; the service runs it independently of this chat' };
+              run = { id: savedRun.id, state: savedRun.state, code:savedRun.code??null, provider: savedRun.execution.provider, model: savedRun.execution.model, task: savedRun.scope, starts: savedRun.code==='cancelled'?'cancelled; this request will not start. A new run needs a separate approved start.':'when the project has started and has time left, and the computer and repository are ready; the service runs it independently of this chat' };
             } catch (error) { run = { queued: false, reason: error?.message ?? 'The first run could not be queued.' }; }
           }
           return result({ project_id: projectId, agent_id: record.agentId, agent_name: record.agentName, folder: record.folder, repository: added.repo, created: added.created, project_name: added.project_name, saved_defaults: added.settings, run });

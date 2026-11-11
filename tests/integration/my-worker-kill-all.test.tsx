@@ -14,12 +14,12 @@ import { MyWorkerControls } from '../../apps/web/src/ui/MyWorkerControls';
 // Synthetic rows only: no server, computer or model.
 const at = 1_000_000, projectId = 'p';
 const view = (agentId: string, pending: BackgroundControlView['pending'] = null): BackgroundControlView => ({
-  target: { projectId, agentId } as BackgroundControlView['target'], missionId: `m-${agentId}`, generation: 1,
+  target: { projectId, agentId } as BackgroundControlView['target'], missionId: `m-${agentId}`, generation: 1, deadlineAt: at + 600_000,
   state: 'running', pauseOperationId: null, updatedAt: at, deviceLastSeenAt: at, available: true, pending });
 const pending = (kind: 'pause' | 'resume' | 'stop') => ({ id: `op-${kind}`, kind, state: 'accepted' as const, approvedAt: at });
 const render = (views: BackgroundControlView[]) => {
   const data = { agents: views.map(v => ({ agentId: v.target.agentId, agentName: v.target.agentId, backgroundControl: v,
-    worker: { available: true, session: { missionId: v.missionId, generation: 1, phase: 'working', lastContactAt: at } } })) } as unknown as ProjectWorkersView;
+    worker: { available: true, session: { missionId: v.missionId, generation: 1, phase: 'working', deadlineAt: v.deadlineAt, lastContactAt: at } } })) } as unknown as ProjectWorkersView;
   const controls = { data, now: at, error: '', loading: false, participation: null, refresh: () => {},
     background: { pending: {}, busy: {}, errors: {}, act: async () => {}, retry: async () => {} } };
   return renderToStaticMarkup(createElement(MyWorkerControls, { projectId, controls, disabled: false, inline: true }));

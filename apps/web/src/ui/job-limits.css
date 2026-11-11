@@ -1,12 +1,17 @@
-/* The job bar above My agents: the job's token cap. */
-.k42-job-bar { margin: 12px 0; border: var(--card-border); border-radius: var(--surface-radius); background: var(--canvas); min-width: 0; }
+/* The job bar above My agents: time on one side, the token cap on the other; they stack on a narrow screen. */
+.k42-job-bar { container-type: inline-size; margin: 12px 0; border: var(--card-border); border-radius: var(--surface-radius); background: var(--canvas); min-width: 0; }
 .k42-job-parts { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
 .k42-job-part { flex: 1 1 0; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.k42-job-part + .k42-job-part { padding-top: 16px; border-top: 1px solid var(--line); }
+@container (min-width: 640px) {
+  .k42-job-parts { flex-direction: row; gap: 32px; }
+  .k42-job-part + .k42-job-part { padding: 0 0 0 32px; border-top: 0; border-left: 1px solid var(--line); }
+}
 .k42-job-line { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .k42-job-part > small { font-size: 12px; line-height: 1.5; }
 .k42-job-saved:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }  /* the live region stays in the page */
 .k42-job-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.k42-job-actions button { min-height: 44px; }
+.k42-job-actions button, .k42-job-actions select { min-height: 44px; }
 .k42-job-actions button { display: inline-flex; align-items: center; gap: 8px; }
 .k42-job-meter { height: 6px; border-radius: 3px; background: var(--hairline-soft); overflow: hidden; max-width: 360px; }
 .k42-job-meter > span { display: block; height: 100%; background: var(--ink); }

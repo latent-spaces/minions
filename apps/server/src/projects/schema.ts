@@ -19,10 +19,7 @@ export const PROJECT_RECORD = z.object({
   setup: z.object({ required: z.boolean(), configuredAt: time.nullable(), configuredByProfileId: profileId.nullable(),
     finalizedAt: time.nullable(), repoUrl: z.string().max(300).nullable(),
     minContributors: z.number().int().min(1).max(10000).nullable(), startDeadline: z.string().nullable() }).strict(),
-  execution: z.object({ startsAt: time,
-    // Accepted and ignored: the job's end time that projects started before 10 November 2026 stored. A job has no
-    // time limit now and nothing reads it. Remove once a migration has cleared it from every stored project.
-    endsAt: time.optional(), paused: z.boolean(), started: z.boolean(), awaitingKickoff: z.boolean(), completedAt: time.nullable(),
+  execution: z.object({ startsAt: time, endsAt: time.optional(), paused: z.boolean(), started: z.boolean(), awaitingKickoff: z.boolean(), completedAt: time.nullable(),
     tokenLimit: z.object({ tokens: z.number().int().positive().max(Number.MAX_SAFE_INTEGER) }).strict().optional(),
     pauseRequest: z.object({ revision: z.number().int().positive(), requestedAt: time }).strict().optional() }).strict(),
   publication: z.object({ listed: z.boolean(), revision: z.number().int().nonnegative() }).strict(),

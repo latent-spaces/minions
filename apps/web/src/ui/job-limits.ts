@@ -1,6 +1,7 @@
 import type { ProjectWorkersView } from '@mlswarm/contracts';
+import { timeLeft } from '../observation-time';
 
-// Pure helpers for the job bar above My agents: the job's token cap (decision 10 November 2026).
+// Pure helpers for the job bar above My agents: the job's end time and its token cap (decision 10 November 2026).
 
 const n = (value: number) => value.toLocaleString('en-US');
 export const formatTokens = n;
@@ -35,3 +36,9 @@ export function parseTokenCap(text: string): CapInput {
 }
 /** The editor shows a valid number with thousands separators; anything else is left as typed. */
 export const tidyTokenCap = (text: string) => { const parsed = parseTokenCap(text); return parsed.tokens === null ? text : n(parsed.tokens); };
+
+/** "Ends 14:30 · 1 h 53 min left", or "Time is up" once the end has passed or there is no end. */
+export function jobTimeLine(endsAt: number | null, now: number) {
+  if (endsAt === null || endsAt <= now) return 'Time is up';
+  return `Ends ${new Date(endsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · ${timeLeft(endsAt - now)}`;
+}

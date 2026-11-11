@@ -18,7 +18,7 @@ const nativeSkip = ['darwin', 'linux', 'win32'].includes(process.platform) ? fal
 const nativeTimeout = milliseconds => process.platform === 'win32' ? 90000 : milliseconds;
 
 const start = binding => ({ version: 2, operationId: randomUUID(), kind: 'start', target: binding.target, missionId: randomUUID(),
-  payload: { scope: `Synthetic mission for ${binding.target.projectId}/${binding.target.agentId}`,
+  payload: { scope: `Synthetic mission for ${binding.target.projectId}/${binding.target.agentId}`, deadlineAt: Date.now() + 45000,
     execution: { provider: binding.target.agentId, model: `${binding.target.agentId}-${binding.target.projectId}-synthetic` } } });
 const command = (mission, kind, payload = {}) => ({ version: 2, operationId: randomUUID(), kind, target: mission.target, missionId: mission.missionId, generation: mission.generation, payload });
 const query = mission => ({ missionId: mission.missionId, target: mission.target });
@@ -167,28 +167,26 @@ test('submitted Codex steering without acknowledgement becomes uncertain and is 
   } finally { await recovered.close(); await reopened.close(); }
 });
 
-// A job has no time limit. A start saved before 10 November 2026 still carries an end time; once it passes, the
-// native turn keeps running, and after it finishes the next turn starts.
-test('an old end time that passes neither kills a native turn nor holds the next one', { timeout: nativeTimeout(15000), skip: nativeSkip }, async t => {
+test('a native turn running past the job\'s end time is not killed; it finishes and no further turn starts', { timeout: nativeTimeout(15000), skip: nativeSkip }, async t => {
   const ctx = await setup(t, [['park', 'codex']], (_label, root) => [
     { result: 'Synthetic follow-up is ready.\nWORK_NEXT: runnable' },
-    { gate: join(root, 'released-after-end'), result: 'Finished past the old end time.\nWORK_NEXT: runnable' },
-    { result: 'Synthetic third turn.\nWORK_NEXT: waiting' },
+    { gate: join(root, 'released-after-end'), result: 'Finished past the end time.\nWORK_NEXT: runnable' },
   ]);
   const initial = start(ctx.bindings[0]);
   initial.payload.deadlineAt = Date.now() + (process.platform === 'win32' ? 15000 : 2500);
   const { mission } = await ctx.controllers.accept(initial);
   const turns = async () => (await nativeEvents(ctx.events)).filter(event => event.type === 'turn');
-  await until(turns, events => events.length === 2, 'active continuation before the old end time');
+  await until(turns, events => events.length === 2, 'active continuation before the end time');
   await sleep(Math.max(0, initial.payload.deadlineAt - Date.now()) + 400);
   const running = await turns();
-  assert.doesNotThrow(() => process.kill(running[1].pid, 0), 'the turn keeps running past the old end time');
+  assert.doesNotThrow(() => process.kill(running[1].pid, 0), 'the turn keeps running past the end time');
   assert.notEqual((await inspect(ctx, mission)()).state, 'stopped');
   await writeFile(join(ctx.root, 'released-after-end'), 'release');
-  await until(turns, events => events.length === 3, 'the next turn starts after the old end time');
-  const saved = await inspect(ctx, mission)();
-  assert.equal(saved.outcomes[1].outcome.interrupted, false);
-  assert.equal(Object.hasOwn(saved, 'deadlineAt'), false);
+  const waiting = await until(inspect(ctx, mission), state => state.state === 'waiting' && state.outcomes.length === 2, 'worker waits after finishing its turn');
+  assert.equal(waiting.outcomes[1].outcome.interrupted, false);
+  assert.equal(waiting.deadlineAt, initial.payload.deadlineAt);
+  await sleep(300);
+  assert.equal((await turns()).length, 2);
 });
 
 test('native interactive and permission refusals stay refused without tool approval or another provider', { timeout: nativeTimeout(20000), skip: nativeSkip }, async t => {

@@ -20,8 +20,7 @@ export type AgentStatusDoc = {
     focus: { text: string; updatedAt: number } | null; personaText: string };
   // Every accepted worker sync replaces this group whole, including the worker's own contact. Status readers
   // use only this canonical group; the mission pointer remains solely for action authority.
-  // A group written before 10 November 2026 can also hold the job's end time (deadlineAt); it is not read.
-  worker?: { runId: string; phase: WorkerSummary['phase']; lastContactAt: number; projectPauseRevision?: number | null };
+  worker?: { runId: string; phase: WorkerSummary['phase']; lastContactAt: number; deadlineAt: number; projectPauseRevision?: number | null };
 };
 
 // Project-level inputs the document cannot hold: the owners' membership epochs (for revocation), the project pause and
@@ -57,7 +56,7 @@ export function sourcesFromStatusDoc(id: string, doc: AgentStatusDoc | undefined
     : { runId: status.runId, endedAt: status.runEndedAt ?? null, ...(status.runMode ? { mode: status.runMode } : {}) } as Run;
   const contact = !status.runId ? undefined
     : { runId: status.runId, lastContactAt: status.lastContactAt, phase: status.phase, phaseAt: status.phaseAt, acceptingWork: status.acceptingWork } as Presence;
-  const worker = status.worker && run ? { runId: status.worker.runId, phase: status.worker.phase,
+  const worker = status.worker && run ? { runId: status.worker.runId, phase: status.worker.phase, deadlineAt: status.worker.deadlineAt,
     projectPauseRevision: status.worker.projectPauseRevision, lastContactAt: status.worker.lastContactAt } as WorkerSummary : undefined;
   return { id, agent, allowed: ctx.allowed(a), run, contact, worker, queued: ctx.queued === true,
     needsYou: ctx.needsYou === true, ...(ctx.pause ? { pause: ctx.pause } : {}), sourceRevision: revision };
@@ -75,7 +74,7 @@ export function statusDocFromSources(s: AgentStateSources): AgentStatusDoc {
       phaseAt: sameRunContact?.phaseAt ?? 0, runEndedAt: s.run.endedAt ?? null, runMode: s.run.mode ?? null } : { runId: null, runEndedAt: null }),
     agent: { name: s.agent.name, ownerProfileId: s.agent.ownerProfileId, revokedAt: s.agent.revokedAt, connectionEpoch: s.agent.connectionEpoch,
       focus: s.agent.focus ? { text: s.agent.focus.text, updatedAt: s.agent.focus.updatedAt } : null, personaText: s.agent.persona?.text ?? '' },
-    ...(s.worker ? { worker: { runId: s.worker.runId, phase: s.worker.phase,
+    ...(s.worker ? { worker: { runId: s.worker.runId, phase: s.worker.phase, deadlineAt: s.worker.deadlineAt,
       projectPauseRevision: s.worker.projectPauseRevision, lastContactAt: s.worker.lastContactAt } } : {}),
   } as AgentStatusDoc;
 }

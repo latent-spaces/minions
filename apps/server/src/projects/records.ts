@@ -41,6 +41,7 @@ export function runtimeOf(record: ProjectRecord | undefined): RuntimeState | und
   return { repoUrl: setup.repoUrl, configuredAt: record.setup.configuredAt!,
     configuredBy: setup.configuredByProfileId, revision: record.revision,
     startsAt: execution.startsAt, paused: execution.paused, started: execution.started, awaitingKickoff: execution.awaitingKickoff,
+    ...(execution.endsAt !== undefined ? { endsAt: execution.endsAt } : {}),
     ...(execution.tokenLimit ? { tokenLimit: execution.tokenLimit } : {}),
     ...(execution.pauseRequest ? { pauseRequest: execution.pauseRequest } : {}),
     ...(setup.finalizedAt !== null ? { setupFinalizedAt: setup.finalizedAt } : {}),
@@ -54,7 +55,6 @@ export function runtimeWithCard(record: ProjectRecord | undefined, card: { versi
   if (!card) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
   return { ...runtime, cardVersion: card.version, ...agentText(card.definition) };
 }
-// A stored execution.endsAt (see schema.ts) is carried over from `record` unread.
 export function recordWithRuntime(record: ProjectRecord, runtime: RuntimeState): ProjectRecord {
   return PROJECT_RECORD.parse({ ...record, revision: runtime.revision,
     setup: { ...record.setup, repoUrl: runtime.repoUrl, configuredAt: runtime.configuredAt,
@@ -62,7 +62,7 @@ export function recordWithRuntime(record: ProjectRecord, runtime: RuntimeState):
       minContributors: runtime.minContributors ?? record.setup.minContributors, startDeadline: runtime.startDeadline ?? null },
     execution: { startsAt: runtime.startsAt, paused: runtime.paused, started: runtime.started,
       awaitingKickoff: runtime.awaitingKickoff ?? false, completedAt: runtime.completedAt ?? null,
-      ...(record.execution.endsAt !== undefined ? { endsAt: record.execution.endsAt } : {}),
+      ...(runtime.endsAt !== undefined ? { endsAt: runtime.endsAt } : {}),
       ...(runtime.tokenLimit ? { tokenLimit: runtime.tokenLimit } : {}),
       ...(runtime.pauseRequest ? { pauseRequest: runtime.pauseRequest } : {}) } });
 }

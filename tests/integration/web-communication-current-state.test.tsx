@@ -35,7 +35,7 @@ test('the map shows live states from the current-state endpoint, its only status
       const run = await startRun(agent.agentId, { clientRunId: randomUUID(), runnerVersion: 'synthetic-test-no-model', takeover: false }, () => at);
       if (i === 0) await reportPhase(agent.agentId, run.run_id, { phase: 'turn' }, () => at);
       if (i === 2) await syncWorkerSession(agent.agentId, { run_id: run.run_id, missionId: run.run_id, startedAt: at,
-        phase: 'waiting', remainingSlots: 64, generation: 1 }, () => at);
+        deadlineAt: at + 3600000, phase: 'waiting', remainingSlots: 64, generation: 1 }, () => at);
     }
   });
   await webAgentStarts.doc(randomUUID()).set({ profileId: f.personIds[0], projectId: TEST_PROJECT,

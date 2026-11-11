@@ -33,7 +33,7 @@ async function agents(count: number) {
     agents: Array.from({ length: count }, (_, i) => ({ person: 0, name: `Heartbeat worker ${i}` })) });
   return Promise.all(f.agents.map(async a => {
     const run = await scope(() => startRun(a.agentId, { clientRunId: randomUUID(), runnerVersion: 'synthetic-no-model', takeover: false }, now));
-    const session = { missionId: randomUUID(), generation: 1, startedAt: clock, remainingSlots: 0, phase: 'waiting' };
+    const session = { missionId: randomUUID(), generation: 1, startedAt: clock, deadlineAt: clock + 3_600_000, remainingSlots: 0, phase: 'waiting' };
     return { id: a.agentId, token: a.token, runId: run.run_id, session };
   }));
 }

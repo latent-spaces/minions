@@ -119,19 +119,22 @@ test('unfinished agent additions cannot reuse a credential after switching accou
  } finally {f.close();rmSync(folder,{recursive:true,force:true});}
 });
 
-test('a job has no time limit: the project control refuses add_time and minutes, and start sends no length',async()=>{
+test('time is added to the whole job through the approved project control; agents have no time of their own',async()=>{
  const f=fixture();try{
   await f.client.connect();f.approve();await f.client.finish();
   await f.client.operation('list_working_agents',{project_id:P});
   assert.ok(f.requests.at(-1).url.endsWith(`/projects/${P}/my-workers`));
   await assert.rejects(f.client.operation('add_agent_time',{project_id:P,agent_id:'fox',id:randomUUID(),missionId:randomUUID(),expectedDeadlineAt:1000000,minutes:30,approved:true}),/unknown/);
+  const args={project_id:P,client_request_id:'add-time-1',expected_revision:1,action:'add_time',minutes:30,approved:true};
   const before=f.requests.length;
-  await assert.rejects(f.client.operation('control_project',{project_id:P,client_request_id:'add-time-1',expected_revision:1,action:'add_time',minutes:30,approved:true}));
-  await assert.rejects(f.client.operation('control_project',{project_id:P,client_request_id:'start-0',expected_revision:1,action:'start',minutes:60,approved:true}));
+  for(const bad of [{...args,approved:false},{...args,minutes:undefined},{...args,minutes:7},{...args,minutes:1445},{...args,action:'pause'},{...args,action:'start',minutes:3}])
+   await assert.rejects(f.client.operation('control_project',bad));
   assert.equal(f.requests.length,before);
-  await f.client.operation('control_project',{project_id:P,client_request_id:'start-1',expected_revision:2,action:'start',approved:true});
+  await f.client.operation('control_project',args);
   const sent=JSON.parse(f.requests.at(-1).body);
-  assert.equal(sent.action,'start');assert.equal('minutes' in sent,false);
+  assert.equal(sent.action,'add_time');assert.equal(sent.minutes,30);
+  await f.client.operation('control_project',{project_id:P,client_request_id:'start-1',expected_revision:2,action:'start',approved:true});
+  assert.equal('minutes' in JSON.parse(f.requests.at(-1).body),false);
  }finally{f.close();}
 });
 

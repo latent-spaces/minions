@@ -8,7 +8,7 @@ const [directory, mode, url] = process.argv.slice(2);
 const target = { site: 'https://fixture.invalid', ownerId: 'synthetic-owner', projectId: 'crash-project', agentId: 'crash-agent' };
 const store = await openRuntimeStore({ directory: join(directory, 'state') });
 const command = { version: 2, operationId: randomUUID(), missionId: randomUUID(), kind: 'start', target,
-  payload: { scope: 'Synthetic report durability only', execution: { provider: 'codex', model: null } } };
+  payload: { scope: 'Synthetic report durability only', deadlineAt: Date.now() + 60000, execution: { provider: 'codex', model: null } } };
 const { mission } = await store.accept(command);
 await store.prepareCloudRun({ ...mission, startedAt: 1000 });
 await store.bindCloudRun({ ...mission, runId: mission.missionId, cloudGeneration: 1 });

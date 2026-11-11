@@ -1,9 +1,7 @@
 // Internal process entry point. Only its private parent IPC can authorize a launch.
 // It does not obtain credentials, discover work, or start another turn. The native
 // client's existing allowlisted environment is preserved, without additional keys.
-// A turn's guard deadline is a safety stop for one hung turn, never a job limit: at most 24 hours away,
-// the same bound windows-job.cs checks.
-const MAX_TURN_GUARD_MS = 24 * 60 * 60000;
+import { MAX_REMAINING_MS } from './run-length.mjs';
 import { spawn } from 'node:child_process';
 
 let child, launched = false, stopping = false, closed = false, finishing = false, exitCode = 1, announcingNative = false, announcingClose = false;
@@ -59,7 +57,7 @@ process.on('message', message => {
   if (!process.connected || stopping || !message || typeof message.command !== 'string' || !message.command
       || !Array.isArray(message.args) || !message.args.every(value => typeof value === 'string')
       || !Number.isSafeInteger(message.deadline) || message.deadline <= Date.now()
-      || message.deadline - Date.now() > MAX_TURN_GUARD_MS || typeof message.rpc !== 'boolean') { stop(); return; }
+      || message.deadline - Date.now() > MAX_REMAINING_MS || typeof message.rpc !== 'boolean') { stop(); return; }
   launched = true;
   try {
     child = spawn(message.command, message.args, { cwd: process.cwd(), env: process.env, detached: true,

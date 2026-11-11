@@ -56,7 +56,7 @@ async function writeStatus(agentId: string, owner: string, fields: Record<string
     agent: { name: agentId, ownerProfileId: owner, connectionEpoch: 0, revokedAt: null, focus: null, personaText: '' }, ...fields } as never, { merge: true }));
 }
 const worker = (over: Record<string, unknown> = {}) =>
-  ({ runId: 'run-1', phase: 'working', lastContactAt: at, projectPauseRevision: null, ...over });
+  ({ runId: 'run-1', phase: 'working', lastContactAt: at, deadlineAt: at + 3_600_000, projectPauseRevision: null, ...over });
 async function fixture(status: Record<string, unknown> = {}) {
   const f = await seed({ profiles: [{ name: 'Alice', email: 'clock-alice@example.test' }], agents: [{ person: 0, name: 'alice-fox' }] });
   const fox = f.agents[0]!.agentId, owner = f.personIds[0]!;
@@ -118,14 +118,12 @@ test('resume with no presence change: a viewer holding a paused-side cursor lear
   expect({ rows: delta.rows.length, reached: rowOf(delta, fox)?.state === 'working' || pauseCleared }).toMatchObject({ reached: true });
 });
 
-// A status document written before 10 November 2026 can hold the worker's end time; it is not read.
-test('a stored worker end time that has passed is not an ending: the worker stays Working and nothing is re-sent', async () => {
+test('a passed end time is not an ending: the worker stays Working and nothing is re-sent', async () => {
   const deadline = at + 30_000;
   const { fox, token } = await fixture({ worker: worker({ deadlineAt: deadline }) });
   const first = await until(() => current(token), a => a.rows.length === 1);
   expect(rowOf(first, fox)).toMatchObject({ state: 'working' });
-  expect(JSON.stringify(first)).not.toContain('deadlineAt');
-  // 31 s later, nothing written: inside the 90 s contact bound and past the stored end time.
+  // 31 s later, nothing written: inside the 90 s contact bound and past the end time. The worker finishes its turn and waits.
   at = deadline + 1_000;
   expect(rowOf(await current(token), fox)).toMatchObject({ state: 'working' });
   expect((await current(token, first.cursor)).rows).toEqual([]);

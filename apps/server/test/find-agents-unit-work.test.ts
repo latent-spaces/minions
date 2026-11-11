@@ -42,7 +42,7 @@ test('counted: one find_agents page of 20 running agents (one owner)', async () 
       const runId = randomUUID();
       await runs().doc(agentId).set({ runId, generation: 1, runnerVersion: 'p1', startedAt: now - 60_000, endedAt: null, endReason: null, protocol: 2 });
       await presence().doc(agentId).set({ runId, lastContactAt: now - 30_000, phase: 'idle', phaseAt: now - 30_000, lastTurn: null, acceptingWork: null, protocol: 2 });
-      await workerPointer(agentId).set({ missionId: randomUUID(), summary: { runId, phase: 'working', lastContactAt: now - 5_000, projectPauseRevision: null } } as never);
+      await workerPointer(agentId).set({ missionId: randomUUID(), summary: { runId, phase: 'working', lastContactAt: now - 5_000, deadlineAt: now + 3_600_000, projectPauseRevision: null } } as never);
     }
   });
   counted.reads = 0;

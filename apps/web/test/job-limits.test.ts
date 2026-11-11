@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { ProjectWorkersView } from '@mlswarm/contracts';
-import { jobTokensUsed, parseTokenCap, tidyTokenCap } from '../src/ui/job-limits';
+import { jobTimeLine, jobTokensUsed, parseTokenCap, tidyTokenCap } from '../src/ui/job-limits';
 
 // Synthetic sessions only: no server, computer or model.
 const agent = (session: Record<string, unknown> | null) => ({ agentId: 'a', agentName: 'a', worker: { available: true, session } }) as unknown as ProjectWorkersView['agents'][number];
@@ -31,3 +31,10 @@ test('the cap editor takes a whole number of tokens, with separators, and names 
   assert.equal(tidyTokenCap('2k'), '2k');
 });
 
+test('the time line says when the job ends and how long is left, or that time is up', () => {
+  const now = new Date(2026, 10, 10, 12, 37).getTime(), end = new Date(2026, 10, 10, 14, 30).getTime();
+  assert.match(jobTimeLine(end, now), /^Ends .*30.* · 1 h 53 min left$/);
+  assert.match(jobTimeLine(now + 5 * 60_000, now), /· 5 min left$/);
+  assert.equal(jobTimeLine(now, now), 'Time is up');
+  assert.equal(jobTimeLine(null, now), 'Time is up');
+});
