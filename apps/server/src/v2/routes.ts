@@ -330,7 +330,7 @@ const PHASE_REPORT = z.object({
       inputSemantics: z.enum(['uncached', 'includes-cache']).optional(),
       toolCalls: z.number().int().nonnegative().max(1e9).optional(),
       toolScope: z.enum(['provider-stream', 'mcp-bridge', 'partial']).optional(),
-      nativeContext:z.object({source:z.literal('codex-app-server'),coverage:z.literal('partial-turn-stream'),
+      nativeContext:z.object({source:z.enum(['codex-app-server','claude-stream-json']),coverage:z.literal('partial-turn-stream'),
         lastInputTokens:z.number().int().nonnegative().max(1e15).nullable(),lastTotalTokens:z.number().int().nonnegative().max(1e15).nullable(),
         modelContextWindow:z.number().int().nonnegative().max(1e15).nullable(),observations:z.number().int().nonnegative().max(1e9),completedCompactions:z.number().int().nonnegative().max(4096)
       }).strict().refine(n=>n.observations>0||n.completedCompactions>0).optional(),

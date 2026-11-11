@@ -225,7 +225,7 @@ class ProviderStream {
   constructor(provider, { log = () => {}, assistantText = () => {}, action = () => {}, status = () => {}, session = () => {}, metadata = () => {}, permission = () => {}, submitted = () => {}, started = () => {}, persistence = () => {} } = {}) {
     this.provider = provider; this.log = log; this.assistantText = assistantText; this.action = action; this.session = session;
     this.metadata = metadata; this.permission = permission; this.toolNames = new Map(); this.toolCommands = new Map(); this.deniedIds = new Set();
-    this.init = null; this.report = null; this.finalText = ''; this.sessionId = null;
+    this.init = null; this.nativeContext = null; this.report = null; this.finalText = ''; this.sessionId = null;
     this.submitted = submitted; this.started = started; this.persistence = persistence; this.pendingPersistence = new Set();
     this.delivery = 'not_submitted'; this.failure = null; this.acknowledging = false;
     this.status = status; this.lastStatus = null;
@@ -289,6 +289,25 @@ class ProviderStream {
     const command = id ? this.toolCommands.get(id) : undefined;
     this.permission({ tool: name, ...(command ? { command } : {}) });
   }
+  claudeContext() {
+    return this.nativeContext ??= { source: 'claude-stream-json', coverage: 'partial-turn-stream', lastInputTokens: null, lastTotalTokens: null, modelContextWindow: null, observations: 0, completedCompactions: 0 };
+  }
+  // A request's input is its uncached, cache-read and cache-write tokens together; repeated events of one message count once.
+  observeClaudeRequest(message) {
+    const u = message?.usage; if (!u || typeof u !== 'object') return;
+    const parts = [u.input_tokens, u.cache_read_input_tokens, u.cache_creation_input_tokens].map(v => v === undefined ? 0 : counter(v)), output = u.output_tokens === undefined ? 0 : counter(u.output_tokens);
+    if (parts.some(v => v === null) || output === null) return;
+    const context = this.claudeContext(), input = parts.reduce((a, b) => a + b, 0), id = typeof message.id === 'string' ? message.id : null;
+    context.lastInputTokens = input; context.lastTotalTokens = input + output;
+    if (!id || id !== this.lastClaudeMessage) { this.lastClaudeMessage = id; context.observations = Math.min(1e9, context.observations + 1); }
+  }
+  // The result's per-model usage names each model's window; the agent's own model is the one it started with.
+  observeClaudeWindow(modelUsage) {
+    if (!modelUsage || typeof modelUsage !== 'object' || !this.nativeContext) return;
+    const entries = Object.entries(modelUsage), own = entries.find(([name]) => name === this.init?.model) ?? entries.find(([name]) => this.init?.model && name.startsWith(this.init.model)) ?? (entries.length === 1 ? entries[0] : null);
+    const window = counter(own?.[1]?.contextWindow);
+    if (window !== null && window > 0) this.nativeContext.modelContextWindow = window;
+  }
   line(line) {
     let events;
     try { const parsed = JSON.parse(line); events = Array.isArray(parsed) ? parsed : [parsed]; } catch { return; }
@@ -296,6 +315,9 @@ class ProviderStream {
       if (!e || typeof e !== 'object') continue;
       if (this.provider === 'claude') {
         if (e.type === 'system' && e.subtype === 'init') this.observeModel({ model: safeName(e.model), effort: safeName(e.effort) });
+        // The agent's own context: its latest request's input, its model's window and its compactions. Subagent messages are skipped.
+        if (e.type === 'assistant' && !e.parent_tool_use_id) this.observeClaudeRequest(e.message);
+        if (e.type === 'system' && e.subtype === 'compact_boundary') { this.claudeContext().completedCompactions = Math.min(4096, this.nativeContext.completedCompactions + 1); }
         // Claude receives -p at native launch. Model output confirms acceptance;
         // process existence or a system/init event alone does not.
         if (e.type === 'assistant' || e.type === 'result' && (!e.is_error || e.num_turns > 0)) this.acknowledgePrompt();
@@ -322,6 +344,7 @@ class ProviderStream {
             result: text(e.result, 32 * 1024), errors: Array.isArray(e.errors) ? e.errors.slice(0, 5).map(v => text(v)) : [],
             permission_denials: Array.isArray(e.permission_denials) ? e.permission_denials.slice(0, 100).map(v => ({ tool_name: safeName(v?.tool_name) })) : [] };
           for (const denial of Array.isArray(e.permission_denials) ? e.permission_denials.slice(0, 100) : []) this.observeDenial(denial.tool_use_id, denial.tool_name);
+          this.observeClaudeWindow(e.modelUsage);
           this.show(e.result, 'Agent result');
         }
       }

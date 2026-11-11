@@ -30,4 +30,4 @@ export type ContextTurnPage = {turns:{sequence:number;endedAt:number;outcome:str
 export type ContextNow = {agents:(ContextRunPage['runs'][number]&{turns:ContextTurnPage['turns']})[]};
 
 /** Exact native field observations; last/total do not establish occupied context or capacity remaining. */
-export type NativeContextObservation = {source:'codex-app-server';coverage:'partial-turn-stream';lastInputTokens:number|null;lastTotalTokens:number|null;modelContextWindow:number|null;observations:number;completedCompactions:number};
+export type NativeContextObservation = {source:'codex-app-server'|'claude-stream-json';coverage:'partial-turn-stream';lastInputTokens:number|null;lastTotalTokens:number|null;modelContextWindow:number|null;observations:number;completedCompactions:number};

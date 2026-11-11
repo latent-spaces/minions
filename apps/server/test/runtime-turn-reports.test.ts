@@ -48,6 +48,15 @@ test('identical report retries return the exact receipt and charge usage once; c
   expect((await scope(() => runnerUsage().doc(agent.agentId).get())).data()?.turns).toBe(1);
 });
 
+test('Claude stream-json context observations are accepted beside Codex ones', async () => {
+  const f = await fixture(), agent = f.agents[0], run = await start(agent.token), last = turn();
+  last.usage.nativeContext = { ...last.usage.nativeContext, source: 'claude-stream-json' };
+  expect((await post(agent.token, '/turn-reports', { run_id: run.body.run_id, last_turn: last })).status).toBe(200);
+  expect((await scope(() => turnReceipts().get())).docs[0]!.data().lastTurn.usage?.nativeContext?.source).toBe('claude-stream-json');
+  const unknown = turn(2); unknown.usage.nativeContext = { ...unknown.usage.nativeContext, source: 'other-client' };
+  expect((await post(agent.token, '/turn-reports', { run_id: run.body.run_id, last_turn: unknown })).status).toBe(400);
+});
+
 test('historical reports retain current membership fencing and cannot fabricate an unissued run', async () => {
   const f = await fixture(), agent = f.agents[0], run = await start(agent.token);
   expect((await post(agent.token, '/turn-reports', { run_id: randomUUID(), last_turn: turn() })).status).toBe(409);

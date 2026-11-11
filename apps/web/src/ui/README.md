@@ -415,7 +415,7 @@ renders server-projected identities and explicit unknown GitHub access facts; it
 does not fetch credentials or private agent environment reports.
 
 Usage's "Now · latest turn per agent" shows each agent's request as a share of its context
-window, with the window size, when the agent reports them (Codex does; Claude agents do not
-yet, so they read "Not reported"). MyLittleSwarm's own setup (instructions and tool
-definitions) is hatched, as in Karma42. There is no supplied-context-by-day chart and no
-per-agent context timeline.
+window, with the window size, when the agent reports them (Codex and Claude agents do;
+others read "Not reported"). MyLittleSwarm's own setup (instructions and tool
+definitions) is hatched, as in Karma42. There is no supplied-context-by-day chart, no
+per-agent context timeline and no exact-values section.

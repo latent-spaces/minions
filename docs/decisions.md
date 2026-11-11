@@ -131,7 +131,9 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
 - **Usage keeps less context detail.** Later the same day the owner removed “Supplied
   context by day” and the per-agent context timeline from Usage. “Now · latest turn per
   agent” shows the share of each agent's context window and the window size where
-  reported, and hatches MyLittleSwarm's own setup as Karma42 does.
+  reported, and hatches MyLittleSwarm's own setup as Karma42 does. The owner then also
+  removed the “Exact values & coverage” section below it, and asked that Claude agents
+  report their context window and request input so their share shows too.
 - **Task view unchanged.** The List/Board toggle stays, with List as the default. (Later
   the same day the owner replaced the task drawer with a task page and added subtasks; see
   “Task page and first-class subtasks”.)

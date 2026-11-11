@@ -668,8 +668,15 @@ Codex may separately report `nativeContext` from exact matching-thread/turn
 `thread/tokenUsage/updated` notifications and completed `contextCompaction` items.
 It retains the latest reported `last.inputTokens`, `last.totalTokens`,
 `modelContextWindow`, update count and deduplicated completed-compaction count.
-The source is `codex-app-server`, coverage `partial-turn-stream`. Missing fields
-remain null; unsupported clients remain unknown. These scalars do not establish
+The source is `codex-app-server`, coverage `partial-turn-stream`.
+
+Claude Code reports the same `nativeContext` from its stream-json output, with source
+`claude-stream-json`. The latest main-agent assistant message's `usage` gives the
+request input (`input_tokens` plus cache-read and cache-creation tokens) and, with
+`output_tokens`, the total; repeated events of one message count as one update and
+subagent messages are skipped. The result's `modelUsage` entry for the model the
+agent started with gives `contextWindow`; `compact_boundary` events count compactions.
+Missing fields remain null; unsupported clients remain unknown. These scalars do not establish
 occupied history or a context-fill percentage. They survive independently from
 MyLittleSwarm's byte summary; optional telemetry is omitted if it would overflow the
 existing outcome metadata limit, without invalidating an otherwise valid outcome.

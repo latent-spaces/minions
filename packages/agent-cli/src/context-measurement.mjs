@@ -34,7 +34,7 @@ export function validContextMeasurement(value) {
 
 export function validNativeContext(value){
   return exact(value,['source','coverage','lastInputTokens','lastTotalTokens','modelContextWindow','observations','completedCompactions'])
-    &&value.source==='codex-app-server'&&value.coverage==='partial-turn-stream'
+    &&['codex-app-server','claude-stream-json'].includes(value.source)&&value.coverage==='partial-turn-stream'
     &&['lastInputTokens','lastTotalTokens','modelContextWindow'].every(key=>value[key]===null||count(value[key]))
     &&count(value.observations,1e9)&&count(value.completedCompactions,4096)
     &&(value.observations>0||value.completedCompactions>0);
