@@ -12,7 +12,7 @@ const profileId = 'owner-profile', agentId = 'agent-1';
 async function seedStart(id: string, createdAt: number, state: WebAgentStart['state'] = 'working') {
   const row = { id, connectionId: randomUUID(), projectId: TEST_PROJECT, name: 'agent-1', scope: 'Work.',     execution: { provider: 'claude', model: null }, profileId, fingerprint: 'f', incarnation: randomUUID(), state,
     createdAt, activeUntil: createdAt + 3_600_000, pickupByAt: createdAt + 60_000, acceptedAt: createdAt, launchByAt: createdAt + 180_000,
-    agentId } as WebAgentStart;
+    deadlineAt: createdAt + 3_600_000, agentId } as WebAgentStart;
   await webAgentStarts.doc(webStartKey(profileId, id)).set(row);
 }
 const read = (mission: { missionId: string; startedAt: number } | null, run: { runId: string; endedAt: number | null } | null) =>

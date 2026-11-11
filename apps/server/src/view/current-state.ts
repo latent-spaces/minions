@@ -47,7 +47,7 @@ function whitelist(data: Record<string, unknown>): StatusDoc {
     value && typeof value === 'object' && (value as Record<string, unknown>)[key] !== undefined
       ? [[key, (value as Record<string, unknown>)[key]]] : []));
   if (data.agent) doc.agent = select(data.agent, ['name', 'ownerProfileId', 'connectionEpoch', 'revokedAt', 'focus', 'personaText']);
-  if (data.worker) doc.worker = select(data.worker, ['runId', 'phase', 'lastContactAt', 'projectPauseRevision']);
+  if (data.worker) doc.worker = select(data.worker, ['runId', 'phase', 'lastContactAt', 'deadlineAt', 'projectPauseRevision']);
   return doc as StatusDoc;
 }
 // One shared agent/run coverage rule. Only explicit null/null proves never-run; group-only legacy records

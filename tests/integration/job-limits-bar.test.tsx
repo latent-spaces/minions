@@ -12,9 +12,9 @@ import { MyWorkerControls } from '../../apps/web/src/ui/MyWorkerControls';
 
 // Synthetic rows only: no server, computer or model.
 const at = 1_000_000;
-const workspace = (patch: Partial<Workspace> = {}) => ({ id: 'p', role: 'owner', execution: 'active', revision: 3,
+const workspace = (patch: Partial<Workspace> = {}) => ({ id: 'p', role: 'owner', execution: 'active', revision: 3, endsAt: at + 113 * 60_000,
   project: { started: true, paused: false }, tokenLimit: null, ...patch }) as unknown as Workspace;
-const agents = (counted: number, othersUsed?: number) => [{ agentId: 'a', agentName: 'Builder', worker: { available: true, session: { missionId: 'm1', generation: 1, phase: 'working', lastContactAt: at,
+const agents = (counted: number, othersUsed?: number) => [{ agentId: 'a', agentName: 'Builder', worker: { available: true, session: { missionId: 'm1', generation: 1, phase: 'working', deadlineAt: at + 600_000, lastContactAt: at,
   tokens: { counted, unknownTurns: 0 }, ...(othersUsed === undefined ? {} : { tokenLimit: { tokens: 1000, othersUsed } }) } } }] as unknown as ProjectWorkersView['agents'];
 const controls = (rows = agents(0)) => ({ workers: { data: { agents: rows }, now: at }, locked: false, busy: false, error: '', setTokens: async () => true, act: async () => {} }) as unknown as ProjectControls;
 const render = (patch: Partial<Workspace> = {}, rows?: ProjectWorkersView['agents']) => renderToStaticMarkup(createElement(JobLimitsBar, { workspace: workspace(patch), controls: controls(rows) }));
@@ -26,12 +26,14 @@ test('only the owner sees the job bar, once the job has started and while the pr
   expect(render({ execution: 'closed' })).toBe('');
 });
 
-// A job has no time limit (owner decision, 10 November 2026): the bar holds only the token cap.
-test('the bar has no time part, even for a workspace or session that still carries an old past end time', () => {
-  const old = agents(0).map(row => ({ ...row, worker: { ...row.worker, session: { ...row.worker.session, deadlineAt: at - 1 } } })) as unknown as ProjectWorkersView['agents'];
-  const html = render({ endsAt: at - 1 } as Partial<Workspace>, old);
-  for (const text of ['Time is up', 'Add time', 'min left', 'more time', 'Ends ']) expect(html).not.toContain(text);
-  expect(html).toContain('No token cap');
+test('the time part says how long is left and offers Add time; once the end passes it says time is up', () => {
+  const html = render();
+  expect(html).toContain('1 h 53 min left');
+  expect(html).toContain('Add time');
+  const late = render({ endsAt: at - 1 });
+  expect(late).toContain('Time is up');
+  expect(late).toContain('Agents finish their turn, then wait for more time.');
+  expect(late).toContain('Add time');
 });
 
 test('without a cap the bar says so and offers Set cap', () => {

@@ -18,8 +18,9 @@ import { AgentObservationList } from './AgentObservationList';
 import { Bot } from 'lucide-react';
 import { EmptyState } from './EmptyState';
 
-// An agent's limits: how involved its operator wants to be. A job has no time limit; it works until it is paused or
-// killed, or the job's token cap is reached. Limits are chosen in the coding agent, in the question it asks before the agent starts, and shown here read-only.
+// An agent's limits: how involved its operator wants to be. How long it works is the job's end time, set for
+// the whole project. Limits are chosen in the
+// coding agent, in the question it asks before the agent starts, and shown here read-only.
 type Limits = ProjectWorkersView['agents'][number]['settings'];
 const describeLimits = (limits: Limits) => limits.involvement === 'with_me' ? 'with you in your conversation' : 'on its own';
 

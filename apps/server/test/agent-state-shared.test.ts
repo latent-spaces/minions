@@ -39,7 +39,7 @@ async function seedRandomSources(count: number, seedValue: number, now: number) 
       const worker = workerKind === 'none' ? undefined : {
         runId: workerKind === 'other' ? randomUUID() : runId,
         phase: pick(random, ['working', 'idle', 'waiting', 'paused', 'stopped', 'completed'] as const),
-        lastContactAt: now - pick(random, [3_000, 19_000, 85_000, 120_000]),
+        lastContactAt: now - pick(random, [3_000, 19_000, 85_000, 120_000]), deadlineAt: now + pick(random, [-1_000, 3_600_000]),
         projectPauseRevision: pick(random, [null, 3]) };
       await setCanonicalStatus(id, statusDocFromSources({ id, agent, allowed: true, run, contact, worker,
         queued: false, needsYou: false, sourceRevision: 0 } as AgentStateSources));
@@ -101,7 +101,7 @@ const base = (over: Partial<AgentStateSources> = {}): AgentStateSources => ({ id
 test('the C4-10 edge: presence ≈80 s old but the worker summary fresh reads as the worker phase, not offline', () => {
   const now = 1_000_000;
   const s = base({ contact: { runId: 'r', lastContactAt: now - 80_000, phase: 'idle' } as never,
-    worker: { runId: 'r', phase: 'working', lastContactAt: now - 5_000, projectPauseRevision: null } as never });
+    worker: { runId: 'r', phase: 'working', lastContactAt: now - 5_000, deadlineAt: now + 60_000, projectPauseRevision: null } as never });
   expect(deriveAgentState(s, now)).toMatchObject({ state: 'working', freshUntil: now - 5_000 + FRESH });
   // Presence alone at 91 s: offline, at the same moment, on every surface.
   expect(deriveAgentState(base({ contact: { runId: 'r', lastContactAt: now - 91_000, phase: 'idle' } as never }), now).state).toBe('offline');
@@ -109,10 +109,12 @@ test('the C4-10 edge: presence ≈80 s old but the worker summary fresh reads as
 
 test('clock-only transitions: the same sources give a new state later, with no write (c1, contract C6)', () => {
   const now = 1_000_000;
-  const worker = { runId: 'r', phase: 'working', lastContactAt: now - 5_000, projectPauseRevision: null } as never;
+  const worker = { runId: 'r', phase: 'working', lastContactAt: now - 5_000, deadlineAt: now + 3_600_000, projectPauseRevision: null } as never;
   const s = base({ worker });
   expect(deriveAgentState(s, now).state).toBe('working');
   expect(deriveAgentState(s, now + 86_000).state).toBe('offline');      // freshness lapsed (90 s after the contact)
+  const ending = base({ worker: { ...(worker as object), deadlineAt: now + 60_000 } as never });
+  expect(deriveAgentState(ending, now + 60_000).state).toBe('working');   // a passed end time does not end the worker
   // A worker in contact and still in its turn stays pausing while the turn finishes; out of contact it is unconfirmed.
   const pausing = base({ worker, pause: { revision: 3, requestedAt: now - 1_000 } });
   expect(deriveAgentState(pausing, now).state).toBe('pausing');
@@ -125,7 +127,7 @@ test('clock-only transitions: the same sources give a new state later, with no w
 });
 
 test('precedence is the same everywhere: revoked > needs you > waiting > stopped > worker end > fresh worker > fresh presence', () => {
-  const now = 1_000_000, worker = { runId: 'r', phase: 'idle', lastContactAt: now - 1_000, projectPauseRevision: null } as never;
+  const now = 1_000_000, worker = { runId: 'r', phase: 'idle', lastContactAt: now - 1_000, deadlineAt: now + 1, projectPauseRevision: null } as never;
   expect(deriveAgentState(base({ allowed: false, needsYou: true, worker }), now).state).toBe('revoked');
   expect(deriveAgentState(base({ needsYou: true, queued: true, worker }), now).state).toBe('needs_you');
   expect(deriveAgentState(base({ queued: true, worker }), now).state).toBe('waiting');
@@ -135,7 +137,7 @@ test('precedence is the same everywhere: revoked > needs you > waiting > stopped
 });
 
 test('a fresh worker between turns is idle; only a queued start is waiting', () => {
-  const now = 1_000_000, worker = { runId: 'r', phase: 'waiting', lastContactAt: now - 3_000, projectPauseRevision: null } as never;
+  const now = 1_000_000, worker = { runId: 'r', phase: 'waiting', lastContactAt: now - 3_000, deadlineAt: now + 3_600_000, projectPauseRevision: null } as never;
   expect(deriveAgentState(base({ worker }), now).state).toBe('idle');
   expect(deriveAgentState(base({ queued: true, worker }), now).state).toBe('waiting');
 });

@@ -12,7 +12,7 @@ import { projects } from '../projects/records.js';
 const uuid = z.string().uuid();
 // Adding an agent means it will work: without a task it works toward the project's goal.
 export const DEFAULT_AGENT_TASK = "Work toward the project's goal.";
-// A run waits for its project to start and its computer to come online. It has no end time: it works until paused or killed.
+// A run waits for its project to start, the job to have time and its computer to come online. It works until the job's end time.
 const WAIT_MS = 7*86400_000;
 const identifier = z.string().regex(/^[\w-]{1,200}$/);
 // Connectors from before the 10 November 2026 local-package decision still send an update report. It is accepted so
@@ -38,7 +38,7 @@ const repositoryWait = z.enum(['github','empty_repository']);
 const repositoryCheck = z.object({waitingFor:repositoryWait.nullable(),code:z.enum(['ready','invalid_repository','git_missing','empty_repository','network_timeout','dns_failed','tls_failed','git_authentication_failed','repository_access_denied','git_failed']),checkedAt:z.number().int().nonnegative()}).strict();
 type StartState = 'pending'|'accepted'|'starting'|'working'|'failed'|'expired'|'recovery_required';
 export type WebAgentStart = Omit<z.infer<typeof startInput>,'approved'|'agentId'> & {profileId:string;fingerprint:string;incarnation:string|null;state:StartState;
-  createdAt:number;activeUntil:number;pickupByAt:number;acceptedAt:number|null;launchByAt:number|null;agentId:string|null;code?:string;
+  createdAt:number;activeUntil:number;pickupByAt:number;acceptedAt:number|null;launchByAt:number|null;deadlineAt:number|null;agentId:string|null;code?:string;
   // Set by the computer while it can't reach the project's repository yet, or the repository has no commit to work
   // from; the start waits instead of failing.
   waitingOn?:RepositoryWait|null; repository?:z.infer<typeof repositoryCheck>|null};
@@ -50,9 +50,7 @@ const parse = <T>(schema:z.ZodType<T>,input:unknown):T=>{const v=schema.safePars
 const missing = ()=>new Refusal('not_found','This Add agent request wasn’t found. Add the agent again.');
 const terminal = (state:StartState)=>['working','failed','expired','recovery_required'].includes(state);
 function view(saved:WebAgentStart,at:number) {
-  // A start saved before 10 November 2026 can still hold the job's end time (deadlineAt); a job has no time limit now,
-  // so it is not read or shown. Remove this once no stored start request has the field.
-  const {profileId:_,fingerprint:__,activeUntil:___,deadlineAt:____,...v}=saved as WebAgentStart&{deadlineAt?:unknown};
+  const {profileId:_,fingerprint:__,activeUntil:___,...v}=saved;
   return {...v,state:(v.state==='pending'&&at>=v.pickupByAt?'expired':['accepted','starting'].includes(v.state)&&at>=v.launchByAt!?'recovery_required':v.state) as StartState};
 }
 export function readinessView(value:Readiness|undefined,at:number) {
@@ -69,11 +67,12 @@ async function connection(tx:Transaction,profileId:string,connectionId:string,at
 async function access(tx:Transaction,profileId:string,projectId:string) {
   return inProject(projectId,async()=>{await assertMembership(tx,profileId);await assertProjectWritable(tx);return currentConnectionEpoch(tx,profileId);});
 }
-// What keeps the project from letting agents work now: it is not started, paused or closed ('project'). A job has no
-// time limit, so an end time stored by an older start is not read.
-async function projectWait(projectId:string,tx?:Transaction) {
+// What keeps the project from letting agents work now: it is not started, paused or closed ('project'), or its job
+// has no time left ('time'). endsAt is the job's end time once nothing does.
+async function projectWait(projectId:string,at:number,tx?:Transaction) {
   const ref=projects.doc(projectId),e=(tx?(await tx.get(ref)):(await ref.get())).data()?.execution;
-  return {wait:!e||!e.started||e.paused||e.completedAt!==null?'project' as const:null};
+  if(!e||!e.started||e.paused||e.completedAt!==null)return {wait:'project' as const};
+  return e.endsAt!==undefined&&e.endsAt>at?{wait:null,endsAt:e.endsAt}:{wait:'time' as const};
 }
 export async function publishRuntimeReadiness(profileId:string,connectionId:string,input:unknown,now:()=>number) {
   const {updates:_,...value}=parse(readinessInput,input);
@@ -114,16 +113,16 @@ export async function createWebAgentStart(profileId:string,input:unknown,now:()=
     const outstanding=await tx.get(webAgentStarts.where('connectionId','==',value.connectionId).where('state','in',['pending','accepted','starting']).where('activeUntil','>',at).limit(8));
     if(outstanding.docs.filter(d=>{const r=d.data();return r.profileId===profileId&&(r.state==='pending'?r.pickupByAt>at:r.launchByAt!>at);}).length>=8)
       throw new Refusal('bad_input','This computer is already starting eight agents. Wait for them to finish, then try again.');
-    const saved:WebAgentStart={...value,profileId,fingerprint,incarnation:null,state:'pending',createdAt:at,activeUntil:at+WAIT_MS,pickupByAt:at+WAIT_MS,acceptedAt:null,launchByAt:null,agentId:existing??null};
+    const saved:WebAgentStart={...value,profileId,fingerprint,incarnation:null,state:'pending',createdAt:at,activeUntil:at+WAIT_MS,pickupByAt:at+WAIT_MS,acceptedAt:null,launchByAt:null,deadlineAt:null,agentId:existing??null};
     tx.create(ref,saved);tx.set(fence,{revision:revision+1});return {request:view(saved,at)};
   });
 }
 // An agent's most recent run: whether one is still waiting, and which computer it last ran on.
 // A start that failed or expired never ran, so a mission that started after it (a restart from a
 // coding agent, which leaves no website start) replaces it: it is reported as superseded.
-// What a pending start waits for: its project to start, its computer to come online, then access to the repository.
+// What a pending start waits for: its project to start, the job to have time, its computer to come online, then access to the repository.
 async function waitingFor(tx:Transaction,r:WebAgentStart,at:number) {
-  return (await projectWait(r.projectId,tx)).wait??(!readinessView((await tx.get(runtimeReadiness.doc(r.connectionId))).data(),at)?.online?'computer' as const
+  return (await projectWait(r.projectId,at,tx)).wait??(!readinessView((await tx.get(runtimeReadiness.doc(r.connectionId))).data(),at)?.online?'computer' as const
     :r.waitingOn??null);
 }
 // Agents added on the website whose computer was offline, so none exists yet: everyone in the project sees them
@@ -166,7 +165,7 @@ export async function readWebAgentStart(profileId:string,id:string,now:()=>numbe
   const at=now(),request=view(r,at);
   if(request.state!=='pending')return {request:{...request,waitingFor:null}};
   const online=!!readinessView((await runtimeReadiness.doc(r.connectionId).get()).data(),at)?.online;
-  return {request:{...request,waitingFor:(await projectWait(r.projectId)).wait??(!online?'computer' as const:r.waitingOn??null)}};
+  return {request:{...request,waitingFor:(await projectWait(r.projectId,at)).wait??(!online?'computer' as const:r.waitingOn??null)}};
 }
 export async function readAgentStarts(profileId:string,connectionId:string,query:unknown,now:()=>number) {
   parse(z.object({}).strict(),query);
@@ -175,7 +174,7 @@ export async function readAgentStarts(profileId:string,connectionId:string,query
   // A run reaches its computer only once its project lets agents work. A new agent's request comes at once, so the
   // computer creates the agent while it waits, the same as adding one from a coding agent.
   const open=new Map<string,boolean>();
-  for(const d of pending.docs){const r=d.data();if(r.state==='pending'&&!open.has(r.projectId))open.set(r.projectId,(await projectWait(r.projectId)).wait===null);}
+  for(const d of pending.docs){const r=d.data();if(r.state==='pending'&&!open.has(r.projectId))open.set(r.projectId,(await projectWait(r.projectId,at)).wait===null);}
   return {requests:pending.docs.map(d=>d.data()).filter(r=>r.profileId===profileId&&(r.state==='pending'?r.pickupByAt>at&&(r.agentId===null||open.get(r.projectId)):r.launchByAt!>at))
     .sort((a,b)=>a.createdAt-b.createdAt||a.id.localeCompare(b.id)).map(r=>view(r,at)),serverTime:at};
 }
@@ -191,7 +190,7 @@ export async function acceptAgentStart(profileId:string,connectionId:string,id:s
     if(!ready||ready.incarnation!==incarnation||!readinessView(ready,at)?.online)throw new Refusal('runtime_conflict','MyLittleSwarm on this computer restarted or stopped. Add the agent again.');
     if(r.state!=='pending')return {request:view(r,at)};
     if(at>=r.pickupByAt){tx.update(ref,{state:'expired'});return {request:view({...r,state:'expired'},at)};}
-    const project=await projectWait(r.projectId,tx);
+    const project=await projectWait(r.projectId,at,tx);
     if(project.wait!==null)return {request:view(r,at)};
     // The computer can't reach the repository yet, or it is empty: the start keeps waiting and says why, instead of failing.
     if(waitingFor){
@@ -199,8 +198,9 @@ export async function acceptAgentStart(profileId:string,connectionId:string,id:s
       const next={...r,waitingOn:waitingFor,...(repository?{repository}:{})};
       tx.update(ref,{waitingOn:waitingFor,...(repository?{repository}:{})});return {request:view(next,at)};
     }
-    // The run has no end time, like every other worker of the project. The start stays outstanding for its launch window.
-    const next={...r,waitingOn:null,repository:null,incarnation,state:'accepted' as const,acceptedAt:at,launchByAt:at+180_000,activeUntil:at+180_000};tx.set(ref,next);return {request:view(next,at)};
+    // The run works until the job's end time, like every other worker of the project. It stays listed for its launch
+    // window even when the end time comes first: the computer then starts it waiting for more time.
+    const next={...r,waitingOn:null,repository:null,incarnation,state:'accepted' as const,acceptedAt:at,launchByAt:at+180_000,deadlineAt:project.endsAt,activeUntil:Math.max(project.endsAt,at+180_000)};tx.set(ref,next);return {request:view(next,at)};
   });
 }
 // Called inside the existing registration transaction before any agent writes. This is a

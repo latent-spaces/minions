@@ -96,7 +96,7 @@ test('two owner clients route mixed project teams through one controller and sur
   assert.deepEqual(await call(a, 'get_computer_status'), await call(b, 'get_computer_status'));
   const commands = ctx.bindings.map(binding => ({ operationId: randomUUID(), kind: 'start', target: publicTarget(binding.target),
     missionId: randomUUID(), payload: { scope: `Synthetic scope only ${binding.target.projectId}/${binding.target.agentId}`,
-      execution: { provider: binding.target.agentId, model: null } } }));
+      deadlineAt: Date.now() + 60000, execution: { provider: binding.target.agentId, model: null } } }));
   const starts = await Promise.all(commands.map((start, index) => call(index % 2 ? a : b, 'control_agent', start)));
   const missions = starts.map(start => start.mission);
   const first = await until(() => nativeEvents(ctx.events), events => events.filter(event => event.type === 'turn').length === 4, 'four native protocol peers');
@@ -175,7 +175,7 @@ test('worker mission credentials cannot cross owner, target or stopped-turn boun
   const ctx = await fixture(t), owner = await ctx.owner('synthetic-owner');
   const binding = ctx.bindings[0];
   const start = { operationId: randomUUID(), kind: 'start', target: publicTarget(binding.target), missionId: randomUUID(),
-    payload: { scope: 'Synthetic credential boundary only', execution: { provider: 'claude', model: null } } };
+    payload: { scope: 'Synthetic credential boundary only', deadlineAt: Date.now() + 60000, execution: { provider: 'claude', model: null } } };
   const { mission } = await call(owner, 'control_agent', start);
   const secondBinding = ctx.bindings[3];
   await call(owner, 'control_agent', { ...start, operationId: randomUUID(), missionId: randomUUID(), target: publicTarget(secondBinding.target),

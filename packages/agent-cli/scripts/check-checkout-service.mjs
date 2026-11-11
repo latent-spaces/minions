@@ -148,7 +148,7 @@ try{
     for(const [i,agent]of [...known.values()].entries()){
       const target={site,ownerId,projectId:agent.projectId,agentId:agent.agentId},provider=i?'codex':'claude';
       const {mission}=await ledger.accept({version:2,kind:'start',operationId:randomUUID(),missionId:randomUUID(),target,
-        payload:{scope:'Synthetic historical inspection; no native execution.',execution:{provider,model:null}}});
+        payload:{scope:'Synthetic historical inspection; no native execution.',deadlineAt:Date.now()+300000,execution:{provider,model:null}}});
       await ledger.settleMission({missionId:mission.missionId,generation:mission.generation,reason:'synthetic_history',cleanupConfirmed:true});
       const agentState=join(home,'agents',state.digest(JSON.stringify([site,ownerId,target.projectId,target.agentId])));
       const directory=join(agentState,`mission-${mission.missionId}-${mission.generation}`);state.ensureHome(directory);
@@ -161,7 +161,7 @@ try{
     }
     const agent=[...known.values()][0],target={site,ownerId,projectId:agent.projectId,agentId:agent.agentId};
     ({mission:recoveryMission}=await ledger.accept({version:2,kind:'start',operationId:randomUUID(),missionId:randomUUID(),target,
-      payload:{scope:'Synthetic interrupted recovery; do not execute.',execution:{provider:'claude',model:null}}}));
+      payload:{scope:'Synthetic interrupted recovery; do not execute.',deadlineAt:Date.now()+300000,execution:{provider:'claude',model:null}}}));
     recoveryPause={version:2,operationId:randomUUID(),kind:'pause',missionId:recoveryMission.missionId,generation:recoveryMission.generation,target:recoveryMission.target,payload:{}};
     await ledger.accept(recoveryPause);
   }finally{await ledger.close();}

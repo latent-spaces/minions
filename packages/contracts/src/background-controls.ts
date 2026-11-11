@@ -4,7 +4,7 @@ export type BackgroundControlState = 'queued' | 'accepted' | 'applied' | 'expire
 export type BackgroundMissionState = 'accepted' | 'starting' | 'running' | 'waiting' | 'blocked' | 'pausing' | 'paused' | 'stopping' | 'stopped' | 'failed' | 'recovery_required';
 export type BackgroundTarget = { site: string; ownerId: string; projectId: string; agentId: string };
 export type BackgroundControlView = {
-  target: BackgroundTarget; missionId: string; generation: number;
+  target: BackgroundTarget; missionId: string; generation: number; deadlineAt: number;
   state: BackgroundMissionState; pauseOperationId: string | null;
   updatedAt: number; deviceLastSeenAt: number; available: boolean;
   pending: null | { id: string; actorProfileId?: string; kind: BackgroundControlKind; state: BackgroundControlState; approvedAt: number; message?: string };

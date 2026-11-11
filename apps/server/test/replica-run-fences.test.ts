@@ -39,7 +39,7 @@ async function post(replica: Replica, token: string, path: string, body: object,
   return { status: response.status, body: JSON.parse(data) };
 }
 const session = (runId: string, missionId: string, startedAt: number) => ({ run_id: runId, missionId, generation: 1, startedAt,
-  remainingSlots: 0, phase: 'waiting' });
+  deadlineAt: startedAt + 3_600_000, remainingSlots: 0, phase: 'waiting' });
 const tool = (replica: Replica, token: string, runId: string) => post(replica, token, '/mcp',
   { jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'read_agent_inbox', arguments: {} } }, { 'x-pilot-run': runId });
 const refusedTool = (result: { status: number; body: any }) => result.status !== 200 || result.body?.result?.isError === true;

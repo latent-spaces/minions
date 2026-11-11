@@ -13,7 +13,7 @@ passing setup or configuration checks alone does not establish worker readiness.
 The Windows helper creates the native client suspended, assigns it to a job with
 kill-on-close and no breakaway, then resumes it. Stop, control disconnect and guard
 failure clean the owned tree. The guard's own deadline is only a last-resort bound of
-just under 24 hours on a single hung turn; a job has no time limit. All contained Windows descendants, including
+just under 24 hours on a single turn; the job's end time never ends a turn. All contained Windows descendants, including
 detached development servers, stop when their native turn ends. Unconfirmed cleanup
 retains checkout ownership. No PID/image-name sweep or silent in-chat fallback exists.
 Windows clients must be native `.exe` files or standard npm `.cmd` shims pointing to
@@ -112,7 +112,7 @@ approvals, credentials, ledgers and active work are never moved to another site.
 Selecting a connector origin does not install or start the server stack.
 
 Use `service-start`, `service-status` and `service-stop`. The detached service starts
-without a model. It owns its SQLite state, controllers and report delivery;
+without a model. It owns its SQLite state, controllers, report delivery and deadlines;
 HTTP client disconnects do not stop approved missions or renew participation.
 If a storage request stalls or the storage worker fails, the running service reopens its
 SQLite store in place with backoff and logs it to `service.log`; requests fail with the
@@ -165,8 +165,8 @@ settings, and the API answers their readiness without an update policy. The
 The retained website-start API accepts an approved computer even while it is offline: the
 request waits up to seven days for the computer to come online and the project to
 start, then expires. An accepted request has up to three minutes to prepare and first
-launch, checked again in the native adapter. A job has no time limit: the agent works
-until the owner pauses or kills it, or the job's token cap is reached.
+launch, checked again in the native adapter. Work ends at the job's end time; a start
+that finishes preparing after it comes up waiting for more time instead of expiring.
 Retries keep one immutable request/agent/mission. A service restart inspects saved
 evidence and never newly starts unfinished preparation. Starting is separate from
 Working, which requires actual native acknowledgement. New checkouts use the
@@ -429,19 +429,22 @@ the external Claude/Codex conversation or control that host's billing.
 ## Background missions
 
 `control_agent` starts explicitly approved Claude/Codex work with an exact target,
-mission/operation UUIDs, scope and provider/model. It also steers or
+mission/operation UUIDs, scope, provider/model and the job's end time. It also steers or
 stops the exact mission/generation. The approved worker continues when all control
-windows disconnect, until an explicit stop, project closure or runtime shutdown. A job has no time limit (owner decision,
-10 November 2026). The job's token cap is optional and has no default
-(`control_project` `set_tokens`, or the job bar above My agents on the website). Each worker-session contact, and the final contact when
+windows disconnect, until an explicit stop, project closure or runtime shutdown. A
+project's workers share one end time. When it passes, a worker finishes its current
+turn and then waits; it keeps its mission, connection and checkout. When the owner adds
+time (`control_project` `add_time`), the next worker-session contact carries the new end
+and waiting workers continue by themselves. The job's token cap is optional
+(`control_project` `set_tokens`, or the job bar above My agents on the website, where the
+owner also adds time). Each worker-session contact, and the final contact when
 the worker stops or is killed, reports the tokens the mission counted, derived from its stored turn outcomes (input + cache writes + output,
 cache reads excluded; Codex cached input is taken out of its input), and each reply
 carries the cap with what the pool counted outside this mission: the cap is one pool for
 all the owner's agents in the project, and ended, restarted and revoked agents' tokens stay in it.
 Turns whose provider reported no usage are reported as unknown and not counted. Between
-turns a worker at the cap finishes its turn and waits; it keeps its mission, connection and
-checkout, and a raised or removed cap continues it. An end time stored by an earlier
-version, in a local mission or on the server, is read and ignored, even one that has passed. A worker, also one restored after a restart, starts no turn until a reply
+turns a worker at the cap waits, like one past its end time; a raised or removed cap
+continues it. A worker, also one restored after a restart, starts no turn until a reply
 has told it the cap. The runtime
 owns the native guard and cleanup; completed external actions are not undone.
 
@@ -470,10 +473,11 @@ web app). Status moves from `pausing` to `paused` only after the guard and turn
 settle. Resume uses `{pauseOperationId: PAUSE_UUID}` from current
 mission status; it cannot release a newer Pause. Give every new control a fresh
 operation UUID and retry lost replies with the identical UUID/input. Resume keeps
-the scheduler backoff.
+the scheduler backoff; the job's time continues while paused, and a worker resumed
+after the end time waits for more time.
 Uncertain execution, failed cleanup or a service restart during a turn requires
 recovery rather than Resume. A worker paused or waiting when the service restarted
-stays paused or waiting; Resume or a raised cap continues it. Project Pause lets the running background turn finish, then holds new ones (the held
+stays paused or waiting; Resume, added time or a raised cap continues it. Project Pause lets the running background turn finish, then holds new ones (the held
 cloud connection still delivers prompts). An agent whose latest turn was work first gets one short
 turn that only posts a project update, or nothing if there is nothing new; queued steering waits
 for the next working turn, and an agent paused on its own or at its token cap gets no such turn. It keeps a separate project hold: Resume project
@@ -487,7 +491,7 @@ deployment alone cannot add these capabilities to an older service.
 The owner CLI routes the same controls with `run-pause` / `run-resume`, exact
 `--mission`, `--project`, `--agent`, `--generation`,
 `--request-id` and `--approve`. Resume also requires `--pause-request PAUSE_UUID`.
-No scope/provider override is accepted. These controls apply to background
+No deadline/scope/provider override is accepted. These controls apply to background
 workers, not the Claude/Codex chat hosting an MCP client.
 
 Background workers may work freely in their assigned checkout: edit files, install

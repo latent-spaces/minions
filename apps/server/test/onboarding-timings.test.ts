@@ -54,7 +54,7 @@ test('only accepted human chat/steering count, exactly once; visits and agent co
     const run = await startRun(connected.agentId, { clientRunId: randomUUID(), runnerVersion: 'synthetic', takeover: false }, now);
     await recordContact(connected.agentId, run.run_id, at); await reportPhase(connected.agentId, run.run_id, { phase: 'turn' }, now);
     expect((await projectJourneys.doc(journeyId(f.person.id, first)).get()).data()?.milestones.firstWork).toBeUndefined();
-    await syncWorkerSession(connected.agentId, { run_id: run.run_id, missionId: run.run_id, generation: 1, startedAt: at, remainingSlots: 64, phase: 'waiting' }, now);
+    await syncWorkerSession(connected.agentId, { run_id: run.run_id, missionId: run.run_id, generation: 1, startedAt: at, deadlineAt: at + 600_000, remainingSlots: 64, phase: 'waiting' }, now);
     const command = { operationId: randomUUID(), agentId: connected.agentId, missionId: run.run_id, generation: 1, body: 'Private steering NEVER_COPY', origin: 'coding_chat' };
     await submitSteering(f.person.id, command, now); at += 1000; await submitSteering(f.person.id, command, now);
     await expect(submitSteering(owner.id, { ...command, operationId: randomUUID() }, now)).rejects.toMatchObject({ code: 'forbidden' });

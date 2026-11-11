@@ -6,7 +6,7 @@ import { Transaction, type DocumentReference } from 'firebase-admin/firestore';
 import { beforeEach, expect, test } from 'vitest';
 import { V2_LIMITS } from '../src/config.js';
 import { inProject } from '../src/firestore.js';
-import { listMyWorkers, syncWorkerSession, workerPointer, workerSessions } from '../src/projects/worker-sessions.js';
+import { syncWorkerSession, workerPointer } from '../src/projects/worker-sessions.js';
 import { reportPhase, startRun } from '../src/v2/runs.js';
 import { presence } from '../src/v2/records.js';
 import { communicationAgents } from '../src/view/communication-agents.js';
@@ -32,7 +32,7 @@ async function started() {
   const f = await seed({ profiles: [{ name: 'Worker person', email: 'worker@example.test' }], agents: [{ person: 0, name: 'Worker group' }] });
   const id = f.agents[0].agentId, reader = f.personIds[0];
   const run = await scope(() => startRun(id, { clientRunId: randomUUID(), runnerVersion: 'synthetic-no-model', takeover: false }, now));
-  const session = { run_id: run.run_id, missionId: randomUUID(), generation: 1, startedAt: clock, remainingSlots: 0, phase: 'working' as string, projectPauseRevision: undefined as number | undefined };
+  const session = { run_id: run.run_id, missionId: randomUUID(), generation: 1, startedAt: clock, deadlineAt: clock + 3 * 3_600_000, remainingSlots: 0, phase: 'working' as string, projectPauseRevision: undefined as number | undefined };
   return { id, reader, runId: run.run_id, session };
 }
 const sync = (id: string, session: Record<string, unknown>) =>
@@ -47,7 +47,7 @@ test('each sync writes the canonical worker group, authority pointer and session
   for (let i = 0; i < 3; i++) { clock += 20_000; await sync(id, session); }
   expect(writes.map(kind).filter(k => k !== 'other').sort())
     .toEqual(['pointer', 'pointer', 'pointer', 'presence', 'presence', 'presence', 'session', 'session', 'session']);
-  const summary = { runId, phase: 'working', lastContactAt: clock };
+  const summary = { runId, phase: 'working', lastContactAt: clock, deadlineAt: session.deadlineAt };
   expect((await statusDoc(id)).worker).toEqual(summary);
   // The pointer is exactly what the previous writer stored, so readers and writers of every older version still agree.
   expect(await pointerDoc(id)).toEqual({ missionId: session.missionId });
@@ -59,26 +59,10 @@ test('the hard cutover reads the canonical worker group and ignores an old confl
   const read = () => scope(() => communicationAgents({ ids: id }, reader, clock)).then(page => page.agents[0]);
   const before = await read();
   // A frozen or wrong worker group (an instance rolled back to before W1 keeps syncing the pointer only) changes nothing.
-  await scope(() => presence().doc(id).set({ worker: { runId: session.run_id, phase: 'stopped', lastContactAt: clock - 600_000 } } as never, { mergeFields: ['worker'] }));
+  await scope(() => presence().doc(id).set({ worker: { runId: session.run_id, phase: 'stopped', lastContactAt: clock - 600_000,
+    deadlineAt: clock - 1 } } as never, { mergeFields: ['worker'] }));
   expect(await read()).toMatchObject({ state: 'stopped' });
   expect(before.state).toBe('working');
-});
-
-// Sessions and status documents written before 10 November 2026 hold the worker's end time; it is read past and never returned.
-test('a stored session and worker group with an end time read normally, and the end time is not returned', async () => {
-  const { id, reader, session } = await started();
-  await sync(id, session);
-  const legacy = { deadlineAt: clock - 60_000, authorizedDeadlineAt: clock - 60_000 };
-  await scope(() => workerSessions(id).doc(session.missionId).set(legacy as never, { merge: true }));
-  await scope(() => presence().doc(id).set({ worker: { deadlineAt: clock - 60_000 } } as never, { merge: true }));
-  clock += 1_000;
-  const workers = await scope(() => listMyWorkers(reader, now));
-  expect(workers.agents[0].worker).toMatchObject({ available: true, session: { missionId: session.missionId, phase: 'working' } });
-  const agent = await scope(() => communicationAgents({ ids: id }, reader, clock)).then(page => page.agents[0]);
-  expect(agent.state).toBe('working');
-  expect(JSON.stringify([workers, agent])).not.toMatch(/deadlineAt|authorizedDeadlineAt/i);
-  clock += 20_000;
-  expect(await sync(id, session)).toEqual({ missionId: session.missionId, tokenLimit: null });
 });
 
 test('the group is replaced whole: a sync without a pause confirmation keeps none from before', async () => {

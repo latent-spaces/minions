@@ -58,10 +58,10 @@ function replayAll(reader: Reader) {
   for (const { sent, answer } of log) expect(applyCurrentState(reader, sent, answer)).toBe(reader);
 }
 
-async function writeStatus(agentId: string, owner: string, lastContactAt: number) {
+async function writeStatus(agentId: string, owner: string, lastContactAt: number, deadlineAt: number) {
   await scope(() => setCanonicalStatus(agentId,{ runId: 'run-1', lastContactAt, phase: 'turn', phaseAt: lastContactAt,
     acceptingWork: true, runEndedAt: null, runMode: 'background',
-    worker: { runId: 'run-1', phase: 'working', lastContactAt, projectPauseRevision: null },
+    worker: { runId: 'run-1', phase: 'working', lastContactAt, deadlineAt, projectPauseRevision: null },
     agent: { name: agentId, ownerProfileId: owner, connectionEpoch: 0, revokedAt: null, focus: null, personaText: '' } } as never));
 }
 async function fixture() {
@@ -70,8 +70,8 @@ async function fixture() {
     agents: [{ person: 1, name: 'bob-fox' }, { person: 1, name: 'bob-owl' }] });
   await seedRuntime(TEST_PROJECT, { started: true, paused: false });
   const [fox, owl] = f.agents.map(a => a.agentId) as [string, string], bob = f.personIds[1]!;
-  await writeStatus(fox, bob, T);
-  await writeStatus(owl, bob, T);
+  await writeStatus(fox, bob, T, T + 600_000);
+  await writeStatus(owl, bob, T, T + 600_000);
   return { fox, owl, bob, token: await idTokenFor('c12-alice@example.test') };
 }
 
@@ -112,7 +112,7 @@ test('pause, resume, revocation and Offline reach the reader, held rows never re
   replayAll(reader);
   // A fresh contact for fox only: a source write, a greater rev.
   at = T + 100_000;
-  await writeStatus(fox, bob, at);
+  await writeStatus(fox, bob, at, T + 600_000);
   reader = await pollUntil(reader, token, r => state(r, fox) === 'working');
   expect(state(reader, owl)).toBe('offline');
   replayAll(reader);
@@ -147,7 +147,7 @@ test('paged answers (page size 2, five agents): writes and a pause between pages
       agents: [0, 1, 2, 3, 4].map(n => ({ person: 1, name: `bob-${n}` })) });
     await seedRuntime(TEST_PROJECT, { started: true, paused: false });
     const ids = f.agents.map(a => a.agentId), bob = f.personIds[1]!, token = await idTokenFor('c12-page-alice@example.test');
-    for (const id of ids) await writeStatus(id, bob, T);
+    for (const id of ids) await writeStatus(id, bob, T, T + 600_000);
     const all = (r: Reader, s: string) => ids.every(id => state(r, id) === s);
     let reader = await pollUntil(createReader<Agent>(), token, r => r.complete && all(r, 'working'));
     // A paged first read after a reconnect: the old rows stay until it completes; a write and a pause land mid-read.
@@ -157,7 +157,7 @@ test('paged answers (page size 2, five agents): writes and a pause between pages
     expect(reader.complete).toBe(false);
     expect(currentStateRows(reader)).toHaveLength(5);
     at += 1_000;
-    await writeStatus(ids[4]!, bob, at);
+    await writeStatus(ids[4]!, bob, at, T + 600_000);
     await seedRuntime(TEST_PROJECT, { paused: true, revision: 1, pauseRequest: { revision: 1, requestedAt: at } });
     while (!reader.complete && pages < 20) {
       reader = await poll(reader, token); pages++;

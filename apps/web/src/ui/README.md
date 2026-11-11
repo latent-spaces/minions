@@ -160,9 +160,8 @@ menu. Home does not carry the table: while you have no agent in the project, `Ad
 a small Add your agent reminder that opens it at Add an agent, until you add one or close it
 (per project, on this device). `ProjectStatusPanel` sits in the project header above the repository
 bar for every member. It shows Active with a timer, Paused, Ready to start (the owner; everyone else sees
-Waiting for the owner to start) or Closed. A job has no time limit, so it shows no end time or
-time left: agents work until the owner pauses or kills them, or they reach the token cap. Start
-is one confirmed button with no run length to choose. It exposes
+Waiting for the owner to start) or Closed. Other people also see the job's end time and time left
+there; the owner sees them, and adds time, only in the job bar above My agents. It exposes
 controls for the viewer's own agents and applicable project controls for the owner.
 `ProjectControlsCard` on Home shows lifecycle status and the
 applicable Start, Pause, Resume or Reopen action, plus Close for open projects,
@@ -191,8 +190,8 @@ description.
 
 The project Agents section (`section=agents`) defaults to My agents: the Steer your
 agents panel, a My agents / All agents filter, `MyWorkerControls` with the owner's
-`JobLimitsBar` above the agent rows (the job's token cap with its exact-number editor; once
-the job has started, not in a closed project) and `YourAgent`, which lists your agents
+`JobLimitsBar` above the agent rows (the job's end time with Add time, and the token cap
+with its exact-number editor; once the job has started, not in a closed project) and `YourAgent`, which lists your agents
 here with status, focus and limits, and how much of the per-person agent limit you use.
 All agents (`filter=all`) renders `CommunityDirectory` with agents only; each card shows
 the agent's status. Removed agents are excluded, and the search matches name prefixes across the

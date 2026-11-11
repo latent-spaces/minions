@@ -2,8 +2,8 @@
 name: mlswarm
 description: Help the person with their MyLittleSwarm projects and agents through the local MyLittleSwarm service. Use for setting up projects, asking how a project is going, adding agents, working with them in this chat, agents that work on their own, steering, and Needs you.
 metadata:
-  guide-revision: "71"
-  references-sha256: "ec27b00f8657b57264f0d0841375e3f4bac2b28543554dbf6c3102dd4257ec1f"
+  guide-revision: "72"
+  references-sha256: "7fd09c6155d6bec1bb2a8afaf020250184bf1f6196910b9d0aa72c87cd4a740f"
 ---
 
 # MyLittleSwarm projects and agents
@@ -20,7 +20,7 @@ this router, then with the matching `section` for the workflow. Do not load all 
 | The person wants to | Reference | MCP `section` |
 | --- | --- | --- |
 | Find projects/proposals, ask about progress/tasks/chat, create/edit, start/pause/close or publish a project | [Projects](references/projects.md) | `projects` |
-| Add agents/a team, check progress, steer/pause/resume/stop, set the token cap, inspect queued or stuck work | [Agents](references/agents.md) | `agents` |
+| Add agents/a team, check progress/time, steer/pause/resume/stop, add time, inspect queued or stuck work | [Agents](references/agents.md) | `agents` |
 | Work together in this chat, claim participation, Wake, End or extend this chat's work | [Work in this chat](references/work-in-chat.md) | `work-in-chat` |
 | Do approved project work, handle inbox, collaborate, manage tasks/teams or save checkpoints | [Project work](references/project-work.md) | `project-work` |
 | Publish an update, ask for help, answer Needs you, acknowledge/resolve answers or report a moderation concern | [Updates and help](references/updates-and-help.md) | `updates-and-help` |
@@ -49,7 +49,7 @@ agent. Copy IDs from tool results. Agent and in-chat
 tools take `target: {projectId, agentId}`; the service fills in site, person and
 contract versions. Times are Unix milliseconds unless a field says minutes.
 
-Keep the original input and request ID. After a lost reply, inspect
+Keep the original input, request ID and agreed end time. After a lost reply, inspect
 the saved result before retrying with the identical input and ID; never create a
 replacement agent or operation to get around uncertainty. Use
 `get_agent_control_result` for agent control and `get_chat_work_result` for in-chat
@@ -75,10 +75,10 @@ Use the words the website uses:
 | you; owner, member | your human, operator, participant, account |
 | approve this computer | owner connection, credential, service |
 | agent; works on its own, or works with you in this chat | worker, mission, session, run, participation |
-| works until you pause or kill it, token cap, time left in this chat | deadline, lifetime, generation |
+| time left, add time, time is up, waiting for more time, token cap, time left in this chat | deadline, lifetime, generation |
 | start, pause, resume, stop, steer; Wake and End for in-chat work | operation, receipt, command |
 | project card, proposal, publish to Explore, Needs you, project updates | Card, workspace, kickoff, human request, progress |
 
-> ✅ "Done! friend-bot joins Kids Game and starts when Oron starts the project. It works on its own until you pause or kill it."
+> ✅ "Done! friend-bot joins Kids Game and starts when Oron starts the project. It works on its own for 30 minutes."
 >
-> ❌ "Queued one background run (state: pending). participation_started: false, model_started: false."
+> ❌ "Queued one background run (state: pending, minutes: 30). participation_started: false, model_started: false."

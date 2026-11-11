@@ -69,7 +69,7 @@ async function connected(count: number) {
   return Promise.all(f.agents.map(async agent => {
     const run = await inProject(TEST_PROJECT, () => startRun(agent.agentId, { clientRunId: randomUUID(), runnerVersion: 'synthetic-no-model', takeover: false }, now));
     // The body the connector's 20 s sync sends for one mission.
-    const session = { run_id: run.run_id, missionId: randomUUID(), generation: 1, startedAt: clock, remainingSlots: 0, phase: 'waiting' };
+    const session = { run_id: run.run_id, missionId: randomUUID(), generation: 1, startedAt: clock, deadlineAt: clock + 3 * 3_600_000, remainingSlots: 0, phase: 'waiting' };
     return { token: agent.token, agentId: agent.agentId, runId: run.run_id, session };
   }));
 }
@@ -297,7 +297,7 @@ test('owner computer sync page: reads and writes per background row', async () =
     const missionId = randomUUID();
     const run = await inProject(TEST_PROJECT, () => startRun(agent.agentId, { clientRunId: missionId, runnerVersion: 'synthetic-background', takeover: false }, now));
     return { target: { site: 'https://karma42.ai', ownerId: owner, projectId: TEST_PROJECT, agentId: agent.agentId }, missionId, generation: 17,
-      state: 'running' as const, pauseOperationId: null, updatedAt: clock, cloudRun: { runId: run.run_id, generation: run.generation } };
+      deadlineAt: clock + 900_000, state: 'running' as const, pauseOperationId: null, updatedAt: clock, cloudRun: { runId: run.run_id, generation: run.generation } };
   }));
   const page = async (list: typeof rows) => {
     await settle(); counted.reads = 0; counted.writes = 0;

@@ -10,7 +10,7 @@ import { createRuntimeControllers } from './fixtures/recorded-controllers.mjs';
 import { createFakeAdapterFactory } from './fixtures/runtime-fake-adapter.mjs';
 const target = { site: 'https://example.test', ownerId: 'synthetic-owner', projectId: 'synthetic-project', agentId: 'synthetic-agent' };
 const fixture = fileURLToPath(new URL('./fixtures/runtime-fake-native.mjs', import.meta.url));
-const start = (overrides = {}) => ({ version: 2, operationId: randomUUID(), kind: 'start', target, missionId: randomUUID(), payload: { scope: 'Synthetic contract test', execution: { provider: 'claude', model: null } }, ...overrides });
+const start = (overrides = {}) => ({ version: 2, operationId: randomUUID(), kind: 'start', target, missionId: randomUUID(), payload: { scope: 'Synthetic contract test', deadlineAt: Date.now() + 30000, execution: { provider: 'claude', model: null } }, ...overrides });
 const command = (mission, kind, payload = {}) => ({ version: 2, operationId: randomUUID(), kind, target: mission.target, missionId: mission.missionId, generation: mission.generation, payload });
 async function until(read, predicate, label) {
   const deadline = Date.now() + 8000;
@@ -54,7 +54,7 @@ test('a mission found between turns at startup continues after its leftovers are
   const recovered = createRuntimeControllers({ store: ctx.store, adapterFactory: createFakeAdapterFactory(ctx.adapter),
     stopOrphanedMission: async () => { inspections++; } });
   t.after(() => recovered.close());
-  const replay = await recovered.accept(start({ operationId: accepted.receipt.operationId, missionId: accepted.mission.missionId, payload: { scope: accepted.mission.scope, execution: accepted.mission.execution } }));
+  const replay = await recovered.accept(start({ operationId: accepted.receipt.operationId, missionId: accepted.mission.missionId, payload: { scope: accepted.mission.scope, deadlineAt: accepted.mission.deadlineAt, execution: accepted.mission.execution } }));
   assert.equal(replay.created, false);
   // Waiting survives a connector restart (owner decision, 9 November 2026): the same mission continues.
   await until(() => eventLines(ctx.events), lines => lines.length === 1, 'the restored mission runs its turn');

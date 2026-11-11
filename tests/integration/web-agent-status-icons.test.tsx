@@ -23,9 +23,11 @@ test.each(examples)('%s uses the same approved symbol in the map and HTML indica
   expect(compact).toContain('aria-label=');
 });
 test('control-only statuses keep their exact accessible label without changing runtime decisions', () => {
-  for (const label of ['Recovery', 'Stopping', 'Needs a fix on your computer', 'Unrecognized state'])
+  for (const label of ['Recovery', 'Stopping', 'Past the end time, finishing its turn', 'Time is up. Waiting for more time', 'Needs a fix on your computer', 'Unrecognized state'])
     expect(renderToStaticMarkup(<AgentStatusIcon label={label} />)).toContain(`aria-label="${label}"`);
   expect(agentIconState('Working')).toBe('working');
+  expect(agentIconState('Past the end time, finishing its turn')).toBe('working');
+  expect(agentIconState('Time is up. Waiting for more time')).toBe('waiting');
   expect(agentIconState('Waiting for you')).toBe('needs_you');
   expect(agentIconState('Not running')).toBe('stopped');
   expect(agentIconState('Recovery')).toBe('unknown');

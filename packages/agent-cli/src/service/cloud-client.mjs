@@ -80,6 +80,7 @@ export function createCloudClient({ target, url, token, fetchImpl = fetch, timeo
       if (!session || session.missionId !== mission.missionId || session.run_id !== undefined && session.run_id !== mission.missionId) throw failure('bad_input', true);
       const value = await request('/worker-session', { ...session, run_id: mission.missionId }, signal);
       if (value.missionId !== mission.missionId || !Array.isArray(value.messages) || value.messages.length > 64
+        || !Number.isSafeInteger(value.authorizedDeadlineAt) || value.authorizedDeadlineAt < 1
         || value.tokenLimit !== undefined && !validTokenLimit(value.tokenLimit)) throw failure('invalid_reply');
       for (const message of value.messages) {
         try { validateUuid(message.id, 'steeringId'); if(message.threadId!==undefined && !/^[\w-]{1,200}$/.test(message.threadId))throw Error('Invalid steering thread'); } catch { throw failure('invalid_reply'); }

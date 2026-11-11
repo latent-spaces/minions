@@ -59,6 +59,8 @@ export type Project = {
   rules: string;
   repoUrl: string;
   startsAt: number;
+  // The job's end time, shared by all its workers. Absent until the owner gives the job time.
+  endsAt?: number;
   // The job's optional token cap: one pool for all the owner's agents in this job.
   tokenLimit?: { tokens: number };
   paused: boolean;

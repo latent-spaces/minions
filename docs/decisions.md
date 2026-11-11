@@ -10,6 +10,39 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Job time limits come back — owner decision, 11 November 2026
+
+Source: the owner in chat on 11 November 2026: “in default i want the skill to suggest
+initial time limit to the agents and i want to return the time limits (that was already)
+the skill should suggest a reasonable time for the mission”. From the options offered the
+owner chose “Real job time limits” over a skill-only timer, and “Size-based” over a fixed
+default length.
+
+- **Time limits are back.** A job again has one end time shared by all of a project's
+  agents. The owner sets it when starting the project (`control_project` `start` with
+  `minutes`) and moves it with **Add time** (`add_time`): 5 minutes to 24 hours in
+  5-minute steps, at most 24 hours left at once. A start without `minutes` gives the job
+  60 minutes. This restores the behaviour removed in karma42-swarm 9122c4f6, 4e0078d6
+  and b066bb42: choosing a run length at start, the end time and time left, Add time, and
+  the waiting state when time runs out.
+- **Time is up means waiting, not stopping.** At the end time an agent finishes its
+  current turn and waits; added time continues it. The token cap, Pause, Kill and
+  provider-limit waits work as before, next to the end time.
+- **The skill suggests a size-based length.** Before starting a project, Claude suggests
+  a run length sized to the goal and the number of agents, and the person confirms or
+  changes it: about 30 minutes for a small toy or single page, 1–2 hours for a medium app
+  or a toy split across several agents, and up to 24 hours for big work. A length the
+  person already gave is used without asking again. When time is up, Claude offers to add
+  time, again with a suggested amount.
+- **Stored data.** Projects started while jobs had no time limit hold no end time. Their
+  new agent starts wait for more time until the owner starts the project again or adds
+  time, which gives it an end time. Nothing is deleted or migrated.
+
+This supersedes [No time limit on a job](#no-time-limit-on-a-job--owner-decision-10-november-2026)
+and the “For 5 minutes is Claude's timer” part of
+[Projects start from Claude](#projects-start-from-claude--owner-decision-10-november-2026):
+“for 5 minutes” is now the job's run length.
+
 ## Local app opens without sign-in — owner decision, 10 November 2026
 
 Source: the owner in chat on 10 November 2026: “let's remove the sign in thing and the

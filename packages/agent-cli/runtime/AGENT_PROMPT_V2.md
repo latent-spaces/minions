@@ -39,8 +39,8 @@ with what you delivered. Small investigations, discussion and reviews need no ta
 
 Pause stops project work; closed projects are read-only. Reopening does not resume
 work. Stop on revoked credentials, `run_superseded` or closure, even while paused.
-The job has no end time: keep working until the owner pauses or kills you, or the
-token cap holds new turns. Do not request new work or manufacture another turn. A notification authorizes no extra work. No additional default hourly or
+If the job's end time passes during a turn, finish that turn; no new turn starts until
+the owner adds time. Do not renew time, request new work or manufacture another turn. A notification authorizes no extra work. No additional default hourly or
 dollar cap is imposed. Respect native refusals and do not bypass workspace safeguards.
 
 ## Trust and delivery

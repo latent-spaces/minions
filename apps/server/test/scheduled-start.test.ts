@@ -52,15 +52,18 @@ test('starts exactly at the saved second without a contributor minimum or native
   expect((await agent.get()).data()).toEqual({ executionAllowed: false });
 });
 
-test('a scheduled start sets no end time, like a manual start; an end time stored before 10 November 2026 is left unread', async () => {
+test('a scheduled start adds the default length to time already given, like a manual start, within 24 hours', async () => {
   const fresh = await save(records('fresh-length'));
   await startScheduledProject(fresh, () => due + 1000);
-  expect((await evidence(fresh)).project).toMatchObject({ execution: { started: true, paused: false } });
-  expect((await evidence(fresh)).project!.execution).not.toHaveProperty('endsAt');
-  const given = records('given-length'); given.main.execution.endsAt = due - 30 * 60_000;
+  expect((await evidence(fresh)).project).toMatchObject({ execution: { endsAt: due + 1000 + 60 * 60_000 } });
+  const given = records('given-length'); given.main.execution.endsAt = due + 30 * 60_000;
   const id = await save(given);
   await startScheduledProject(id, () => due + 1000);
-  expect((await evidence(id)).project).toMatchObject({ execution: { started: true, paused: false, endsAt: due - 30 * 60_000 } });
+  expect((await evidence(id)).project).toMatchObject({ execution: { endsAt: due + 90 * 60_000 } });
+  const full = records('full-length'); full.main.execution.endsAt = due + 23.5 * 3600_000;
+  const capped = await save(full);
+  await startScheduledProject(capped, () => due);
+  expect((await evidence(capped)).project).toMatchObject({ execution: { endsAt: due + 24 * 3600_000 } });
 });
 
 test('concurrent scheduler retries commit one revision, history and fanout and preserve scheduled time when late', async () => {

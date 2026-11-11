@@ -60,14 +60,14 @@ test('historical reports retain current membership fencing and cannot fabricate 
 
 
 test('HTTP restarts reuse one five-minute window; new runs and stop-only sessions ignore older timestamps', async () => {
-  const f = await fixture(), agent = f.agents[0], startedAt = at;
-  const sessions: { run_id: string; missionId: string; startedAt: number; remainingSlots: number; phase: string; generation: number }[] = [];
+  const f = await fixture(), agent = f.agents[0], deadlineAt = at + 300000;
+  const sessions: { run_id: string; missionId: string; startedAt: number; deadlineAt: number; remainingSlots: number; phase: string; generation: number }[] = [];
   const stops: { path: string; payload: object; reply: Awaited<ReturnType<typeof post>> }[] = [];
   // Each launch constructs fresh input, as separate connector installations do.
   for (let attempt = 0; attempt < 5; attempt++) {
     const run = await start(agent.token); expect(run.status).toBe(200);
     const session = { run_id: run.body.run_id, missionId: run.body.run_id,
-      startedAt, remainingSlots: 64, phase: 'waiting', generation: 1 };
+      startedAt: deadlineAt - 300000, deadlineAt, remainingSlots: 64, phase: 'waiting', generation: 1 };
     if (attempt !== 2) {
       expect((await post(agent.token, '/worker-session', session)).status).toBe(200);
       expect((await post(agent.token, '/worker-session', session)).status).toBe(200);
@@ -78,9 +78,9 @@ test('HTTP restarts reuse one five-minute window; new runs and stop-only session
     if (attempt === 0) expect(await post(agent.token, path, payload)).toEqual(reply);
     sessions.push(session); stops.push({ path, payload, reply });
   }
-  expect(at).toBe(startedAt);
+  expect(at).toBe(deadlineAt - 300000);
   // Respect the independent six-stop-report/minute admission guard when checking
-  // historical delivery retries.
+  // historical delivery retries; no launch needed a later approved deadline.
   at += 61000;
   // An equal advertised start must not hide the preceding terminal session.
   const latest = await scope(() => listMyWorkers(f.personIds[0], () => at));
@@ -88,7 +88,7 @@ test('HTTP restarts reuse one five-minute window; new runs and stop-only session
   const beforeRun = (await scope(() => runs().doc(agent.agentId).get())).data();
   const beforePresence = (await scope(() => presence().doc(agent.agentId).get())).data();
   expect(await post(agent.token, stops[0].path, stops[0].payload)).toEqual(stops[0].reply);
-  expect((await post(agent.token, '/worker-session', { ...sessions[0], startedAt: at + 300000 })).body.error).toBe('run_superseded');
+  expect((await post(agent.token, '/worker-session', { ...sessions[0], startedAt: at + 300000, deadlineAt: at + 600000 })).body.error).toBe('run_superseded');
   expect((await post(agent.token, stops[0].path, { ...stops[0].payload, reason: 'operator' })).status).toBe(409);
   expect((await scope(() => runs().doc(agent.agentId).get())).data()).toEqual(beforeRun);
   expect((await scope(() => presence().doc(agent.agentId).get())).data()).toEqual(beforePresence);

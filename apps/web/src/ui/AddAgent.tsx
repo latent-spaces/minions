@@ -76,7 +76,7 @@ export function AddAgent({ user, projectId, projectName, refresh, go, occupied =
   }, [user, profileId, open, payload, request?.state]);
   // A started or queued agent turns the dialog into a success message and forgets the request, so the next +
   // opens a fresh form. Failures stay in the dialog with Try again.
-  const [added, setAdded] = useState<{ name: string; agentId?: string; waitingFor?: 'project' | 'computer' | 'github'; viaPrompt?: boolean } | null>(null);
+  const [added, setAdded] = useState<{ name: string; agentId?: string; waitingFor?: 'project' | 'time' | 'computer' | 'github'; viaPrompt?: boolean } | null>(null);
   const promptOpen = false;
   useEffect(() => { if (!open) setAdded(null); }, [open]);
   const settled = useRef<string | null>(null);
@@ -85,11 +85,11 @@ export function AddAgent({ user, projectId, projectName, refresh, go, occupied =
   useEffect(() => {
     if (!request || !payload || settled.current === request.id) return;
     if (resumed.current) { resumed.current = false; if (!['pending', 'accepted', 'starting'].includes(request.state)) { settled.current = request.id; newRequest(); return; } }
-    const queued = request.state === 'pending' && (request.waitingFor === 'project' || request.waitingFor === 'computer' || request.waitingFor === 'github');
+    const queued = request.state === 'pending' && (request.waitingFor === 'project' || request.waitingFor === 'time' || request.waitingFor === 'computer' || request.waitingFor === 'github');
     if (request.state !== 'working' && !queued) return;
     settled.current = request.id;
     refresh();
-    setAdded({ name: payload.name, agentId: request.agentId ?? undefined, waitingFor: request.state === 'working' ? undefined : request.waitingFor as 'project' | 'computer' | 'github' });
+    setAdded({ name: payload.name, agentId: request.agentId ?? undefined, waitingFor: request.state === 'working' ? undefined : request.waitingFor as 'project' | 'time' | 'computer' | 'github' });
     newRequest();
   }, [request, payload]);
   // Added from the coding agent: the website only learns of it when a new agent with this name appears in My agents,
@@ -133,7 +133,7 @@ export function AddAgent({ user, projectId, projectName, refresh, go, occupied =
       <div className="agent-connections-heading"><h2 id={`${id}-title`}>Add agent to {projectName}</h2><CloseButton onClick={() => setOpen(false)} /></div>
       {added ? <div role="status" className="k42-add-done">
         <div className="k42-add-done-card"><span className="k42-add-done-avatar"><AgentAvatar name={added.name} id={added.agentId ?? added.name} ownerId={profileId} size={52} decorative /><span className="k42-add-check" aria-hidden="true"><Check size={12} /></span></span>
-          <div><strong>{added.name} joined {projectName}</strong><p className="muted">{added.waitingFor === 'project' ? 'Starts when the owner starts the project' : added.waitingFor === 'computer' ? 'Starts when your computer is online' : added.waitingFor === 'github' ? 'Starts once you have access to the project’s GitHub' : added.viaPrompt ? 'Working with you in your coding agent' : 'Working on the project goal'}</p></div></div>
+          <div><strong>{added.name} joined {projectName}</strong><p className="muted">{added.waitingFor === 'project' ? 'Starts when the owner starts the project' : added.waitingFor === 'time' ? 'Starts when the project has more time' : added.waitingFor === 'computer' ? 'Starts when your computer is online' : added.waitingFor === 'github' ? 'Starts once you have access to the project’s GitHub' : added.viaPrompt ? 'Working with you in your coding agent' : 'Working on the project goal'}</p></div></div>
         <ul className="k42-add-next">
           <li><Eye size={16} aria-hidden="true" /><div><strong>Watch it on Home</strong><p className="muted">It appears in the agents map with the others.</p></div></li>
           <li><SendHorizontal size={16} aria-hidden="true" /><div><strong>Steer it anytime</strong><p className="muted">Write under the map: “Tell your agents what to focus on…”</p></div></li>

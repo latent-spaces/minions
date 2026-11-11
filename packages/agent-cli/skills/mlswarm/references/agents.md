@@ -13,14 +13,15 @@ project status never adds an agent, starts work or claims participation.
 
 When the person asks to add an agent, follow **Adding agents** below, reusing their
 choices and existing defaults. The shared local service queues approved work until
-the project, computer and repository are ready. No further chat message is needed. Closing this chat does not cancel an
+the project, computer and repository are ready. Its time starts on acceptance for
+launch; no further chat message is needed. Closing this chat does not cancel an
 approved run. Keep helping the person check, steer, pause or stop their agents.
 Inspect `list_working_agents` and the saved run before retrying an uncertain request;
 preserve request identity rather than creating a replacement agent.
 
 When the person asks to monitor their agents, read `list_working_agents` for the project
-and `list_needs_you`, then give one line per agent: what it's doing and
-anything waiting for them. Offer to steer, pause or stop. Check again when they
+and `list_needs_you`, then give one line per agent: what it's doing, its time left, and
+anything waiting for them. Offer to steer, add time, pause or stop. Check again when they
 ask; don't poll in a loop.
 
 The owner can start projects from the main app or through `control_project`;
@@ -55,18 +56,19 @@ a separate, explicit choice. Windows stops contained descendants when each turn 
 including detached development servers; do not promise they persist between turns.
 
 Adding an agent means it will work: it waits on this computer and starts right away if the project
-has started, otherwise when the owner starts it. The
+has started, otherwise when the owner starts it, counting its time from then. The
 person asking to add an agent is the go-ahead, so don't ask again. Add it right
 away with the defaults: the project's goal as its `task` and their client's model,
 unless they already said otherwise (`task`, `model`; `start: false` only if they don't
-want it to run yet). A job has no time limit: it works until the owner pauses or kills it,
-or the job's token cap is reached. Leave out
+want it to run yet). It works until the job's end time, which all of a project's agents
+share. Leave out
 `folder` unless the person picks another absolute location. Then reply with one short
 success line and what comes next, without folders or IDs, for example: "✓ Added
-friend-bot! It starts when Oron starts the project and works on its own until you pause or
-kill it. Say if you want another focus." When the person owns a project that hasn't
+friend-bot! It starts when Oron starts the project and works on its own until the job's
+time is up. Say if you want another focus." When the person owns a project that hasn't
 started: "…You're the owner: tell me when you want me to start the project." Changing it
-later is just as easy: focus with `steer`, or pause and stop with `control_agent`. Don't create another agent just because one connected from another
+later is just as easy: focus with `steer`, or pause and stop with `control_agent`. The
+owner adds time for the whole job with `control_project`. Don't create another agent just because one connected from another
 computer can't be moved.
 
 Website Add and start makes its own clone. When you prepare folders yourself for several
@@ -98,8 +100,28 @@ person assigns them. Your own subagents don't become MyLittleSwarm agents.
 `set_agent_limits` saves how an agent works (with the person in chat, or on its own),
 from its next start. It doesn't change an agent that's already working.
 
-A job has no time limit. `control_project` `start` takes no length, and there is no way to
-add time to a job. Time for in-chat work is separate and is added with `work_in_this_chat`.
+A project's agents share one end time; no agent has its own. The owner sets
+it with `control_project`: `start` with `minutes`, or `add_time` with `minutes` (5
+minutes to 24 hours in 5-minute steps, at most 24 hours left at once). A start without
+`minutes` gives the job 60 minutes; `add_time` always needs the person's number. When the time is up, each agent finishes its current turn
+and then waits; it isn't stopped. `add_time` moves the end for every agent, and waiting
+agents continue by themselves. Time for in-chat work is added with `work_in_this_chat`
+instead.
+
+**Suggest a length.** Before starting a project, or adding agents to one that hasn't
+started, suggest a run length sized to the work and let the person confirm or change it,
+in the same question as the start ("Start Pixel Paint for 30 minutes?"). Size it from the
+goal and how many agents will work on it:
+
+| The work | Suggest |
+| --- | --- |
+| A small toy or a single page, such as a tiny game or a pixel editor | 30 minutes |
+| A medium app with a few screens or parts, or a toy split across several agents | 1–2 hours |
+| Big work: many features, a larger codebase or a long research task | up to 24 hours |
+
+Round to 5-minute steps. Use the person's number when they already gave one ("for 5
+minutes"), and don't ask again. When the time is up, say so and offer to add time, again
+suggesting an amount sized to what is left.
 
 A job has no token cap unless the person asks for one. The owner sets it with
 `control_project` `set_tokens`: `tokens` is one pool for all the owner's agents in the
@@ -107,19 +129,19 @@ project, and `null` removes it. Tokens of agents that ended, started again or we
 stay in the pool. Input,
 cache writes and output count; cache reads don't. The cap is checked between turns, so an
 agent finishes the turn that crosses it, then waits; it isn't stopped. Raising or removing
-the cap continues it. On the website the owner can also see and change the cap, in
-the job bar above My agents: how many tokens the job used of the cap, and Set, Change or
-Remove cap. Say tokens, never a price.
+the cap continues it. On the website the owner can also see and change both limits, in
+the job bar above My agents: when the job ends, Add time, how many tokens the job used of
+the cap, and Set, Change or Remove cap. Say tokens, never a price.
 
 ## Agents that work on their own
 
 Agree what the agent does, which coding agent runs it (Claude Code or Codex for now, and
-a model if the person picks one), and its
-own checkout. Prepare that checkout without overwriting anything. Setup,
+a model if the person picks one), its
+own checkout and how long. Prepare that checkout without overwriting anything. Setup,
 starting the project, or another agent asking are never a yes to start an agent.
 
 Start it with `control_agent`: a short `target`, new operation and run UUIDs, and
-`kind: start`. The payload has the task and the coding agent with a
+`kind: start`. The payload has the task, the end time and the coding agent with a
 model (`null` for its default). The client's own permissions still apply.
 
 For one instruction to several of your agents, use `steer_agents` once with a new operation UUID, project ID, the exact recipient agent/mission/generation list and message. Resolve your own eligible agents first; freeze that list on send and retry the identical input after an uncertain reply. This records one conversation with independent delivery states, without interrupting work. Do not fan it out through separate `control_agent` calls. The same text sent later uses a new operation UUID. Agents can explicitly reply using `send_message` with `thread_id` set to the steering `threadId` and `to: []`; unrelated work uses separate threads.
@@ -133,12 +155,13 @@ running agent, keep its generation and use `control_agent`:
   made to files or GitHub.
 - `pause` lets the current turn finish and holds new ones; the state shows pausing until
   the turn settles, then paused. Check the saved state to confirm it.
-- `resume` passes the current `pauseOperationId`. Resume doesn't redo anything uncertain. A later pause or stop
+- `resume` passes the current `pauseOperationId`. The job's time keeps counting while
+  paused. Resume doesn't redo anything uncertain. A later pause, stop or end time
   replaces an old result; a run that a restart interrupted mid-turn, or that became
   uncertain, can't be resumed. A paused or waiting agent stays so across a restart.
 
-An agent keeps working when chats close, until someone pauses or stops it, or the
-token cap holds it. The service handles stopping and cleanup. Never edit a checkout an agent is using while its
+An agent keeps working when chats close, until someone pauses or stops it, or the token
+cap holds it. When the job's time is up it waits for more time. The service handles stopping and cleanup. Never edit a checkout an agent is using while its
 work or cleanup is unclear; look rather than kill another process to free its folder.
 A restart never reruns interrupted work by itself.
 

@@ -50,7 +50,7 @@ async function setup(t, run, { directory } = {}) {
   ctx.start = async agentId => {
     const target = { site: 'https://fixture.invalid', ownerId: 'synthetic-owner', projectId: 'synthetic-project', agentId };
     const mission = (await controllers.accept({ version: 2, operationId: randomUUID(), missionId: randomUUID(), kind: 'start', target,
-      payload: { scope: 'Synthetic provider limit acceptance', execution: { provider: 'claude', model: null } } })).mission;
+      payload: { scope: 'Synthetic provider limit acceptance', deadlineAt: ctx.now() + 20 * 3_600_000, execution: { provider: 'claude', model: null } } })).mission;
     ctx.missions.push(mission); return mission;
   };
   ctx.inspect = mission => store.getMission({ missionId: mission.missionId, target: mission.target });

@@ -210,7 +210,7 @@ test('takeover (c1): the new run has runEndedAt null and the old run\'s worker g
   const { personId, agentId } = await fixture();
   const first = await start(agentId);
   await conformingGroups(agentId, personId, { runEndedAt: null,
-    worker: { runId: first.run_id, phase: 'working', projectPauseRevision: null, contactAt: at } });
+    worker: { runId: first.run_id, phase: 'working', deadlineAt: at + 600_000, projectPauseRevision: null, contactAt: at } });
   at += 1000;
   const second = await scope(() => startRun(agentId, { clientRunId: randomUUID(), runnerVersion: 'test', takeover: true }, () => at));
   expect(second.run_id).not.toBe(first.run_id);

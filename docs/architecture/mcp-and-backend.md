@@ -277,11 +277,12 @@ The time limits have different purposes:
 | --- | --- |
 | Pickup expiry | How long a queued request may wait for an eligible computer/project |
 | Launch window | Shorter bound on preparation and first execution after acceptance |
+| Job end time | One end for all of a project's workers, set at start and moved when the owner adds time; preparation and paused time consume it |
 | Turn backstop | The process guard's own bound of just under 24 hours on a single turn; a last resort, not a product limit |
 
-A job has no time limit: workers run until the owner pauses or kills them, or the optional token cap holds them after the turn that crossed it. End times stored before 10 November 2026 are read and ignored.
+The end time does not interrupt a turn: a worker finishes its turn, then waits without starting another. The worker-session reply carries the job's current end, including after the old one has passed; the local controller applies it and a waiting worker continues. Lengths use five-minute steps from five minutes to 24 hours, with at most 24 hours left at once; a job starts with 60 minutes unless the owner chooses another length.
 
-**Source:** [worker sessions](../../apps/server/src/projects/worker-sessions.ts), [local controllers](../../packages/agent-cli/src/service/controllers.mjs).
+**Source:** [shared run lengths](../../packages/contracts/src/run-length.ts), [worker-session end time](../../apps/server/src/projects/worker-sessions.ts), [local end-time handling](../../packages/agent-cli/src/service/controllers.mjs).
 
 ### 6.2 Start protocol
 
@@ -953,11 +954,11 @@ Focused regression entry points include [status admission](../../apps/server/tes
 
 ### 23.1 A person starts a five-minute background run
 
-The person selects the project and agent/provider. The cloud accepts a start for the approved computer; the website shows queued until execution is actually observed. The local broker checks its trusted binding, repository and provider readiness, then records an idempotent local operation.
+The person selects the project, agent/provider and five-minute window. The cloud accepts a start for the approved computer; the website shows queued until execution is actually observed. The local broker checks its trusted binding, repository and provider readiness, then records an idempotent local operation.
 
 The controller claims the checkout, prepares the turn and starts the independent guard and provider. The provider receives the narrow worker MCP bridge. Cloud calls are checked against the current agent and issued run, while local calls also require the active mission/generation.
 
-Kill, or the turn backstop, makes the guard stop the process. The controller records what actually happened, preserves cleanup uncertainty if any, and writes durable completion/report delivery work. Delivery retries independently of whether the chat or model still exists.
+At the deadline the guard stops the process. The controller records what actually happened, preserves cleanup uncertainty if any, and writes durable completion/report delivery work. Delivery retries independently of whether the chat or model still exists. A five-minute start does not rewrite the person's separately saved default run length.
 
 ### 23.2 A quiet project is polled
 

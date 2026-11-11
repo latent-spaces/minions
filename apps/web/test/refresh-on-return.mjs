@@ -33,7 +33,7 @@ try {
       settings: { involvement: 'on_own' }, lastRun: null,
       worker: { available: true, agentId: 'synthetic-refresh-agent', serverTime: now, session: {
         missionId: 'synthetic-mission', runId: 'synthetic-run', generation: 1,
-        startedAt: now, lastContactAt: now, remainingSlots: 1,
+        startedAt: now, deadlineAt: now + 3600000, lastContactAt: now, remainingSlots: 1,
         phase: revision % 2 ? 'waiting' : 'working',
       } },
     }] } });

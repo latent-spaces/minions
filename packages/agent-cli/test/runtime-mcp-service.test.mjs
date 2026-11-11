@@ -55,7 +55,7 @@ async function fixture(t, wrap = value => value) {
 test('two MCP clients share durable acceptance and outcomes; steering requires the shared cloud port', async t => {
   const { a, b, store, gate, events } = await fixture(t);
   assert.deepEqual(await call(a, 'get_computer_status'), await call(b, 'get_computer_status'));
-  const command = { operationId: randomUUID(), kind: 'start', target: publicTarget, missionId: randomUUID(), payload: { scope: 'Synthetic protocol verification only ' + 'x'.repeat(5000), execution: { provider: 'codex', model: null } } };
+  const command = { operationId: randomUUID(), kind: 'start', target: publicTarget, missionId: randomUUID(), payload: { scope: 'Synthetic protocol verification only ' + 'x'.repeat(5000), deadlineAt: Date.now() + 60000, execution: { provider: 'codex', model: null } } };
   const [first, duplicate] = await Promise.all([call(a, 'control_agent', command), call(b, 'control_agent', command)]);
   assert.equal(first.receipt.operationId, duplicate.receipt.operationId);
   assert.equal(first.receipt.generation, duplicate.receipt.generation);
@@ -95,7 +95,7 @@ test('the gateway checks every method, exact host/origin and bounded schemas', a
   assert.equal((await fetch(service.url, { headers: { Authorization: 'Bearer wrong' } })).status, 401);
   const response = await a.callTool({ name: 'control_agent', arguments: {
     operationId: randomUUID(), kind: 'start', target: publicTarget, missionId: randomUUID(),
-    payload: { scope: 'Must reject arbitrary execution fields', execution: { provider: 'codex', model: null }, command: '/bin/sh' },
+    payload: { scope: 'Must reject arbitrary execution fields', deadlineAt: Date.now() + 60000, execution: { provider: 'codex', model: null }, command: '/bin/sh' },
   } });
   assert.equal(response.isError, true);
   const oversized = await fetch(service.url, { method: 'POST', headers: { ...auth, 'Content-Type': 'application/json', Accept: 'application/json, text/event-stream' }, body: JSON.stringify({ padding: 'x'.repeat(40000) }) });
@@ -114,7 +114,7 @@ test('a lost command response is reconciled by receipt after its client disconne
     return result;
   } }));
   t.after(() => release());
-  const command = { operationId: randomUUID(), kind: 'start', target: publicTarget, missionId: randomUUID(), payload: { scope: 'Synthetic lost-response check', execution: { provider: 'codex', model: null } } };
+  const command = { operationId: randomUUID(), kind: 'start', target: publicTarget, missionId: randomUUID(), payload: { scope: 'Synthetic lost-response check', deadlineAt: Date.now() + 60000, execution: { provider: 'codex', model: null } } };
   const pending = a.callTool({ name: 'control_agent', arguments: command });
   const lost = assert.rejects(pending);
   const original = await acceptedSignal;

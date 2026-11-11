@@ -22,7 +22,7 @@ const requestSchema = z.object({id:z.uuid(),connectionId:z.uuid(),projectId:z.st
   name:z.string().regex(/^[\w-]{1,64}$/),scope:z.string().min(1).max(8000).refine(v=>Buffer.byteLength(v)<=8000&&!v.includes('\0')),
   execution,incarnation:z.uuid().nullable(),
   state:z.enum(['pending','accepted','starting','working','failed','expired','recovery_required']),
-  createdAt:z.number().int().positive(),pickupByAt:z.number().int().positive(),launchByAt:z.number().int().positive().nullable(),agentId:z.string().regex(/^[\w-]{1,200}$/).nullable(),
+  createdAt:z.number().int().positive(),pickupByAt:z.number().int().positive(),launchByAt:z.number().int().positive().nullable(),deadlineAt:z.number().int().positive().nullable(),agentId:z.string().regex(/^[\w-]{1,200}$/).nullable(),
 });
 const terminal = new Set(['working','failed','expired','recovery_required']);
 // The computer that accepts a run is bound at acceptance, so the run's identity excludes it.
@@ -144,6 +144,8 @@ export function createWebAgentStarts({home,principal,ownerClient,controllers,add
     if(mission.currentTurnStage==='applied'||mission.outcomes?.some(row=>row.outcome?.delivery==='acknowledged'))return {state:'working',agentId:intent.command.target.agentId};
     if(mission.state==='recovery_required')return {state:'recovery_required',agentId:intent.command.target.agentId,code:'recovery_required'};
     if(['failed','stopped','blocked'].includes(mission.state))return {state:'failed',agentId:intent.command.target.agentId,code:'launch_failed'};
+    // Started after the job's end time: it is up and waits for more time, so it has not missed its launch.
+    if(mission.deadlineAt<=now())return {state:'working',agentId:intent.command.target.agentId};
     // A run that never took its first turn in its launch window has expired; say so instead of starting forever.
     if(now()>=intent.request.launchByAt)return {state:'expired',agentId:intent.command.target.agentId,code:'request_expired'};
     return {state:'starting',agentId:intent.command.target.agentId};
@@ -206,10 +208,10 @@ export function createWebAgentStarts({home,principal,ownerClient,controllers,add
     const accepted=await ownerClient.acceptAgentStart(request.id,{incarnation},options(abort.signal));
     const grant=requestSchema.parse(accepted?.request);
     if(fingerprint(grant)!==fingerprint(request))throw failure('request_conflict');
-    if(!['accepted','starting'].includes(grant.state)||!grant.launchByAt)return;
-    if(intent&&intent.request.launchByAt!==grant.launchByAt)throw failure('request_conflict');
+    if(!['accepted','starting'].includes(grant.state)||!grant.launchByAt||!grant.deadlineAt)return;
+    if(intent&&(intent.request.launchByAt!==grant.launchByAt||intent.request.deadlineAt!==grant.deadlineAt))throw failure('request_conflict');
     intent??={request:grant,fingerprint:fingerprint(grant),boot:incarnation};save(intent);
-    // Only the launch window bounds preparation.
+    // Only the launch window bounds preparation. A start that finishes after the job's end time comes up waiting for more time.
     const live=()=>{abort.signal.throwIfAborted();if(now()>=grant.launchByAt)throw failure('request_expired');};
     const signal=AbortSignal.any([abort.signal,AbortSignal.timeout(Math.max(1,grant.launchByAt-now()))]);
     try {
@@ -231,7 +233,7 @@ export function createWebAgentStarts({home,principal,ownerClient,controllers,add
       if(confirmed?.request?.state!=='accepted'&&confirmed?.request?.state!=='starting')throw failure('request_expired');
       live();
       intent.command={version:2,operationId:grant.id,missionId:grant.id,kind:'start',target:{...principal,projectId:grant.projectId,agentId:record.agentId},
-        payload:{scope:grant.scope,execution:grant.execution}};
+        payload:{scope:grant.scope,deadlineAt:grant.deadlineAt,execution:grant.execution}};
       save(intent); // Immutable command exists before the sole execution writer.
       await controllers.accept(intent.command);
       await reconcile(intent);
@@ -258,7 +260,7 @@ export function createWebAgentStarts({home,principal,ownerClient,controllers,add
         sharing=ownerClient.listRepositoryAccess(options(abort.signal)).then(async value=>{await syncAccess(value,{signal:abort.signal});await syncMergePolicies(value,{ownerClient,options,signal:abort.signal});}).catch(()=>{}).finally(()=>{sharing=null;});}
       const value=await ownerClient.listAgentStarts(options(signal));
       if(!Array.isArray(value?.requests)||value.requests.length>32||!Number.isSafeInteger(value.serverTime))throw failure('invalid_reply');
-      // Launch windows rely on wall-clock time.
+      // Execution relies on wall-clock deadlines throughout the existing runtime.
       // Refuse fresh starts if the machine clock is clearly out of sync.
       const skew=Math.abs(value.serverTime-now())>30000;
       for(const raw of value.requests){

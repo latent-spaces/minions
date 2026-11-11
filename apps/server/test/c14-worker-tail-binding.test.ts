@@ -26,7 +26,7 @@ test('after the last worker sync, the status document keeps the worker live as l
   const run = await startRun(id, { clientRunId: randomUUID(), runnerVersion: 'synthetic-no-model', takeover: false }, now);
   await presence().doc(id).set({ runEndedAt: null, runMode: null,
     agent: { name: 'Synthetic worker', ownerProfileId: owner, revokedAt: null, connectionEpoch: 0, focus: null, personaText: '' } } as never, { merge: true });
-  const input = { run_id: run.run_id, missionId: randomUUID(), generation: 1, startedAt: T, remainingSlots: 0, phase: 'working' as const };
+  const input = { run_id: run.run_id, missionId: randomUUID(), generation: 1, startedAt: T, deadlineAt: T + 600_000, remainingSlots: 0, phase: 'working' as const };
   for (const seconds of [20, 40, 60, 80]) { at = T + seconds * 1000; await syncWorkerSession(id, input, now); }
   at = T + 155_000;  // disconnected right after the t80 sync: the session says live until t170
   const session = (await workerSessions(id).doc(input.missionId).get()).data()!;
@@ -39,7 +39,7 @@ test('after the last worker sync, the status document keeps the worker live as l
   console.info(JSON.stringify({ c14WorkerTail: { readSeconds: 155, sessionContactSeconds: (session.lastContactAt - T) / 1000,
     presenceContactSeconds: (doc.lastContactAt - T) / 1000, workerGroup: doc.worker, actual: actual.state, fromDoc: projected?.state } }));
   // W1 writes both copies in one transaction, so the sources (pointer summary, c5's default reader) and the document agree (c5).
-  expect(doc.worker).toEqual({ runId: session.runId, phase: session.phase, lastContactAt: session.lastContactAt });
+  expect(doc.worker).toEqual({ runId: session.runId, phase: session.phase, lastContactAt: session.lastContactAt, deadlineAt: session.deadlineAt });
   expect(workerAvailable(session, at)).toBe(true);
   expect(actual.state).toBe('working');
   expect(fromDoc, 'the status document is complete').not.toBeNull();

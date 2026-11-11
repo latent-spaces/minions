@@ -104,7 +104,7 @@ export async function captureContextOverhead(options,{executables={codex:options
     let outcome;
     if(mode==='direct')outcome=await directTurn({provider,...folders.direct,instructionsFile:join(folders.direct.stateDir,'instructions.md'),session,prompt:i?steering:`${neutral}\nTask: ${task}\nConversation: ${conversation}`,deadline,signal,clientVersion:VERSION,mark:directMark});
     else{
-     mission.currentTurnId=randomUUID();const prompt=controllerPrompt({scope:mission.scope,steering:i?[{message:steering}]:[],notices:[]});
+     mission.currentTurnId=randomUUID();const prompt=controllerPrompt({scope:mission.scope,deadlineAt:deadline,steering:i?[{message:steering}]:[],notices:[]});
      cleanupConfirmed=false;outcome=await adapter.run({...prompt,turnId:mission.currentTurnId,signal,deadline});cleanupConfirmed=outcome.cleanupConfirmed===true;
      if(!cleanupConfirmed||outcome.failed||outcome.interrupted)throw new Error('MyLittleSwarm turn did not finish with confirmed native cleanup.');
      sourceMeasurements.push(outcome.usage?.context??null);

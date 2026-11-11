@@ -10,7 +10,7 @@ async function fixture() {
   const f = await seed({ profiles: [{ name: 'Alice', email: 'alice@example.test' }, { name: 'Admin', email: 'admin@example.test' }], agents: [{ person: 0, name: 'Fox' }, { person: 1, name: 'Owl' }] });
   const agent = f.agents[0].agentId, profile = f.personIds[0];
   const r = await scope(() => startRun(agent, { clientRunId: randomUUID(), runnerVersion: 'fake', takeover: false }, () => 1000));
-  const session = { run_id: r.run_id, missionId: r.run_id, startedAt: 1000, remainingSlots: 64, phase: 'waiting' as const, generation: 1 };
+  const session = { run_id: r.run_id, missionId: r.run_id, startedAt: 1000, deadlineAt: 901000, remainingSlots: 64, phase: 'waiting' as const, generation: 1 };
   return { f, agent, profile, session, sync: (input: Parameters<typeof syncWorkerSession>[1] = session, at = 1100) => scope(() => syncWorkerSession(agent, input, () => at)), request: { id: randomUUID(), missionId: session.missionId, body: 'Focus on tests.' } };
 }
 test('a waiting worker held by a provider limit is shown with its retry time; a working report clears it',async()=>{
@@ -25,20 +25,23 @@ test('a waiting worker held by a provider limit is shown with its retry time; a 
  await expect(x.sync({...x.session,providerLimit:{retryAt:-1}},1700)).rejects.toMatchObject({code:'bad_input'});
  await expect(x.sync({...x.session,providerLimit:{retryAt:1,reason:'429'}} as never,1700)).rejects.toMatchObject({code:'bad_input'});
 });
-test('a worker in contact long after it started is listed as available and can be steered; an old end time is accepted and ignored',async()=>{
+test('a worker past its end time is still in contact: it is listed as available, can be steered, and a changed deadline is refused',async()=>{
  const x=await fixture();await x.sync();
- const later=x.session.startedAt+48*60*60_000;
- expect(await x.sync({...x.session,phase:'working'} as never,later)).toEqual({missionId:x.session.missionId,tokenLimit:null});
- const view=await scope(()=>listMyWorkers(x.profile,()=>later+1000));
- expect(view.agents[0].worker).toMatchObject({available:true,session:{phase:'working'}});
- expect(view.agents[0].worker.session).not.toHaveProperty('deadlineAt');
- // A stop report queued before 10 November 2026 still carries an end time that has passed: it is accepted and ignored.
- expect(await x.sync({...x.session,phase:'working',deadlineAt:x.session.startedAt+60_000} as never,later+2000)).toEqual({missionId:x.session.missionId,tokenLimit:null});
- const after=await scope(()=>listMyWorkers(x.profile,()=>later+3000));
- expect(after.agents[0].worker).toMatchObject({available:true,session:{phase:'working'}});
- expect(after.agents[0].worker.session).not.toHaveProperty('deadlineAt');
- await expect(x.sync({...x.session,supportsDeadlineExtension:false} as never,later+2000)).rejects.toMatchObject({code:'bad_input'});
- await expect(x.sync({...x.session,untilProjectEnds:true} as never,later+2000)).rejects.toMatchObject({code:'bad_input'});
+ const past=x.session.deadlineAt+60_000;
+ expect(await x.sync({...x.session,phase:'working'} as never,past)).toEqual({missionId:x.session.missionId,authorizedDeadlineAt:x.session.deadlineAt,tokenLimit:null});
+ const view=await scope(()=>listMyWorkers(x.profile,()=>past+1000));
+ expect(view.agents[0].worker).toMatchObject({available:true,session:{phase:'working',deadlineAt:x.session.deadlineAt}});
+ await expect(x.sync({...x.session,deadlineAt:x.session.deadlineAt+60_000},past+2000)).rejects.toMatchObject({code:'bad_input'});
+ await expect(x.sync({...x.session,supportsDeadlineExtension:false} as never,past+2000)).rejects.toMatchObject({code:'bad_input'});
+ await expect(x.sync({...x.session,untilProjectEnds:true} as never,past+2000)).rejects.toMatchObject({code:'bad_input'});
+});
+
+test('a worker that started after the job end time is in contact and waits for more time',async()=>{
+ const x=await fixture();
+ const late={...x.session,deadlineAt:900};
+ expect(await x.sync(late)).toEqual({missionId:x.session.missionId,authorizedDeadlineAt:900,tokenLimit:null});
+ const view=await scope(()=>listMyWorkers(x.profile,()=>1200));
+ expect(view.agents[0].worker).toMatchObject({available:true,session:{phase:'waiting',startedAt:1000,deadlineAt:900}});
 });
 
 test('shared acceptance precedes delivery; exact retries, ownership, ordering and receipt evidence are fenced', async () => {

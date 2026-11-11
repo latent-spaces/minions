@@ -14,9 +14,11 @@ import './agent-run-controls.css';
 
 type Worker = ProjectWorkersView['agents'][number];
 
+import { timeLeft } from '../observation-time';
+export { timeLeft } from '../observation-time';
 
 // Play for a stopped agent: queues a new run for this same agent on the computer it last ran on. It works toward
-// the project's goal until it is paused or killed, or the job's token cap is reached; the person steers it from there.
+// the project's goal until the job's end time; the person steers it from there.
 export function PlayAgent({ user, projectId, agent, disabled, refresh, compact = false }: { user: SessionUser; projectId: string; agent: Worker; disabled: boolean; refresh: () => void; compact?: boolean }) {
   const [state, setState] = useState<PlayState>({ pending: null, busy: false, error: null });
   const controller = useRef<ReturnType<typeof agentPlayState> | null>(null);
@@ -66,15 +68,15 @@ export function AgentRunActions({ user, projectId, agent, controls, now, disable
   return <BackgroundWorkerActions agentId={agent.agentId} agentName={agent.agentName} view={background} controls={controls.background} now={now} disabled={disabled} />;
 }
 
-// The agent's own page: status and Play/Pause.
+// The agent's own page: status, time left and Play/Pause.
 export function AgentRunPanel({ user, projectId, agentId }: { user: SessionUser; projectId: string; agentId: string }) {
   const controls = useMyWorkers();
   const agent = controls?.data?.agents.find(a => a.agentId === agentId);
   if (!controls || !agent) return null;
   const status = workerAgentStatus(agent, controls.now);
   return <div className="k42-agent-run" title={status.title}>
-    <strong className="k42-agent-status-text"><AgentStatusIcon label={status.label} decorative />{status.label}</strong>
-    {['Waiting', 'Idle'].includes(status.label) && <span className="muted"> · {status.title}</span>}
+    <strong className="k42-agent-status-text"><AgentStatusIcon label={status.label} decorative />{status.label}</strong>{status.timeLeft !== null && <span className="muted"> · {timeLeft(status.timeLeft)}</span>}
+    {(status.pastEnd || ['Waiting', 'Idle'].includes(status.label)) && <span className="muted"> · {status.title}</span>}
     <AgentRunActions user={user} projectId={projectId} agent={agent} controls={controls} now={controls.now} disabled={false} />
   </div>;
 }

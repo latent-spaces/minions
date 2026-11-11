@@ -23,7 +23,7 @@ function reachable(random: () => number, i: number): AgentStateSources {
   const workerKind = pick(random, ['none', 'old', 'this', 'this']);
   const worker = workerKind === 'none' ? undefined : { runId: workerKind === 'old' ? `old${i}` : runId,
     phase: pick(random, ['working', 'idle', 'waiting', 'paused', 'stopped', 'completed']),
-    lastContactAt: NOW - pick(random, [2_000, 19_000, 85_000, 120_000]),
+    lastContactAt: NOW - pick(random, [2_000, 19_000, 85_000, 120_000]), deadlineAt: NOW + pick(random, [-1_000, 3_600_000]),
     projectPauseRevision: pick(random, [null, 3]) } as never;
   return { id: `id${i}`, agent, allowed: epoch === 1, run, contact, worker, queued: random() < 0.1, needsYou: false, sourceRevision: 0 };
 }
@@ -100,7 +100,7 @@ function trial(random: () => number, i: number) {
     const base: AgentStateSources = { id: `t${i}`, agent: { revokedAt: null, ownerProfileId: 'p', connectionEpoch: 1, name: 'n', focus: null, persona: { text: '' } } as never,
       allowed: true, run: { runId: 'r', endedAt: null } as never,
       contact: { runId: 'r', lastContactAt: lastAt(presenceStored, t), phase: 'idle', phaseAt: 0 } as never,
-      worker: { runId: 'r', phase: workerPhase, lastContactAt: lastAt([0, ...syncs], t), projectPauseRevision: paused ? 3 : null } as never,
+      worker: { runId: 'r', phase: workerPhase, lastContactAt: lastAt([0, ...syncs], t), deadlineAt: 10_000_000, projectPauseRevision: paused ? 3 : null } as never,
       queued: false, needsYou: false, ...(pause ? { pause } : {}), sourceRevision: 0 };
     const doc = (contactAt: number) => {
       const d = statusDocFromSources(base);
@@ -148,7 +148,7 @@ test('writer timing: every-sync (a) and expiry re-read (c) match today; a 60 s t
 test('codex-1\'s tail case: syncs at 20/40/60/80 s then silence, read at 155 s', () => {
   const base = (workerContact: number): AgentStateSources => ({ id: 't', agent: { revokedAt: null } as never, allowed: true,
     run: { runId: 'r', endedAt: null } as never, contact: { runId: 'r', lastContactAt: 60_000, phase: 'idle', phaseAt: 0 } as never,
-    worker: { runId: 'r', phase: 'working', lastContactAt: workerContact, projectPauseRevision: null } as never,
+    worker: { runId: 'r', phase: 'working', lastContactAt: workerContact, deadlineAt: 10_000_000, projectPauseRevision: null } as never,
     queued: false, needsYou: false, sourceRevision: 0 });
   expect(deriveAgentState(base(80_000), 155_000).state).toBe('working');   // today: fresh until 170 s
   expect(deriveAgentState(base(60_000), 155_000).state).toBe('offline');   // throttled worker contact (60 s): early

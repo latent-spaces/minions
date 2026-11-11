@@ -7,7 +7,7 @@ import { Button } from './Button';
 import { formatRoute, projectRoute } from '../route';
 import { ChatParticipationRow, useChatParticipationControls } from './ChatParticipationControls';
 import { BackgroundWorkerActions, backgroundControlStatus, controlLabel, IDLE_HINT, useBackgroundWorkerControls } from './BackgroundWorkerControls';
-import { atTokenCap, providerLimitText, TOKEN_CAP, tokenUsageNote, workerAgentStatus } from './agent-running-state';
+import { atTokenCap, PAST_END, providerLimitText, TIME_AND_TOKEN_CAP, TOKEN_CAP, tokenUsageNote, workerAgentStatus } from './agent-running-state';
 import { backgroundIconState } from './agent-status-icon';
 import { refreshOnReturn } from '../refresh-on-return';
 
@@ -44,7 +44,7 @@ export function useMyWorkerControls(user: SessionUser, projectId: string | null,
   }, [user, projectId, active, refresh, pollMs]);
   return { data, error, loading, participation, background, now: clock + offset.current, refresh: () => setRefresh(v => v + 1) };
 }
-// jobBar: the owner's job bar (the token cap), shown above the agents.
+// jobBar: the owner's job bar (end time and token cap), shown above the agents.
 export function MyWorkerControls({ projectId, controls, disabled: requested, inline = false, jobBar = null }: { inline?: boolean; projectId: string; controls: ReturnType<typeof useMyWorkerControls>; disabled: boolean; jobBar?: ReactNode }) {
   const { data, now } = controls;
   // A closed project allows no agent controls.
@@ -102,14 +102,15 @@ export function MyWorkerControls({ projectId, controls, disabled: requested, inl
       // Runtime identity is independent of the older steering projection. Never
       // use a historical steering run to extend a different current mission.
       const s = background && a.worker.session?.missionId !== background.missionId ? null : a.worker.session;
-      const hasSession = !!background || !!s;
+      const hasSession = !!background || !!s, remaining = Math.max(0, (background?.deadlineAt ?? s?.deadlineAt ?? now) - now);
       const ended = background ? ['stopped', 'failed'].includes(background.state) : !!s && ['stopped','completed'].includes(s.phase);
       const fresh = a.worker.available && !!s && now - s.lastContactAt < 90000;
+      const minutes = Math.ceil(remaining / 60000), time = minutes >= 60 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${minutes} min`;
       const starting = !!a.run && ['pending','accepted','starting'].includes(a.run.state);
-      const status = a.projectPause || starting ? workerAgentStatus(a,now).label : background ? backgroundControlStatus(background) : !s ? 'Not running' : ended ? s.phase === 'completed' ? 'Finished' : 'Stopped' : !fresh ? 'Offline' : ({working:'Working',waiting:'Idle',paused:'Paused',blocked:'Blocked',stopped:'Stopped',completed:'Finished'}[s.phase] ?? s.phase);
+      const status = a.projectPause || starting ? workerAgentStatus(a,now).label : background ? backgroundControlStatus(background, now) : !s ? 'Not running' : ended ? s.phase === 'completed' ? 'Finished' : 'Stopped' : !fresh ? 'Offline' : remaining === 0 ? s.phase === 'working' ? PAST_END.finishing : PAST_END.waiting : ({working:'Working',waiting:'Idle',paused:'Paused',blocked:'Blocked',stopped:'Stopped',completed:'Finished'}[s.phase] ?? s.phase);
       const limit = status === 'Idle' && s?.phase === 'waiting' ? providerLimitText(s) : null;
-      const state = atTokenCap(s) ? status === 'Idle' ? TOKEN_CAP : status : limit ?? status, tokens = !ended ? tokenUsageNote(s) : null;
-      return <Fragment key={a.agentId}>{chat}<li className="background-worker-row"><div className="my-worker-identity"><strong>{a.agentName}</strong><span className="muted" title={state === 'Idle' ? IDLE_HINT : undefined}>{chat ? 'Works on its own · ' : ''}<span className="k42-agent-status-text"><AgentStatusIcon label={state} state={limit ? 'waiting' : background && !a.projectPause && !starting && state !== TOKEN_CAP ? backgroundIconState(background) : undefined} decorative />{state}</span></span>
+      const state = !atTokenCap(s) ? limit ?? status : status === 'Idle' ? TOKEN_CAP : status === PAST_END.waiting ? TIME_AND_TOKEN_CAP : status, tokens = !ended ? tokenUsageNote(s) : null;
+      return <Fragment key={a.agentId}>{chat}<li className="background-worker-row"><div className="my-worker-identity"><strong>{a.agentName}</strong><span className="muted" title={state === 'Idle' ? IDLE_HINT : undefined}>{chat ? 'Works on its own · ' : ''}<span className="k42-agent-status-text"><AgentStatusIcon label={state} state={limit ? 'waiting' : background && !a.projectPause && !starting && state !== TOKEN_CAP ? backgroundIconState(background, now) : undefined} decorative />{state}</span>{!ended && hasSession && remaining > 0 ? ` · ${time} left` : ''}</span>
         {tokens && <small>{tokens}{state === TOKEN_CAP ? ' Raise the cap to continue.' : ''}</small>}
         {/* Only a connector without background controls publishes no control view; a control view that is unavailable has another cause. */}
         {!ended && !background && !!s && <small>Update MyLittleSwarm on your computer to pause or resume.</small>}

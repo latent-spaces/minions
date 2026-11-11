@@ -43,7 +43,7 @@ test('real communication card supports avatars, live states, hover, keyboard and
       const run = await startRun(agent.agentId, { clientRunId: randomUUID(), runnerVersion: 'synthetic-test-no-model', takeover: false }, () => at);
       if ([0,3,4].includes(i)) await reportPhase(agent.agentId, run.run_id, { phase: 'turn' }, () => at);
       if (i === 2 || i === 3) await syncWorkerSession(agent.agentId, { run_id: run.run_id, missionId: run.run_id, startedAt: at,
-        phase: i === 2 ? 'waiting' : 'blocked', remainingSlots: 64, generation: 1 }, () => at);
+        deadlineAt: at + 3600000, phase: i === 2 ? 'waiting' : 'blocked', remainingSlots: 64, generation: 1 }, () => at);
       if (i === 4) await updateCanonicalStatus(agent.agentId, { lastContactAt: at - 90001 });
       if (i === 5) await writeAgent(agent.agentId, { revokedAt: at });
       await writeAgent(agent.agentId, { focus: { text: `Synthetic focus: ${names[i]} is checking the map controls.`, updatedAt: at - 1000, runId: run.run_id } });

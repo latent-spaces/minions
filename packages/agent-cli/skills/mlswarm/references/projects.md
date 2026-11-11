@@ -66,12 +66,11 @@ can be empty while its cursor still leads to more, so follow the cursor.
   one stable request ID. After an uncertain reply retry the identical decision; never
   replace its revisions silently. Public information already read cannot be recalled.
 - Read `get_project_overview` before `control_project`: `start`, `pause`, `resume`,
-  `set_tokens`, `close` or `reopen`, with its current revision, the original request ID and
-  `approved: true`. A job has no time limit: `start` takes no length, and agents work until
-  the person pauses or kills them or the token cap holds them ([Agents](agents.md)). When the
-  person asks for a length, such as "for 5 minutes", say so: you start it, wait that long in this
-  chat, then pause it. Only an open chat can do that; if it closes, the agents keep working until
-  the person pauses them. `set_tokens`
+  `add_time`, `set_tokens`, `close` or `reopen`, with its current revision, the original request ID and
+  `approved: true`. `start` and `add_time` take `minutes`, the length the person chose
+  for the job; agents work only while it has time left. Suggest a length sized to the
+work and confirm it with the person before starting ([Agents](agents.md) has the sizes);
+always pass the agreed `minutes`. `set_tokens`
   takes `tokens` (or `null` for no cap), one pool for all the person's agents in the
   project; the overview's `tokenLimit` is the current cap. Starting with fewer people than the minimum needs the owner's
   explicit yes to `start_without_minimum`. Start and resume let agents work; neither

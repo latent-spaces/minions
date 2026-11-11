@@ -1,9 +1,11 @@
 // Safe repository observations contain no raw Git output, credentials or local paths.
 export type RepositoryReadiness = {waitingFor:'github'|'empty_repository'|null;code:string;checkedAt:number};
-// What a queued start waits for. A job has no time limit, so a start never waits for time.
-export type StartWait = 'project' | 'computer' | 'github' | 'empty_repository';
+// What a queued start waits for. 'time': the project is running but its job has no time left.
+export type StartWait = 'project' | 'time' | 'computer' | 'github' | 'empty_repository';
 export type WorkerSteeringSession = {
-  missionId: string; runId: string; generation: number; startedAt: number;
+  missionId: string; runId: string; generation: number; startedAt: number; deadlineAt: number;
+  // The job's end time as the server last told this worker. A worker past deadlineAt finishes its turn, then waits.
+  authorizedDeadlineAt?: number;
   phase: 'waiting' | 'working' | 'paused' | 'blocked' | 'stopped' | 'completed';
   lastContactAt: number; remainingSlots: number;
   /** Exact project Pause confirmed only after native execution has settled. */
@@ -52,7 +54,7 @@ export type AgentObservation = {
   agentId: string; agentName: string;
   projectPause?: import('./communication-agent.js').CommunicationAgent['projectPause'];
   focus?: import('./agent-focus.js').AgentFocus | null;
-  worker: { session: Pick<WorkerSteeringSession, 'missionId' | 'generation' | 'phase' | 'lastContactAt' | 'tokens' | 'tokenLimit' | 'providerLimit'> | null };
-  backgroundControl?: Pick<import('./background-controls.js').BackgroundControlView, 'missionId' | 'state' | 'deviceLastSeenAt'> | null;
+  worker: { session: Pick<WorkerSteeringSession, 'missionId' | 'generation' | 'phase' | 'deadlineAt' | 'lastContactAt' | 'tokens' | 'tokenLimit' | 'providerLimit'> | null };
+  backgroundControl?: Pick<import('./background-controls.js').BackgroundControlView, 'missionId' | 'state' | 'deadlineAt' | 'deviceLastSeenAt'> | null;
   run?: { state: string; waitingFor: StartWait | null; repository?:RepositoryReadiness|null } | null;
 };

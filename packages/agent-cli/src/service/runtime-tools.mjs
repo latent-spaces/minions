@@ -13,7 +13,7 @@ const targetSchema = publicTargetSchema;
 const executionSchema = z.object({ provider: z.enum(['claude', 'codex']), model: z.string().regex(/^[A-Za-z0-9_:.-]{1,150}$/).nullable() }).strict();
 const commandBase = { operationId: z.uuid(), target: targetSchema, missionId: z.uuid() };
 export const commandSchema = z.discriminatedUnion('kind', [
-  z.object({ ...commandBase, kind: z.literal('start'), payload: z.object({ scope: text(RUNTIME_LIMITS.scopeBytes), execution: executionSchema }).strict() }).strict(),
+  z.object({ ...commandBase, kind: z.literal('start'), payload: z.object({ scope: text(RUNTIME_LIMITS.scopeBytes), deadlineAt: z.number().int().positive(), execution: executionSchema }).strict() }).strict(),
   z.object({ ...commandBase, kind: z.literal('steer'), generation: z.number().int().positive(), payload: z.object({ message: text(RUNTIME_LIMITS.messageBytes) }).strict() }).strict(),
   z.object({ ...commandBase, kind: z.literal('stop'), generation: z.number().int().positive().optional(), payload: z.object({}).strict() }).strict(),
   z.object({ ...commandBase, kind: z.literal('pause'), generation: z.number().int().positive(), payload: z.object({}).strict() }).strict(),

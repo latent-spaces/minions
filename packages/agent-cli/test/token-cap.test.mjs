@@ -43,7 +43,9 @@ test('the cap is reached at its amount, counting what the pool counted outside t
 
 test('the scheduler waits at the cap between turns and runs as before without one', () => {
   const news = { project: { started: true, paused: false }, pending: 0, acknowledged: 0 };
-  const scheduler = createWorkController({});
+  const scheduler = createWorkController({ deadline: Date.now() + 60000 });
   assert.deepEqual(scheduler.decide({ news, tokenCap: true }), { action: 'wait', reason: 'token_cap', interrupt: false });
   assert.deepEqual(scheduler.decide({ news }), { action: 'run', reason: 'first' });
+  // The end of time is reported first: both wait the same way.
+  assert.equal(createWorkController({ deadline: Date.now() - 1 }).decide({ news, tokenCap: true }).reason, 'time_up');
 });

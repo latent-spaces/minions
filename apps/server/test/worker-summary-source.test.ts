@@ -16,7 +16,7 @@ async function fixture() {
   const run = await scope(() => startRun(id, { clientRunId: randomUUID(), runnerVersion: 'test', takeover: false }, () => now));
   const start = now, mission = randomUUID();
   const sync = (phase: string, revision?: number) => scope(() => syncWorkerSession(id, { run_id: run.run_id,
-    missionId: mission, generation: 1, startedAt: start, remainingSlots: 1, phase,
+    missionId: mission, generation: 1, startedAt: start, deadlineAt: start + 600_000, remainingSlots: 1, phase,
     ...(revision ? { projectPauseRevision: revision } : {}) }, () => now));
   const read = () => scope(() => communicationAgents({ ids: id }, viewer, now)).then(page => page.agents[0]!);
   return { id, viewer, run, sync, read };
@@ -24,7 +24,7 @@ async function fixture() {
 test('the canonical worker wins over a disagreeing pointer; an older-run worker cannot describe a restart', async () => {
   const w = await fixture(); await w.sync('working');
   await scope(() => workerPointer(w.id).set({ missionId: randomUUID(), summary: { runId: w.run.run_id,
-    phase: 'stopped', lastContactAt: now } } as never));
+    phase: 'stopped', lastContactAt: now, deadlineAt: now + 600_000 } } as never));
   expect(await w.read()).toMatchObject({ state: 'working', lastContactAt: now });
   const next = await scope(() => startRun(w.id, { clientRunId: randomUUID(), runnerVersion: 'test', takeover: true }, () => ++now));
   expect(await w.read()).toMatchObject({ state: 'idle' });

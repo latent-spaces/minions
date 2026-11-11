@@ -5,7 +5,7 @@
 Every coding agent on this computer (Claude Code, Codex, Cursor and others) and the CLI
 share one private MyLittleSwarm service. It keeps
 track of agents on its own, so closing or reconnecting a chat neither stops an agent nor
-renews in-chat work. `get_computer_status` reports local health and `cloudConnection` with check freshness.
+adds time. `get_computer_status` reports local health and `cloudConnection` with check freshness.
 `cloudReady` is a deprecated transport identity marker, not a connectivity check; never
 reconnect or restart because it is false. Local health, cloud connectivity, provider
 availability, GitHub API permissions and Git transport access are separate checks.
@@ -83,7 +83,7 @@ With the person's yes, `recover_agent_run` can:
 
 Pass the chosen action, the exact target, run and report IDs, what you observed, a
 stable recovery UUID, the approved reason and `approved: true`. Recovery never starts an
-agent, kills a process or frees a checkout. Anything unknown stays protected;
+agent, adds time, kills a process or frees a checkout. Anything unknown stays protected;
 don't throw away results or reset records to get unstuck.
 
 ## Updates

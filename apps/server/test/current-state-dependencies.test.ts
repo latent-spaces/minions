@@ -45,10 +45,10 @@ async function until<V>(read: () => Promise<V>, ok: (value: V) => boolean) {
   throw new Error('Not delivered in time.');
 }
 // A complete status document of a running worker: run group, worker group (gate 2 (a)) and agent group.
-async function writeStatus(agentId: string, owner: string, worker: { lastContactAt: number; phase?: string }) {
+async function writeStatus(agentId: string, owner: string, worker: { lastContactAt: number; deadlineAt: number; phase?: string }) {
   await scope(() => setCanonicalStatus(agentId,{ runId: 'run-1', lastContactAt: worker.lastContactAt, phase: 'turn', phaseAt: worker.lastContactAt,
     acceptingWork: true, runEndedAt: null, runMode: 'background',
-    worker: { runId: 'run-1', phase: worker.phase ?? 'working', lastContactAt: worker.lastContactAt, projectPauseRevision: null },
+    worker: { runId: 'run-1', phase: worker.phase ?? 'working', lastContactAt: worker.lastContactAt, deadlineAt: worker.deadlineAt, projectPauseRevision: null },
     agent: { name: agentId, ownerProfileId: owner, connectionEpoch: 0, revokedAt: null, focus: null, personaText: '' } } as never));
 }
 // Alice views; Bob (another member) owns the agent, so his access is a dependency of its row.
@@ -57,7 +57,7 @@ async function fixture() {
     agents: [{ person: 1, name: 'bob-fox' }] });
   await seedRuntime(TEST_PROJECT, { started: true, paused: false });
   const fox = f.agents[0]!.agentId, bob = f.personIds[1]!;
-  await writeStatus(fox, bob, { lastContactAt: T });
+  await writeStatus(fox, bob, { lastContactAt: T, deadlineAt: T + 600_000 });
   return { fox, bob, token: await idTokenFor('dep-alice@example.test') };
 }
 const row = (answer: Answer, id: string) => answer.rows.find(r => r.id === id);
@@ -125,9 +125,9 @@ test('clock-only transitions are re-sent with their unchanged rev: contact + 90 
   expect(offline.rows).toEqual([expect.objectContaining({ id: fox, rev: held.rev, state: 'offline' })]);
   resent(first, offline, fox);
   expect((await current(token, offline.cursor)).rows).toEqual([]);
-  // A fresh contact, then 20 s with no write: still Working, nothing re-sent.
+  // A fresh contact, then its end time passes with no write: still Working, nothing re-sent.
   at = T + 100_000;
-  await writeStatus(fox, bob, { lastContactAt: at });
+  await writeStatus(fox, bob, { lastContactAt: at, deadlineAt: T + 120_000 });
   const contact = await until(() => current(token, offline.cursor), a => row(a, fox)?.state === 'working');
   at = T + 120_000;
   expect((await current(token, contact.cursor)).rows).toEqual([]);
@@ -136,7 +136,7 @@ test('clock-only transitions are re-sent with their unchanged rev: contact + 90 
 test('a pause that is not confirmed turns pause_unconfirmed after 30 s with no write', async () => {
   const { fox, bob, token } = await fixture();
   // Between turns a worker confirms at once; one still in its turn stays pausing while the turn finishes.
-  await writeStatus(fox, bob, { lastContactAt: T, phase: 'waiting' });
+  await writeStatus(fox, bob, { lastContactAt: T, deadlineAt: T + 600_000, phase: 'waiting' });
   await seedRuntime(TEST_PROJECT, { paused: true, revision: 1, pauseRequest: { revision: 1, requestedAt: T } });
   const first = await until(() => current(token), a => row(a, fox)?.state === 'pausing');
   at = T + 29_999;
@@ -144,7 +144,7 @@ test('a pause that is not confirmed turns pause_unconfirmed after 30 s with no w
   at = T + 30_000;
   const late = await current(token, first.cursor);
   expect(late.rows).toEqual([expect.objectContaining({ id: fox, state: 'pause_unconfirmed' })]);
-  await writeStatus(fox, bob, { lastContactAt: at });
+  await writeStatus(fox, bob, { lastContactAt: at, deadlineAt: T + 600_000 });
   await until(() => current(token, late.cursor), a => row(a, fox)?.state === 'pausing');
 });
 
@@ -164,7 +164,7 @@ test('a row sent on an earlier page is brought up to now when the answer complet
     await seedRuntime(TEST_PROJECT, { started: true, paused: false });
     const owner = f.personIds[0]!, [x, y] = f.agents.map(a => a.agentId).sort() as [string, string];
     const token = await idTokenFor('dep-alice@example.test');
-    const write = (contact: number) => Promise.all([x, y].map(id => writeStatus(id, owner, { lastContactAt: contact })));
+    const write = (contact: number) => Promise.all([x, y].map(id => writeStatus(id, owner, { lastContactAt: contact, deadlineAt: T + 3_600_000 })));
     await write(T);
     // A complete first read at T (two pages of one row), then a quiet client: E = T.
     const view = new Map<string, Row>();
@@ -201,7 +201,7 @@ async function raceFixture() {
   const [alice, bob] = f.personIds as [string, string], [fox, owl, elk] = f.agents.map(a => a.agentId) as [string, string, string];
   const token = await idTokenFor('dep-alice@example.test');
   const restore = configureCurrentState({});
-  await writeStatus(fox, alice, { lastContactAt: T });
+  await writeStatus(fox, alice, { lastContactAt: T, deadlineAt: T + 600_000 });
   const first = await until(() => current(token), a => row(a, fox)?.state === 'working');
   // Commit the new status AFTER the current answer has captured rows and read dependencies. It must wait
   // for the next answer, including owner access and any accompanying queued-start dependency.
@@ -218,7 +218,7 @@ async function raceFixture() {
 test('a new owner\'s agent arriving while the dependency read is in flight waits for the next answer, never Revoked (codex-1\'s race)', async () => {
   const { bob, owl, token, first, restore, releaseDuringNextRead } = await raceFixture();
   try {
-    await releaseDuringNextRead(() => writeStatus(owl, bob, { lastContactAt: T }));
+    await releaseDuringNextRead(() => writeStatus(owl, bob, { lastContactAt: T, deadlineAt: T + 600_000 }));
     at = T + 1_000;
     const raced = await current(token, first.cursor);
     expect(row(raced, owl)).toBeUndefined();  // not derived with a read that did not cover its owner
@@ -230,7 +230,7 @@ test('a new owner\'s agent arriving while the dependency read is in flight waits
 test('a known owner\'s new agent and its web start, committed while the dependency read is in flight, reach the next answer as Waiting (codex-1 d878c933 race)', async () => {
   const { alice, elk, token, first, restore, releaseDuringNextRead } = await raceFixture();
   try {
-    await releaseDuringNextRead(() => writeStatus(elk, alice, { lastContactAt: T }),
+    await releaseDuringNextRead(() => writeStatus(elk, alice, { lastContactAt: T, deadlineAt: T + 600_000 }),
       () => webAgentStarts.doc(`deps-race-${elk}`).set({ profileId: alice, projectId: TEST_PROJECT, agentId: elk, state: 'pending', name: elk,
         createdAt: T, pickupByAt: T + 600_000, activeUntil: T + 600_000 } as never));
     at = T + 1_000;

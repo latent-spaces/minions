@@ -12,9 +12,9 @@ import { prepareSupervisedModel } from './model-guard.mjs';
 import { MISSION_MARK, missionMark, stopMarkedProcesses } from './leftover-processes.mjs';
 import { readWorkerGuidance } from './worker-guidance.mjs';
 import { probeWindowsSupervision, stopWindowsMission } from './windows-supervision.mjs';
-// A safety stop for one hung turn, renewed with each turn, so it never ends a job that runs for days.
-// It stays under the guards' 24-hour bound (model-guard-process.mjs, windows-job.cs).
-const TURN_BACKSTOP_MS = 24 * 60 * 60000 - 60_000;
+import { MAX_REMAINING_MS } from './run-length.mjs';
+
+const TURN_BACKSTOP_MS = MAX_REMAINING_MS - 60_000;
 
 // Project refresh is read-only. Stopping a mission must not wait for a slow
 // contact, and a late response must never authorize a native launch.
@@ -189,7 +189,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
       try { await onModelStarting?.(); } catch { await mergePolicy?.cleanup(); return beforeLaunchFailure('private_state_failure'); }
       if (signal.aborted) { await mergePolicy?.cleanup(); return withEvidence({ interrupted: true, delivery: 'not_submitted', text: '', cleanupConfirmed: true }); }
       const result = await new Promise(resolve => {
-        // A job has no time limit. The guard only bounds one turn as a last resort if this service dies.
+        // The job's end time never kills a turn. The guard only bounds one turn as a last resort if this service dies.
         const deadline = Date.now() + TURN_BACKSTOP_MS;
         let done = false, interrupted = false, persistenceFault = false, killTimer, forceTimer, stderr = '';
         let nativeReported = false, nativeExit = null, cleanupConfirmed = false, launchAuthorized = false, startExpired = false;

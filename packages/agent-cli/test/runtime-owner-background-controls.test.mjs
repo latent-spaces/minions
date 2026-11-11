@@ -38,7 +38,7 @@ async function setup(t,{holdOutcome=false}={}){
   const controllers=createRuntimeControllers({store:tracked,adapterFactory:await createNativeAdapterFactory(fixture),observeIntervalMs:15,
     cloudFactory:async mission=>({start:async()=>({runId:mission.missionId,cloudGeneration:7}),observe:async()=>({project:{started:true,paused:projectPauses.has(mission.target.projectId),closed:false,revision:projectPauses.has(mission.target.projectId)?3:2,...(projectPauses.has(mission.target.projectId)?{pauseRequest:projectPauses.get(mission.target.projectId)}:{})},pending:0,acknowledged:0}),
       workerSession:async(_mission,session)=>{sessions.push(structuredClone(session));return {missionId:mission.missionId,messages:[]};},phase:async()=>{},reportStatus:async()=>{}})});
-  const missions=[];for(const binding of fixture.bindings)missions.push((await controllers.accept({version:2,operationId:randomUUID(),kind:'start',target:binding.target,missionId:randomUUID(),payload:{scope:'Synthetic website control only.',execution:{provider:binding.target.agentId,model:null}}})).mission);
+  const missions=[];for(const binding of fixture.bindings)missions.push((await controllers.accept({version:2,operationId:randomUUID(),kind:'start',target:binding.target,missionId:randomUUID(),payload:{scope:'Synthetic website control only.',deadlineAt:Date.now()+60000,execution:{provider:binding.target.agentId,model:null}}})).mission);
   const m=mailbox(fixture.bindings.map(item=>item.target));m.targets=fixture.bindings.map(item=>item.target);
   const transportStore={...store,latestParticipationsForTargets:async()=>[]};const delivery=pump(transportStore,controllers,m);
   t.after(async()=>{releaseOutcome();await delivery.close();await controllers.close();await store.close();await rm(root,{recursive:true,force:true});});
@@ -64,7 +64,7 @@ test('website Pause uses independent polling during fake Claude work; pausing is
   assert.equal((await f.read(first)).deadlineAt,first.deadlineAt);
   const snapshot=f.m.snapshots.at(-1).backgrounds.find(row=>row.missionId===first.missionId);
   assert.equal(snapshot.generation,first.generation);assert.equal(snapshot.cloudRun.generation,7);
-  assert.deepEqual(Object.keys(snapshot),['target','missionId','generation','state','pauseOperationId','cloudRun','updatedAt']);
+  assert.deepEqual(Object.keys(snapshot),['target','missionId','generation','deadlineAt','state','pauseOperationId','cloudRun','updatedAt']);
   assert.ok(!JSON.stringify(f.m.snapshots).includes(f.root),'no native folder leak');
   assert.ok(f.m.acks.findIndex(ack=>ack.id===resumed.operationId&&ack.state==='accepted')<f.m.acks.findIndex(ack=>ack.id===resumed.operationId&&ack.state==='applied'));
 });
