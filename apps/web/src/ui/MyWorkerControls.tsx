@@ -121,7 +121,7 @@ export function MyWorkerControls({ projectId, controls, disabled: requested, inl
         {controls.background?.errors[a.agentId] && <small className="error" role="alert">{controls.background.errors[a.agentId]}</small>}
       </div><div className="background-worker-actions">
         {controls.background && <BackgroundWorkerActions agentId={a.agentId} agentName={a.agentName} view={background} controls={controls.background} now={now} disabled={disabled} />}
-        {!starting && (!hasSession || ended) && <a className="my-worker-setup" href={`/viewer/${formatRoute(projectRoute(projectId, 'agents'))}`} title="Start it again from your coding agent">{ended ? 'Start again…' : 'Set up…'}</a>}
+        {!starting && (!hasSession || ended) && <a className="my-worker-setup" href={`/${formatRoute(projectRoute(projectId, 'agents'))}`} title="Start it again from your coding agent">{ended ? 'Start again…' : 'Set up…'}</a>}
       </div></li></Fragment>;
     })}</ul>
   </Container>;

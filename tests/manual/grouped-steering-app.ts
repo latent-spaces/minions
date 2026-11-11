@@ -54,8 +54,8 @@ try {
   const context=await browser.newContext({viewport:{width:1440,height:1000}});context.setDefaultTimeout(20000);
   await context.route('**/*',route=>['127.0.0.1','localhost','[::1]'].includes(new URL(route.request().url()).hostname)?route.continue():route.abort());
   const page=await context.newPage();page.on('pageerror',error=>errors.push(error.message));
-  await page.goto(`${origin}/viewer/`);await signIn(page,email);
-  await page.goto(`${origin}/viewer/?project=${TEST_PROJECT}&section=conversations`);
+  await page.goto(`${origin}/`);await signIn(page,email);
+  await page.goto(`${origin}/?project=${TEST_PROJECT}&section=conversations`);
   const card=page.locator('.conversation-card');await card.first().waitFor();assert.equal(await card.count(),1);
   await card.getByRole('button',{name:/Show conversation/}).click();
   await page.getByText(instruction,{exact:true}).waitFor();assert.equal(await page.getByText(instruction,{exact:true}).count(),1);

@@ -58,7 +58,7 @@ test('the local My agents panel expires old background activity and keeps fresh 
     await context.route('**/*', (route: any) => ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
     const page = await context.newPage(); diagnostic = page;
     const errors: string[] = []; page.on('pageerror', (e: Error) => errors.push(e.message));
-    await page.goto(`http://127.0.0.1:${webPort}/viewer/?project=${TEST_PROJECT}&section=agents`);
+    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=agents`);
     await signInBrowser(page, await idTokenFor('owner-stale@example.test'));
     const panel = page.locator('.my-worker-controls');
     const stale = panel.locator('.background-worker-row').filter({ hasText: 'Synthetic stale Fox' });

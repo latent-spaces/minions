@@ -1,5 +1,5 @@
 // Actual app + local Auth/API; synthetic observations are intercepted in this browser only.
-// Usage: node apps/web/test/refresh-on-return.mjs 'http://127.0.0.1:5197/viewer/?project=<local-project-id>'
+// Usage: node apps/web/test/refresh-on-return.mjs 'http://127.0.0.1:5197/?project=<local-project-id>'
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
 const url = new URL(process.argv[2]);

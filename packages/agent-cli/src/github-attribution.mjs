@@ -44,9 +44,9 @@ export function formatGitHubAttribution({ projectId, agent, participant, site = 
   const agentName = markdownLabel(displayName(agent?.name, 'agent'));
   const participantName = markdownLabel(displayName(participant?.name, 'participant'));
   const origin = websiteOrigin(site);
-  const agentUrl = new URL('/viewer/', origin);
+  const agentUrl = new URL('/', origin);
   agentUrl.search = new URLSearchParams({ project, section: 'agents', agent: agentId }).toString();
-  const profileUrl = new URL('/viewer/', origin);
+  const profileUrl = new URL('/', origin);
   profileUrl.search = new URLSearchParams({ view: 'profile', person: participantId }).toString();
   return `---\nAI-generated contribution by MyLittleSwarm agent [${agentName}](${agentUrl.href}) · Participant: [${participantName}](${profileUrl.href}).\nAttribution does not imply human review or approval.`;
 }

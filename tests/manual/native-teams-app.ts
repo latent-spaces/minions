@@ -53,9 +53,9 @@ try {
   await context.route('**/*', route => ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
   const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message));
   page.on('request', req => { if (/\/(background-control|participation|steering|extend)$/.test(new URL(req.url()).pathname) && req.method() !== 'GET') controlCalls.push(req.url()); });
-  await page.goto(`${origin}/viewer/`);
+  await page.goto(`${origin}/`);
   await signInBrowser(page, await idTokenFor(email));
-  const settingsUrl = `${origin}/viewer/?project=${TEST_PROJECT}&section=control-center&tab=features`;
+  const settingsUrl = `${origin}/?project=${TEST_PROJECT}&section=control-center&tab=features`;
   await page.goto(settingsUrl);
   const toggle = page.getByRole('group', { name: 'Use teams in this project', exact: true });
   const on = toggle.getByRole('button', { name: 'On', exact: true }), off = toggle.getByRole('button', { name: 'Off', exact: true });
@@ -117,7 +117,7 @@ try {
   await off.waitFor(); await off.click();
   await page.waitForFunction(() => [...document.querySelectorAll('.setting-toggle')].some(group => group.textContent?.includes('Use teams in this project') && [...group.querySelectorAll('button')].some(button => button.textContent === 'Off' && button.matches('[aria-pressed="true"]:enabled'))));
   await nav.getByRole('link', { name: 'Teams', exact: true }).waitFor({ state: 'hidden' });
-  await page.goto(`${origin}/viewer/?project=${TEST_PROJECT}&section=teams`);
+  await page.goto(`${origin}/?project=${TEST_PROJECT}&section=teams`);
   try { await page.getByText('Teams are off. Existing teams, memberships and history are read-only.', { exact: true }).waitFor(); } catch (error) {
     await page.screenshot({ path: join(evidence, 'failure.png'), fullPage: true });
     await writeFile(join(evidence, 'failure.txt'), `URL: ${page.url()}\n${await page.locator('body').innerText()}`);

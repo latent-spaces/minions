@@ -4,7 +4,7 @@ import { SETUP_PLAN } from './setup-schema.js';
 const time = z.number().int().nonnegative();
 const profileId = z.string().regex(/^[A-Za-z0-9_-]{1,200}$/);
 const projectId = z.string().regex(/^[a-f0-9]{64}$/);
-const asset = z.string().regex(/^\/viewer\/project-concepts\/[a-z0-9-]+\.(?:jpg|png)$/);
+const asset = z.string().regex(/^\/project-concepts\/[a-z0-9-]+\.(?:jpg|png)$/);
 export const PROJECT_RECORD = z.object({
   schemaVersion: z.literal(1), workspaceId: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/), ownerProfileId: profileId,
   approval: z.object({ proposalId: projectId, submittedRevision: z.number().int().positive(),

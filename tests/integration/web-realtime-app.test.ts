@@ -57,7 +57,7 @@ test.each(['live','blockers','map'] as const)('actual app realtime acceptance: %
     page=await context.newPage();const errors:string[]=[];page.on('pageerror',(error:Error)=>errors.push(error.message));
 
     const failures:string[]=[];page.on('response',(response:any)=>{if(response.url().includes('/api/realtime')&&response.status()!==200)failures.push(String(response.status()));});
-    const url=`http://127.0.0.1:${webPort}/viewer/?project=${TEST_PROJECT}&section=conversations`;
+    const url=`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=conversations`;
     const subscribed=page.waitForResponse((response:any)=>response.url().includes('/api/realtime?project_id=')&&response.status()===200);
     await page.goto(url);
     await signInBrowser(page, await idTokenFor('realtime@example.test'));
@@ -81,7 +81,7 @@ test.each(['live','blockers','map'] as const)('actual app realtime acceptance: %
     }
     await batch.commit();
     let labelReads=0;page.on('request',(request:any)=>{if(request.url().includes('/agents?view=labels&ids='))labelReads++;});
-    await page.evaluate(`import('/viewer/realtime-hook-probe.ts').then(module=>module.mount())`);
+    await page.evaluate(`import('/realtime-hook-probe.ts').then(module=>module.mount())`);
     await page.waitForFunction(()=>{const state=(window as any).__blockerProbe;return state?.ready&&state.count===25&&state.old;}).catch(async(error:unknown)=>{console.error('Probe state',JSON.stringify(await page.evaluate(()=>(window as any).__blockerProbe)),errors);throw error;});
     await page.waitForTimeout(6000);expect(await page.evaluate(()=>(window as any).__historyReads)).toBe(1);expect(labelReads).toBe(1);await db.doc(`humanRequests/${old}`).update({status:'answered',revision:2});
     await page.waitForFunction(()=>!(window as any).__blockerProbe.old,{},{timeout:20000});
@@ -97,7 +97,7 @@ test.each(['live','blockers','map'] as const)('actual app realtime acceptance: %
       if(frameReads===1){const response=await route.fetch();capturedFrame();await released;await route.fulfill({response});}
       else await route.continue();
     });
-    await page.goto(`http://127.0.0.1:${webPort}/viewer/?project=${TEST_PROJECT}&section=overview`);await Promise.race([captured,new Promise((_,reject)=>setTimeout(()=>reject(Error('Initial map frame was not captured.')),10000))]);
+    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=overview`);await Promise.race([captured,new Promise((_,reject)=>setTimeout(()=>reject(Error('Initial map frame was not captured.')),10000))]);
     await writeMessage('d'.repeat(64),'A message during a slow map read');
     await page.waitForTimeout(8000);
     const freshFrame=page.waitForResponse((response:any)=>response.url().endsWith('/api/view/communication?range=recent')&&frameReads>1);
@@ -116,7 +116,7 @@ test.each(['live','blockers','map'] as const)('actual app realtime acceptance: %
     await writeMessage('b'.repeat(64),'Arrived while the tab was hidden');
     await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'});document.dispatchEvent(new Event('visibilitychange'));});
     await page.getByText('Arrived while the tab was hidden',{exact:true}).first().waitFor({timeout:10000});
-    await page.goto(`http://127.0.0.1:${webPort}/viewer/?project=${TEST_PROJECT}&section=agents&filter=all`);
+    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=agents&filter=all`);
     const cards=page.locator('.k42-directory:visible');await cards.getByText('Live worker',{exact:true}).waitFor();
     await db.doc(`humanRequests/${requestId}`).set(requestRecord);
     await page.getByRole('button',{name:/Notifications.*1/}).waitFor({timeout:10000});

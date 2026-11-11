@@ -60,7 +60,7 @@ test('actual Tasks tab offers the list and a status board, remembers the choice 
     await context.route('**/*', (route: any) => ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
     const page = await context.newPage(); diagnostic = page;
     const errors: string[] = []; page.on('pageerror', (e: Error) => errors.push(e.message));
-    await page.goto(`http://127.0.0.1:${webPort}/viewer/?project=${TEST_PROJECT}&section=tasks`);
+    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=tasks`);
     await signInBrowser(page, await idTokenFor('owner-board@example.test'));
     const tasks = page.getByRole('region', { name: /^Tasks/ });
     const viewSwitch = tasks.getByRole('group', { name: 'Tasks view', exact: true });
@@ -157,7 +157,7 @@ test('actual Tasks tab offers the list and a status board, remembers the choice 
     const member = await memberContext.newPage(); diagnostic = member;
     member.on('pageerror', (e: Error) => errors.push(e.message));
     const mutations: string[] = []; member.on('request', (request: any) => { if (request.method() === 'POST' && /tasks/.test(request.url())) mutations.push(request.url()); });
-    await member.goto(`http://127.0.0.1:${webPort}/viewer/?project=${TEST_PROJECT}&section=tasks`);
+    await member.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=tasks`);
     await signInBrowser(member, await idTokenFor('member-board@example.test'));
     const memberBoard = member.getByRole('region', { name: /^Tasks/ }).getByRole('list', { name: 'Tasks by status', exact: true });
     await memberBoard.waitFor();

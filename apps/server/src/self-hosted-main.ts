@@ -59,7 +59,7 @@ async function main() {
   for (const signal of standaloneStopSignals(process.platform, process.connected)) process.on(signal, stop);
   // A supervising Node process can request the same graceful shutdown on Windows, where kill(SIGTERM) is abrupt.
   if (process.connected) process.on('message', message => { if (message === 'mlswarm-stop') stop(); });
-  console.info(`Standalone engine listening on ${engine.url}. Open ${engine.url}/viewer/ on this computer.`);
+  console.info(`Standalone engine listening on ${engine.url}. Open ${engine.url}/ on this computer.`);
 }
 void main().catch(error => {
   // Refusals describe configuration without printing provider responses, tokens, codes, or request bodies.

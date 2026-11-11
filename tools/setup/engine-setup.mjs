@@ -52,7 +52,7 @@ function openPage(url, env) {
 
 /** Opens the local app, which lets the owner straight in on this computer. */
 function openApp(site) {
-  const page = `${site}/viewer/`;
+  const page = `${site}/`;
   console.info(openPage(page, process.env) ? 'Your browser is opening the local app.' : `Open ${page} in your browser on this computer.`);
 }
 
@@ -114,7 +114,7 @@ const shellName = () => process.platform === 'win32' ? 'PowerShell' : 'terminal'
 function summary(url, connected, files, { owned }) {
   const mcpConfig = connectorCommand(process.platform, { node: process.execPath, cli: at('packages/agent-cli/src/cli.mjs'),
     serviceHome: files.serviceHome, credentialHome: files.credentialHome, args: ['mcp-config', '--client', 'claude'] });
-  say(`${connected ? 'Done' : 'The engine is running; this computer is not connected yet'}. The local app is at ${url}/viewer/.
+  say(`${connected ? 'Done' : 'The engine is running; this computer is not connected yet'}. The local app is at ${url}/.
 ${owned ? 'The engine runs until you press Ctrl+C here. ' : ''}Run npm run setup again at any time: it starts the engine when it is stopped, and otherwise opens the local app.
 When you want them:
 - Use this installation from your coding agent (or --client codex or other); run this in another ${shellName()} window and follow what it prints:

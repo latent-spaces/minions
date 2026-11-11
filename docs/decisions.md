@@ -141,6 +141,10 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   to show the My agents rows that fit the menu's remaining height, agents that need you
   first, with the rest behind “+N more”, which opens a popover list. It replaces Show more.
   When not even one row fits, a strip of small avatars, named on hover, comes before +N.
+- **The app lives at the root.** The owner moved the app from `/viewer/` to the port's root
+  (`http://127.0.0.1:8787/`). `/viewer/…` redirects permanently to the same page at the
+  root, because saved share links, project updates and the connector already running on
+  this computer still name it; it can go once no saved record or installed connector does.
 - **Task list filters in the headers; fuzzy search.** The owner moved the task toolbar into
   the list's column headers: search in the Task header, Assigned agent and Status as header
   filters, Refresh and New task beside List/Board, with a slim bar kept for the board. Search

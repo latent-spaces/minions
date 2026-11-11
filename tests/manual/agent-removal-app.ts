@@ -50,9 +50,9 @@ try {
   context.setDefaultTimeout(20_000);
   await context.route('**/*', route => ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
   const owner = await context.newPage(); owner.on('pageerror', error => errors.push(error.message));
-  await owner.goto(`${origin}/viewer/`); await signIn(owner, host.email);
+  await owner.goto(`${origin}/`); await signIn(owner, host.email);
   const navigate = async (href: string) => owner.evaluate(href => { history.pushState({}, '', href); window.dispatchEvent(new PopStateEvent('popstate')); }, href);
-  const url = (section: string, extra = '') => `${origin}/viewer/?project=${project.id}&section=${section}${extra}`;
+  const url = (section: string, extra = '') => `${origin}/?project=${project.id}&section=${section}${extra}`;
   const retired = f.agents[0].agentId, dead = f.agents[1].agentId, peer = f.agents[2].agentId;
   await navigate(url('agents'));
   const remove = owner.getByRole('button', { name: 'Remove Misconfigured-synthetic', exact: true });

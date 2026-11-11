@@ -48,7 +48,7 @@ test('a fresh standalone CLI initializes, signs in its ordinary owner, shuts dow
         expect(duplicate.status, duplicate.stderr).toBe(1);
         expect(duplicate.stderr).toContain('database is locked');
         expect(existsSync(`${env.MLSWARM_SQLITE_PATH}.lock`)).toBe(true);
-        expect(output).toContain(`Open ${url}/viewer/`);
+        expect(output).toContain(`Open ${url}/`);
         // The engine's own page gets the owner session with no link; another website does not.
         const ask = (origin: string) => fetch(`${url}/api/auth/local-owner/session`, { method: 'POST', headers: { origin, 'content-type': 'application/json' }, body: '{}' });
         expect((await ask('https://example.com')).status).toBe(403);

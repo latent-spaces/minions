@@ -69,9 +69,9 @@ async function restartApi() {
   throw new Error(`API did not become ready within 15 seconds. Last probe: ${last}`);
 }
 async function signIn(page: Page, email: string) {
-  await page.goto(`${origin}/viewer/`);
+  await page.goto(`${origin}/`);
   await signInBrowser(page, await idTokenFor(email));
-  await page.goto(`${origin}/viewer/?project=${project.id}&section=control-center&tab=merging`);
+  await page.goto(`${origin}/?project=${project.id}&section=control-center&tab=merging`);
 }
 try {
   await restartApi();

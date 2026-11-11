@@ -57,7 +57,7 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
   // The one check behind every action that needs this computer's approval. It answers with the saved
   // approval, or stops with the same instruction whether the computer was never approved or its approval
   // ran out or was ended on My agents.
-  const NOT_APPROVED = `This computer is not approved for MyLittleSwarm, or its approval has ended. Call approve_this_computer: your human approves this computer once in the browser, then repeat this call. Setup instructions: ${new URL('/viewer/?view=agents', origin).href}`;
+  const NOT_APPROVED = `This computer is not approved for MyLittleSwarm, or its approval has ended. Call approve_this_computer: your human approves this computer once in the browser, then repeat this call. Setup instructions: ${new URL('/?view=agents', origin).href}`;
   function approved() {
     const r = receipt();
     if (!r || r.status !== 'approved' || r.connectionExpiresAt <= now()) throw new Error(NOT_APPROVED);
@@ -98,7 +98,7 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
     return data;
   }
   function publicState(r) {
-    const url = new URL('/viewer/', origin); url.searchParams.set('view','owner-connect'); url.searchParams.set('request',r.requestId);
+    const url = new URL('/', origin); url.searchParams.set('view','owner-connect'); url.searchParams.set('request',r.requestId);
     if (/^\/s\/[A-Za-z0-9_-]{22}$/.test(r.approvalPath ?? '')) url.href = new URL(r.approvalPath, origin).href;
     return { website_origin: origin, environment: new URL(origin).protocol === 'http:' ? 'local-development' : 'live', status: r.status, account_name: r.personName ?? null, account_profile_id: r.status === 'approved' && PROFILE.test(r.personId ?? '') ? r.personId : null, expires_at: r.connectionExpiresAt ?? r.expiresAt ?? null, ...(r.status === 'pending' ? { approval_url: url.href, request_check: r.verificationCode, next_step: 'Show the person the approval link and check code. They sign in and approve this computer once; then call check_computer_approval.' } : {}) };
   }
@@ -160,7 +160,7 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
         if (!saved) writePrivate(path, { schema: 'mlswarm-private-creation-1', profileId: account.personId, fingerprint, input: { client_request_id: body.client_request_id, title: body.title, goal: body.goal, repoUrl: body.githubUrl } });
         const created = await request('/projects/private', { method: 'POST', body, token: account.token, profileId: account.personId });
         if (!ID.test(created.id ?? '') || created.projectId !== created.id || created.startsAgents !== false || created.messageProtection !== 'server_readable_v1') throw new Error('Owner service returned an invalid private creation response. Retry the same request.');
-        return { ...created, project_page_url: siteUrl(created.projectPagePath) ?? new URL(`/viewer/?project=${created.id}`, origin).href };
+        return { ...created, project_page_url: siteUrl(created.projectPagePath) ?? new URL(`/?project=${created.id}`, origin).href };
       });
     }
     if (args.limit !== undefined && (!Number.isInteger(args.limit) || args.limit < 1 || args.limit > 100)) throw new Error('Choose a page size from 1 to 100.');

@@ -45,7 +45,7 @@ test('actual Conversations filter authors at desktop and phone widths', async ()
     await context.route('**/*',(route:any)=>['127.0.0.1','localhost','[::1]'].includes(new URL(route.request().url()).hostname)?route.continue():route.abort());
     const page=await context.newPage(); diagnostic=page;
     const errors: string[] = []; page.on('pageerror', (error: Error) => errors.push(error.message));
-    await page.goto(`http://127.0.0.1:${webPort}/viewer/?project=${TEST_PROJECT}`);
+    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}`);
     await signInBrowser(page, await idTokenFor('author@example.test'));
     const tabs = page.getByRole('navigation', { name: 'Project sections', exact: true });
     await tabs.getByRole('link', { name: 'Conversations', exact: true }).click();

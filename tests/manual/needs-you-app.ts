@@ -40,9 +40,9 @@ try {
  const context=await browser.newContext({viewport:{width:1440,height:1000}});context.setDefaultTimeout(15_000);
  await context.route('**/*',route=>['127.0.0.1','localhost','[::1]'].includes(new URL(route.request().url()).hostname)?route.continue():route.abort());
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
- await page.goto(`${origin}/viewer/`);
+ await page.goto(`${origin}/`);
  await signInBrowser(page,await idTokenFor(email));
- await page.goto(`${origin}/viewer/?view=needs-you`);
+ await page.goto(`${origin}/?view=needs-you`);
  const item=(key:string)=>page.locator('details.k42-needs-item').filter({hasText:`Synthetic blocker · ${key}`});
  await item('click').locator(':scope > summary').click();
  const contextDetails=item('click').locator('.k42-needs-context details');

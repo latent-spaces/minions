@@ -2,7 +2,7 @@
 
 The standalone entry runs the API and delivery worker in one process, backed by
 one local SQLite database and a private media directory. It serves the local app
-on `http://127.0.0.1:8787/viewer/` and accepts loopback connections only. Use
+on `http://127.0.0.1:8787/` and accepts loopback connections only. Use
 Node.js 24 or newer, Git and a local filesystem; a network share is not supported.
 It needs no cloud account. This engine is the only way MyLittleSwarm runs.
 

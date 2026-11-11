@@ -493,7 +493,7 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
       if (mutation.operation === 'add_reference') {
         const draft = linkDraft.current;
         try {
-          const reference = taskReferenceFromUrl(draft.link, mutation.reference.id, projectId, viewerUrl ?? new URL('/viewer/', window.location.href).href, draft.label);
+          const reference = taskReferenceFromUrl(draft.link, mutation.reference.id, projectId, viewerUrl ?? new URL('/', window.location.href).href, draft.label);
           const same = reference.kind === mutation.reference.kind && reference.label === mutation.reference.label
             && ('url' in reference && 'url' in mutation.reference ? reference.url === mutation.reference.url
               : 'sourceId' in reference && 'sourceId' in mutation.reference && reference.sourceId === mutation.reference.sourceId);
@@ -529,7 +529,7 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
   const addLink = (event: FormEvent) => {
     event.preventDefault();
     if (!base) return;
-    try { const reference=taskReferenceFromUrl(link,crypto.randomUUID(),projectId,viewerUrl ?? new URL('/viewer/',window.location.href).href,linkLabel);
+    try { const reference=taskReferenceFromUrl(link,crypto.randomUUID(),projectId,viewerUrl ?? new URL('/',window.location.href).href,linkLabel);
       void act({operation:'add_reference',...base,reference});
     } catch(e){setNotice(errorText(e));}
   };

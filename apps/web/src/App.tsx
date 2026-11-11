@@ -379,7 +379,7 @@ const PROJECT_TABS: ProjectTab[] = [{ id:'overview', label:'Tasks', icon:ListTod
 // Sharing a link preserves the server's existing admission and project-access rules.
 async function shareProjectLink(projectId: string) {
   let link: string;
-  try { link = await sharedLink(`/viewer/${formatRoute(projectRoute(projectId))}`); }
+  try { link = await sharedLink(`/${formatRoute(projectRoute(projectId))}`); }
   catch { notify('Could not create a project link. Try again.'); return; }
   try { await navigator.clipboard.writeText(link); notify('Project link copied.'); }
   catch { window.prompt('Copy the project link:', link); }

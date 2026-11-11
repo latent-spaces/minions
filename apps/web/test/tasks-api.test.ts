@@ -108,7 +108,7 @@ test('tasks_disabled is not mistaken for an edit conflict', () => {
 
 
 test('native source links keep same-project scope; external URLs cannot become source IDs', () => {
-  const viewer = 'http://127.0.0.1:4300/viewer/';
+  const viewer = 'http://127.0.0.1:4300/';
   const message = taskReferenceFromUrl(viewer + '?project=p1&section=conversations&message=m1', 'r1', 'p1', viewer);
   assert.deepEqual(message, {id:'r1',kind:'message',sourceId:'m1'});
   assert.equal(taskSourceHref(message,'p1',viewer), viewer + '?project=p1&section=conversations&message=m1');
@@ -116,7 +116,7 @@ test('native source links keep same-project scope; external URLs cannot become s
   assert.throws(() => taskReferenceFromUrl('javascript:alert(1)','r1','p1',viewer));
   assert.throws(() => taskReferenceFromUrl('http://example.test/result','r1','p1',viewer));
   assert.deepEqual(taskReferenceFromUrl('https://github.com/o/r/pull/42?diff=split','r2','p1',viewer), {id:'r2',kind:'pull_request',url:'https://github.com/o/r/pull/42?diff=split'});
-  assert.equal(taskReferenceFromUrl('https://other.test/viewer/?project=p1&section=conversations&message=m1','r1','p1',viewer).kind,'result');
+  assert.equal(taskReferenceFromUrl('https://other.test/?project=p1&section=conversations&message=m1','r1','p1',viewer).kind,'result');
 });
 
 
@@ -131,7 +131,7 @@ test('optional link labels describe the relationship without changing type or de
 });
 
 test('source labels keep source identity and unsafe destinations stay non-interactive', () => {
-  const viewer = 'https://karma42.ai/viewer/';
+  const viewer = 'https://karma42.ai/';
   const reference = taskReferenceFromUrl(viewer + '?project=p1&section=conversations&message=m1', 'r', 'p1', viewer, 'Decision context');
   assert.deepEqual(reference, { id: 'r', kind: 'message', sourceId: 'm1', label: 'Decision context' });
   assert.deepEqual(taskReferenceView(reference), { label: 'Message', text: 'Decision context', href: null });

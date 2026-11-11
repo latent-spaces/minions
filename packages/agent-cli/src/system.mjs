@@ -29,7 +29,7 @@ export const canOpenPages = ({ platform = process.platform, env = process.env } 
 export function openPage(address, { platform = process.platform, env = process.env, spawnImpl = spawn } = {}) {
   let url;
   try { url = new URL(address); } catch { return false; }
-  const mlswarm = trustedWebsiteUrl(url) && (url.pathname.startsWith('/viewer/') || /^\/s\/[A-Za-z0-9_-]{22}$/.test(url.pathname));
+  const mlswarm = trustedWebsiteUrl(url) && (url.pathname === '/' || /^\/s\/[A-Za-z0-9_-]{22}$/.test(url.pathname));
   if (!mlswarm && url.href !== 'https://github.com/login/device' || !canOpenPages({ platform, env })) return false;
   const [command, args] = platform === 'darwin' ? ['open', [url.href]] : platform === 'win32' ? ['rundll32', ['url.dll,FileProtocolHandler', url.href]] : ['xdg-open', [url.href]];
   try {

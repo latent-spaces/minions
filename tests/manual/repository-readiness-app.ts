@@ -30,7 +30,7 @@ Object.assign(process.env, { KARMA_LOCAL_API_URL: `http://127.0.0.1:${apiPort}` 
 const people=[{id:'readiness-owner',name:'Owner · synthetic',email:'readiness-owner@example.test',removedAt:null,onboardingCompletedAt:Date.now()}];
 await profiles.doc(people[0].id).create(people[0]);
 const {id}=await createPrivateProject(people[0],{client_request_id:randomUUID(),title:'Repository readiness · synthetic',goal:'Focused application acceptance; no models.',githubUrl:'https://github.com/example/synthetic'},Date.now) as {id:string};
-const projectUrl = `${origin}/viewer/?project=${id}&section=agents`;
+const projectUrl = `${origin}/?project=${id}&section=agents`;
 let api: ReturnType<typeof spawn> | undefined, web: Awaited<ReturnType<typeof createServer>> | undefined, browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 const errors: string[] = [];
 async function screenshot(page: Page, name: string) {
@@ -51,7 +51,7 @@ try {
     const context = await browser!.newContext({ viewport: { width: 1440, height: 1000 } }); context.setDefaultTimeout(45_000);
     await context.route('**/*', route => ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
     const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message));
-    await page.goto(`${origin}/viewer/`);
+    await page.goto(`${origin}/`);
     await signInBrowser(page, await idTokenFor(person.email));
     await page.goto(projectUrl); return page;
   }

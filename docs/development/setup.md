@@ -18,7 +18,7 @@ npm run typecheck:backend
 npm run test:backend
 ```
 
-`npm run setup` builds everything, starts the engine on `http://127.0.0.1:8787/viewer/`
+`npm run setup` builds everything, starts the engine on `http://127.0.0.1:8787/`
 and signs the browser in as the engine's owner. The engine keeps its database and
 media under its own directory (`~/.mlswarm/engine` unless `MLSWARM_ENGINE_HOME` names
 another absolute path). Do not point tests or scripts at that database.

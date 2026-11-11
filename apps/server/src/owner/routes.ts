@@ -153,7 +153,7 @@ export function ownerRoutes(now: () => number) {
   };
   const answer = (res: Response, fn: () => Promise<unknown>) => void Promise.resolve().then(fn).then(v => res.json(v), e => fail(res, e));
   const requestId = (value: unknown) => parse(uuid, value);
-  router.post('/connect', (req, res) => answer(res, async () => { unverified(req); const result = await createOwnerConnection(parse(OWNER_CONNECT, req.body), now); return { ...result, approvalPath: await shortSharedLink(`/viewer/?view=owner-connect&request=${result.requestId}`) }; }));
+  router.post('/connect', (req, res) => answer(res, async () => { unverified(req); const result = await createOwnerConnection(parse(OWNER_CONNECT, req.body), now); return { ...result, approvalPath: await shortSharedLink(`/?view=owner-connect&request=${result.requestId}`) }; }));
   router.get('/connect/:id', (req, res) => answer(res, async () => {
     const poll = secret.safeParse(bearerToken(req.headers.authorization));
     if (!poll.success) { unverified(req); throw unavailable(); }
@@ -257,7 +257,7 @@ export function ownerRoutes(now: () => number) {
     const { approved: _approved, ...input } = parse(CREATE_PRIVATE.extend({ approved: z.literal(true) }), req.body);
     if (req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'This computer is now approved for a different MyLittleSwarm account. Check which account you meant, then try again.');
     const created = await createPrivateProject(res.locals.owner, input, now) as { id: string; memberLimit: number; messageProtection: string; replayed: boolean };
-    return { ...created, ...projectStatus(created.id, await readWorkspace(res.locals.owner, created.id)), projectPagePath: await shortSharedLink(`/viewer/?project=${created.id}`) };
+    return { ...created, ...projectStatus(created.id, await readWorkspace(res.locals.owner, created.id)), projectPagePath: await shortSharedLink(`/?project=${created.id}`) };
   }));
   router.get('/projects', (req, res) => answer(res, async () => {
     const query = parse(z.object({ cursor: z.string().max(500).optional(), scope: z.enum(['owned','joined','all']).default('all'), limit: z.coerce.number().int().min(1).max(100).optional() }).strict(), req.query);

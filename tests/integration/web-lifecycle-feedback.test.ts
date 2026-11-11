@@ -39,7 +39,7 @@ test('actual lifecycle feedback follows success, stays optional, retries private
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
     await context.route('**/*', (route: any) => ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
     page = await context.newPage(); const errors: string[] = []; page.on('pageerror', (e: Error) => errors.push(e.message));
-    await page.goto(`http://127.0.0.1:${webPort}/viewer/?project=${TEST_PROJECT}&section=control-center&tab=status`);
+    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=control-center&tab=status`);
     await signInBrowser(page, await idTokenFor('pause-reviewer@example.test'));
     const controls = page.locator('.project-controls-card');
     async function act(name: string) {
@@ -100,7 +100,7 @@ test('actual lifecycle feedback follows success, stays optional, retries private
     await dialog.getByRole('button', { name: 'Skip', exact: true }).click();
     // The profile page left the local app; the saved preference is checked in Firestore and by the next lifecycle change.
     expect((await profiles.doc(fixture.personIds[0]).get()).data()?.feedbackPreferences?.promptsEnabled).toBe(false);
-    await page.goto(`http://127.0.0.1:${webPort}/viewer/?project=${TEST_PROJECT}&section=control-center&tab=status`);
+    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=control-center&tab=status`);
     await controls.getByRole('button', { name: 'Reopen project', exact: true }).waitFor({ timeout: 25000 });
     await act('Reopen project');
     await controls.getByRole('button', { name: 'Resume project', exact: true }).waitFor();

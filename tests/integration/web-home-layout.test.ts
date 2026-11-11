@@ -35,7 +35,7 @@ test('actual project Tasks keeps the communication map and cheat sheet and fits 
     await context.route('**/*',(route:any)=>['127.0.0.1','localhost','[::1]'].includes(new URL(route.request().url()).hostname)?route.continue():route.abort());
     const page=await context.newPage(); diagnostic=page;
     const errors:string[]=[];let eventReads=0, updateReads=0;page.on('pageerror',(e:Error)=>errors.push(e.message));page.on('request',(request:any)=>{if(request.url().includes('/communication/events'))eventReads++;if(new URL(request.url()).pathname===`/api/project-progress/${TEST_PROJECT}` && request.method()==='GET')updateReads++;});
-    await page.goto(`http://127.0.0.1:${webPort}/viewer/?project=${TEST_PROJECT}`);
+    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}`);
     await signInBrowser(page, await idTokenFor('author@example.test'));
     const tabs=page.getByRole('navigation',{name:'Project sections',exact:true});
     await tabs.getByRole('link',{name:'Tasks',exact:true}).waitFor();
@@ -77,7 +77,7 @@ test('actual project Tasks keeps the communication map and cheat sheet and fits 
       await page.screenshot({animations:'disabled',path:join(directory,`header-${width}.png`)});
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
     }
-    await page.goto(`http://127.0.0.1:${webPort}/viewer/?view=projects`);
+    await page.goto(`http://127.0.0.1:${webPort}/?view=projects`);
     const filters=page.getByRole('group',{name:'Filter my projects',exact:true});
     await filters.waitFor();
     for (const width of [1440, 390]) {

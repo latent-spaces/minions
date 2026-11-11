@@ -65,9 +65,9 @@ try {
   const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message));
   page.on('response', async response => { if (response.url().endsWith('/community/me') && response.status() >= 400) console.error('Community access check:', response.status(), await response.text()); });
   page.on('request', req => { if (/\/(background-control|participation|steering|extend)$/.test(new URL(req.url()).pathname) && req.method() !== 'GET') controlCalls.push(req.url()); });
-  await page.goto(`${origin}/viewer/`);
+  await page.goto(`${origin}/`);
   await signInBrowser(page, await idTokenFor(email));
-  await page.goto(`${origin}/viewer/?project=${TEST_PROJECT}&section=tasks`);
+  await page.goto(`${origin}/?project=${TEST_PROJECT}&section=tasks`);
   await page.getByText(create.title, { exact: true }).first().waitFor();
   await page.getByRole('columnheader', { name: 'Agents', exact: true }).waitFor();
   const stateFilter = page.getByRole('combobox', { name: 'State', exact: true });
@@ -307,7 +307,7 @@ try {
   await page.screenshot({ path: join(evidence, 'task-settings-disabled.png'), fullPage: true, animations: 'disabled' });
   const disabledWrite = await request({ operation: 'create', clientRequestId: randomUUID(), title: 'Must not be created' });
   assert.equal(disabledWrite.status, 409); assert.equal((await disabledWrite.json()).error, 'tasks_disabled');
-  await page.goto(`${origin}/viewer/?project=${TEST_PROJECT}&section=tasks`);
+  await page.goto(`${origin}/?project=${TEST_PROJECT}&section=tasks`);
   await page.getByText(create.title, { exact: true }).first().waitFor();
   assert.equal(await page.getByRole('button', { name: 'New task', exact: true }).count(), 0);
   await page.screenshot({ path: join(evidence, 'tasks-disabled-readonly.png'), fullPage: true, animations: 'disabled' });

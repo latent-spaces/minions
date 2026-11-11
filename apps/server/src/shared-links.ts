@@ -11,11 +11,19 @@ import { requestLimits } from './request-state.js';
 type SharedLink = { path: string } | { projectJoin: { projectId: string; codeHash: string } };
 const links = collection<SharedLink>('sharedLinks');
 const validCode = /^[A-Za-z0-9_-]{22}$/;
-// Only the viewer is a destination: no external redirects, API actions or nested aliases.
+// Only the app page is a destination: no external redirects, API actions or nested aliases. Links saved before
+// the app moved to the root name /viewer/?…; they still resolve, and /viewer/ redirects to the root.
 export function sharedDestination(path: string): boolean {
-  if (!path.startsWith('/viewer/?') || path.length > 4096 || /[\s\x00-\x1f\x7f\\#]/.test(path)) return false;
+  if (!/^\/(?:viewer\/)?\?/.test(path) || path.length > 4096 || /[\s\x00-\x1f\x7f\\#]/.test(path)) return false;
   const url = new URL(path, 'https://mlswarm.invalid');
-  return url.pathname === '/viewer/' && url.origin === 'https://mlswarm.invalid';
+  return (url.pathname === '/' || url.pathname === '/viewer/') && url.origin === 'https://mlswarm.invalid';
+}
+
+// The app used to live under /viewer/. Saved links, project updates and older connectors still name it, so those
+// addresses move permanently to the same page at the root (owner, 11 November 2026).
+export const LEGACY_APP_PATH = /^\/viewer(?:\/|$)/;
+export function legacyAppRedirect(req: express.Request, res: express.Response): void {
+  res.redirect(301, req.originalUrl.replace(/^\/viewer\/?/, '/'));
 }
 
 /** A stable 22-character hash alias. Destination authorization, confirmation and expiry still apply. */

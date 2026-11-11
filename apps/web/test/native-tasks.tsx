@@ -98,7 +98,7 @@ const lookup = labels ? {
   members: async (ids: string[]) => { lookups.push(ids); return people.filter(row => ids.includes(row.id)); },
 } : undefined;
 Object.assign(window, { labelLookups: lookups });
-createRoot(document.getElementById('root')!).render(<StrictMode><main style={{ maxWidth: 1080, margin: '0 auto', padding: 24 }}><ProjectTasks api={api} agents={labels ? agents.slice(0, 2) : agents} people={people} lookup={lookup} readOnly={readOnly} disabledNotice={disabled} selfId="p1" projectId="demo" viewerUrl="https://karma42.ai/viewer/" active />
+createRoot(document.getElementById('root')!).render(<StrictMode><main style={{ maxWidth: 1080, margin: '0 auto', padding: 24 }}><ProjectTasks api={api} agents={labels ? agents.slice(0, 2) : agents} people={people} lookup={lookup} readOnly={readOnly} disabledNotice={disabled} selfId="p1" projectId="demo" viewerUrl="https://karma42.ai/" active />
   <a href="#harness-end" id="harness-end">After task workspace</a>
   <details><summary>Synthetic mutation requests</summary><pre id="mutation-evidence">[]</pre></details>
 </main></StrictMode>);

@@ -1,4 +1,4 @@
-// Viewer locations live in the query string: /viewer is served statically with no fallback route,
+// App locations live in the query string: the app is served statically at the root with no fallback route,
 // so a path per screen would not survive a reload. No parameters means My projects.
 export const SECTIONS = ['overview', 'preview', 'usage', 'teams', 'agents', 'conversations', 'control-center', 'needs-you'] as const;
 export type Section = typeof SECTIONS[number];

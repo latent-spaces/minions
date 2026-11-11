@@ -22,7 +22,7 @@ export function createDiscovery({ site = configuredWebsiteOrigin() } = {}) {
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Public discovery returned an invalid response.');
     return data;
   }
-  function links(id) { const page = new URL('/viewer/', origin); page.searchParams.set('project', id); page.searchParams.set('browse', '1'); return { project_page: page.href, project_url: new URL(`/p/${id}`, origin).href }; }
+  function links(id) { const page = new URL('/', origin); page.searchParams.set('project', id); page.searchParams.set('browse', '1'); return { project_page: page.href, project_url: new URL(`/p/${id}`, origin).href }; }
   return { async call(name, args) {
     if (!DISCOVERY_TOOLS.some(tool => tool.name === name)) throw new Error('Public discovery tool is unknown.');
     const keys = name === 'explore_projects' ? ['q', 'category', 'cursor'] : ['project_id'];

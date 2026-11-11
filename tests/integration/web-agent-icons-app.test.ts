@@ -48,7 +48,7 @@ test('actual app keeps coding-tool identity separate from model names across sid
     const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
     await context.route('**/*',(route:any)=>['127.0.0.1','localhost','[::1]'].includes(new URL(route.request().url()).hostname)?route.continue():route.abort());
     page=await context.newPage();const errors:string[]=[];page.on('pageerror',(error:Error)=>errors.push(error.message));
-    const url=`http://127.0.0.1:${webPort}/viewer/?project=${TEST_PROJECT}&section=agents&filter=all`;
+    const url=`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=agents&filter=all`;
     await page.goto(url);
     await signInBrowser(page, await idTokenFor('icons@example.test'));
     const directoryView=page.locator('.k42-directory:visible'),sidebar=page.locator('.k42-my-agents');

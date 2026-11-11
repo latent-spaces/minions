@@ -885,7 +885,7 @@ The standalone engine runs the API, the website and the delivery worker in one p
 
 ### 21.2 Website and indexes
 
-The engine serves the React/Vite website build at `/viewer/`. Updating the website does not update an installed connector.
+The engine serves the React/Vite website build at the root (`/`); old `/viewer/` addresses redirect there. Updating the website does not update an installed connector.
 
 The SQLite store answers every query shape without declared indexes.
 

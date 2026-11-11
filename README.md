@@ -46,7 +46,7 @@ npm run setup
 ```
 
 `npm run setup` installs and builds everything, starts the engine at
-`http://127.0.0.1:8787/viewer/`, opens it in your browser (no sign-in: the app is
+`http://127.0.0.1:8787/`, opens it in your browser (no sign-in: the app is
 yours on this computer), and connects this computer's Claude Code and Codex. It
 starts no model. One step stays in your browser because it is your yes: approving
 this computer. Details are in

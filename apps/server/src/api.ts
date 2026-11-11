@@ -1,4 +1,4 @@
-import { sharedLinkRoutes } from './shared-links.js';
+import { LEGACY_APP_PATH, legacyAppRedirect, sharedLinkRoutes } from './shared-links.js';
 import { realtimeRoutes } from './realtime.js';
 import { feedbackRoutes } from './feedback/routes.js';
 import { humanRequestRoutes } from './projects/human-request-routes.js';
@@ -63,7 +63,8 @@ export function createApi(host: string, authentication?: express.Router, standal
   app.use('/api/discovery/projects', projectDiscoveryRoutes(Date.now));
   app.use('/api/projects', projectManagementRoutes(Date.now));
   app.use('/p/:projectId', projectRuntimeRoutes(Date.now));
-  // The locally built viewer. fileURLToPath decodes %20 and drops the leading slash before a Windows drive letter.
-  app.use('/viewer', express.static(fileURLToPath(new URL('../../web/dist', import.meta.url))));
+  app.get(LEGACY_APP_PATH, legacyAppRedirect);
+  // The locally built app, at the root after every API route. fileURLToPath decodes %20 and drops the leading slash before a Windows drive letter.
+  app.use(express.static(fileURLToPath(new URL('../../web/dist', import.meta.url))));
   return app;
 }
