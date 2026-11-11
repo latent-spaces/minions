@@ -180,8 +180,8 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
       on the project page. Beside the map the board also shows only about three of its
       four columns, so Canceled needs a sideways scroll (and the board integration test
       fails there).
-- [ ] **Bring back project cover images.** They're gone. In Karma42 a project's cover
-      was taken from its updates.
+- [x] **Bring back project cover images.** A project's stamp, in the menu and the project
+      header, shows the screenshot on its newest update; the banner keeps its gradient.
 - [ ] **Tell open tabs to reload after an update.** A tab opened before an update keeps
       running the old web app and can show stale or mismatched data (for example
       different agent avatars) until someone reloads it.

@@ -2,7 +2,8 @@ import type { MergeApproval } from './merge-approval';
 import type { ProjectLifecycle } from '@mlswarm/contracts';
 import type { Overview } from './api';
 export type ProjectRole = 'owner' | 'member';
-export type ProjectEntry = { archived?: boolean; archiveRevision?: number; starred?: boolean; coverImage?: string; id: string; name: string; summary: string; execution: 'not_configured' | 'ready' | 'paused' | 'active' | 'closed'; role: ProjectRole; participantCount?: number | null; listed?: boolean; state?: ProjectLifecycle; lifecycle?: 'setup' | 'recruiting' | 'active' | 'paused'; minContributors?: number | null; startDeadline?: string | null;
+/** `cover` names the screenshot on the project's newest update; the stamps show it. */
+export type ProjectEntry = { archived?: boolean; archiveRevision?: number; starred?: boolean; coverImage?: string; cover?: string; id: string; name: string; summary: string; execution: 'not_configured' | 'ready' | 'paused' | 'active' | 'closed'; role: ProjectRole; participantCount?: number | null; listed?: boolean; state?: ProjectLifecycle; lifecycle?: 'setup' | 'recruiting' | 'active' | 'paused'; minContributors?: number | null; startDeadline?: string | null;
   /** Not listed in Explore. A service from before 18 October 2026 omits it: no lock is shown. */
   private?: boolean };
 export type ProjectPage = { projects: ProjectEntry[]; next: string | null };
@@ -14,7 +15,7 @@ export type CommunityRulesData = { body: string; version: number; updatedAt: num
 export type Workspace = {
   startAnnouncement?: import('@mlswarm/contracts').ProjectStartAnnouncement | null;
   archived?: boolean; archiveRevision?: number; starred?: boolean;
-  setupPlan?: import('@mlswarm/contracts').ProjectSetupPlan; coverImage?: string; conceptImages?: { src: string; title: string }[]; id: string; role: ProjectRole | 'guest'; listed?: boolean; state?: ProjectLifecycle;
+  setupPlan?: import('@mlswarm/contracts').ProjectSetupPlan; coverImage?: string; cover?: string; conceptImages?: { src: string; title: string }[]; id: string; role: ProjectRole | 'guest'; listed?: boolean; state?: ProjectLifecycle;
   /** When the job's time runs out (Unix ms); null until a length is chosen. Agents then finish their turn and wait. */
   endsAt?: number | null;
   /** The job's token cap, one pool for all the owner's agents in the project; null or absent for no cap. */

@@ -23,6 +23,7 @@ import { assertMembership, assertProjectWritable } from './access.js';
 import { CARD_EDIT, agentText, cardDefinition, cardDoc, cardVersionId, cardVersions, currentCard, type CardVersion } from './card.js';
 import { projectListings, searchPrefixes } from './catalog.js';
 import { artworkOf } from './artwork.js';
+import { latestUpdateScreenshotId } from './progress.js';
 import { runtimeOf, runtimeWithCard, recordWithRuntime, type WorkspaceProject, type RuntimeState } from './records.js';
 import { communityRulesDoc, communitySettingsDoc, setCommunityPublication } from './community-schema.js';
 import { communityRulesView } from './community-rules.js';
@@ -159,13 +160,14 @@ async function listDirectoryPage(operator: WithId<Profile>, cursor: string | und
   const currentMemberships = page.length ? await db.getAll(...page.map(id => membershipDoc(id, operator.id))) : [];
   const preferences = page.length ? await db.getAll(...page.map(id => projectArchives(operator.id).doc(id))) : [];
   const stars = page.length ? await db.getAll(...page.map(id => projectStars(operator.id).doc(id))) : [];
+  const covers = await Promise.all(page.map(id => latestUpdateScreenshotId(id)));
   const counts: (number | null)[] = page.map(() => null);
   for (let start = 0; start < page.length; start += 4) {
     await Promise.all(definitions.slice(start, start + 4).map(async (definition, offset) => {
       if (definition.exists) counts[start + offset] = await registeredParticipantCount(definition.id, definition.data()!.ownerProfileId);
     }));
   }
-  const rows = definitions.flatMap<{ id: string; name: string; summary: string; coverImage?: string; execution: string; role: ProjectRole; kind: 'project' | 'proposal'; proposalStatus: string | null; revision: number | null; participantCount?: number | null; listed?: boolean; lifecycle?: string; minContributors?: number | null; startDeadline?: string | null; state: ProjectLifecycle; private: boolean; repository?: string | null; archived: boolean; archiveRevision: number; starred: boolean }>((definition, index) => {
+  const rows = definitions.flatMap<{ id: string; name: string; summary: string; coverImage?: string; cover?: string; execution: string; role: ProjectRole; kind: 'project' | 'proposal'; proposalStatus: string | null; revision: number | null; participantCount?: number | null; listed?: boolean; lifecycle?: string; minContributors?: number | null; startDeadline?: string | null; state: ProjectLifecycle; private: boolean; repository?: string | null; archived: boolean; archiveRevision: number; starred: boolean }>((definition, index) => {
     if (!definition.exists) {
       const proposal = proposalPage?.docs.find(d => d.id === definition.id)?.data();
       if (!proposal) return [];
@@ -182,7 +184,7 @@ async function listDirectoryPage(operator: WithId<Profile>, cursor: string | und
     const state = deriveProjectLifecycle({ kind: 'project', role: projectRole, execution: p.execution.completedAt !== null ? 'closed' : projectExecution(current), runtimeStarted: current?.started, listed,
       privateProject: !!isPrivateProject(p), setupRequired: setup.required, setupFinalizedAt: setup.finalizedAt, participantCount: counts[index], minContributors: setup.minContributors });
     // Members' agents match GitHub invitations to their projects by this repository.
-    return [{ ...archiveState(preferences[index].data()), ...starState(stars[index].data()), id: definition.id, repository: current?.repoUrl ?? null, ...(coverImage ? { coverImage } : {}), name: currentCard(p, cards[index].data() as CardVersion | undefined).definition.title, summary: currentCard(p, cards[index].data() as CardVersion | undefined).definition.goal, state, execution: p.execution.completedAt !== null ? 'closed' : projectExecution(current), role: projectRole, kind: 'project' as const, proposalStatus: null, revision: null, participantCount: counts[index], listed, lifecycle: p.setup.required ? state.setup === 'pending' ? 'setup' : !current?.started ? 'recruiting' : current.paused ? 'paused' : 'active' : undefined, minContributors: current?.minContributors ?? definition.data()!.setup.minContributors ?? null, startDeadline: current?.startDeadline ?? null, private: !!isPrivateProject(p) }];
+    return [{ ...archiveState(preferences[index].data()), ...starState(stars[index].data()), id: definition.id, repository: current?.repoUrl ?? null, ...(coverImage ? { coverImage } : {}), ...(covers[index] ? { cover: covers[index]! } : {}), name: currentCard(p, cards[index].data() as CardVersion | undefined).definition.title, summary: currentCard(p, cards[index].data() as CardVersion | undefined).definition.goal, state, execution: p.execution.completedAt !== null ? 'closed' : projectExecution(current), role: projectRole, kind: 'project' as const, proposalStatus: null, revision: null, participantCount: counts[index], listed, lifecycle: p.setup.required ? state.setup === 'pending' ? 'setup' : !current?.started ? 'recruiting' : current.paused ? 'paused' : 'active' : undefined, minContributors: current?.minContributors ?? definition.data()!.setup.minContributors ?? null, startDeadline: current?.startDeadline ?? null, private: !!isPrivateProject(p) }];
   });
   return { projects: rows, next: selectedIds ? null : ids.length > size || authored.size === size + 1 || (joined.size === size + 1 || proposalPage?.size === size + 1) ? nextCursor(scope, page.at(-1) ?? joined.docs.at(-1)?.id ?? authored.docs.at(-1)!.id) : null };
 }
@@ -195,8 +197,8 @@ export async function readWorkspace(operator: WithId<Profile>, id: string) {
   const p = runtimeWithCard(approved, cardSnap.data()), setup = setupSnapshot(approved, p), participantCount = await registeredParticipantCount(id, approved.ownerProfileId);
   const execution = approved.execution.completedAt !== null ? 'closed' as const : projectExecution(p);
   const state = deriveProjectLifecycle({ kind: 'project', role, execution, runtimeStarted: p?.started, listed, privateProject: !!isPrivateProject(approved), setupRequired: setup.required, setupFinalizedAt: setup.finalizedAt, participantCount, minContributors: setup.minContributors });
-  const [preference, star] = await Promise.all([projectArchives(operator.id).doc(id).get(), projectStars(operator.id).doc(id).get()]);
-  return { id, role, nativeTeams: { enabled: nativeTeamsEnabled(approved.nativeTeams), revision: approved.nativeTeams?.revision ?? 0 }, nativeTasks: { enabled: nativeTasksEnabled(approved.nativeTasks), revision: approved.nativeTasks?.revision ?? 0 }, ...archiveState(preference.data()), ...starState(star.data()), state, listed, ...artworkOf(approved.artwork, listingSnap.data()?.coverImage), definition: card.definition, cardVersion: card.version, project: p ?? null, revision: approved.revision,
+  const [preference, star, cover] = await Promise.all([projectArchives(operator.id).doc(id).get(), projectStars(operator.id).doc(id).get(), latestUpdateScreenshotId(id)]);
+  return { id, role, nativeTeams: { enabled: nativeTeamsEnabled(approved.nativeTeams), revision: approved.nativeTeams?.revision ?? 0 }, nativeTasks: { enabled: nativeTasksEnabled(approved.nativeTasks), revision: approved.nativeTasks?.revision ?? 0 }, ...archiveState(preference.data()), ...starState(star.data()), state, listed, ...artworkOf(approved.artwork, listingSnap.data()?.coverImage), ...(cover ? { cover } : {}), definition: card.definition, cardVersion: card.version, project: p ?? null, revision: approved.revision,
     publicationOrigin: approved.privacy?.visibility === 'public' ? 'owner_conversion' as const : approved.privacy ? 'private' as const : 'reviewed_proposal' as const,
     ...(isPrivateProject(approved) ? { privacy: { ...approved.privacy, memberLimit: (await db.runTransaction(tx => readProjectAdmission(tx, id, approved.ownerProfileId))).capacity } } : {}),
     ...(role === 'owner' && approved.setupPlan ? { setupPlan: approved.setupPlan } : {}),

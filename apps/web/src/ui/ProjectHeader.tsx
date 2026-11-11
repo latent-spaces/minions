@@ -19,10 +19,10 @@ export type HeaderMenuItem = { id: string; label: string; icon: ReactNode; dange
  * 26 October 2026): a pastel cover, the stamp overlapping it, the title, the actions, the repository bar and
  * the tab row. People, agents and the map live in the map toolbar on Tasks.
  */
-export function ProjectHeader({ id, name, isPrivate = false, statusPanel, createdBy, repoUrl, repositorySummary, usage, onCopyLink, menu, onContribute, observed, about, tabs, titleLevel = 1 }: {
+export function ProjectHeader({ id, name, cover, isPrivate = false, statusPanel, createdBy, repoUrl, repositorySummary, usage, onCopyLink, menu, onContribute, observed, about, tabs, titleLevel = 1 }: {
   about?: ReactNode;
   titleLevel?: 1 | 2;
-  id: string; name: string; isPrivate?: boolean; /** The project status panel, above the repository bar (Noa, 26 October 2026). */ statusPanel?: ReactNode; /** The owner's name, shown as Created by beside Public/Private. */ createdBy?: string | null; repoUrl?: string | null;
+  id: string; name: string; /** A loaded image URL for the stamp: the screenshot on the newest update. */ cover?: string | null; isPrivate?: boolean; /** The project status panel, above the repository bar (Noa, 26 October 2026). */ statusPanel?: ReactNode; /** The owner's name, shown as Created by beside Public/Private. */ createdBy?: string | null; repoUrl?: string | null;
   repositorySummary?: RepositorySummary | null; usage?: ProjectUsage | null;
   /** Copies the public project's link. */
   onCopyLink?: (() => void) | null; menu: HeaderMenuItem[]; onContribute?: (() => void) | null; observed?: ReactNode; tabs: ReactNode;
@@ -33,7 +33,7 @@ export function ProjectHeader({ id, name, isPrivate = false, statusPanel, create
     {/* What kind of project and who created it, in the cover's top-right corner (Noa, 26 October 2026). */}
     <p className="k42-ph-meta">{isPrivate ? <LockKeyhole size={15} aria-hidden="true" /> : <Globe size={15} aria-hidden="true" />}{isPrivate ? 'Private project' : 'Public project'}{createdBy && <span className="k42-ph-created">Created by <strong>{createdBy}</strong></span>}</p>
     <div className="k42-ph-head">
-      <span className="k42-ph-stamp" style={{ background: projectGradient(id) }} aria-hidden="true">{personInitials(name)}</span>
+      <span className="k42-ph-stamp" style={{ background: projectGradient(id) }} aria-hidden="true">{cover ? <img src={cover} alt="" /> : personInitials(name)}</span>
       <div className="k42-ph-title">
         <div className="k42-ph-text">
           {titleLevel === 1 ? <h1 id={titleId}>{name}</h1> : <h2 id={titleId} className="k42-ph-name">{name}</h2>}

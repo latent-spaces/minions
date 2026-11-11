@@ -3,6 +3,7 @@
 .k42-ph-cover { height:96px; border-radius:var(--surface-radius) var(--surface-radius) 0 0; }
 .k42-ph-head { padding:0 24px; }
 .k42-ph-stamp { width:64px; height:64px; margin-top:-32px; border-radius:6px; border:4px solid var(--canvas); display:grid; place-items:center; overflow:hidden; font-size:20px; font-weight:700; }
+.k42-ph-stamp img { width:100%; height:100%; object-fit:cover; }
 .k42-ph-title { display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap; margin-top:10px; }
 .k42-ph-text { flex:1 1 320px; min-width:0; }
 .k42-ph-text :is(h1, .k42-ph-name) { margin:0; font-size:24px; font-weight:700; letter-spacing:-.02em; overflow-wrap:anywhere; }

@@ -12,10 +12,11 @@ import { CheatSheetButton } from './ProjectCheatSheet';
 
 export interface WorkspaceNavItem { id: string; label: string; icon?: ReactNode; href: string; current?: boolean; locked?: string; onNavigate: () => void; }
 /** `private` marks a project that is not listed in Explore: a lock on its stamp (shell polish 2026-10-18, section 12). */
-export interface WorkspaceShortcut { id: string; name: string; href: string; onNavigate: () => void; current?: boolean; status?: string; locked?: string; private?: boolean; }
+/** `cover` is a loaded image URL for the project's stamp: the screenshot on its newest update. */
+export interface WorkspaceShortcut { id: string; name: string; href: string; onNavigate: () => void; current?: boolean; status?: string; locked?: string; private?: boolean; cover?: string | null; }
 /** Project mode (shell polish 2026-10-18, section 12): inside a project the menu shows its identity and own-agent shortcuts. */
 export interface ProjectMenu {
-  id: string; name: string; status?: string; private?: boolean;
+  id: string; name: string; status?: string; private?: boolean; cover?: string | null;
   /** "← All projects": leaving the project restores the global menu. */
   back: WorkspaceNavItem;
   /** Public/guest project shells still use section links; member tabs supply an empty list. */
@@ -48,9 +49,9 @@ export interface WorkspaceNavigationProps {
 }
 
 const initials = personInitials;
-/** The project stamp: its initials on the project's gradient (a sharp square, unlike people and agents); a lock when it is private. */
-function ProjectStamp({ project, className = '' }: { project: { id: string; name: string; private?: boolean }; className?: string }) {
-  const stamp = <span className={`k42-project-stamp${className}`} style={{ background: projectGradient(project.id) }} aria-hidden="true">{initials(project.name)}</span>;
+/** The project stamp: its cover where it has one, else its initials on the project's gradient (a sharp square, unlike people and agents); a lock when it is private. */
+function ProjectStamp({ project, className = '' }: { project: { id: string; name: string; private?: boolean; cover?: string | null }; className?: string }) {
+  const stamp = <span className={`k42-project-stamp${className}`} style={{ background: projectGradient(project.id) }} aria-hidden="true">{project.cover ? <img src={project.cover} alt="" /> : initials(project.name)}</span>;
   return project.private ? <span className="k42-stamp-frame">{stamp}<PrivateBadge /></span> : stamp;
 }
 

@@ -71,6 +71,7 @@ import { ProjectHomePreparation } from './ui/ProjectHomePreparation';
 import { waitingTitle, workerAgentStatus } from './ui/agent-running-state';
 import { MyWorkersContext } from './ui/MyWorkerControls';
 import type { CommunityAccount } from './community-api';
+import { useProjectCovers } from './project-covers';
 import { statusTone, toneClass } from './ui/tag-tone';
 
 const REFRESH_MS = 30_000;
@@ -79,7 +80,7 @@ const STALE_MS = 90_000;
 function workspaceEntry(workspace: Workspace): ProjectEntry {
   return { id: workspace.id, name: workspace.definition.title, summary: workspace.definition.goal,
     execution: workspace.execution, archived: workspace.archived, starred: workspace.starred, archiveRevision: workspace.archiveRevision, role: workspace.role as ProjectEntry['role'], state: workspace.state,
-    listed: workspace.listed, participantCount: workspace.participantCount, coverImage: workspace.coverImage,
+    listed: workspace.listed, participantCount: workspace.participantCount, coverImage: workspace.coverImage, cover: workspace.cover,
     minContributors: workspace.setup?.minContributors, startDeadline: workspace.setup?.startDeadline, private: !!workspace.privacy };
 }
 export function App() {
@@ -301,6 +302,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   }, [navigate]);
   const known = selected && directory && !directory.projects.some(p => p.id === selected.id) ? [selected, ...directory.projects] : directory?.projects ?? [];
   const shortcuts = projectShortcuts(known, selected, SHORTCUTS);
+  const covers = useProjectCovers(user, shortcuts);
   const archiveChanged = (id: string, archived: boolean) => {
     setSelected(previous => previous?.id === id ? { ...previous, archived } : previous);
     setDirectory(previous => previous && { ...previous, projects: previous.projects.filter(project => project.id !== id) });
@@ -319,9 +321,9 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   const openFacts = openProject && facts?.projectId === openProject.id ? facts : null;
   const projectsLink: WorkspaceNavItem = { id:'projects', label:GLOBAL_NAMES.projects, icon:<Folder size={18} />, href:formatRoute({ view:'projects' }), current:route.view === 'projects', onNavigate:() => go({ view:'projects' }) };
   const accountMenu = <AccountMenu personId={profileIdentity?.id} photo={profileIdentity?.photo} name={displayName} go={go} />;
-  const shortcut = (p: ProjectEntry) => ({ id:p.id, name:p.name, href:formatRoute(projectRoute(p.id)), onNavigate:() => go(projectRoute(p.id)), status:executionLabel(p), private:p.private });
+  const shortcut = (p: ProjectEntry) => ({ id:p.id, name:p.name, href:formatRoute(projectRoute(p.id)), onNavigate:() => go(projectRoute(p.id)), status:executionLabel(p), private:p.private, cover:covers[p.id] ?? null });
   // Projects and agents are created from Claude through local MCP (owner, 10 November 2026).
-  const projectMenu: ProjectMenu | null = openProject && { id:openProject.id, name:openProject.name, status:executionLabel(openProject), private:openProject.private,
+  const projectMenu: ProjectMenu | null = openProject && { id:openProject.id, name:openProject.name, status:executionLabel(openProject), private:openProject.private, cover:covers[openProject.id] ?? null,
     back: { id:'all-projects', label:'All projects', href:formatRoute({ view:'projects' }), onNavigate:() => go({ view:'projects' }) },
     // Project sections live in header tabs; the menu keeps identity and own-agent shortcuts.
     connect: openFacts?.connect ?? null,
@@ -414,6 +416,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   const [error, setError] = useState<string | null>(null);
   const [loadedAt, setLoadedAt] = useState<number | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
+  const headerCover = useProjectCovers(user, workspace ? [{ id: projectId, cover: workspace.cover }] : [])[projectId] ?? null;
   const leave = useLeaveProject(user, () => go({ view: 'projects' }));
   const controls = useProjectControls(user, workspace, refreshAll, active, () => go({ view: 'projects' }));
   const [controlsDisabled, setControlsDisabled] = useState(false);
@@ -573,7 +576,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
         {error && <div role="alert"><p className="error">Could not load: {error}</p><Button onClick={() => { document.getElementById('content')?.focus({ preventScroll: true }); refresh(); }}>Try again</Button></div>}
         {!overview && !error && <p className="muted" role="status">Loading…</p>}
         {overview && <>
-          {workspace && <ProjectHeader id={projectId} name={project?.name ?? workspace.definition.title} isPrivate={isPrivate} createdBy={members.first ? crowd.find(person => person.owner === true)?.name ?? null : null} statusPanel={<ProjectStatusPanel workspace={workspace} controls={controls} disabled={controlsDisabled} />}
+          {workspace && <ProjectHeader id={projectId} cover={headerCover} name={project?.name ?? workspace.definition.title} isPrivate={isPrivate} createdBy={members.first ? crowd.find(person => person.owner === true)?.name ?? null : null} statusPanel={<ProjectStatusPanel workspace={workspace} controls={controls} disabled={controlsDisabled} />}
             repositorySummary={overview.repositorySummary} usage={usage} repoUrl={project?.repoUrl}
             onCopyLink={copyLink}
             menu={menu}

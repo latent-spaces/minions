@@ -38,6 +38,12 @@ const WRITING = {
   detailed: 'Use at most 4000 Unicode characters in the update body; an image is required. Write for a person who has not read the agent conversations. Let the attached visual carry the main point. Start the caption with the useful change and why it matters, then add relevant explanation in short, plain-language paragraphs. Keep important caveats (local, unverified, deployed) and link technical evidence. Add a next step or question only when useful. Skip unchanged filler.',
 } as const;
 
+// A project's cover is the screenshot on its newest update that has one; the stamps show it.
+export async function latestUpdateScreenshotId(projectId: string): Promise<string | null> {
+  const latest = await progressUpdates(projectId).orderBy('publishedAt', 'desc').select('screenshot').limit(5).get();
+  return (latest.docs.map(doc => doc.get('screenshot') as { id?: unknown } | null | undefined).find(shot => typeof shot?.id === 'string')?.id as string | undefined) ?? null;
+}
+
 export const UPDATE_EVERY_MINUTES = 5;
 // The project's update settings and the shared reminder: the team aims for one update about every
 // five minutes of work, from any agent (owner, 10 November 2026). due is guidance, never enforced.

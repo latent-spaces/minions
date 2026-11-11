@@ -6,7 +6,7 @@ import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { imageModeration } from '../src/projects/image-moderation.js';
 import { inProject, profiles, collection } from '../src/firestore.js';
 import { membershipDoc } from '../src/projects/access.js';
-import { publishProgressUpdate, readProgressUpdates } from '../src/projects/progress.js';
+import { latestUpdateScreenshotId, publishProgressUpdate, readProgressUpdates } from '../src/projects/progress.js';
 import { uploadProgressScreenshot, readProgressScreenshot } from '../src/projects/progress-media.js';
 import { resetEmulator, seed, TEST_PROJECT } from './helpers.js';
 
@@ -86,4 +86,23 @@ test('Me + my agents update pages include only the reader and their agents, with
   await expect(readProgressUpdates(TEST_PROJECT, actor, { cursor: first.next! }, () => 3000)).rejects.toThrow();
   await expect(readProgressUpdates(TEST_PROJECT, other, { authors: 'mine', cursor: first.next! }, () => 3000)).rejects.toThrow();
   await expect(readProgressUpdates(TEST_PROJECT, null, { authors: 'mine' }, () => 3000)).rejects.toThrow();
+});
+
+test('a project cover is the screenshot on its newest update that has one', async () => {
+  const f = await seed({ profiles: [{ name: 'Participant', email: 'participant@example.test' }] });
+  const person = { id: f.personIds[0], ...(await profiles.doc(f.personIds[0]).get()).data()! };
+  const actor = { kind: 'person' as const, person };
+  expect(await latestUpdateScreenshotId(TEST_PROJECT)).toBeNull();
+  const bytes = await sharp({ create: { width: 8, height: 8, channels: 3, background: '#ffce32' } }).png().toBuffer();
+  for (const [n, at] of [[1, 1000], [2, 2000]] as const) {
+    const upload = await uploadProgressScreenshot(TEST_PROJECT, actor, `image-${n}`, 'image/png', Buffer.concat([bytes, Buffer.alloc(n)]), () => at);
+    await publishProgressUpdate(TEST_PROJECT, actor, { clientRequestId: `post-${n}`, body: `Progress ${n}`, links: [],
+      screenshot: { uploadId: upload.uploadId, alt: 'A small test image', representation: 'output_screenshot' } }, () => at);
+    expect(await latestUpdateScreenshotId(TEST_PROJECT)).toBe(upload.uploadId);
+  }
+  const newest = await latestUpdateScreenshotId(TEST_PROJECT);
+  // A text-only update from before the visual cutover leaves the cover on the newest image.
+  await collection(`projects/${TEST_PROJECT}/updates`).doc('f'.repeat(64)).set({ kind: 'authored_update', id: 'f'.repeat(64), projectId: TEST_PROJECT,
+    author: { profile: { id: person.id, name: person.name!, photo: null }, agent: null }, title: null, body: 'Text only', links: [], screenshot: null, publishedAt: 3000, hasResult: false });
+  expect(await latestUpdateScreenshotId(TEST_PROJECT)).toBe(newest);
 });

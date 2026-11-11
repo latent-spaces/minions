@@ -29,7 +29,7 @@ export function createProgressClient(currentUid: () => string | undefined) {
       const query = new URLSearchParams(cursor ? { cursor } : {});
       return request(user, `${base(projectId)}${query.size ? `?${query}` : ''}`);
     },
-    readProjectScreenshot(projectId: string, user: SessionUser, screenshot: ProgressScreenshot): Promise<Blob> {
+    readProjectScreenshot(projectId: string, user: SessionUser, screenshot: Pick<ProgressScreenshot, 'id'>): Promise<Blob> {
       return request(user, `${base(projectId)}/media/${encodeURIComponent(screenshot.id)}`, { cache: 'no-store' }, async response => {
         if (!response.ok) { await result(response); throw new Error('This image could not be loaded.'); }
         return response.blob();
