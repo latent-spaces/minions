@@ -3,6 +3,8 @@ export type NativeTaskStatus = 'backlog' | 'in_progress' | 'done' | 'canceled';
 export type NativeTaskPriority = 'low' | 'normal' | 'high';
 export type NativeTaskActor = { kind: 'person' | 'agent'; id: string };
 export type NativeTaskContributor = { kind: 'agent'; id: string };
+/** Exact progress across all direct, accepted subtasks, independent of list filters and pagination. */
+export interface NativeSubtaskProgress { done: number; total: number }
 export type NativeTaskReference =
   | { id: string; kind: 'pull_request' | 'result'; url: string; label?: string }
   | { id: string; kind: 'conversation' | 'message'; sourceId: string; label?: string };
@@ -19,6 +21,8 @@ export interface NativeTask {
   parentId?: string | null;
   /** v1.3: an agent's proposed subtask, waiting for an owner's yes. It can't be claimed, assigned or started. */
   proposed?: boolean;
+  /** Computed on list/detail reads, never persisted in a task or mutation receipt. Canceled children count as done. */
+  subtaskProgress?: NativeSubtaskProgress;
 }
 export interface NativeTaskComment {
   id: string; taskId: string; author: NativeTaskActor; body: string;
@@ -48,7 +52,7 @@ export interface NativeTaskMutationResult {
   replayed: boolean;
 }
 /** Compact discovery fields. Read the full task before acting on its requirements. */
-export type NativeTaskSummary = Pick<NativeTask, 'id' | 'title' | 'status' | 'assignedAgentId' | 'priority' | 'revision' | 'parentId' | 'proposed'>;
+export type NativeTaskSummary = Pick<NativeTask, 'id' | 'title' | 'status' | 'assignedAgentId' | 'priority' | 'revision' | 'parentId' | 'proposed' | 'subtaskProgress'>;
 /** A task page's breadcrumb entry, root first. */
 export interface NativeTaskAncestor { id: string; title: string }
 export interface NativeTaskPage { tasks: NativeTask[]; nextCursor: string | null }
