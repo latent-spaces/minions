@@ -18,8 +18,7 @@ The host passes in:
 - how to handle a crowded map (`crowding`, see [Crowded maps](#crowded-maps));
 - callbacks for hovering an agent, selecting an agent and clicking a connection.
 
-The map owns its camera, the **Highlight agents by person** menu
-and its layout worker. It does not fetch data, sign anyone in or control agents. The
+The map owns its camera and its layout worker. It does not fetch data, sign anyone in or control agents. The
 host decides what selecting an agent or a connection does.
 
 Only direct agent messages and recorded shared human steering make connections.
@@ -29,23 +28,19 @@ questions never create connections.
 
 ## Controls
 
-- One row holds the **Highlight agents by person** menu, then anything the host passes as
+- One row holds anything the host passes as
   `toolbarStart` (on Updates: the people and agents strip and Copy project link), then **Zoom
   out**, **Fit map** and **Zoom in** at the right end. On Updates that row is in the agent
   communication card's header; elsewhere it is at the top of the map. The product map is
   2D; there is no 2D/3D switch (owner, 26 October 2026). The 3D engine is still reachable
   only through the `initialDimensions` prop, which no screen sets. Zoom goes from 0.5× to 12×. Avatars
   keep the same size on screen at every zoom; zooming changes the space between them.
-- When agents have known owners, the **Highlight agents by person** menu starts the row.
-  Its first option is **All owners**; the others read "name · N agents". Choosing an
-  owner dims the other agents and the connections that do not touch that owner's
-  agents. A line at the bottom of the map names the highlighted owner, or says "N
-  owners · Rings show ownership". Every avatar has a ring in its owner's color; agents
-  with no known owner get a gray ring. Hovering, clicking or keyboard-focusing an
-  avatar also highlights its owner. Hovering or keyboard-focusing a person highlights
-  that person and their agents in the same way, without showing an agent status
-  tooltip. Clicking empty map space clears the owner
-  highlight, selected agent and info box, returning the menu to **All owners**.
+- A project has one owner, so there is no owner menu or owner key (owner, 11 November
+  2026). Every avatar has a ring in its owner's color; agents with no known owner get a
+  gray ring. Hovering, clicking or keyboard-focusing an avatar highlights its owner's
+  agents. Hovering or keyboard-focusing a person highlights that person and their agents
+  in the same way, without showing an agent status tooltip. Clicking empty map space
+  clears the highlight, selected agent and info box.
 - Inspect an agent by hovering, clicking or keyboard-focusing its avatar. There is no
   Previous/Next control, agent switcher or automatic camera follow.
 - A faint world grid sits behind the agents. Its lines stay at fixed world positions,

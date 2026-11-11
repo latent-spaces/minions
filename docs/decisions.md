@@ -149,6 +149,10 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   A tab checks it when it regains focus and every five minutes; when a newer build is served it
   shows "MyLittleSwarm was updated" with a Reload button. It never reloads by itself, so a
   half-typed task or message is not lost.
+- **The communication map has no owner menu.** A project has one owner, so the owner removed
+  the map's **Highlight agents by person** menu and its "N owners · Rings show ownership" line.
+  Hovering, focusing or selecting an agent still highlights its owner's agents (owner,
+  11 November 2026).
 - **Agent avatars show the coding tool and state, not the owner.** A project has one owner, so
   the owner's circle on an agent's corner said nothing; the owner removed it everywhere. Where the
   coding tool is known, the Claude or Codex badge sits on the bottom-right corner instead. In the

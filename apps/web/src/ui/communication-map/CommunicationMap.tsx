@@ -32,7 +32,7 @@ function overlapShare(screen:{x:number;y:number}[]){
 export function CommunicationMap(props:Props){
  const controlsRef=useRef<HTMLDivElement>(null);
  const root=useRef<HTMLDivElement>(null),svg=useRef<SVGSVGElement>(null),canvas=useRef<HTMLCanvasElement>(null);
- const dimensions=props.initialDimensions??2,[zoom,setZoom]=useState(1),[failure,setFailure]=useState(''),[retry,setRetry]=useState(0),[owner,setOwner]=useState('');
+ const dimensions=props.initialDimensions??2,[zoom,setZoom]=useState(1),[failure,setFailure]=useState(''),[retry,setRetry]=useState(0);
  useEffect(()=>{
   const element=root.current;if(!element)return;let inView=true;
   const update=()=>{element.dataset.stateMotion=String(props.running&&props.active&&inView&&!document.hidden);};
@@ -42,7 +42,7 @@ export function CommunicationMap(props:Props){
  },[props.running,props.active]);
  const ownerGroups=useMemo(()=>{const groups=new Map<string,{id:string;name:string;count:number;mine:boolean}>();for(const node of props.nodes){if(!node.ownerId||node.personId)continue;const found=groups.get(node.ownerId);if(found){found.count++;found.mine ||= !!props.observations.get(node.id)?.mine;if(node.ownerName)found.name=node.ownerName;}else groups.set(node.ownerId,{id:node.ownerId,name:node.ownerName??'',count:1,mine:!!props.observations.get(node.id)?.mine});}return [...groups.values()].sort((a,b)=>a.id.localeCompare(b.id)).map(group=>({...group,name:group.name||(group.mine?'You':'Removed person')}));},[props.nodes,props.observations]);
  const ownerLabels=new Map(ownerGroups.map(group=>[group.id,group.name]));
- const highlightedOwner=(ownerGroups.some(group=>group.id===owner)?owner:'')||props.nodes.find(node=>node.id===(props.inspected??props.selected))?.ownerId||'';
+ const highlightedOwner=props.nodes.find(node=>node.id===(props.inspected??props.selected))?.ownerId||'';
  const crowded=props.nodes.length>24;
  const fitting=useRef(true),orbit=useRef({yaw:.55,pitch:-.35});
  const control=useRef({...props,zoom,dimensions,highlightedOwner,received:performance.now()});
@@ -54,7 +54,6 @@ export function CommunicationMap(props:Props){
  const edgePool=useMemo(()=>{const links=new Map<string,{from:string;to:string}>();for(const m of props.traffic)if(m.audience==='direct')for(const to of m.to)if(to!==m.agentId)links.set(JSON.stringify([m.agentId,to]),{from:m.agentId,to});return [...links.values()];},[props.traffic]);
  const home=()=>{fitting.current=true;showAll.current=false;setZoom(1);root.current?.dispatchEvent(new Event('map-fit'));};
  const zoomBy=(factor:number)=>{fitting.current=false;setZoom(z=>Math.max(.5,Math.min(12,z*factor)));};
- useEffect(()=>{if(owner&&!ownerGroups.some(group=>group.id===owner))setOwner('');},[owner,ownerGroups]);
  useEffect(()=>{
   const dismiss=(event:Event)=>{const target=event.target as Element|null;if(target?.closest?.('.k42-communication-agent-tooltip'))return;if(event instanceof KeyboardEvent){if(['Shift','Control','Alt','Meta'].includes(event.key))return;if(target?.closest?.('.k42-communication-agent')&&['Enter',' '].includes(event.key))return;}control.current.onDismiss();};
   document.addEventListener('keydown',dismiss);document.addEventListener('wheel',dismiss,{passive:true});
@@ -195,19 +194,17 @@ export function CommunicationMap(props:Props){
  useEffect(()=>{if(fitting.current)root.current?.dispatchEvent(new Event('map-fit'));},[props.crowding]);
  const controlsBlock=<>
   <div ref={controlsRef} className="communication-map-controls" role="group" aria-label="Map controls">
-   {!!ownerGroups.length&&<select aria-label="Highlight agents by person" value={owner} onChange={event=>{setOwner(event.target.value);props.onDismiss();}}><option value="">All people</option>{ownerGroups.map(group=><option key={group.id} value={group.id}>{group.name} · {group.count} {group.count===1?'agent':'agents'}</option>)}</select>}
    {props.toolbarStart}
    <span className="communication-map-zoom"><button type="button" aria-label="Zoom out" onClick={()=>zoomBy(1/1.4)}>−</button><button type="button" onClick={home}>Fit map</button><button type="button" aria-label="Zoom in" onClick={()=>zoomBy(1.4)}>+</button></span>
   </div>
  </>;
- return <div className="communication-map" ref={root} tabIndex={0} onClick={event=>{if((event.target as Element).closest('button,select,.communication-map-controls,.k42-communication-agent,[data-map-edge]'))return;setOwner('');props.onSelect(null);props.onDismiss();}} data-map-dimensions={dimensions} data-state-motion={props.running&&props.active} data-owner-highlight={highlightedOwner} data-crowded={crowded} aria-label={dimensions===3?"3D communication map. Drag or use arrow keys to orbit; Shift plus drag or arrow keys to pan; plus and minus to zoom.":"Communication map. Drag to pan; arrow keys to move; plus and minus to zoom."}>
+ return <div className="communication-map" ref={root} tabIndex={0} onClick={event=>{if((event.target as Element).closest('button,select,.communication-map-controls,.k42-communication-agent,[data-map-edge]'))return;props.onSelect(null);props.onDismiss();}} data-map-dimensions={dimensions} data-state-motion={props.running&&props.active} data-owner-highlight={highlightedOwner} data-crowded={crowded} aria-label={dimensions===3?"3D communication map. Drag or use arrow keys to orbit; Shift plus drag or arrow keys to pan; plus and minus to zoom.":"Communication map. Drag to pan; arrow keys to move; plus and minus to zoom."}>
   <canvas ref={canvas} aria-hidden="true"/>
   <svg ref={svg} width="100%" height="100%" role="group" aria-label="Agent communication graph">
    {edgePool.map(e=><g key={JSON.stringify([e.from,e.to])} data-map-edge="" style={{display:'none'}} data-from={e.from} data-to={e.to} role="button" tabIndex={0} aria-label={`Show messages from ${props.nodes.find(n=>n.id===e.from)?.name??e.from} to ${props.nodes.find(n=>n.id===e.to)?.name??e.to}`} onClick={()=>props.onEdge(e.from,e.to)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();props.onEdge(e.from,e.to);}}}><path fill="none" stroke="transparent" strokeWidth="16"/></g>)}
    {visibleNodes.map(node=><g key={node.id} data-map-id={node.id} data-owner-id={node.ownerId??''} className={highlightedOwner&&node.ownerId!==highlightedOwner?'is-owner-dimmed':undefined} style={{'--owner-color':ownerColor(node.ownerId)} as CSSProperties}>{node.personId ? <PersonMapNode node={node} crowded={crowded} onInspect={anchor=>props.onInspect(node.id,anchor,false)} onLeave={props.onLeave} onDismiss={props.onDismiss} onSelect={()=>props.onSelect(node.id)} /> : <CommunicationAgentNode node={node} agent={props.observations.get(node.id)} now={props.now} selected={props.selected===node.id} replay={props.replay} simulated={props.simulatedStates} compact crowded={crowded} ownerLabel={node.ownerId?ownerLabels.get(node.ownerId):'Owner unknown'} tooltipId={props.tooltipId} inspecting={props.inspected===node.id} onInspect={anchor=>props.onInspect(node.id,anchor,false)} onLeave={props.onLeave} onDismiss={props.onDismiss} onSelect={()=>props.onSelect(node.id)}/>}</g>)}
   </svg>
   {props.controlsSlot?createPortal(controlsBlock,props.controlsSlot):controlsBlock}
-  {!!ownerGroups.length&&<p className="communication-map-owner-key" aria-live="polite"><span className="communication-map-owner-swatch" style={{background:ownerColor(highlightedOwner||ownerGroups[0].id)}} aria-hidden="true"/>{highlightedOwner?ownerLabels.get(highlightedOwner):`${ownerGroups.length} owners · Rings show ownership`}{ownerGroups.length>12&&!highlightedOwner&&<span> · Choose an owner to highlight</span>}</p>}
   <p className="communication-map-outside" ref={outsideRef} hidden><span/> · <button type="button" onClick={()=>{showAll.current=true;fitting.current=true;setZoom(1);root.current?.dispatchEvent(new Event('map-fit'));}}>Show all</button></p>
   {dimensions===3&&<p className="communication-map-orbit-note">3D · Drag to orbit. Shift-drag to pan.</p>}
   {failure&&<div role="alert" className="communication-map-error">Map unavailable: {failure}. <button type="button" onClick={()=>setRetry(n=>n+1)}>Retry map</button></div>}

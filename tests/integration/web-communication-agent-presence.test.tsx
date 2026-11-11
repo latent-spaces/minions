@@ -165,29 +165,19 @@ test('real communication card supports avatars, live states, hover, keyboard and
     await fox.focus(); await tooltip.waitFor({ state: 'visible' }); await fox.press('Enter'); expect(await page.getByText('Opened agent: '+f.agents[0].agentId,{exact:true}).isVisible()).toBe(true);
     expect(await fox.getAttribute('aria-pressed')).toBe('false');
     await tooltip.waitFor({ state: 'visible' });
-    const resetOwnerFromMap=async()=>{
-      const ownerMenu=page.getByRole('combobox',{name:"Highlight agents by person",exact:true});
-      const ownerId=await ownerMenu.locator('option').nth(1).getAttribute('value');
-      await ownerMenu.selectOption(ownerId!);
-      await page.getByRole('button',{name:'Fit map',exact:true}).click();
-      expect(await ownerMenu.inputValue()).toBe(ownerId);
-      await page.getByRole('group',{name:'Agent communication graph',exact:true}).click({position:{x:4,y:4}});
-      expect(await ownerMenu.inputValue()).toBe('');
-      await expect.poll(()=>page.locator('.communication-map').getAttribute('data-owner-highlight')).toBe('');
-      expect(await fox.getAttribute('aria-pressed')).toBe('false');
+    const resetHighlightFromMap=async()=>{
       await fox.focus();await fox.press('Enter');await tooltip.waitFor({state:'visible'});
       expect(await page.getByText('Opened agent: '+f.agents[0].agentId,{exact:true}).isVisible()).toBe(true);
       expect(await fox.getAttribute('aria-pressed')).toBe('false');
-      await expect.poll(()=>page.locator('.communication-map').getAttribute('data-owner-highlight')).toBe(ownerId);
+      await expect.poll(async()=>(await page.locator('.communication-map').getAttribute('data-owner-highlight'))||'').not.toBe('');
       await page.getByRole('group',{name:'Agent communication graph',exact:true}).click({position:{x:4,y:4}});
       await expect.poll(()=>page.locator('.communication-map').getAttribute('data-owner-highlight')).toBe('');
-      expect(await ownerMenu.inputValue()).toBe('');
       expect(await fox.getAttribute('aria-pressed')).toBe('false');
       await tooltip.waitFor({state:'detached'});
     };
-    await resetOwnerFromMap();
+    await resetHighlightFromMap();
     await page.setViewportSize({ width: 390, height: 844 }); await page.emulateMedia({ reducedMotion: 'reduce' });
-    await resetOwnerFromMap();
+    await resetHighlightFromMap();
     // Tap the visible portrait; neighboring transparent hit areas must not
     // intercept it in the compact fitted mobile overview.
     await fox.locator('.k42-communication-avatar').click(); await tooltip.waitFor({ state: 'visible' });

@@ -27,10 +27,6 @@
 /* Keep transparent hit padding from covering adjacent fitted portraits. Labels
    remain interactive through their parent group; portraits retain a 54px target. */
 .communication-map .k42-communication-agent-hit { x:-27; y:-27; width:54px; height:54px; }
-.communication-map-owner-key { position:absolute; top:8px; left:12px; right:12px; z-index:2; display:flex; align-items:center; gap:6px; margin:0; font-size:12px; color:var(--ink); pointer-events:none; }
-.communication-map-owner-swatch { width:10px; height:10px; border-radius:50%; flex:none; }
-.communication-map:has(.communication-map-owner-key) .communication-map-orbit-note { bottom:30px; }
-.communication-map-controls>select[aria-label="Highlight agents by person"] { max-width:160px; }
 /* Crowding options other than the default draw quiet agents as owner-coloured dots. */
 .communication-map [data-map-id].is-dot .k42-communication-agent > :not(.k42-communication-owner-ring,.k42-communication-agent-hit) { display:none; }
 .communication-map [data-map-id].is-dot .k42-communication-owner-ring { fill:var(--owner-color,var(--muted)); stroke:var(--canvas); stroke-width:6; }
