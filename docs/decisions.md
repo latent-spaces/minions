@@ -10,6 +10,21 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Agents set the Preview when the project fits — owner decision, 11 November 2026
+
+Source: the owner in chat on 11 November 2026, after the Pixel Paint experiment, where two
+agents built a browser editor and never set a preview: “they should use it if the project
+is appropriate for that”.
+
+- **In the agent's standing instructions.** `AGENT_PROMPT_V2.md` now tells agents to set
+  the Preview with `set_project_preview` as soon as a first browser version runs (game,
+  site or app), using the project's dev server or, for plain files, a static server such
+  as `python3 -m http.server`. Before, only the `project-work` guide mentioned Preview, and
+  agents read it only when they looked.
+- **One agent per team.** The agent that starts the server says so in a message, so nobody
+  starts a second one, and clears the link when its server stops.
+- **Guide revision 72.** The `project-work` reference says the same.
+
 ## Local app opens without sign-in — owner decision, 10 November 2026
 
 Source: the owner in chat on 10 November 2026: “let's remove the sign in thing and the
