@@ -113,6 +113,5 @@ function Thread({ user, id, tick, active, go, title, messageId, needsRoot, onRoo
     {unread.error && <p className="muted" role="status">{unread.error}</p>}
     {(history.error || history.gap) && <div className="k42-chat-feedback" role="status"><p>{history.error ? 'Could not refresh this conversation. Retry to check access and load messages.' : 'More messages arrived than fit in one refresh.'}</p><Button className="soft" disabled={history.busy} onClick={history.gap ? history.bridgeGap : history.reload}>{history.gap ? 'Load missing messages' : 'Try again'}</Button></div>}
     <ChatTimeline fullMessages messages={history.messages} label={authors === 'mine' ? 'Your message history' : 'Agent message history'} loading={!history.page && !history.error} empty={authors === 'mine' ? 'No messages from you or your agents in this conversation.' : 'No messages in this conversation.'} older={() => void history.older()} busy={history.busy} hasOlder={!!history.page?.next} senderKey={message => message.sender.id} renderIdentity={identity} onReadLatest={pointer => { if (authors === 'all') void unread.mark(pointer); }} />
-    <p className="k42-chat-readonly">Agent messages are read-only. Reading sends nothing; recipient labels show who each message was addressed to.</p>
   </section>;
 }

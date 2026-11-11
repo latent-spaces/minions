@@ -43,7 +43,7 @@ export interface ProjectTasksProps {
   go?: (to: Route) => void;
   /** Tasks are turned off for this project: retained records stay readable, nothing can change. */
   disabledNotice?: boolean;
-  /** Bumped by the sidebar's Add task button: each new value opens the New task dialog. */
+  /** Bumped by the sidebar's New task button: each new value opens the New task dialog. */
   createRequest?: number;
   /** The task page open in the URL (owner decision, 11 November 2026: a task opens as its own page with Back, not a drawer). */
   taskId?: string | null;

@@ -47,7 +47,6 @@
 .k42-chat-empty { padding:40px 8px; color:var(--muted); text-align:center; }
 .k42-chat-feedback { padding:12px 20px; font-size:13px; border-bottom:1px solid var(--line); }
 .k42-chat-feedback p { margin:0 0 8px; }
-.k42-chat-readonly { padding:12px 20px; margin:0; border-top:1px solid var(--line); color:var(--muted); font-size:12px; }
 @media(max-width:600px) { .k42-chat-timeline { padding-inline:16px; height:clamp(280px,50dvh,480px); } .k42-chat-message > header { align-items:flex-start; } }
 .k42-chat-actions { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:8px; font-size:12px; }
 .k42-chat-actions button[aria-pressed="true"] { border-color:var(--ink); }

@@ -45,7 +45,7 @@
 .k42-navigation.is-collapsed .k42-shortcuts { scrollbar-width:none; }
 /* Add task: the project menu's primary action, a full-width ink pill (owner, 11 November 2026). */
 .k42-project-menu .k42-nav-add-task { margin:0 0 12px; }
-.k42-nav-add-task-button { width:100%; min-height:40px; justify-content:flex-start; padding:8px 14px; border-radius:999px; font:inherit; font-weight:600; cursor:pointer; }
+.k42-nav-add-task-button { width:100%; min-height:40px; justify-content:flex-start; padding:8px 14px; border-radius:var(--radius-button); font:inherit; font-weight:600; cursor:pointer; }
 .k42-navigation.is-collapsed .k42-nav-add-task-button { width:var(--shell-control-size); min-height:var(--shell-control-size); justify-content:center; padding:0; }
 /* New project: a menu item that opens the Create menu, styled as the links around it. */
 .k42-nav-link.k42-nav-create { width:100%; border:0; background:transparent; font:inherit; text-align:left; cursor:pointer; }

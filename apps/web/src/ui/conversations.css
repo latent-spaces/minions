@@ -29,7 +29,8 @@
 .conversation-arrow { display:inline-flex; align-items:center; justify-content:center; color:var(--ink); }
 .conversation-arrow svg { width:20px; height:20px; }
 .conversation-thread.k42-chat-panel { border:0; border-radius:0; padding:0; border-top:1px solid var(--hairline); }
-.conversation-thread .k42-chat-timeline { height:clamp(280px,55dvh,620px); padding-inline:20px; }
+/* A short conversation opens at its own height; a long one scrolls inside (owner, 11 November 2026). */
+.conversation-thread .k42-chat-timeline { height:auto; max-height:clamp(280px,55dvh,620px); overflow-y:auto; padding-inline:20px; }
 .conversation-thread .k42-chat-body { max-width:75ch; }
 .conversation-thread .k42-chat-message > header { align-items:flex-start; }
 .conversation-thread .k42-chat-identity { gap:8px 12px; }

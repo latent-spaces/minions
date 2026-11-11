@@ -99,7 +99,7 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   shows the map.
 - **Setup notes in a strip.** Home's other content (waiting room, Add your agent,
   preparation) sits in a slim strip above the tasks.
-- **Add task in the sidebar.** An Add task button above My agents opens a quick dialog:
+- **New task in the sidebar.** A New task button (first named Add task) above My agents opens a quick dialog:
   title, optional description, optional assignee. It shows only when Tasks is on and the
   viewer can add tasks. Later the same day: “add task on the sidebar should be a primary
   action”, so it is the menu's ink pill button.
@@ -159,8 +159,15 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
 - **The project header is two rows under a thin color strip.** The owner chose option B of four
   (one line, thin banner, collapse on scroll, move to the menu). The cover band is a 6px strip;
   the first row holds the stamp, title, status and actions, the second the repository, PR counts
-  and token figures as chips. The PR count note shows on hover and stays for screen readers
-  (owner, 11 November 2026).
+  and token figures on one line with one shared background, wrapping inside it on a phone. The
+  PR count note shows on hover and stays for screen readers (owner, 11 November 2026).
+- **Buttons and pills follow the design system.** The header's Pause, Resume, Start, Add agent
+  and Copy link buttons are the shared outline button. The menu's button, the update notice and
+  the repository bar use the 8px button radius instead of a full pill. The menu's button is
+  named **New task**, like the dialog it opens (owner, 11 November 2026).
+- **Updates panel and conversations.** The Updates/Map switch stays at the top while the panel
+  scrolls. An open conversation is as tall as its messages and scrolls inside only when long, and
+  the "Agent messages are read-only" note under it is gone (owner, 11 November 2026).
 - **The project header names no owner, privacy or running time.** The engine is local with one
   owner, so the owner removed the "Private project · Created by" pill and the "Active" label with
   its running clock, and the "Active" label under the project in the menu. Paused, Closed and Ready to start still show, with Pause, Resume and Start

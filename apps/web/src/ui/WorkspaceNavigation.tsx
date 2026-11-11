@@ -25,7 +25,7 @@ export interface ProjectMenu {
   sections?: WorkspaceNavItem[];
   /** A thin Add agent button under the sections; it opens the one Add agent dialog. */
   connect?: (() => void) | null;
-  /** Add task, above the project's sections: opens the New task dialog on the Tasks page; absent when Tasks is off or the viewer can't add. */
+  /** New task, above the project's sections: opens the New task dialog on the Tasks page; absent when Tasks is off or the viewer can't add. */
   addTask?: (() => void) | null;
   /** My agents in this project, under Add agent; nothing shows without any. */
   /** Cheat sheet: opens the project's prompts in a popup; absent for a closed project. */
@@ -123,9 +123,9 @@ export function WorkspaceNavigation({ globals, projectsLink, projects, projectSt
           <ProjectStamp project={project} className=" is-large" />
           <span className={collapsed ? 'k42-nav-text' : 'k42-nav-project-text'}><strong>{project.name}</strong>{project.private && <PrivateNote />}{shownStatus(project.status) && <small>{project.status}</small>}</span>
         </div>
-        {/* Add task sits above the project's sections (owner, 11 November 2026). */}
-        {project.addTask && <ul className="k42-nav-add-task"><li><button type="button" className="primary k42-nav-add-task-button" onClick={project.addTask} title={collapsed ? 'Add task' : undefined} aria-label={collapsed ? 'Add task' : undefined}>
-          <Plus size={collapsed ? 18 : 16} aria-hidden="true" />{text('Add task')}</button></li></ul>}
+        {/* New task sits above the project's sections (owner, 11 November 2026). */}
+        {project.addTask && <ul className="k42-nav-add-task"><li><button type="button" className="primary k42-nav-add-task-button" onClick={project.addTask} title={collapsed ? 'New task' : undefined} aria-label={collapsed ? 'New task' : undefined}>
+          <Plus size={collapsed ? 18 : 16} aria-hidden="true" />{text('New task')}</button></li></ul>}
         {!!project.sections?.length && list(project.sections)}
       </nav>
       <div className="k42-project-scroll" ref={fitted.box}>
