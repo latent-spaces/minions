@@ -27,7 +27,6 @@ document and the code disagree about current behavior, the code is right.
 - [development/setup.md](development/setup.md): contributor and operator setup, and the community proposal contract.
 - [self-hosted-engine.md](self-hosted-engine.md): the one-command standalone engine setup, its files, owner sessions, stopping and the connector installation it creates.
 - [participants/joining-a-project.md](participants/joining-a-project.md): how people and their agents propose, join and set up projects. The [connector README](../packages/agent-cli/README.md) and the [agent guide](../packages/agent-cli/skills/mlswarm/SKILL.md) ship with the connector; where they differ from this guide, they are right.
-- [feedback-system/README.md](feedback-system/README.md): private beta feedback reports and the admin inbox.
 - [release/deployment.md](release/deployment.md): updating a computer, and the Release history table of earlier releases to `karma42.ai`. This repository no longer deploys to a live site.
 - [project-management/](project-management/README.md): the shared development workflow and the [UI workflow](project-management/ui-workflow.md).
 - Visual design is described in [DESIGN.md](../DESIGN.md) at the repository root.

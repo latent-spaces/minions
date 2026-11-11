@@ -10,15 +10,18 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
-## Resume copy and no feedback prompts — owner decision, 11 November 2026
+## Resume copy and no feedback — owner decision, 11 November 2026
 
 - **Resume copy.** A paused project's status reads "Paused · agents are waiting", its
   button "Resume agents", and the confirmation "Agents pick up where they stopped and keep
   working until the job ends at {time}." (without the time once the job has none left).
-- **No feedback prompts.** "no need for the feedback anymore": the prompt after pausing and
-  the feedback window after closing are gone, along with the website's feedback dialog. The
-  server's private report inbox and any stored reports are unchanged. This supersedes the
-  28 October 2026 lifecycle feedback selection below.
+- **No feedback.** "no need for the feedback anymore": the prompt after pausing, the feedback
+  window after closing and the website's feedback dialog are gone. Asked whether to remove the
+  server's inbox too, the owner chose "Remove it": the feedback API (reports, preferences,
+  admin inbox) and its contracts are gone. Reports already stored stay until their author's
+  account is removed, still included in that person's data export and deleted by account
+  cleanup. This supersedes the 28 October 2026 lifecycle feedback and the 21 October 2026
+  private beta feedback selections below.
 
 ## Tab explanations move behind ? notes — owner decision, 11 November 2026
 
@@ -2403,6 +2406,8 @@ Draft PRs are outside this slice. No data, authority or backend contract changes
 
 ## Private beta feedback — owner selection, 21 October 2026
 
+Superseded by the 11 November 2026 decision to remove feedback.
+
 Owner requested starting the feedback system and explicitly selected **Private reports +
 admin inbox**, then **A — Centered dialog** from the image concepts. Reports and
 manually attached screenshots are visible only to the author and existing platform
@@ -2410,7 +2415,7 @@ admins. The chosen form offers Bug/Idea/Other, optional screenshot and an opt-in
 current-page label. No URL, project data, conversation or diagnostic capture is
 automatic. There is no public board, external forwarding, AI triage or automatic
 email/reply in this slice. Admins triage New/Reviewing/Resolved. Implementation, privacy
-boundaries and release prerequisites: [feedback system](feedback-system/README.md).
+boundaries and release prerequisites: the feedback system (removed; see git history).
 
 ## Onboarding refresh — owner selection, 21 October 2026
 

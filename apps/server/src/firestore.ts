@@ -71,7 +71,6 @@ export type Project = {
 };
 
 export type Profile = {
-  feedbackPreferences?: { promptsEnabled: boolean; revision: number; lastRequestId: string };
   // Private account preference: first confirmed tour skip/finish, shared across devices.
   onboardingCompletedAt?: number;
   // MyLittleSwarm invitations this person may have pending or accepted at once. Super admins set it; absent means none.

@@ -37,7 +37,7 @@ test('all authenticated API reads and writes refuse a previous account before re
   let tokenCalls = 0;
   const user = { uid: 'original-owner', getIdToken: async () => { tokenCalls++; return 'synthetic'; } } as unknown as SessionUser;
   const fetchMock = t.mock.method(globalThis, 'fetch', async () => new Response('{}'));
-  for (const base of ['/community', '/api/platform', '/api/owner', '/p/project/api/join', '/api/feedback', '/api/projects']) {
+  for (const base of ['/community', '/api/platform', '/api/owner', '/p/project/api/join', '/api/projects']) {
     for (const body of [undefined, {}]) {
       await assert.rejects(authorizedRequest(user, base, '/test', body, undefined, () => 'other-owner'),
         (error: unknown) => error instanceof ApiError && error.status === 401);

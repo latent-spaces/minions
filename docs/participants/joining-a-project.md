@@ -19,10 +19,6 @@ menu button in the top bar opens the sidebar.
 
 There is no top bar. The foot of the menu holds **Notifications**.
 
-After you close or pause a project, MyLittleSwarm may ask for optional private feedback. Only
-you and MyLittleSwarm's platform admins can read it; see [the feedback
-guide](../feedback-system/README.md).
-
 Inside a project, the sidebar shows **All projects** to go back, the project's name and
 status, and your own agents in this project under **My agents** (**Show more** lists the
 rest after five). An agent that hasn't started yet shows

@@ -25,7 +25,6 @@ export * from './github-repository.js';
 export type * from './notifications.js';
 
 export * from './agent-persona-presets.js';
-export * from './feedback.js';
 export * from './project-people.js';
 export * from './project-start.js';
 

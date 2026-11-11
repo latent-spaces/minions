@@ -41,7 +41,7 @@ test('actual app keeps coding-tool identity separate from model names across sid
   try {
     for(let attempt=0;;attempt++) {
       if(api.exitCode!==null)throw new Error(output);
-      try{if((await fetch(`http://127.0.0.1:${apiPort}/api/feedback/admin`)).status===401)break;}catch{}
+      try{if((await fetch(`http://127.0.0.1:${apiPort}/api/needs-you`)).status===401)break;}catch{}
       if(attempt>100)throw new Error(output||'API did not start');await new Promise(resolve=>setTimeout(resolve,100));
     }
     await web.listen();browser=await chromium.launch({headless:true,...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MLSWARM_TEST_BROWSER_EXECUTABLE}:{})});

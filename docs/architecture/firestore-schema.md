@@ -28,7 +28,7 @@ use profile references such as `ownerProfileId`.
 | `betaInvitationTargets/{emailHash}` | Retained MyLittleSwarm invitation targets; no longer written since invitations were removed | none |
 | `computerConnections/{requestId}` | Computer approval, expiry and revocation | `owner/routes.ts` |
 | `fanoutJobs`, `fanoutProjects`, `fanoutControl/roundRobin` | Delivery jobs, projects with pending jobs, and the round-robin cursor | `v2/fanout-jobs.ts` |
-| `feedbackReports`, `feedbackScreenshots/{reportId}`, `feedbackBudgets/{profileId}` | Private beta feedback reports, their screenshots and each author's hourly report limit | `feedback/store.ts` |
+| `feedbackReports`, `feedbackScreenshots/{reportId}`, `feedbackBudgets/{profileId}` | Feedback reports sent before feedback was retired; kept only for data export and account cleanup | `feedback/store.ts` |
 | `githubAccounts/{githubAccountId}` | The username and verified emails GitHub reported at the account's latest sign-in, with its sign-in subject (stored as `firebaseUid` so older records stay readable) | `github/sign-in.ts`, `auth.ts` |
 | `identityAccounts/{subject}`, `identitySessions/{sessionId}` | Server sign-in accounts (disabled flag, sessions valid after) and issued sessions | `identity/server-sessions.ts` |
 | `humanRequests`, `humanRequestOperations` | Needs-you requests, moderation reports and their receipts | `projects/human-requests.ts` |
@@ -558,29 +558,14 @@ items still get an `expireAt` time seven days after acknowledgement
 outside the repository. Resetting the schema
 starts no model execution.
 
-## Private product feedback
+## Retired product feedback
 
-`feedbackReports/{sha256(authorId:requestUUID)}` stores author identity/name, kind,
-body, optional allowlisted page label, status, first creation time, update time,
-revision, whether a screenshot is attached, a 140-character body preview and the latest
-admin status operation. A fingerprint binds retry content; private response projections
-omit that fingerprint and internal reviewer identity. No public or project-member
-projection exposes reports. The only cross-person read is an existing verified
-platform-admin session, rechecked transactionally.
-
-`feedbackScreenshots/{reportId}` holds normalized WebP pixels as base64 (at most
-512 KiB decoded) plus dimensions. This is a separate private document, below the
-Firestore document limit; all field indexing is disabled and only authorized
-single-document reads are used. Original uploads/metadata/filenames are not stored.
-`feedbackBudgets/{profileId}` keeps the durable ten-new-reports/hour limit. Retries
-consume no additional quota. The existing deny-all client rules remain unchanged.
-
-An inbox status+createdAt composite index supports bounded 20-report pages. Authors'
-reports, screenshots and quota metadata are included in their data export. Existing
-account cleanup deletes feedback and screenshots in bounded pages after removal;
-`accountCleanup.feedbackDone` is monotonic and keeps incomplete pages pending.
-The rate limiter is a local request guard; the transactional submission budget is
-the durable limit. See [the feedback guide](../feedback-system/README.md).
+MyLittleSwarm no longer collects feedback (owner, 11 November 2026). Reports sent earlier
+stay in `feedbackReports`, with screenshots in `feedbackScreenshots/{reportId}` and the
+hourly count in `feedbackBudgets/{profileId}`. Nothing reads or writes them except the
+author's data export, which includes them, and account cleanup, which deletes them in
+bounded pages after removal (`accountCleanup.feedbackDone`). Remove that code once no
+reports remain.
 
 
 ## Receipt-derived usage analytics

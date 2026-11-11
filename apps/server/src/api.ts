@@ -1,6 +1,5 @@
 import { LEGACY_APP_PATH, legacyAppRedirect, sharedLinkRoutes } from './shared-links.js';
 import { realtimeRoutes } from './realtime.js';
-import { feedbackRoutes } from './feedback/routes.js';
 import { humanRequestRoutes } from './projects/human-request-routes.js';
 import { ownerRoutes, participationSnapshotParser } from './owner/routes.js';
 import { createMcpExpressApp } from '@modelcontextprotocol/sdk/server/express.js';
@@ -42,7 +41,6 @@ export function createApi(host: string, authentication?: express.Router, standal
   });
   app.use('/integrations/github', githubRoutes(Date.now));
   app.use(['/api/owner/participations/sync','/api/owner/backgrounds/sync'], participationSnapshotParser(host));
-  app.use('/api/feedback', feedbackRoutes(host));
   // Before the SDK's generic JSON parser: manifests and binary files have their own bounded readers.
   // Standalone authentication supplies its own literal Host/origin checks and bounded JSON parser.
   // Mount before the generic parser so exchange failures keep their small JSON response contract.
