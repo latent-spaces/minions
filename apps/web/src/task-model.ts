@@ -134,3 +134,12 @@ export function nestTasks(tasks: NativeTask[], collapsed: ReadonlySet<string>): 
   for (const task of [...roots, ...tasks.filter(task => !reached.has(task.id))]) walk(task, 0);
   return rows;
 }
+
+/** Add task takes one prompt (owner, 11 November 2026): its first line is the title, shortened at a word to 120 characters;
+ *  the rest is the description, or the whole text when the first line had to be shortened. */
+export function taskFromPrompt(text: string): { title: string; description: string } {
+  const trimmed = text.trim(), [first = '', ...rest] = trimmed.split('\n'), line = first.trim();
+  if (line.length <= 120) return { title: line, description: rest.join('\n').trim() };
+  const cut = line.slice(0, 120), space = cut.lastIndexOf(' ');
+  return { title: `${(space > 60 ? cut.slice(0, space) : cut).trimEnd()}…`, description: trimmed };
+}

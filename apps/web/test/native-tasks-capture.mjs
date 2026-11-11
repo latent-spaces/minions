@@ -22,8 +22,8 @@ await shot('tasks-desktop-list', { width: 1280, height: 800 }, async () => {});
 await shot('tasks-desktop-drawer', { width: 1280, height: 900 }, async page => { await openDrawer(page); await page.getByText('Links').click(); });
 await shot('tasks-desktop-create', { width: 1280, height: 800 }, async page => {
   await page.getByRole('button', { name: 'New task' }).click();
-  await page.getByLabel('Title').fill('Draft the native task docs');
-  await page.getByRole('button', { name: 'Create task' }).click();
+  await page.getByLabel('What should be done?').fill('Draft the native task docs');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
   await page.getByRole('dialog').getByText('Assign an agent before moving out of Backlog.').waitFor();
 });
 await shot('tasks-phone-list', { width: 390, height: 844 }, async () => {});

@@ -8,7 +8,7 @@ export type TaskAgent = { id: string; name: string; operatorId: string | null; o
 import { hold, projectRoute, taskRoute, type Route } from '../route';
 import { NavLink } from '../navigation-link';
 import type { PublicPhoto } from '../profile-photo-api';
-import { TASK_STATUSES, isAccessLoss, isConflict, isTasksDisabled, isSettledRefusal, taskReferenceView, newestTaskSnapshot, taskSourceHref, taskReferenceFromUrl, statusLabel, statusChangeBlock, taskMutation, singleFlight, readTasksView, writeTasksView, nestTasks, subtaskProgress, type TasksApi, type TasksView } from '../task-model';
+import { TASK_STATUSES, isAccessLoss, isConflict, isTasksDisabled, isSettledRefusal, taskReferenceView, newestTaskSnapshot, taskSourceHref, taskReferenceFromUrl, statusLabel, statusChangeBlock, taskMutation, singleFlight, readTasksView, writeTasksView, nestTasks, subtaskProgress, taskFromPrompt, type TasksApi, type TasksView } from '../task-model';
 import type { NativeTaskMutation } from '@mlswarm/contracts';
 import { AgentAvatar } from './AgentAvatar';
 import { TaskContributorAvatars } from './TaskContributorAvatars';
@@ -247,10 +247,10 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
 }
 
 function NewTask({ api, agents, onCreated, onCancel }: { api: TasksApi; agents: TaskAgent[]; onCreated: (task: NativeTask) => void; onCancel: () => void }) {
-  const [title, setTitle] = useState(''), [description, setDescription] = useState(''), [agentId, setAgentId] = useState('');
+  const [text, setText] = useState(''), [agentId, setAgentId] = useState('');
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null), [uncertain, setUncertain] = useState(false);
   // One request ID per draft: retrying after an uncertain response cannot create a second task.
-  const requestId = useRef(crypto.randomUUID()), titleId = useId(), descriptionId = useId(), agentFieldId = useId();
+  const requestId = useRef(crypto.randomUUID()), titleId = useId(), textId = useId(), agentFieldId = useId();
   const created = useRef<NativeTask | null>(null), dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { if (dialog.current && !dialog.current.open) dialog.current.showModal(); }, []);
   // A task created before a failed assignment still shows in the list when the dialog closes.
@@ -260,10 +260,11 @@ function NewTask({ api, agents, onCreated, onCancel }: { api: TasksApi; agents: 
     .then(result => onCreated(result.task), e => { setError(`The task was created, but it could not be assigned: ${errorText(e)}`); setBusy(false); });
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!title.trim() || busy) return;
+    if (!text.trim() || busy) return;
     setBusy(true); setError(null);
     if (created.current) { void assign(created.current); return; }
-    api.mutate(taskMutation({ operation: 'create', title: title.trim(), ...description.trim() ? { description: description.trim() } : {} }, requestId.current))
+    const { title, description } = taskFromPrompt(text);
+    api.mutate(taskMutation({ operation: 'create', title, ...description ? { description } : {} }, requestId.current))
       .then(result => { created.current = result.task; if (agentId) void assign(result.task); else onCreated(result.task); }, e => {
         // A refused create may be corrected and sent as a new request; an unknown outcome is retried unchanged.
         const settled = isSettledRefusal(e);
@@ -276,10 +277,10 @@ function NewTask({ api, agents, onCreated, onCancel }: { api: TasksApi; agents: 
     <CloseButton label="Close new task" onClick={close} disabled={busy} />
     <form className="k42-task-new" onSubmit={submit}>
       <h2 id={`${titleId}-heading`}>New task</h2>
-      <label htmlFor={titleId}>Title</label>
-      <input id={titleId} value={title} readOnly={locked} onChange={e => setTitle(e.target.value)} autoFocus required maxLength={300} placeholder="What needs doing?" />
-      <label htmlFor={descriptionId}>Description <span className="muted">(optional)</span></label>
-      <textarea id={descriptionId} className="k42-task-textarea" value={description} readOnly={locked} onChange={e => setDescription(e.target.value)} maxLength={10000} rows={4} />
+      <label htmlFor={textId} className="visually-hidden">What should be done?</label>
+      <textarea id={textId} className="k42-task-textarea" value={text} readOnly={locked} onChange={e => setText(e.target.value)} autoFocus required maxLength={10000} rows={5}
+        placeholder="What should be done? The first line becomes the task's title."
+        onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
       {agents.length > 0 && <>
         <label htmlFor={agentFieldId}>Assign to <span className="muted">(optional)</span></label>
         <select id={agentFieldId} value={agentId} onChange={e => setAgentId(e.target.value)}>
@@ -289,7 +290,7 @@ function NewTask({ api, agents, onCreated, onCancel }: { api: TasksApi; agents: 
       </>}
       <p className="muted">{agentId ? 'The agent finds it in Backlog, assigned to it.' : 'New tasks start unassigned in Backlog.'}</p>
       {error && <p role="alert" className="error">{error}</p>}
-      <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || !title.trim()}>{busy ? 'Creating…' : created.current ? 'Retry assigning' : uncertain ? 'Retry' : 'Create task'}</Button><Button type="button" onClick={close} disabled={busy}>Cancel</Button></div>
+      <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || !text.trim()}>{busy ? 'Adding…' : created.current ? 'Retry assigning' : uncertain ? 'Retry' : 'Add'}</Button><Button type="button" onClick={close} disabled={busy}>Cancel</Button></div>
     </form>
   </Dialog>;
 }

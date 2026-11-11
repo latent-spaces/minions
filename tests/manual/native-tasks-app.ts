@@ -198,14 +198,14 @@ try {
   await page.getByText('New tasks start unassigned in Backlog.', { exact: true }).waitFor();
   await page.screenshot({ path: join(evidence, 'task-create-desktop.png'), fullPage: true, animations: 'disabled' });
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.getByLabel('Title', { exact: true }).scrollIntoViewIfNeeded();
+  await page.getByLabel('What should be done?', { exact: true }).scrollIntoViewIfNeeded();
   await page.screenshot({ path: join(evidence, 'task-create-mobile.png'), fullPage: true, animations: 'disabled' });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Mobile create form fits viewport');
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.getByLabel('Title', { exact: true }).fill('Created through the real UI · synthetic');
-  await page.getByRole('button', { name: 'Create task', exact: true }).click();
+  await page.getByLabel('What should be done?', { exact: true }).fill('Created through the real UI · synthetic');
+  await page.getByRole('button', { name: 'Add', exact: true }).click();
   await page.getByRole('button', { name: 'Retry', exact: true }).waitFor();
-  assert.equal(await page.getByLabel('Title', { exact: true }).getAttribute('readonly'), '');
+  assert.equal(await page.getByLabel('What should be done?', { exact: true }).getAttribute('readonly'), '');
   await page.getByRole('button', { name: 'Retry', exact: true }).click();
   assert.equal(createAttempts.length, 2); assert.deepEqual(createAttempts[0], createAttempts[1]);
   checks.push('Lost successful create reply retries identical payload and request ID through the actual UI');
