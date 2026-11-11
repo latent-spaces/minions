@@ -52,8 +52,13 @@
 .k42-task-status.is-canceled { background: var(--canvas-soft); color: var(--text-muted); }
 .k42-task-status.is-done { background: var(--pastel-mint); color: var(--ink); }
 
-.k42-task-new { display: grid; gap: 8px; padding: 16px; border: var(--card-border); border-radius: var(--surface-radius); max-width: 560px; }
-.k42-task-new input, .k42-task-inline input, .k42-task-inline select, .k42-task-link-form > input, .k42-task-textarea {
+.k42-task-dialog { width: min(520px, calc(100vw - 32px)); max-height: calc(100svh - 32px); overflow: auto; padding: 28px; border: 1px solid var(--hairline); border-radius: 16px; background: var(--canvas); color: var(--ink); }
+.k42-task-dialog::backdrop { background: var(--scrim); }
+.k42-task-new { display: grid; gap: 8px; }
+.k42-task-new h2 { margin: 0 40px 8px 0; font-size: 22px; }
+.k42-task-new label { font-weight: 600; margin-top: 8px; }
+.k42-task-new label .muted { font-weight: 400; }
+.k42-task-new input, .k42-task-new select, .k42-task-inline input, .k42-task-inline select, .k42-task-link-form > input, .k42-task-textarea {
   font: inherit; font-size: 16px; min-height: var(--field-height); border: var(--field-border); border-radius: var(--field-radius); background: var(--field-bg); padding: 0 12px; box-sizing: border-box; width: 100%; }
 .k42-task-textarea { padding: 10px 12px; resize: vertical; }
 .k42-task-actions { display: flex; gap: 8px; margin-top: 8px; }

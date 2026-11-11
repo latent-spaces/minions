@@ -10,6 +10,25 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Project page: Tasks main page, Updates panel, Add task — owner decision, 11 November 2026
+
+Source: the owner in chat on 11 November 2026, approving each change one by one, then
+“go to work now” and, on visual concepts, “Skip, build now”.
+
+- **Updates panel on every project page.** Project updates are a full-height right panel
+  that runs from the top of the page, beside the header and every tab, not a tab. On narrow screens the panel collapses to an Updates button. The Updates
+  tab is removed.
+- **Tasks replaces Home.** The main tab is Tasks: tasks on the left and the agent
+  communication map beside them in the main content (“the map should not be on the right
+  panel”). Home and the separate Tasks tab are removed. With native tasks off, the page
+  shows the map.
+- **Setup notes in a strip.** Home's other content (waiting room, Add your agent,
+  preparation) sits in a slim strip above the tasks.
+- **Add task in the sidebar.** An Add task button above My agents opens a quick dialog:
+  title, optional description, optional assignee. It shows only when Tasks is on and the
+  viewer can add tasks.
+- **Task view unchanged.** The List/Board toggle stays, with List as the default.
+
 ## Local app opens without sign-in — owner decision, 10 November 2026
 
 Source: the owner in chat on 10 November 2026: “let's remove the sign in thing and the

@@ -6,7 +6,7 @@ import { ProjectUpdates } from './ui/ProjectProgress';
 import { useProjectProgress } from './useProjectProgress';
 import { readProjectScreenshot } from './progress-api';
 
-// The project's Updates tab: what its agents posted, newest first (owner, 10 November 2026).
+// The project's Updates panel, beside every tab: what its agents posted, newest first (owner, 11 November 2026).
 export function ProjectUpdatesFeed({ projectId, user, tick, active, go, onPendingChange }: {
   projectId: string; user: SessionUser; tick: number; active: boolean; go: (route: Route) => void;
   onPendingChange?: (count: number) => void;

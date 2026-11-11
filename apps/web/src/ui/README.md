@@ -29,7 +29,7 @@ owned projects that are approved but not yet published). The filter chips (All, 
 this page's projects that match the search, not total membership; All shows Projects I own and every non-empty group. Each entry is
 an `ExploreProjectCard` with the role as its category and no icon. The existing
 lifecycle presentation supplies its status, action and destination: the proposal editor,
-Settings or the project's Home tab. The card's ⋯ menu holds the star, Project settings
+Settings or the project's Tasks page. The card's ⋯ menu holds the star, Project settings
 for owners or Leave project (which opens Settings) for private joined projects, Copy
 project link and Archive for me. A proposal's menu holds Open proposal and Archive for
 me. Archived cards drop Archive for me and show a Restore button instead.
@@ -121,10 +121,10 @@ successful read.
 
 ## Project home
 
-Home is the same for private and public projects, before and after start. Before start,
+The project's main page is Tasks (the `overview` route section; there is no Home tab, owner decision 11 November 2026). It is the same for private and public projects, before and after start. Before start,
 `ProjectStatusPanel` says who starts the project, and the activity feed appears only
 after start; private projects disable the other tabs for everyone except the owner
-until start. Before and after start, Home shows the project cheat sheet (below).
+until start. Before and after start, Tasks shows the project cheat sheet (below).
 [Selected concept](../../../../docs/design/waiting-room/README.md). There is no people
 list, role control or invitation entry: MyLittleSwarm is for one person and their agents
 (owner decision, 10 November 2026).
@@ -142,21 +142,29 @@ actor and time after dismissal. Scheduled starts share the same record. The noti
 does not claim that agents are running: existing approved queued work still waits
 for project, computer and repository readiness. No browser observation launches work.
 
-The project's tabs are Home, Community, About, Needs you and Settings
-(`PROJECT_TABS` in `App.tsx`). Community shows `CommunityDirectory` with All, People and
-Agents chips; Agents switches to Agents → All agents. About keeps the `details` route.
-Needs you shows a count of open requests. Settings is visible to every member who can open the project workspace; its
-controls and the backend check the member's role.
+The project's tabs are Tasks, Preview, Teams, Conversations, Usage and Control center
+(`PROJECT_TABS` in `App.tsx`; each hides when its feature or the viewer's role rules it out).
+Project updates (`ProjectUpdatesFeed.tsx`) are not a tab: they fill a full-height right
+panel that runs from the top of the page, beside the header and every tab. Below 1200px the panel collapses to an Updates button at the bottom right that
+opens it as a drawer. Old `section=tasks` and `section=updates` links fall back to Tasks.
 
-Home is the `overview` route section and opens, directly under the tabs, with the map: `ProjectActivity.tsx` renders the lazily loaded
+Tasks opens with a strip of setup notes (the waiting room, Add your agent, preparation),
+then `ProjectTasks` on the left and the map on the right; below 1440px the map goes under
+the tasks. With native tasks off, the page is the strip and the map. The sidebar's **Add
+task** button, above My agents, goes to Tasks and opens the New task dialog (title,
+optional description, optional assignee); it shows only when Tasks is on and the viewer
+can add tasks. A task created with an assignee is created first, then assigned; if the
+assignment fails the dialog says so and offers Retry assigning.
+
+On Tasks, `ProjectActivity.tsx` renders the lazily loaded
 `ProjectCommunication` card (see [Conversations on
-Home](#conversations-on-home)) once the project is set up. Before
+Tasks](#conversations-on-tasks)) once the project is set up. Before
 setup, `ProjectHomePreparation` takes the card's place. the cheat sheet
 (`ProjectCheatSheet.tsx`) lists the main things to ask a coding chat, one short copyable prompt per
 action (`project-chat-prompt.ts`), starting with Add an agent; copying runs nothing. How each
 prompt is done lives in the MyLittleSwarm guide, not in the prompt. It is the Tasks table with
 each prompt in monospace and a copy button, opened in a popup from Cheat sheet in the project
-menu. Home does not carry the table: while you have no agent in the project, `AddAgentNudge` shows
+menu. Tasks does not carry the table: while you have no agent in the project, `AddAgentNudge` shows
 a small Add your agent reminder that opens it at Add an agent, until you add one or close it
 (per project, on this device). `ProjectStatusPanel` sits in the project header above the repository
 bar for every member. It shows Active with a timer, Paused, Ready to start (the owner; everyone else sees
@@ -164,7 +172,7 @@ Waiting for the owner to start) or Closed. A job has no time limit, so it shows 
 time left: agents work until the owner pauses or kills them, or they reach the token cap. Start
 is one confirmed button with no run length to choose. It exposes
 controls for the viewer's own agents and applicable project controls for the owner.
-`ProjectControlsCard` on Home shows lifecycle status and the
+`ProjectControlsCard` on Tasks shows lifecycle status and the
 applicable Start, Pause, Resume or Reopen action, plus Close for open projects,
 only to the project owner. Existing readiness and owner-only below-minimum
 override still apply. Before start, non-owners see the waiting-room callout ("Waiting for people
@@ -313,9 +321,9 @@ linked-message context and unread counts. Community chat attachments open only f
 current project members. An agent message links its owner only while that owner's
 profile exists and has not been removed; the public projection carries no owner.
 
-### Conversations on Home
+### Conversations on Tasks
 
-`ProjectCommunication` is the communication map at the top of Home. The project live
+`ProjectCommunication` is the communication map beside the tasks on Tasks. The project live
 link appears separately in Project updates.
 
 Above the map is one toolbar row (owner, 26 October 2026): the All owners select, an

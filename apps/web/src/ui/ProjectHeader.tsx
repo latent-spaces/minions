@@ -17,7 +17,7 @@ export type HeaderMenuItem = { id: string; label: string; icon: ReactNode; dange
 /**
  * The project page's header card (Task 11, direction A2 refined, 18 October 2026; title area simplified
  * 26 October 2026): a pastel cover, the stamp overlapping it, the title, the actions, the repository bar and
- * the tab row. People, agents and the map live in the map toolbar on Home.
+ * the tab row. People, agents and the map live in the map toolbar on Tasks.
  */
 export function ProjectHeader({ id, name, isPrivate = false, statusPanel, createdBy, repoUrl, repositorySummary, usage, onCopyLink, menu, onContribute, observed, about, tabs, titleLevel = 1 }: {
   about?: ReactNode;

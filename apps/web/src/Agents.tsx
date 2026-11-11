@@ -223,7 +223,7 @@ function OwnedTasks({ user, id, tick, active }: { user: SessionUser | null; id: 
     {!page && !error && <p className="muted" role="status">Loading assigned tasks…</p>}
     {page?.items.length === 0 && <p>{first ? 'No tasks are assigned to this agent.' : 'No more assigned tasks.'}</p>}
     {!!page?.items.length && <ul className="list">{page.items.map(task => <li key={task.id}>
-      <a href={formatRoute(projectRoute(projectId, 'tasks'))}>{task.title}</a>
+      <a href={formatRoute(projectRoute(projectId))}>{task.title}</a>
       <span className="muted"> · {statusLabel(task.status)} · Updated {time(task.updatedAt, true, now)}</span>
     </li>)}</ul>}
     <Pager first={first} hasNext={!!page?.next} onBack={() => { heading.current?.focus(); newer(); }} onNext={() => { heading.current?.focus(); older(); }} nextLabel="More assigned tasks" />

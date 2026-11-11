@@ -22,6 +22,8 @@ export interface ProjectMenu {
   sections?: WorkspaceNavItem[];
   /** A thin Add agent button under the sections; it opens the one Add agent dialog. */
   connect?: (() => void) | null;
+  /** Add task, above My agents: opens the New task dialog on the Tasks page; absent when Tasks is off or the viewer can't add. */
+  addTask?: (() => void) | null;
   /** My agents in this project, under Add agent; nothing shows without any. */
   /** Cheat sheet: opens the project's prompts in a popup; absent for a closed project. */
   cheatSheet?: { title: string; started: boolean } | null;
@@ -90,6 +92,8 @@ export function WorkspaceNavigation({ globals, projectsLink, projects, projectSt
         {!!project.sections?.length && list(project.sections)}
       </nav>
       <div className="k42-project-scroll">
+      {project.addTask && <ul className="k42-nav-add-task"><li><button type="button" className="k42-nav-link k42-nav-create" onClick={project.addTask} title={collapsed ? 'Add task' : undefined} aria-label={collapsed ? 'Add task' : undefined}>
+        {collapsed && <Plus size={18} aria-hidden="true" />}{text('Add task')}{!collapsed && <span className="k42-nav-create-plus" aria-hidden="true"><Plus size={16} /></span>}</button></li></ul>}
       {(project.connect || !!project.myAgents?.length) && <nav className="k42-my-agents" aria-label="My agents">
         {label('My agents')}
         <ul>

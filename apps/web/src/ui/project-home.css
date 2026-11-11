@@ -11,3 +11,21 @@
 .k42-project-main { min-width:0; }
 /* My agents and Agents chat tabs. */
 .k42-chat-identity svg { flex:none; color:var(--muted); }
+/* Project updates are a right panel on every project tab (owner, 11 November 2026); narrow screens open it from a button. */
+.k42-project-layout { display:grid; grid-template-columns:minmax(0,1fr) minmax(280px,340px); gap:24px; align-items:stretch; }
+/* The panel runs the full height on the right, from the top of the page beside the project header. */
+.k42-updates-panel { position:sticky; top:24px; align-self:start; height:calc(100vh - 48px); overflow:auto; min-width:0; box-sizing:border-box; padding:16px; border:var(--card-border); border-radius:var(--surface-radius); background:var(--canvas); }
+.k42-updates-toggle, .k42-updates-close { display:none; }
+@media(max-width:1199px) {
+  .k42-project-layout { display:block; }
+  .k42-updates-toggle { display:inline-flex; position:fixed; right:16px; bottom:16px; z-index:30; gap:6px; align-items:center; box-shadow:var(--shadow-raised, 0 4px 16px rgba(0,0,0,.12)); }
+  .k42-updates-panel { display:none; }
+  .k42-updates-panel[data-open] { display:block; position:fixed; inset:0 0 0 auto; z-index:40; width:min(400px,92vw); height:auto; align-self:stretch; border-radius:0; border:0; background:var(--canvas); box-shadow:-8px 0 24px rgba(0,0,0,.14); }
+  .k42-updates-panel[data-open] .k42-updates-close { display:flex; justify-content:flex-end; }
+}
+/* Tasks merges Home: setup notes in a strip, then the tasks beside the agent map. */
+.k42-overview-strip { display:flex; flex-direction:column; gap:12px; }
+.k42-overview-strip:empty { display:none; }
+.k42-overview-grid { display:grid; grid-template-columns:minmax(0,1.8fr) minmax(300px,1fr); gap:20px; align-items:start; }
+.k42-overview-tasks { min-width:0; }
+@media(max-width:1439px) { .k42-overview-grid { grid-template-columns:minmax(0,1fr); } }

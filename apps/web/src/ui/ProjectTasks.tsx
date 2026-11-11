@@ -14,6 +14,7 @@ import { TaskContributorAvatars } from './TaskContributorAvatars';
 import { PersonAvatar } from './PersonAvatar';
 import { Button } from './Button';
 import { CloseButton } from './CloseButton';
+import { Dialog } from './Dialog';
 import { EmptyState } from './EmptyState';
 import { useLabelLookup } from '../label-lookup';
 import './project-tasks.css';
@@ -38,6 +39,8 @@ export interface ProjectTasksProps {
   go?: (to: Route) => void;
   /** Tasks are turned off for this project: retained records stay readable, nothing can change. */
   disabledNotice?: boolean;
+  /** Bumped by the sidebar's Add task button: each new value opens the New task dialog. */
+  createRequest?: number;
   viewerUrl?: string;
   lookup?: TaskLabelLookup;
 }
@@ -80,7 +83,7 @@ function ActorChip({ actor, directory }: { actor: NativeTaskActor; directory: Di
 function Unassigned() { return <span className="k42-task-actor k42-task-unassigned"><span className="k42-task-unassigned-dot" aria-hidden="true" />Unassigned</span>; }
 
 /** The selected simple design: one task per row (title, assigned agent, contributing agents, status, latest update) and a drawer. */
-export function ProjectTasks({ api, agents, people, readOnly = false, active, selfId = null, manager = false, projectId, go, disabledNotice = false, viewerUrl, lookup }: ProjectTasksProps) {
+export function ProjectTasks({ api, agents, people, readOnly = false, active, selfId = null, manager = false, projectId, go, disabledNotice = false, createRequest = 0, viewerUrl, lookup }: ProjectTasksProps) {
   const [searchDraft, setSearchDraft] = useState('');
   const [search, setSearch] = useState('');
   const [assignee, setAssignee] = useState('');
@@ -95,6 +98,7 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  useEffect(() => { if (createRequest > 0) setCreating(true); }, [createRequest]);
   const [drawerActors, setDrawerActors] = useState<NativeTaskActor[]>([]);
   const shown = useMemo(() => [...(tasks ?? []).flatMap(task => [...task.assignedAgentId ? [{ kind: 'agent' as const, id: task.assignedAgentId }] : [], ...task.contributors]),
     ...openId ? drawerActors : []], [tasks, openId, drawerActors]);
@@ -187,7 +191,8 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
     </div>
     {disabledNotice ? <p className="muted" role="status">Tasks are off. Existing tasks are read-only.</p>
       : readOnly && <p className="muted">This view is read-only.</p>}
-    {creating && !readOnly && <NewTask api={api} onCancel={() => setCreating(false)} onCreated={task => { replace(task); setCreating(false); setOpenId(task.id); }} />}
+    {creating && !readOnly && <NewTask api={api} agents={assignable.filter(agent => manager || (!!selfId && agent.operatorId === selfId))}
+      onCancel={() => setCreating(false)} onCreated={task => { replace(task); setCreating(false); setOpenId(task.id); }} />}
     {error && <div role="alert" className="k42-tasks-error"><p>Could not load tasks: {error}</p><Button onClick={load}>Try again</Button></div>}
     {!tasks && !error && <p className="muted" role="status">Loading tasks…</p>}
     {tasks?.length === 0 && !creating && <EmptyState icon={ListTodo} tone={null} title={next ? 'More tasks to search' : search || assignee ? 'No tasks match these filters' : status ? `No ${statusLabel(status).toLowerCase()} tasks` : 'No tasks yet'}>{next ? 'No matches in this page. Show more to continue searching.' : search || assignee || status ? 'Change the title search, state or assigned agent filter to see more tasks.' : readOnly ? 'Tasks will appear here.' : 'Add the first task. A title is enough; an agent can pick it up from Backlog.'}</EmptyState>}
@@ -210,29 +215,52 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
   </section>;
 }
 
-function NewTask({ api, onCreated, onCancel }: { api: TasksApi; onCreated: (task: NativeTask) => void; onCancel: () => void }) {
-  const [title, setTitle] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null), [uncertain, setUncertain] = useState(false);
+function NewTask({ api, agents, onCreated, onCancel }: { api: TasksApi; agents: TaskAgent[]; onCreated: (task: NativeTask) => void; onCancel: () => void }) {
+  const [title, setTitle] = useState(''), [description, setDescription] = useState(''), [agentId, setAgentId] = useState('');
+  const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null), [uncertain, setUncertain] = useState(false);
   // One request ID per draft: retrying after an uncertain response cannot create a second task.
-  const requestId = useRef(crypto.randomUUID()), titleId = useId();
+  const requestId = useRef(crypto.randomUUID()), titleId = useId(), descriptionId = useId(), agentFieldId = useId();
+  const created = useRef<NativeTask | null>(null), dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => { if (dialog.current && !dialog.current.open) dialog.current.showModal(); }, []);
+  // A task created before a failed assignment still shows in the list when the dialog closes.
+  const close = () => { if (busy) return; if (created.current) onCreated(created.current); else onCancel(); };
+  // Assigning is a second step on the created task; if it fails the task stays, unassigned in Backlog.
+  const assign = (task: NativeTask) => api.mutate(taskMutation({ operation: 'assign', taskId: task.id, expectedRevision: task.revision, assignedAgentId: agentId }))
+    .then(result => onCreated(result.task), e => { setError(`The task was created, but it could not be assigned: ${errorText(e)}`); setBusy(false); });
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!title.trim() || busy) return;
     setBusy(true); setError(null);
-    api.mutate(taskMutation({ operation: 'create', title: title.trim() }, requestId.current))
-      .then(result => onCreated(result.task), e => {
+    if (created.current) { void assign(created.current); return; }
+    api.mutate(taskMutation({ operation: 'create', title: title.trim(), ...description.trim() ? { description: description.trim() } : {} }, requestId.current))
+      .then(result => { created.current = result.task; if (agentId) void assign(result.task); else onCreated(result.task); }, e => {
         // A refused create may be corrected and sent as a new request; an unknown outcome is retried unchanged.
         const settled = isSettledRefusal(e);
         if (settled) requestId.current = crypto.randomUUID();
         setUncertain(!settled); setError(settled ? errorText(e) : 'Could not confirm the task was created. Retry sends the same request; it will not create a duplicate.'); setBusy(false);
       });
   };
-  return <form className="k42-task-new" onSubmit={submit}>
-    <label htmlFor={titleId}>Title</label>
-    <input id={titleId} value={title} readOnly={uncertain} onChange={e => setTitle(e.target.value)} autoFocus required maxLength={300} placeholder="What needs doing?" />
-    <p className="muted">New tasks start unassigned in Backlog.</p>
-    {error && <p role="alert" className="error">{error}</p>}
-    <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || !title.trim()}>{busy ? 'Creating…' : uncertain ? 'Retry' : 'Create task'}</Button><Button type="button" onClick={onCancel}>Cancel</Button></div>
-  </form>;
+  const locked = uncertain || !!created.current;
+  return <Dialog ref={dialog} className="k42-task-dialog" aria-labelledby={`${titleId}-heading`} onCancel={e => { e.preventDefault(); close(); }}>
+    <CloseButton label="Close new task" onClick={close} disabled={busy} />
+    <form className="k42-task-new" onSubmit={submit}>
+      <h2 id={`${titleId}-heading`}>New task</h2>
+      <label htmlFor={titleId}>Title</label>
+      <input id={titleId} value={title} readOnly={locked} onChange={e => setTitle(e.target.value)} autoFocus required maxLength={300} placeholder="What needs doing?" />
+      <label htmlFor={descriptionId}>Description <span className="muted">(optional)</span></label>
+      <textarea id={descriptionId} className="k42-task-textarea" value={description} readOnly={locked} onChange={e => setDescription(e.target.value)} maxLength={10000} rows={4} />
+      {agents.length > 0 && <>
+        <label htmlFor={agentFieldId}>Assign to <span className="muted">(optional)</span></label>
+        <select id={agentFieldId} value={agentId} onChange={e => setAgentId(e.target.value)}>
+          <option value="">Unassigned</option>
+          {agents.map(agent => <option key={agent.id} value={agent.id}>{agent.name}</option>)}
+        </select>
+      </>}
+      <p className="muted">{agentId ? 'The agent finds it in Backlog, assigned to it.' : 'New tasks start unassigned in Backlog.'}</p>
+      {error && <p role="alert" className="error">{error}</p>}
+      <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || !title.trim()}>{busy ? 'Creating…' : created.current ? 'Retry assigning' : uncertain ? 'Retry' : 'Create task'}</Button><Button type="button" onClick={close} disabled={busy}>Cancel</Button></div>
+    </form>
+  </Dialog>;
 }
 
 /** Board view: one column per task status, in the existing order, over the same loaded tasks as the list. A card shows title, assigned agent
