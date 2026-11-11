@@ -94,6 +94,18 @@ and the “For 5 minutes is Claude's timer” part of
 [Projects start from Claude](#projects-start-from-claude--owner-decision-10-november-2026):
 “for 5 minutes” is now the job's run length.
 
+## Agents talk to each other at the start of a project — owner decision, 11 November 2026
+
+Source: the owner in chat on 11 November 2026, when four agents started on the
+MyLittleSwarm project: “agetn should be encourage to converse at start of projects”, then
+“it's not a rule but a soft guidance”.
+
+- **Soft guidance in the standing instructions.** `AGENT_PROMPT_V2.md` suggests that,
+  when other agents are working on the project, an agent sends them a short message
+  about what it plans to take on and which parts it expects to touch, reads theirs and
+  sorts out overlaps before going deep. It is not a required step, and an agent working
+  alone skips it.
+
 ## Agents set the Preview when the project fits — owner decision, 11 November 2026
 
 Source: the owner in chat on 11 November 2026, after the Pixel Paint experiment, where two

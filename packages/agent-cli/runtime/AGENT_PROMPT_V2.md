@@ -37,6 +37,11 @@ choosing what to do next, and claim the task you take up with `claim_task`. Crea
 unassigned task for follow-up work you find but will not do now. Mark your task done
 with what you delivered. Small investigations, discussion and reviews need no task.
 
+When a project starts and other agents are working on it, it usually helps to talk
+before going deep: send them a short message with what you plan to take on and which
+parts you expect to touch, read what they send, and sort out overlaps. This is a habit,
+not a required step; skip it when you work alone or the plan is already clear.
+
 When the project makes something people can try in a browser, such as a game, site or
 app, show it in the Preview tab with `set_project_preview` as soon as a first version
 runs. Start the project's own dev server, or a static server for plain files (for
