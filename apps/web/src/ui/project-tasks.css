@@ -98,10 +98,12 @@
 .k42-task-props { display: grid; grid-template-columns: 130px 1fr; gap: 14px 16px; align-items: start; }
 .k42-task-prop-label { color: var(--text-muted); font-size: 14px; padding-top: 6px; }
 .k42-task-hint { grid-column: 2; margin: 4px 0 0; font-size: 14px; }
-.k42-task-segments { display: inline-flex; border: var(--card-border); border-radius: var(--radius-button); overflow: hidden; width: fit-content; max-width: 100%; flex-wrap: wrap; }
-.k42-task-segment { font: inherit; font-size: 16px; padding: 6px 12px; border: 0; background: var(--canvas); cursor: pointer; }
-.k42-task-segment + .k42-task-segment { border-left: 1px solid var(--hairline-shell); }
-.k42-task-segment[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
+/* Soft pill switch (owner, 11 November 2026): a grey track with the chosen option on a white chip, so choosing a view never looks like a primary action. */
+.k42-task-segments { display: inline-flex; gap: 2px; padding: 3px; border-radius: var(--pill-radius); background: var(--canvas-soft); width: fit-content; max-width: 100%; flex-wrap: wrap; box-sizing: border-box; }
+.k42-task-segment { font: inherit; font-size: 16px; padding: 6px 12px; border: 0; border-radius: var(--pill-radius); background: transparent; color: var(--text-muted); cursor: pointer; }
+.k42-task-segment:hover:not(:disabled) { color: var(--ink); background: transparent; }
+.k42-task-segment[aria-pressed="true"], .k42-task-segment[aria-pressed="true"]:hover:not(:disabled) { background: var(--canvas); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 0 0 1px var(--hairline-shell); }
+.k42-task-segment:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 .k42-task-segment:disabled:not([aria-pressed="true"]) { color: var(--text-faint); cursor: not-allowed; }
 .k42-task-section { border-top: 1px solid var(--hairline-shell); padding-top: 16px; }
 .k42-task-section h3 { margin: 0; font-size: 17px; }
@@ -161,8 +163,6 @@
 
 @media (max-width: 480px) {
   .k42-task-segments { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
-  .k42-task-segment:nth-child(3) { border-left: 0; }
-  .k42-task-segment:nth-child(n+3) { border-top: 1px solid var(--hairline-shell); }
 }
 
 .k42-tasks-new { height: var(--field-height); }
@@ -176,8 +176,6 @@
 /* ---- Tasks board view (owner direction, 9 November 2026): List/Board switch and status columns of cards. ---- */
 .k42-tasks-view { margin-left: auto; }
 .k42-tasks-view .k42-task-segment { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 5px 12px; }
-.k42-tasks-view .k42-task-segment[aria-pressed="true"]:hover:not(:disabled) { background: var(--ink); color: var(--on-ink); }
-.k42-tasks-view .k42-task-segment:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 .k42-tasks-board-wrap { display: grid; gap: 12px; }
 .k42-tasks-board-notice, .k42-tasks-board-hint { margin: 0; }
 .k42-tasks-board-hint { font-size: 13px; }
@@ -197,4 +195,4 @@
 .k42-tasks-card-meta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 10px; font-size: 13px; }
 .k42-tasks-card-meta .k42-task-actor { min-width: 0; flex: 1 1 120px; }
 .k42-tasks-column-empty { margin: 0; padding: 12px; text-align: center; border: 1px dashed var(--hairline-strong); border-radius: var(--surface-radius); font-size: 13px; }
-@media (max-width: 480px) { .k42-tasks-view.k42-task-segments { display: inline-flex; width: fit-content; } .k42-tasks-view .k42-task-segment:nth-child(2) { border-top: 0; } }
+@media (max-width: 480px) { .k42-tasks-view.k42-task-segments { display: inline-flex; width: fit-content; } }

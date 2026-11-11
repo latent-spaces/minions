@@ -115,6 +115,10 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
 - **No project-start notice.** Later the same day: “Oron Anschel started the project …
   remove these toasts”. The notice, its Got it, the celebration and the seen/dismiss
   endpoint are removed; the start record (who and when) stays for the status panel.
+- **View switches are soft pills.** Later the same day the owner asked why view tabs use
+  the primary black and chose the soft pill switch: a grey track with the chosen option on
+  a white chip. It applies to every segmented switch (List / Board, Updates / Map, team
+  state, task status), so only real actions are black.
 - **Task view unchanged.** The List/Board toggle stays, with List as the default. (Later
   the same day the owner replaced the task drawer with a task page and added subtasks; see
   “Task page and first-class subtasks”.)
