@@ -48,7 +48,7 @@ button:hover:not(:disabled) { background: var(--canvas-soft); }
 .primary:disabled { background: var(--canvas-soft); border-color: var(--canvas-soft); color: var(--text-faint); }
 /* A black control stays black: a touch lighter on hover, never the grey of a plain button; a primary that is working stays black too. */
 .primary:active:not(:disabled), .primary[aria-busy="true"]:disabled { background: var(--ink-soft); border-color: var(--ink-soft); color: var(--on-ink); }
-:is(.feedback-kinds button, .k42-directory-chip, .k42-needs-chip)[aria-pressed="true"]:hover:not(:disabled), .k42-chat-latest:hover:not(:disabled) { background: var(--ink-soft); border-color: var(--ink-soft); color: var(--on-ink); }
+:is(.k42-directory-chip, .k42-needs-chip)[aria-pressed="true"]:hover:not(:disabled), .k42-chat-latest:hover:not(:disabled) { background: var(--ink-soft); border-color: var(--ink-soft); color: var(--on-ink); }
 .soft { background: var(--canvas-soft); border-color: var(--canvas-soft); }
 .soft:hover:not(:disabled) { background: var(--field); border-color: var(--field); }
 button.danger { color: var(--error); }

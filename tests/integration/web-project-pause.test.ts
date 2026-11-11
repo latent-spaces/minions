@@ -65,7 +65,7 @@ test('actual project Pause shows pending, confirmed and unreachable agents on Ho
     const dialog=page.getByRole('dialog');
     expect(await dialog.innerText()).toContain('Each agent finishes its current turn, then waits.');
     await dialog.getByRole('button',{name:'Pause project',exact:true}).click();
-    await page.locator('.project-controls-card').getByRole('button',{name:'Resume project',exact:true}).waitFor();
+    await page.locator('.project-controls-card').getByRole('button',{name:'Resume agents',exact:true}).waitFor();
     await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}`);
     const banner=page.locator('.k42-project-pause-status');
     await banner.waitFor({timeout:25000});

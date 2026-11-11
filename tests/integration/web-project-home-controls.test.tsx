@@ -19,12 +19,12 @@ test('owner sees only the applicable lifecycle action', () => {
   for (const [execution, project, label] of [
     ['ready', { started: false }, 'Start project'],
     ['active', { started: true, paused: false }, 'Pause project'],
-    ['paused', { started: true, paused: true }, 'Resume project'],
+    ['paused', { started: true, paused: true }, 'Resume agents'],
     ['closed', { started: true, paused: true }, 'Reopen project'],
   ] as const) {
     const html = render(workspace({ execution, project: project as Workspace['project'] }));
     expect(html).toContain('Project status'); expect(html).toContain(label);
-    for (const other of ['Start project', 'Pause project', 'Resume project', 'Reopen project'].filter(v => v !== label)) expect(html).not.toContain(other);
+    for (const other of ['Start project', 'Pause project', 'Resume agents', 'Reopen project'].filter(v => v !== label)) expect(html).not.toContain(other);
     expect(html.includes('Close project')).toBe(execution !== 'closed');
   }
 });

@@ -1,45 +1,10 @@
 # Private feedback system
 
-Feedback is offered after you close or pause a project (below); the menu has no feedback
-button (owner, 11 November 2026). The dialog sends a private report to the MyLittleSwarm team. Only
-the author and existing verified platform admins can read its text or screenshot. This
-is feedback about MyLittleSwarm itself. It is separate from the feedback reviewers give on
-proposals.
-
-## Feedback after closing or pausing
-
-After you close a project on the website, an optional feedback window asks how it
-went. Closing still returns to My projects. After pausing, a small dismissible prompt
-offers feedback without interrupting your work. These invitations appear only to the
-person who performed the action, after it succeeds. Skipping, dismissing, or choosing
-Don’t ask me again sends no report and never changes the project action.
-
-Choose a reason, write a comment, or both. Only the lifecycle action, selected reason
-and comment are sent to the existing private inbox; no project identifier, title,
-screenshot or conversation is attached. Don’t ask me again disables both invitations
-across your projects and devices. Re-enable them in **My profile → Feedback preferences**.
-If an earlier
-report needs retrying, the dialog recovers that report instead of replacing it.
-
-## Sending a report
-
-Write up to 4,000 characters. Optionally choose a still PNG, JPEG or WebP up to 2 MiB
-and tick the box that includes the current page's label (for example **Include current
-page: My projects**). No URL, project identifier, title, logs or conversation is
-collected automatically. Check screenshot contents before sending. Upload happens only
-when Send feedback is pressed, and the server re-encodes pixels without the original
-metadata or filename. If the re-encoded image is larger than 512 KiB, crop or shrink the
-screenshot and send again.
-
-When you press Send feedback, the dialog first saves the report, with a request ID that
-stays the same on every retry, in this browser tab's session storage, and only then
-sends it. If you reload the page and open the dialog again, the same report comes back,
-ready to retry. A lost response can be retried without creating another report. After a
-successful send, the dialog shows a short reference for the report and its current
-status. Confirmed requests clear the local receipt; a report you have not sent yet is
-kept only in the open page and is lost if the page reloads. If the browser cannot save
-the report to session storage, it is not sent. Sending a report does not send any email,
-take a screenshot for you, forward the report outside MyLittleSwarm or have AI sort it.
+The website no longer asks for feedback: there is no feedback button, and no prompt after
+pausing or closing a project (owner, 11 November 2026). The private report inbox below
+stays on the server, with any reports already sent. Only the author and existing verified
+platform admins can read a report's text or screenshot. This is feedback about
+MyLittleSwarm itself. It is separate from the feedback reviewers give on proposals.
 
 ## Admin inbox
 

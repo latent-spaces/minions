@@ -12,29 +12,31 @@ import { notify } from './Toast';
 import { Pause, Play, Plus, RotateCcw, Archive } from 'lucide-react';
 import './project-controls.css';
 import './agent-run-controls.css';
-import { useLifecycleFeedback } from './LifecycleFeedback';
 import { useMyWorkerControls } from './MyWorkerControls';
 
 type Action = 'start' | 'pause' | 'resume' | 'close' | 'reopen' | 'add_time' | 'set_tokens';
 type Pending = { client_request_id: string; expected_revision: number; action: Action; start_without_minimum?: true; minutes?: number; tokens?: number | null };
-const labels: Record<Action, string> = { start: 'Start project', pause: 'Pause project', resume: 'Resume project', close: 'Close project', reopen: 'Reopen project', add_time: 'Add time', set_tokens: 'Set token cap' };
+const labels: Record<Action, string> = { start: 'Start project', pause: 'Pause project', resume: 'Resume agents', close: 'Close project', reopen: 'Reopen project', add_time: 'Add time', set_tokens: 'Set token cap' };
 const confirmations: Record<Action, string> = {
   start: 'Start the project. Agents waiting for it start working, until the time you chose is up.',
   pause: 'Each agent finishes its current turn, then waits. Wait for each agent to confirm it has paused. Chat stays open.',
-  resume: 'Agents carry on until the job’s end time.',
+  resume: '',
   close: 'Closing stops every agent in this project, including work in progress and agents working in a chat. The project becomes read-only; its history stays, and you can reopen it later.',
   reopen: 'Chat and editing come back. Work starts again when you start it.',
   add_time: '',
   set_tokens: '',
 };
-const notices: Record<Action, string> = { start: 'Project started.', pause: 'Pause requested. Waiting for agent feedback.', resume: 'Project resumed.', close: 'Project closed. All its agents stopped.', reopen: 'Project reopened. Start work when you’re ready.', add_time: 'Time added.', set_tokens: '' };
+const notices: Record<Action, string> = { start: 'Project started.', pause: 'Pause requested. Waiting for agent feedback.', resume: 'Agents resumed.', close: 'Project closed. All its agents stopped.', reopen: 'Project reopened. Start work when you’re ready.', add_time: 'Time added.', set_tokens: '' };
 
+// Resume copy (owner, 11 November 2026): says where agents pick up and when the job ends.
+const resumeMessage = (workspace: Workspace) => workspace.endsAt && workspace.endsAt > Date.now()
+  ? `Agents pick up where they stopped and keep working until the job ends at ${new Date(workspace.endsAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}.`
+  : 'Agents pick up where they stopped and keep working until the job ends.';
 const keepsSchedule = (workspace: Workspace) => !workspace.privacy && workspace.listed === true && !workspace.project?.started && !!workspace.project && workspace.setup?.finalizedAt != null && !!workspace.setup.startDeadline;
 const reopenScheduleNotice = 'The saved start date still applies. If it has passed, the project starts in a moment.';
 
-// One request identity and lock per project/account, shared with lifecycle feedback.
+// One request identity and lock per project/account.
 export function useProjectControls(user: SessionUser, workspace: Workspace | null, refresh: () => void, active = true, onClosed?: () => void) {
-  const inviteFeedback = useLifecycleFeedback();
   const workers = useMyWorkerControls(user, workspace?.id ?? null, active);
   const [pending, setPending] = useState<Pending | null>(null), [busy, setBusy] = useState(false), [error, setError] = useState('');
   const lock = useRef(false);
@@ -47,9 +49,8 @@ export function useProjectControls(user: SessionUser, workspace: Workspace | nul
       // The job bar shows its own Saved for the token cap.
       setPending(null); if (!['start', 'set_tokens'].includes(input.action)) notify(input.action === 'add_time' ? `${runLengthLabel(input.minutes!)} added. Waiting agents continue.` : input.action === 'reopen' && keepsSchedule(workspace) ? `Project reopened. ${reopenScheduleNotice}` : notices[input.action], input.action === 'close' ? 'info' : 'success'); refresh();
       // A closed project leaves the person on My projects, where it now sits under Closed (owner, 19 October 2026).
-      // Release the action's navigation hold before returning to My projects and opening feedback.
-      if (input.action === 'close') window.setTimeout(() => { onClosed?.(); inviteFeedback('close'); }, 150);
-      if (input.action === 'pause') inviteFeedback('pause');
+      // Release the action's navigation hold before returning to My projects.
+      if (input.action === 'close') window.setTimeout(() => onClosed?.(), 150);
       return true;
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Could not confirm the project action.');
@@ -65,7 +66,7 @@ export function useProjectControls(user: SessionUser, workspace: Workspace | nul
     try {
       const belowMinimum = action === 'start' && !!workspace.setup?.required && (workspace.participantCount ?? 0) < (workspace.setup.minContributors ?? 1);
       if (belowMinimum && workspace.role !== 'owner') return;
-      const message = belowMinimum ? `Only ${workspace.participantCount ?? 0} people have joined, below the minimum of ${workspace.setup!.minContributors}. Start with fewer?` : action === 'reopen' && keepsSchedule(workspace) ? `Restore discussion and editing. ${reopenScheduleNotice}` : confirmations[action];
+      const message = action === 'resume' ? resumeMessage(workspace) : belowMinimum ? `Only ${workspace.participantCount ?? 0} people have joined, below the minimum of ${workspace.setup!.minContributors}. Start with fewer?` : action === 'reopen' && keepsSchedule(workspace) ? `Restore discussion and editing. ${reopenScheduleNotice}` : confirmations[action];
       if (action !== 'add_time' && !await confirmAction(message, belowMinimum ? 'Start with fewer' : labels[action])) return;
       const input: Pending = { client_request_id: crypto.randomUUID(), expected_revision: workspace.revision, action, ...(belowMinimum ? { start_without_minimum: true as const } : {}), ...(minutes !== undefined ? { minutes } : {}) };
       lock.current = false;
@@ -87,7 +88,7 @@ export function ProjectControlsCard({ workspace, controls }: { workspace: Worksp
   const missingSetup = !workspace.project || !!workspace.setup?.required && !workspace.setup.finalizedAt;
   const belowMinimum = !started && !!workspace.setup?.required && (workspace.participantCount ?? 0) < (workspace.setup.minContributors ?? 1);
   const primaryDisabled = controls.locked || primary === 'start' && (missingSetup || belowMinimum && workspace.role !== 'owner');
-  const status = closed ? 'Closed' : started ? paused ? 'Paused' : 'Running' : missingSetup ? 'Setup needed' : belowMinimum ? 'Recruiting' : 'Ready to start';
+  const status = closed ? 'Closed' : started ? paused ? 'Paused · agents are waiting' : 'Running' : missingSetup ? 'Setup needed' : belowMinimum ? 'Recruiting' : 'Ready to start';
   const help = closed ? keepsSchedule(workspace) ? `History is kept. Reopen to bring back chat and editing. ${reopenScheduleNotice}` : 'History is kept. Reopen to bring back chat and editing.' : started ? paused ? 'Pause requested. Check agent confirmations on Home. Chat stays open.' : 'Pause lets each agent finish its current turn, then waits for confirmation. Discussion stays open.' : !workspace.project ? 'Chat is available. Add a repository through Claude before starting agent work.' : missingSetup ? 'Publish the project from Control center → Discoverability before starting work.' : workspace.setup?.startDeadline && workspace.listed ? 'Starts by itself on its date. You can start earlier.' : belowMinimum ? workspace.role === 'owner' ? 'You can wait for more people or start with fewer.' : 'Waiting for the minimum number of people. Only the owner can start with fewer.' : 'Start enables approved work when your team is ready.';
   const PrimaryIcon = primary === 'pause' ? Pause : primary === 'reopen' ? RotateCcw : Play;
   return <section className="project-controls-card" aria-labelledby={titleId}>

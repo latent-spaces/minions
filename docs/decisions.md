@@ -10,6 +10,16 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Resume copy and no feedback prompts — owner decision, 11 November 2026
+
+- **Resume copy.** A paused project's status reads "Paused · agents are waiting", its
+  button "Resume agents", and the confirmation "Agents pick up where they stopped and keep
+  working until the job ends at {time}." (without the time once the job has none left).
+- **No feedback prompts.** "no need for the feedback anymore": the prompt after pausing and
+  the feedback window after closing are gone, along with the website's feedback dialog. The
+  server's private report inbox and any stored reports are unchanged. This supersedes the
+  28 October 2026 lifecycle feedback selection below.
+
 ## Tab explanations move behind ? notes — owner decision, 11 November 2026
 
 Source: the owner in chat on 11 November 2026, on Communication's intro line: “remove move
@@ -216,8 +226,7 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   the "Agent messages are read-only" note under it is gone (owner, 11 November 2026).
 - **No author filter, no feedback button, a new tagline.** The engine has one owner, so the
   owner removed Communication's **All / Me + my agents** filter; it always shows every
-  conversation. The menu's **Give us feedback** button is gone; feedback is still offered after
-  closing or pausing a project. The tagline under the wordmark reads "Build together, build it
+  conversation. The menu's **Give us feedback** button is gone. The tagline under the wordmark reads "Build together, build it
   better" (owner, 11 November 2026).
 - **Settings is one page.** The owner removed the Repository and Merge rules tabs ("no merge
   rules this is not an issue in local me only settings"), then asked for the rest on one page.
@@ -1300,6 +1309,8 @@ pages behind agent clicks. No page removal was selected here.
 Concept references and scope: [agent tool badges](../design/agent-tool-icons/README.md).
 
 ## Optional lifecycle feedback — owner selection, 28 October 2026
+
+Superseded by the 11 November 2026 decision to remove the feedback prompts.
 
 Source: the owner approved the recommendation in this Codex chat with “let's do that”.
 After a confirmed Close, invite the acting person to optional private Karma42 team

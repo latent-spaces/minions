@@ -5,8 +5,6 @@ import { WebPresence } from './WebPresence';
 import { sharedLink } from './shared-link';
 import { AgentRequestsPopup } from './ui/AgentRequestsPopup';
 import { privateProjects } from './api';
-import { LifecycleFeedbackProvider } from './ui/LifecycleFeedback';
-import { feedbackRequest } from './feedback-api';
 import { projectShortcuts } from './ui/project-shortcuts';
 import { useShellFocus } from './ui/use-shell-focus';
 import { NeedsYou, useOpenRequests } from './ui/NeedsYou';
@@ -134,7 +132,6 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   const [listError, setListError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const [directoryTick, setDirectoryTick] = useState(0);
-  const requestFeedback = useMemo(() => feedbackRequest(user), [user]);
   // A tab loads when it opens, even one opened in the background (e.g. by an agent checking the page); it stops
   // refreshing once it is hidden and carries on when shown again.
   const [visible, setVisible] = useState(true);
@@ -328,7 +325,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
       </> : undefined}
     />
   </>;
-  return <LifecycleFeedbackProvider request={requestFeedback} profileId={account.person.id} accountId={user.uid}><div className="page workspace">
+  return <div className="page workspace">
     <a className="skip-link" href="#content" onClick={e => { e.preventDefault(); content.current?.focus(); }}>Skip to content</a>
     <div className={`workspace-layout${rail ? ' is-menu-collapsed' : ''}`}>
       {compact
@@ -358,7 +355,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
         </main>
       </div>
     </div>
-  </div></LifecycleFeedbackProvider>;
+  </div>;
 }
 
 // The project's sections, listed in the menu above My agents (owner, 11 November 2026).
