@@ -16,7 +16,7 @@ import { ChatSearch, LinkedChatMessage, useChatUnread, useThreadUnreadCounts } f
 import { RotateCw, MessagesSquare } from 'lucide-react';
 import { conversationTitle, messagePreview } from './ui/message-preview';
 import { EmptyState } from './ui/EmptyState';
-import { ConversationCard, MessageDirection, knownMessageSenders } from './ui/ConversationCard';
+import { ConversationCard, MessageDirection } from './ui/ConversationCard';
 
 const threadRoute = (projectId: string, thread: string | null): Route => ({ view: 'project', projectId, section: 'conversations', thread, agent: null, q: null });
 export const opening = conversationTitle;
@@ -56,13 +56,12 @@ function ConversationList({ user, thread, messageId, tick, active, go }: Props) 
   const rank = new Map(order.current.map((id, index) => [id, index]));
   const items = [...(page?.items ?? [])].sort((a, b) => (rank.get(a.threadId) ?? Infinity) - (rank.get(b.threadId) ?? Infinity));
   const separate = !!thread && (anchored.current === thread || !items.some(c => c.threadId === thread));
-  const senders = knownMessageSenders(items.flatMap(item => item.first ? [item.first, item.latest] : [item.latest]));
   const open = (conversation: ConversationRow | null) => {
     const id = conversation?.threadId ?? thread!;
     const expanded = id === thread;
     const root = conversation?.first ?? (observedRoot?.id === id ? observedRoot.message : null);
     const title = root ? opening(root.body, root.summary) : 'Conversation';
-    return <ConversationCard conversation={conversation} observedMessage={root} title={title} senders={senders} expanded={expanded} controls={`${contentId}-${id}`}
+    return <ConversationCard conversation={conversation} observedMessage={root} title={title} expanded={expanded} controls={`${contentId}-${id}`}
       toggleRef={element => { if (element) toggles.current.set(id, element); else toggles.current.delete(id); }}
       metadata={<>{conversation && <>{!conversation.first && <span>First message unavailable</span>}<span>{conversation.count} {conversation.count === 1 ? 'message' : 'messages'}</span><span>Latest <Since at={conversation.latest.createdAt} now={now} /></span></>}{authors === 'all' && !!unreadCounts[id] && <strong>{unreadCounts[id]} unread</strong>}</>}
       preview={conversation?.first?.id !== conversation?.latest.id ? messagePreview(conversation?.latest.body ?? '', conversation?.latest.summary) : undefined}
@@ -106,8 +105,7 @@ function Thread({ user, id, tick, active, go, title, messageId, needsRoot, onRoo
   }, [user, projectId, id, needsRoot, active, history.accessDenied, onRoot]);
   const unread = useChatUnread(user, projectId, active && authors === 'all', id);
   const loadLinked = useCallback(async (message: string) => (await read<{ message: MessageRow }>(user, '/messages/' + encodeURIComponent(message) + '?authors=' + authors, projectId)).message, [user, projectId, authors]);
-  const senders = knownMessageSenders(history.messages);
-  const identity = (message: MessageRow) => <MessageDirection message={message} projectId={projectId} go={go} senders={senders} />;
+  const identity = (message: MessageRow) => <MessageDirection message={message} projectId={projectId} go={go} />;
   if (history.accessDenied) return <section className="conversation-thread"><p role="alert">This conversation is unavailable or your access changed.</p><Button className="primary" onClick={history.reload}><RotateCw size={18} aria-hidden="true" />Check access again</Button></section>;
   return <section className="conversation-thread k42-chat-panel" aria-label={title}>
     <LinkedChatMessage messageId={messageId} load={loadLinked} clear={() => go(threadRoute(projectId, id))} render={message => <>{identity(message)}<ChatBody body={message.body} /></>} />

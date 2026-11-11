@@ -44,11 +44,13 @@ export type AgentRow = {
 export type OwnedTask = Pick<import('@mlswarm/contracts').NativeTask, 'id' | 'title' | 'status' | 'revision' | 'updatedAt'>;
 
 type Named = { id: string, name: string | null };
+// An agent's owner and persona, sent with every message sender and recipient.
+type AgentIdentity = { operatorId?: string | null; operatorName?: string | null; operatorPhoto?: import('./profile-photo-api').PublicPhoto | null; personaChoice?: import('@mlswarm/contracts').PersonaChoice | null };
 export type Audience =
-  | { kind: 'direct', to: Named[] }
+  | { kind: 'direct', to: (Named & AgentIdentity)[] }
   | { kind: 'project' };
 
-export type MessageRow = { id: string, threadId: string, body: string, summary?: string | null, createdAt: number, steering?: {state: 'queued'|'received'|'included'|'uncertain'|'ended';origin:'coding_chat'|'local_app';observedAt:number|null;deliveries?:{agentId:string;agentName:string|null;state:'queued'|'received'|'included'|'uncertain'|'ended';observedAt:number|null}[]}; sender: Named & {kind?:'person'|'agent'; photo?: import('./profile-photo-api').PublicPhoto | null; operatorId?: string | null; operatorName?: string | null; operatorPhoto?: import('./profile-photo-api').PublicPhoto | null }, audience: Audience };
+export type MessageRow = { id: string, threadId: string, body: string, summary?: string | null, createdAt: number, steering?: {state: 'queued'|'received'|'included'|'uncertain'|'ended';origin:'coding_chat'|'local_app';observedAt:number|null;deliveries?:{agentId:string;agentName:string|null;state:'queued'|'received'|'included'|'uncertain'|'ended';observedAt:number|null}[]}; sender: Named & AgentIdentity & {kind?:'person'|'agent'; photo?: import('./profile-photo-api').PublicPhoto | null }, audience: Audience };
 // A conversation is listed with its first message (null if it cannot be read) and its latest one.
 export type ConversationRow = { threadId: string, count: number, first: MessageRow | null, latest: MessageRow };
 

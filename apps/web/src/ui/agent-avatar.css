@@ -5,6 +5,8 @@
 /* Alpha-aware edge keeps pale fur readable on a person's pastel without outlining the tile. */
 .k42-agent-portrait:not(.is-custom) > img,.k42-animal-cutout { filter:drop-shadow(.4px 0 0 #14141440) drop-shadow(-.4px 0 0 #14141440) drop-shadow(0 .4px 0 #14141440) drop-shadow(0 -.4px 0 #14141440); }
 .k42-agent-portrait.is-custom > img { transform:none; }
+/* An image that fails to load shows the agent's initial, as the map does. */
+.k42-agent-initial { font-size:calc(var(--k42-agent-size) * .45); font-weight:650; line-height:1; }
 .k42-agent-owner { position:absolute; right:-4px; bottom:-4px; display:flex; }
 .k42-agent-owner .k42-person-avatar { border:2px solid var(--canvas); border-radius:50%; font-weight:650; }
 

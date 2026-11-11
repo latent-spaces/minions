@@ -236,3 +236,16 @@ test('Me + my agents filters before paging, including mixed threads, search and 
   expect((await get('/member/messages/other_latest?authors=mine', token)).status).toBe(404);
   expect((await get('/member/messages/my_steering?authors=mine', token)).status).toBe(200);
 });
+
+test('a recipient who never wrote shows its own owner and persona, not the sender\'s', async () => {
+  const { conversationEntries } = await import('../src/projects/steering.js');
+  const f = await seed({ profiles: [{ name: 'Alice', email: 'alice@example.test' }, { name: 'Bob', email: 'bob@example.test' }],
+    agents: [{ person: 0, name: 'Sender' }, { person: 1, name: 'Quiet' }] });
+  const token = await idTokenFor('alice@example.test');
+  await inProject(TEST_PROJECT, () => conversationEntries().doc('quiet_root').set({ kind: 'agent_message', id: 'quiet_root', threadId: 'quiet_root',
+    agentId: f.agents[0].agentId, agentName: 'Sender', protocol: 2, body: 'Hello', createdAt: 100, audience: 'direct', to: [f.agents[1].agentId] }));
+  const { data } = await get('/member/conversations', token);
+  const message = data.conversations[0].latest;
+  expect(message.sender).toMatchObject({ operatorId: f.personIds[0], operatorName: 'Alice', personaChoice: 'default' });
+  expect(message.audience.to).toEqual([expect.objectContaining({ id: f.agents[1].agentId, name: 'Quiet', operatorId: f.personIds[1], operatorName: 'Bob', personaChoice: 'default' })]);
+});

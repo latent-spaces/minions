@@ -3,7 +3,7 @@ import { expect, test, vi } from 'vitest';
 import type { MessageRow } from '../../apps/web/src/api';
 
 vi.mock('../../apps/web/src/api', () => ({}));
-import { MessageDirection, knownMessageSenders } from '../../apps/web/src/ui/ConversationCard';
+import { MessageDirection } from '../../apps/web/src/ui/ConversationCard';
 import { conversationTitle, fullConversationTitle, messagePreview } from '../../apps/web/src/ui/message-preview';
 
 const webRequire = createRequire(new URL('../../apps/web/package.json', import.meta.url));
@@ -24,10 +24,10 @@ test('human steering shows its profile photo without borrowing the agent owner i
   expect(fallback).toContain('>O</span>');
 });
 
-test('recipient badges use observed ownership and never inherit the sending person', () => {
+test('recipient badges use each recipient\'s own owner and persona, never the sending person', () => {
   const first = message('first', {id:'sender',name:'Sender',operatorId:'alice',operatorName:'Alice'});
-  const reply = message('reply', {id:'recipient',name:'Recipient',operatorId:'bob',operatorName:'Bob',operatorPhoto:{id:'photo',url:'/api/profiles/bob/photo/photo'}}, 2);
-  const html = renderToStaticMarkup(createElement(MessageDirection, {message:first,senders:knownMessageSenders([reply, first])}));
+  first.audience = { kind: 'direct', to: [{ id: 'recipient', name: 'Recipient', operatorId: 'bob', operatorName: 'Bob', operatorPhoto: { id: 'photo', url: '/api/profiles/bob/photo/photo' }, personaChoice: 'review' }, { id: 'unknown', name: 'Unknown agent', operatorId: null }] };
+  const html = renderToStaticMarkup(createElement(MessageDirection, {message:first}));
   expect(html).toContain('Agent of Alice');
   expect(html).toContain('Agent of Bob');
   expect(html).toContain('/api/profiles/bob/photo/photo');
@@ -37,6 +37,7 @@ test('recipient badges use observed ownership and never inherit the sending pers
   expect(html).toContain('2 recipients');
   expect(html).toContain('title="Recipient · Agent of Bob"');
   expect(html).toContain('title="Unknown agent"');
+  expect(html).toContain('k42-agent-hat');
 });
 
 test('conversation titles stop at a word boundary while retaining full hover text', () => {
@@ -49,12 +50,6 @@ test('conversation titles stop at a word boundary while retaining full hover tex
   expect(conversationTitle('Short title')).toBe('Short title');
   const emojiTitle = '🙂'.repeat(121);
   expect(conversationTitle(emojiTitle)).toBe('🙂'.repeat(119) + '…');
-});
-
-test('newest observed sender metadata wins independently of page order', () => {
-  const older = message('older', {id:'recipient',name:'Recipient',operatorId:'bob',operatorName:'Old name'});
-  const latest = message('latest', {id:'recipient',name:'Recipient',operatorId:'bob',operatorName:'Current name'}, 2);
-  expect(knownMessageSenders([latest, older]).get('recipient')?.operatorName).toBe('Current name');
 });
 
 

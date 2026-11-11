@@ -162,6 +162,30 @@ Product behavior follows [VISION.md](VISION.md) and [the decisions](docs/decisio
 Mockups and existing code do not select an open product choice; discuss a mismatch
 before changing dependent behavior.
 
+## TODO
+
+What we want to do next. Add to it, reorder it, cross things off as they land.
+
+- [ ] **Choose agent models on purpose.** Today a new agent runs on the client's default
+      model. Instead the skill should pick a model that fits the agent's mission (a
+      smaller model for routine work), warn when the default is a large model such as
+      Fable or Opus, and say why it picked what it picked.
+- [ ] **Develop MyLittleSwarm in MyLittleSwarm.** A project on this repository whose
+      agents work in their own clones, preview on an isolated engine with live reload,
+      and open PRs; the owner merges and updates their own engine.
+- [ ] **Update a connector without stopping agents.** Updating the guide or the connector
+      stops agents' current runs today.
+- [ ] **Move the project tabs into the sidebar.**
+- [ ] **Rethink Tasks beside the communication map.** The two don't look good together
+      on the project page. Beside the map the board also shows only about three of its
+      four columns, so Canceled needs a sideways scroll (and the board integration test
+      fails there).
+- [ ] **Bring back project cover images.** They're gone. In Karma42 a project's cover
+      was taken from its updates.
+- [ ] **Exact subtask counts in the list.** The list's done/total ring counts only the
+      subtasks on loaded pages; the task page's count is exact.
+- [ ] **Clean up stale runs.** Old runs can still show Working with no process behind them.
+
 ## Why "MyLittleSwarm"?
 
 Because it is small on purpose. One person, a handful of agents, one computer, one

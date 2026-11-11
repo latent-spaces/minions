@@ -11,21 +11,14 @@ import './conversations.css';
 
 const name = (agent: { id: string; name: string | null }) => agent.name ?? agent.id;
 
-// Reuse ownership explicitly returned with messages already on this page. No
-// directory fetch or assumption that recipients share the sender's person.
-export function knownMessageSenders(messages: MessageRow[]) {
-  return new Map([...messages].sort((a, b) => a.createdAt - b.createdAt).map(message => [message.sender.id, message.sender]));
-}
-
-/** Each message supplies its own direction; badges use only observed ownership. */
-export function MessageDirection({ message, projectId, go, senders, deliveryDetails=true }: { message: MessageRow; deliveryDetails?: boolean; projectId?: string; go?: (route: Route) => void; senders?: ReadonlyMap<string, MessageRow['sender']> }) {
+/** Each message supplies its own direction; the server sends every sender's and recipient's owner and persona. */
+export function MessageDirection({ message, projectId, go, deliveryDetails=true }: { message: MessageRow; deliveryDetails?: boolean; projectId?: string; go?: (route: Route) => void }) {
   const multiple = message.audience.kind === 'direct' && message.audience.to.length > 1;
-  const identity = (agent: MessageRow['sender'], sender: boolean) => {
-    if(agent.kind==='person')return <span className="conversation-agent"><PersonAvatar name={agent.name} id={agent.id} photo={agent.photo} size={40}/><span>{name(agent)}</span></span>;
-    const owner = sender ? agent : senders?.get(agent.id);
-    const ownerLabel = owner?.operatorId ? `Agent of ${owner?.operatorName ?? 'a removed person'}` : null;
+  const identity = (agent: MessageRow['sender'] | Extract<MessageRow['audience'], {kind:'direct'}>['to'][number], sender: boolean) => {
+    if('kind' in agent && agent.kind==='person')return <span className="conversation-agent"><PersonAvatar name={agent.name} id={agent.id} photo={agent.photo} size={40}/><span>{name(agent)}</span></span>;
+    const ownerLabel = agent.operatorId ? `Agent of ${agent.operatorName ?? 'a removed person'}` : null;
     const compact = multiple && !sender;
-    const content = <><span className="conversation-portrait" title={`${name(agent)}${ownerLabel ? ` · ${ownerLabel}` : ''}`}><AgentAvatar id={agent.id} name={name(agent)} ownerId={owner?.operatorId} ownerName={owner?.operatorId ? owner.operatorName : undefined} ownerPhoto={owner?.operatorPhoto} size={compact ? 32 : 40} decorative /></span><span className={compact ? 'visually-hidden' : undefined}>{name(agent)}{ownerLabel && <span className="visually-hidden">, {ownerLabel}</span>}</span></>;
+    const content = <><span className="conversation-portrait" title={`${name(agent)}${ownerLabel ? ` · ${ownerLabel}` : ''}`}><AgentAvatar id={agent.id} name={name(agent)} ownerId={agent.operatorId} ownerName={agent.operatorId ? agent.operatorName : undefined} ownerPhoto={agent.operatorPhoto} persona={agent.personaChoice} size={compact ? 32 : 40} decorative /></span><span className={compact ? 'visually-hidden' : undefined}>{name(agent)}{ownerLabel && <span className="visually-hidden">, {ownerLabel}</span>}</span></>;
     return projectId && go ? <NavLink className="conversation-agent" to={projectRoute(projectId, 'agents', agent.id, null, 'all')} go={go}>{content}</NavLink>
       : <span className="conversation-agent">{content}</span>;
   };
@@ -36,9 +29,9 @@ export function MessageDirection({ message, projectId, go, senders, deliveryDeta
   </span>{message.steering&&<SteeringDelivery {...message.steering} details={deliveryDetails}/>}</>;
 }
 
-export function ConversationCard({ conversation, observedMessage, title, metadata, preview, expanded, controls, toggleRef, onToggle, children, senders }: {
+export function ConversationCard({ conversation, observedMessage, title, metadata, preview, expanded, controls, toggleRef, onToggle, children }: {
   conversation: ConversationRow | null; observedMessage?: MessageRow | null; title: string; metadata: ReactNode; preview?: string; expanded: boolean; controls: string;
-  senders?: ReadonlyMap<string, MessageRow['sender']>; toggleRef?: Ref<HTMLButtonElement>; onToggle: () => void; children?: ReactNode;
+  toggleRef?: Ref<HTMLButtonElement>; onToggle: () => void; children?: ReactNode;
 }) {
   const message = conversation?.first ?? conversation?.latest ?? observedMessage;
   const titleMessage = conversation?.first ?? observedMessage;
@@ -48,7 +41,7 @@ export function ConversationCard({ conversation, observedMessage, title, metadat
     <h3 className="conversation-card-heading"><button type="button" ref={toggleRef} className="conversation-toggle" aria-expanded={expanded} aria-controls={controls}
       aria-describedby={direction ? `${controls}-direction` : undefined} aria-label={`${expanded ? 'Hide' : 'Show'} conversation: ${title}`} onClick={onToggle}>
       {direction && <span id={`${controls}-direction`} className="visually-hidden">{direction}</span>}
-      <span className="conversation-summary">{message && <MessageDirection message={message} senders={senders} deliveryDetails={false} />}<span className="conversation-topic"><strong className="conversation-title" title={fullTitle}>{title}</strong><span className="conversation-row-meta">{metadata}</span>{!expanded && preview && <span className="conversation-snippet">{preview}</span>}</span></span>
+      <span className="conversation-summary">{message && <MessageDirection message={message} deliveryDetails={false} />}<span className="conversation-topic"><strong className="conversation-title" title={fullTitle}>{title}</strong><span className="conversation-row-meta">{metadata}</span>{!expanded && preview && <span className="conversation-snippet">{preview}</span>}</span></span>
       <span className="conversation-disclosure">{expanded ? <ChevronUp size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}<span>{expanded ? 'Hide conversation' : 'Show conversation'}</span></span>
     </button></h3>
     <div id={controls} hidden={!expanded}>{children}</div>

@@ -3,6 +3,7 @@
 // no read marker, inbox or cursor moves.
 import { conversationSource } from './conversation-source.js';
 import { conversationEntries, type ConversationEntry } from '../projects/steering.js';
+import { personaChoice } from '@mlswarm/contracts';
 import { publicProfilePhoto } from '../community/profile-photo-ref.js';
 import { Refusal } from '../errors.js';
 import { agents, currentProjectId, db, profiles, type Profile } from '../firestore.js';
@@ -91,7 +92,7 @@ export async function readConversations(value: unknown, now: () => number, profi
   };
 }
 
-// Adds sender and recipient names.
+// Adds each agent's name, owner and persona, for the sender and every recipient alike.
 export async function present(list: (MessageV2 | ConversationEntry)[]) {
   const ids = new Set<string>();
   for (const m of list) for (const id of m.to) if (id !== 'project') ids.add(id);
@@ -99,20 +100,23 @@ export async function present(list: (MessageV2 | ConversationEntry)[]) {
   const agentDocs = ids.size ? await db.getAll(...[...ids].map(id => agents().doc(id))) : [];
   const names = new Map(agentDocs.filter(doc => doc.exists).map(doc => [doc.id, doc.data()!.name]));
   const owners = new Map(agentDocs.filter(doc => doc.exists).map(doc => [doc.id, doc.data()!.ownerProfileId]));
+  const personas = new Map(agentDocs.filter(doc => doc.exists).map(doc => [doc.id, personaChoice(doc.data()!.persona?.text ?? '')]));
   const ownerIds = [...new Set([...owners.values(), ...list.flatMap(m => 'kind' in m && m.kind === 'steering' ? [m.actorProfileId] : [])])];
   const ownerDocs = ownerIds.length ? await db.getAll(...ownerIds.map(id => profiles.doc(id))) : [];
   const people = new Map(ownerDocs.filter(doc => doc.exists && doc.data()!.removedAt === null).map(doc => [doc.id, { name: doc.data()!.name, photo: publicProfilePhoto(doc.data()! as Profile, doc.id) }]));
+  const agent = (id: string) => {
+    const owner = owners.get(id);
+    const person = owner ? people.get(owner) : undefined;
+    return { operatorId: person ? owner! : null, operatorName: person?.name ?? null, operatorPhoto: person?.photo ?? null, personaChoice: personas.get(id) ?? null };
+  };
   return list.map((m) => ({
     ...(('kind' in m && m.kind==='steering') ? {steering:{state:m.state,origin:m.origin,observedAt:m.observedAt,...(m.deliveries?{deliveries:m.deliveries.map(d=>({agentId:d.agentId,agentName:d.agentName,state:d.state,observedAt:d.observedAt}))}:{})}}:{}),
     id: m.id, threadId: m.threadId, body: m.body, summary: m.summary ?? null, createdAt: m.createdAt,
     sender: ('kind' in m && m.kind==='steering') ? {id:m.actorProfileId,name:m.actorName,kind:'person' as const,
-      photo: people.get(m.actorProfileId)?.photo ?? null } : { id: m.agentId, name: m.agentName,kind:'agent' as const,
-      operatorId: people.has(owners.get(m.agentId)!) ? owners.get(m.agentId)! : null,
-      operatorName: people.get(owners.get(m.agentId)!)?.name ?? null,
-      operatorPhoto: people.get(owners.get(m.agentId)!)?.photo ?? null },
+      photo: people.get(m.actorProfileId)?.photo ?? null } : { id: m.agentId, name: m.agentName, kind: 'agent' as const, ...agent(m.agentId) },
     audience: m.audience === 'project'
       ? { kind: 'project' as const }
-      : { kind: 'direct' as const, to: m.to.map((id) => ({ id, name: names.get(id) ?? null })) },
+      : { kind: 'direct' as const, to: m.to.map((id) => ({ id, name: names.get(id) ?? null, ...agent(id) })) },
   }));
 }
 // A message's [createdAt, id]. Firestore throws on an ID it cannot start after, so a bad one is refused here.
