@@ -15,8 +15,8 @@ export function GitHubMark({ size = 18 }: { size?: number }) {
 export type HeaderMenuItem = { id: string; label: string; icon: ReactNode; danger?: boolean; onSelect: () => void };
 
 /**
- * The project page's header card (Task 11, direction A2 refined, 18 October 2026; title area simplified
- * 26 October 2026): a pastel cover, the stamp overlapping it, the title, the actions, and the repository bar.
+ * The project page's header card, two rows under a thin color strip (option B, owner, 11 November 2026):
+ * the stamp, title, status and actions, then the repository and usage as chips.
  * The project's sections are in the menu (owner, 11 November 2026). People, agents and the map live in the map toolbar on Tasks.
  */
 export function ProjectHeader({ id, name, cover, statusPanel, repoUrl, repositorySummary, usage, onCopyLink, menu, onContribute, observed, about, titleLevel = 1 }: {
@@ -31,8 +31,8 @@ export function ProjectHeader({ id, name, cover, statusPanel, repoUrl, repositor
   return <section className="k42-ph" aria-labelledby={titleId}>
     <div className="k42-ph-cover" style={{ background: projectGradient(id) }} aria-hidden="true" />
     <div className="k42-ph-head">
-      <span className="k42-ph-stamp" style={{ background: projectGradient(id) }} aria-hidden="true">{cover ? <img src={cover} alt="" /> : personInitials(name)}</span>
       <div className="k42-ph-title">
+        <span className="k42-ph-stamp" style={{ background: projectGradient(id) }} aria-hidden="true">{cover ? <img src={cover} alt="" /> : personInitials(name)}</span>
         <div className="k42-ph-text">
           {titleLevel === 1 ? <h1 id={titleId}>{name}</h1> : <h2 id={titleId} className="k42-ph-name">{name}</h2>}
           {/* What kind of project this is, under the title (Noa, 26 October 2026). */}
@@ -68,7 +68,7 @@ export function ProjectRepository({ repoUrl, summary, usage }: { repoUrl?: strin
         <GitHubMark size={20} /><strong>{name}<ArrowUpRight size={14} /></strong><span className="visually-hidden">Project repository</span>
         <span className="visually-hidden"> (opens in a new tab)</span>
       </a>
-      <div className="k42-ph-repo-counters" aria-describedby={noteId}>
+      <div className="k42-ph-repo-counters" aria-describedby={noteId} title={note}>
         <a data-tip="Open PRs" href={`${repository}/pulls?q=is%3Apr+is%3Aopen`} target="_blank" rel="noreferrer" aria-label={`${counts ? `${counts.open} open pull requests, latest available count` : 'Open pull requests'} on GitHub (opens in a new tab)`}>
           <GitPullRequest size={16} />{counts && <b>{counts.open}</b>}<span className="visually-hidden">Open PRs</span>
         </a>
@@ -78,7 +78,7 @@ export function ProjectRepository({ repoUrl, summary, usage }: { repoUrl?: strin
       </div>
       <ProjectUsageFigures usage={usage} />
     </div>
-    <p id={noteId} className="k42-ph-repo-note">{note}</p>
+    <p id={noteId} className="visually-hidden">{note}</p>
   </section>;
 }
 

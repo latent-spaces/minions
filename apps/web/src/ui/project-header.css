@@ -1,12 +1,13 @@
 /* The project page's header card (Task 11, direction A2 refined, 18 October 2026). */
 .k42-ph { background:var(--canvas); border:var(--card-border); border-radius:var(--surface-radius); margin:0 0 16px; min-width:0; }
-.k42-ph-cover { height:96px; border-radius:var(--surface-radius) var(--surface-radius) 0 0; }
-.k42-ph-head { padding:0 24px; }
-.k42-ph-stamp { width:64px; height:64px; margin-top:-32px; border-radius:6px; border:4px solid var(--canvas); display:grid; place-items:center; overflow:hidden; font-size:20px; font-weight:700; }
+.k42-ph-cover { height:6px; border-radius:var(--surface-radius) var(--surface-radius) 0 0; }
+.k42-ph-head { padding:12px 20px 14px; }
+.k42-ph-stamp { flex:none; width:40px; height:40px; border-radius:8px; display:grid; place-items:center; overflow:hidden; font-size:14px; font-weight:700; }
 .k42-ph-stamp img { width:100%; height:100%; object-fit:cover; }
-.k42-ph-title { display:flex; align-items:flex-start; gap:20px; flex-wrap:wrap; margin-top:10px; }
-.k42-ph-text { flex:1 1 320px; min-width:0; }
-.k42-ph-text :is(h1, .k42-ph-name) { margin:0; font-size:24px; font-weight:700; letter-spacing:-.02em; overflow-wrap:anywhere; }
+.k42-ph-title { display:flex; align-items:center; gap:8px 12px; flex-wrap:wrap; }
+.k42-ph-text { flex:1 1 240px; min-width:0; display:flex; align-items:center; flex-wrap:wrap; gap:4px 12px; }
+.k42-ph-text > :is(.k42-ph-links, .observation-age) { flex-basis:100%; }
+.k42-ph-text :is(h1, .k42-ph-name) { margin:0; font-size:20px; font-weight:700; letter-spacing:-.02em; overflow-wrap:anywhere; }
 .k42-ph .observation-age { margin:8px 0 0; font-size:12px; }
 .k42-ph-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
 .k42-ph-thin { display:inline-flex; align-items:center; gap:8px; height:var(--shell-control-size); padding:0 14px; border:var(--card-border); border-radius:var(--radius-button); background:var(--canvas); color:var(--ink); font:inherit; font-weight:600; text-decoration:none; cursor:pointer; }
@@ -22,9 +23,7 @@
 .k42-ph-contribute { height:var(--shell-control-size); }
 /* The tab row closes the card and shows on desktop too (Task 11 reverses the part-A ruling that hid it). */
 @media (max-width:600px) {
-  .k42-ph-head { padding:0 16px; }
-  .k42-ph-cover { height:110px; }
-  .k42-ph-text :is(h1, .k42-ph-name) { font-size:24px; }
+  .k42-ph-head { padding:12px 16px 14px; }
   .k42-ph-actions { position:relative; }
   .k42-ph-more { position:static; }
   .k42-ph-menu { left:0; right:auto; max-width:calc(100vw - 32px); }
@@ -32,7 +31,7 @@
 .k42-ph-links { margin:8px 0 0; font-size:13px; }
 .k42-ph-links a { color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:3px; }
 
-.k42-ph-repository { margin-top:16px; }
+.k42-ph-repository { margin-top:10px; }
 .k42-ph-repo-strip { display:flex; flex-wrap:wrap; align-items:center; gap:8px 20px; padding:12px 16px; border-radius:var(--radius-button); background:var(--canvas-soft); }
 .k42-ph-repo-link { display:flex; align-items:center; gap:12px; flex:0 1 auto; min-width:0; color:var(--ink); text-decoration:none; }
 .k42-ph-repo-link > svg { flex:none; }
@@ -49,7 +48,6 @@
 .k42-ph-usage > div { display:flex; flex-direction:column; gap:2px; }
 .k42-ph-usage dt { font-size:12px; color:var(--text-muted); }
 .k42-ph-usage dd { margin:0; font-size:20px; font-weight:700; font-variant-numeric:tabular-nums; color:var(--ink); }
-.k42-ph-repo-note { margin:6px 0 0; color:var(--text-muted); font-size:12px; line-height:1.5; }
 .k42-ph-repository a:focus-visible { outline:3px solid var(--ink); outline-offset:3px; border-radius:var(--radius-button); }
 @media (max-width:700px) {
   .k42-ph-repo-strip { flex-wrap:wrap; gap:8px; padding:12px; }
@@ -60,7 +58,7 @@
 }
 .k42-ph-repo-strip > .k42-ph-usage { margin-left:auto; }
 .k42-ph-repo-counters { margin-left:12px; }
-.k42-ph-visibility { display:inline-flex; align-items:center; gap:6px 8px; flex-wrap:wrap; margin:4px 0 0; font-size:13px; color:var(--text-muted); }
+.k42-ph-visibility { display:inline-flex; align-items:center; gap:6px 8px; flex-wrap:wrap; margin:0; font-size:13px; color:var(--text-muted); }
 /* Counters sit on the same line as the repository name and the usage numbers. */
 .k42-ph-repo-strip { align-items:flex-end; }
 .k42-ph-repo-link { align-self:center; }
@@ -87,3 +85,10 @@
 .k42-ph-repo-counters a[data-tip], .k42-ph-usage > div[data-tip] { position:relative; }
 .k42-ph-repo-counters a[data-tip]::after, .k42-ph-usage > div[data-tip]::after { content:attr(data-tip); position:absolute; top:calc(100% + 6px); left:50%; transform:translateX(-50%); z-index:5; padding:4px 8px; border-radius:8px; background:var(--ink); color:#fff; font-size:11px; font-weight:500; line-height:1.4; white-space:nowrap; box-shadow:0 4px 12px rgba(20,20,20,.16); opacity:0; visibility:hidden; pointer-events:none; transition:opacity .12s; }
 .k42-ph-repo-counters a[data-tip]:is(:hover,:focus-visible)::after, .k42-ph-usage > div[data-tip]:hover::after { opacity:1; visibility:visible; }
+/* Option B (owner, 11 November 2026): the repository, PR counts and token figures are chips on one row. */
+.k42-ph-repo-strip { padding:0; gap:6px; background:none; }
+.k42-ph-repo-counters, .k42-ph-strip-usage, .k42-ph-repo-strip > .k42-ph-usage { margin:0; padding:0; border:0; gap:6px; }
+.k42-ph-repo-link, .k42-ph-repo-counters a, .k42-ph-usage > div { min-height:32px; padding:0 12px; border-radius:999px; background:var(--canvas-soft); }
+.k42-ph-repo-counters a:hover, .k42-ph-repo-counters a:focus-visible, .k42-ph-usage > div:hover, .k42-ph-repo-link:hover { background:var(--hairline); }
+.k42-ph-repo-link:hover strong { text-decoration:none; }
+.k42-ph-repo-counters b { min-width:0; min-height:0; padding:0; background:none; }
