@@ -250,7 +250,8 @@ or whatever”. From the options offered the owner chose “Agent sets a link”
 
 - **Preview tab.** The Outputs tab is now Preview. It shows, in a sandboxed frame, a page an
   agent set: a server it started on this computer (`http://localhost`, `127.0.0.1` or
-  `[::1]`) or any `https://` page. The person clicks Open preview; Open separately opens it
+  `[::1]`) or any `https://` page. It loads as soon as the tab opens and follows a new link,
+  with the link shown above the frame (owner, 11 November 2026); Open separately opens it
   in a new tab. A page on the app's own origin is never framed. Guests do not see the tab.
 - **An agent sets it.** Agents use `set_project_preview` with one `url`; an empty string
   clears it. The newest save wins, and an agent may set it while the project is paused,

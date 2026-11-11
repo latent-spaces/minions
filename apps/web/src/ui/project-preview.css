@@ -6,5 +6,5 @@
 .k42-preview-frame, .k42-preview-placeholder { border: 1px solid #e0e0e0; border-radius: 16px; min-height: 380px; background: #f3f3f3; overflow: hidden; }
 .k42-preview-placeholder { display: grid; place-items: center; padding: 24px; text-align: center; }
 .k42-preview-frame iframe { display: block; border: 0; width: 100%; height: min(70vh, 720px); min-height: 380px; background: #fff; }
-.k42-preview-url { color: #616161; font-size: 14px; overflow-wrap: anywhere; }
+.k42-preview-url { margin: -8px 0 16px; color: #616161; font-size: 14px; overflow-wrap: anywhere; }
 @media (max-width: 600px) { .k42-preview h2 { font-size: 24px; } .k42-preview-frame iframe, .k42-preview-placeholder { min-height: 320px; } }
