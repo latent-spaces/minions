@@ -166,7 +166,7 @@ before changing dependent behavior.
 
 What we want to do next. Add to it, reorder it, cross things off as they land.
 
-- [ ] **Choose agent models on purpose.** Today a new agent runs on the client's default
+- [x] **Choose agent models on purpose.** Today a new agent runs on the client's default
       model. Instead the skill should pick a model that fits the agent's mission (a
       smaller model for routine work), warn when the default is a large model such as
       Fable or Opus, and say why it picked what it picked.

@@ -10,6 +10,25 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Agents get a model picked for their mission — owner decision, 11 November 2026
+
+Source: the owner's README TODO item “Choose agent models on purpose” and the mission they
+approved on 11 November 2026: when the skill adds an agent, it should pick a model that fits
+the agent's mission instead of the client's default, warn when the default is a large model
+such as Fable or Opus, and say why it picked.
+
+- **The skill picks the model.** When the person hasn't named one, `add_project_agent` gets
+  a Claude Code model sized to the mission: `sonnet` for routine work (the fallback when
+  unsure), `haiku` for simple repetitive work, `opus` for hard work. Before, the skill left
+  `model` out and the agent ran on the client's default, often its largest model.
+- **A named model is used as given.** The skill doesn't argue or ask again.
+- **Codex keeps its default** unless the person names a model; the skill says so.
+- **It says why and warns.** The success line names the model and the reason in a few
+  words, and warns in one clause when the agent runs on a large model such as Fable or
+  Opus, because it uses the person's limits or tokens faster.
+- **Not changed.** Website Add and start and the service's own default (no `--model` when
+  none is passed) stay as they were.
+
 ## Task page and first-class subtasks — owner decision, 11 November 2026
 
 Source: the owner in chat on 11 November 2026: “a tasks clicked should not open the right
