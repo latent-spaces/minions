@@ -14,8 +14,7 @@ test('archived entries are excluded from every current group', () => {
 test('chips: order, archived counted apart from All', () => {
   const current = [entry('a'), entry('b', { archived: true })];
   const chips = personalFilterChips(current, [entry('z', { archived: true })]);
-  assert.deepEqual(chips.map(c => c.key), ['all', 'owner', 'joined', 'waiting', 'archived']);
+  assert.deepEqual(chips.map(c => c.key), ['all', 'archived']);
   assert.equal(chips.find(c => c.key === 'all')!.count, 1);
   assert.equal(chips.find(c => c.key === 'archived')!.count, 1);
-  assert.equal(chips.find(c => c.key === 'owner')!.count, 0);
 });

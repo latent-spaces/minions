@@ -18,6 +18,11 @@ project stamp in the menu and the project header shows the screenshot on the
 project's newest update that has one; the header banner keeps its gradient, and a
 project with no screenshot keeps its initials on the gradient.
 
+Later the same day the owner extended this to the My projects cards: the card's image
+area shows the newest update screenshot (else the project's reference image) and is
+taller. The owner also asked to drop the Owner, Joined and Waiting chips, because a local
+engine has one person: My projects filters only All (current) or Archived.
+
 ## Agents get a model picked for their mission — owner decision, 11 November 2026
 
 Source: the owner's README TODO item “Choose agent models on purpose” and the mission they

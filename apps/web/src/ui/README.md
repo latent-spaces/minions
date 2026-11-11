@@ -25,9 +25,9 @@ focus and lifecycle handling remain with each consuming controller.
 
 `PersonalProjectGroups` groups the current bounded directory page into Projects I own,
 Projects I joined (any role other than owner) and Waiting for approval (proposals, plus
-owned projects that are approved but not yet published). The filter chips (All, Owner, Joined and Waiting) count
-this page's projects that match the search, not total membership; All shows Projects I own and every non-empty group. Each entry is
-an `ExploreProjectCard` with the role as its category and no icon. The existing
+owned projects that are approved but not yet published), shown in one grid. Two chips, All and Archived,
+switch between the current and archived lists and count this page's projects that match the search. Each entry is
+an `ExploreProjectCard` with the role as its category and its cover: the screenshot on the project's newest update, else its reference image, else the gradient. The existing
 lifecycle presentation supplies its status, action and destination: the proposal editor,
 Settings or the project's Tasks page. The card's ⋯ menu holds the star, Project settings
 for owners or Leave project (which opens Settings) for private joined projects, Copy
@@ -42,8 +42,8 @@ project data; archiving and starring arrive as callbacks.
 ## Project cards
 
 `ExploreProjectCard` is the one project card for My projects and onboarding.
-Its swatch uses `projectGradient(projectId)`, which the project header cover and stamp,
-the menu stamps and Starting soon also use; the setup modal
+Its swatch shows a `cover` image when given one, otherwise `projectGradient(projectId)`, which the project header cover,
+the stamps without a cover and Starting soon also use; the setup modal
 seeds it from the draft name. Real cards use the immutable project ID, so renames keep
 their gradient; onboarding and previews use explicit synthetic IDs. Onboarding passes a category icon from `CATEGORY_ICONS` in `project-look.ts`; personal
 cards pass `icon={null}` and have none. A private project shows a lock on the swatch,

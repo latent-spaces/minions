@@ -10,6 +10,7 @@ import { Pager } from './shared';
 import { ExploreLayout } from './ui/ExploreLayout';
 import type { PersonalFilter } from './ui/group-personal-projects';
 import { PersonalFilterChips, PersonalProjectGroups } from './ui/PersonalProjectGroups';
+import { useProjectCovers } from './project-covers';
 import { MessageSquare, Archive } from 'lucide-react';
 import { CLAUDE_EXAMPLE_PROMPT, useCopyPrompt } from './ui/ClaudePromptTile';
 import { EmptyState } from './ui/EmptyState';
@@ -23,9 +24,8 @@ export function MyProjects({ user, active, refreshKey, go, retry, view = 'curren
   const [poll, setPoll] = useState(0);
   useEffect(() => { if (!active) return; const timer = window.setInterval(() => { if (document.visibilityState === 'visible') setPoll(value => value + 1); }, 30000); return () => window.clearInterval(timer); }, [active]);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<PersonalFilter>('all');
-  // Archived is its own route and data; the other chips filter the current list.
-  const groupFilter: PersonalFilter = view === 'archived' ? 'archived' : filter === 'archived' ? 'all' : filter;
+  // Archived is its own route and data.
+  const groupFilter: PersonalFilter = view === 'archived' ? 'archived' : 'all';
   const [paging, setPaging] = useState<{ view: string; cursors: (string | null)[] }>({ view, cursors: [null] });
   const cursors = paging.view === view ? paging.cursors : [null], cursor = cursors.at(-1) ?? null;
   const key = `${view}:${cursor ?? ''}`;
@@ -96,14 +96,14 @@ export function MyProjects({ user, active, refreshKey, go, retry, view = 'curren
   const shown = result?.key === key ? result : null, page = shown?.page ?? null;
   const query = search.trim().toLocaleLowerCase();
   const matches = page?.projects.filter(project => `${project.name} ${project.summary}`.toLocaleLowerCase().includes(query));
+  const covers = useProjectCovers(user, page?.projects ?? []);
   const first = cursors.length === 1;
   const showGroups = !!page && !!matches?.length;
   const copyPrompt = useCopyPrompt();
   const otherProjects = other?.view === otherView ? other.projects : [];
   const choose = (next: PersonalFilter) => {
-    if (next === 'archived') { if (view !== 'archived') go({ view: 'projects', projectList: 'archived' }); return; }
-    setFilter(next);
-    if (view === 'archived') go({ view: 'projects' });
+    if (next === 'archived') { if (view !== 'archived') go({ view: 'projects', projectList: 'archived' }); }
+    else if (view === 'archived') go({ view: 'projects' });
   };
   const chips = page && <div ref={chipRow}><PersonalFilterChips projects={view === 'current' ? page.projects : otherProjects} archived={view === 'archived' ? page.projects : otherProjects} value={groupFilter} disabled={busy} onChange={choose} /></div>;
   return <ExploreLayout go={go} title="My projects" description="" trail={false} filters={chips}>
@@ -114,7 +114,7 @@ export function MyProjects({ user, active, refreshKey, go, retry, view = 'curren
     {!shown && <p className="muted" role="status">Loading projects…</p>}
     <LeaveProjectFeedback controls={leave} />
     <div className="project-directory-grid k42-reveal my-projects-grid">
-      {showGroups && <PersonalProjectGroups onLeave={id => void leave.act(id)} projects={matches ?? []} go={go} filter={groupFilter === 'archived' ? 'all' : groupFilter} searching={!!query} archived={view === 'archived'} onArchive={project => void changeArchive(project)} onStar={project => void changeStar(project)} disabled={busy || !!pending || leave.busy || !!leave.pending || !identity.ready || !!shown?.error} />}
+      {showGroups && <PersonalProjectGroups covers={covers} onLeave={id => void leave.act(id)} projects={matches ?? []} go={go} searching={!!query} archived={view === 'archived'} onArchive={project => void changeArchive(project)} onStar={project => void changeStar(project)} disabled={busy || !!pending || leave.busy || !!leave.pending || !identity.ready || !!shown?.error} />}
     </div>
     {page && !showGroups && <div className="project-directory-empty"><p>{query ? 'No projects on this page match your search.' : first && !page.next ? view === 'archived' ? '' : 'No current projects.' : `No ${view} projects on this page.`}</p>{!query && (view === 'archived' ? first && !page.next ? <div className="k42-empty-row"><span className="k42-empty-row-icon" aria-hidden="true"><Archive size={18} /></span><div><strong>Nothing archived.</strong><span>Archive a project from its ··· menu. Restore it any time.</span></div></div> : null : first && !page.next
       ? <EmptyState icon={MessageSquare} size="large" title="Start your first project from Claude" action={<Button className="primary" type="button" onClick={copyPrompt.copy}>{copyPrompt.copied ? 'Copied' : 'Copy the prompt'}</Button>}>Ask Claude, for example: “{CLAUDE_EXAMPLE_PROMPT}”</EmptyState>

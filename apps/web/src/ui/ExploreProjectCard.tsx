@@ -20,7 +20,7 @@ const REVIEW_HELP = 'A reviewer will review your proposal. After approval, you f
  * and a thin "View project" button. It serves Explore, My projects and onboarding. The title is the card's open
  * control and stretches over the whole card.
  */
-export function ExploreProjectCard({ projectId, title, summary, category, status, participantCount, onOpen, actionLabel = 'View project', onAction, reviewPending = false, minContributors, startDeadline, recruiting = false, statusHelp, visibilityLabel, headingLevel = 2, icon, private: isPrivate = false, menu, footerAction, ribbon, actions }: {
+export function ExploreProjectCard({ projectId, cover, title, summary, category, status, participantCount, onOpen, actionLabel = 'View project', onAction, reviewPending = false, minContributors, startDeadline, recruiting = false, statusHelp, visibilityLabel, headingLevel = 2, icon, private: isPrivate = false, menu, footerAction, ribbon, actions }: {
   /** A diagonal corner ribbon (a pending invitation). */
   ribbon?: string;
   /** Replaces the open button at the card's bottom (invitation Accept / Decline). */
@@ -30,6 +30,8 @@ export function ExploreProjectCard({ projectId, title, summary, category, status
   statusHelp?: string; visibilityLabel?: string;
   /** A private project: the lock on the swatch, as on the menu's stamps (My projects; Explore lists public projects only). */
   private?: boolean;
+  /** A loaded image for the swatch: the newest update's screenshot, else the project's reference image. */
+  cover?: string | null;
   projectId: string; title: string; summary: string; category: string; status: string;
   minContributors?: number | null; startDeadline?: string | null; recruiting?: boolean;
   headingLevel?: 2 | 3;
@@ -47,9 +49,9 @@ export function ExploreProjectCard({ projectId, title, summary, category, status
   const help = statusHelp ?? (reviewPending ? REVIEW_HELP : undefined);
   const bar = seats.remaining !== null;
   const left = recruiting && !reviewPending ? startLabel(startDeadline, Date.now()) : null;
-  return <article className={`k42-explore-card${ribbon ? ' has-ribbon' : ''}`}>
+  return <article className={`k42-explore-card${ribbon ? ' has-ribbon' : ''}${cover ? ' has-cover' : ''}`}>
     {ribbon && <span className="k42-card-ribbon">{ribbon}</span>}
-    <div className="k42-card-swatch" style={{ background: projectGradient(projectId) }} aria-hidden="true">{Icon && <Icon className="k42-card-swatch-icon" size={30} strokeWidth={1.75} />}{isPrivate && <PrivateBadge />}</div>
+    <div className="k42-card-swatch" style={{ background: projectGradient(projectId) }} aria-hidden="true">{cover ? <img className="k42-card-swatch-image" src={cover} alt="" /> : Icon && <Icon className="k42-card-swatch-icon" size={30} strokeWidth={1.75} />}{isPrivate && <PrivateBadge />}</div>
     {menu && menu.length > 0 && <div className="k42-card-more"><MoreMenu items={menu} label={`More actions for ${title}`} className="k42-card-more-button" /></div>}
     <div className="k42-explore-card-body">
       <p className="k42-card-category">{category}</p>
