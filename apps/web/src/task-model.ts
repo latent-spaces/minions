@@ -37,9 +37,12 @@ export function taskMutation(input: Mutation, clientRequestId: string = crypto.r
   return { ...input, clientRequestId } as NativeTaskMutation;
 }
 
-/** A replay receipt proves a past write, not that its task snapshot is still current. */
+/** A replay receipt proves a past write, not that its task snapshot is still current.
+ *  Mutation receipts carry no subtask progress (it's counted on reads), so the row keeps the ring it had until the next read. */
 export function newestTaskSnapshot(current: NativeTask | null | undefined, incoming: NativeTask): NativeTask {
-  return current?.id === incoming.id && current.projectId === incoming.projectId && current.revision > incoming.revision ? current : incoming;
+  const same = current?.id === incoming.id && current.projectId === incoming.projectId;
+  const newest = same && current!.revision > incoming.revision ? current! : incoming;
+  return same && !newest.subtaskProgress && current!.subtaskProgress ? { ...newest, subtaskProgress: current!.subtaskProgress } : newest;
 }
 
 /** Tasks were turned off for the project after this page loaded (server refusal `tasks_disabled`, sent as 409). */

@@ -6,6 +6,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { createServer } from 'node:http';
 import { ensureInstallation, readInstallation, installationHeaderHelper, runInstalledService, statusInstalledService, stopInstalledService, startDetachedService } from '../src/service/installation.mjs';
 import { readRuntimeEndpoint } from '../src/service/endpoint-file.mjs';
 const exec = promisify(execFile), site = 'http://127.0.0.1:8787';
@@ -125,4 +126,22 @@ test('stop after turns keeps the service up until its turns end, then stops it f
   assert.equal(stopped.stopped, true); assert.equal(stopped.afterTurns, true);
   await service.closed;
   assert.equal(drains, 1, 'a repeated request joins the same drain'); assert.equal(closed, 1);
+});
+
+test('stop after turns explains an older running connector instead of reporting an authentication failure', async t => {
+  const home = await folder(t);
+  const config = await ensureInstallation({ home, site }), requests = [];
+  // A service from before --after-turns: its status has no draining field and it has no drain endpoint.
+  const old = createServer((req, res) => {
+    requests.push(req.url);
+    if (req.url !== '/service/status') { res.writeHead(401); return res.end(); }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ running: true, version: 2, transport: 'streamable-http', pid: process.pid, incarnation: '00000000-0000-4000-8000-000000000000',
+      ready: true, packageVersion: '0.1.0-beta.73', principal: { site, ownerId: 'synthetic-owner' } }));
+  });
+  await new Promise(resolve => old.listen(config.port, '127.0.0.1', resolve));
+  cleanup(home, () => new Promise(resolve => old.close(resolve)));
+  assert.equal((await statusInstalledService({ home })).finishesTurns, false);
+  await assert.rejects(stopInstalledService({ home, afterTurns: true }), /older than --after-turns.*Nothing was stopped.*service-stop/);
+  assert.deepEqual(requests.filter(url => url !== '/service/status'), [], 'no stop or drain was requested');
 });

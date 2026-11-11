@@ -121,6 +121,8 @@ export async function statusInstalledService({ home = installationHome() } = {})
   if (value.running !== true || value.version !== 2 || value.transport !== 'streamable-http' || value.principal?.site !== config.site
     || !Number.isSafeInteger(value.pid) || value.pid < 1 || !/^[a-f0-9-]{36}$/.test(value.incarnation ?? '')) throw fail('The saved endpoint returned an invalid service identity.');
   return { running: true, installed: true, site: config.site, url: `http://127.0.0.1:${config.port}/mcp`, pid: value.pid, incarnation: value.incarnation, transport: value.transport, ready: value.ready, packageVersion: value.packageVersion, ownerId: value.principal.ownerId,
+    // A service from before --after-turns reports no draining field and has no drain endpoint.
+    finishesTurns: typeof value.draining === 'boolean',
     ...(value.draining === true ? { draining: true, turnsInProgress: Number.isSafeInteger(value.turnsInProgress) ? value.turnsInProgress : null } : {}) };
 }
 // afterTurns: each turn in progress finishes and no new one starts, then the service stops by itself. Workers keep
@@ -129,6 +131,7 @@ export async function statusInstalledService({ home = installationHome() } = {})
 export async function stopInstalledService({ home = installationHome(), afterTurns = false, timeoutMs = afterTurns ? 3600000 : 15000, pollMs = afterTurns ? 500 : 50 } = {}) {
   const before = await statusInstalledService({ home });
   if (!before.running) return { stopped: true, alreadyStopped: true };
+  if (afterTurns && !before.finishesTurns) throw fail('The connector running now is older than --after-turns and cannot let turns finish first. Nothing was stopped. Update it this once with service-stop, which ends the turns in progress, ideally while no agent is mid-turn. Later updates can use --after-turns.');
   ownedFile(join(home, OWNER));
   const holder = readPrivate(join(home, OWNER), true);
   if (holder.pid !== before.pid || typeof holder.nonce !== 'string') throw fail('The service ownership record differs from the authenticated process. No stop was requested.');

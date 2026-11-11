@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { NativeTask } from '@mlswarm/contracts';
-import { nestTasks } from '../src/task-model';
+import { nestTasks, newestTaskSnapshot } from '../src/task-model';
 import { formatRoute, parseRoute, taskRoute } from '../src/route';
 
 const PROJECT = 'a'.repeat(64);
@@ -28,4 +28,14 @@ test('a task page is a Tasks location that survives reloads; other sections drop
   assert.deepEqual(parseRoute(search), { view: 'project', projectId: PROJECT, section: 'overview', thread: null, agent: null, q: null, task: 'task_abc' });
   assert.equal(parseRoute(`?project=${PROJECT}&section=agents&task=task_abc`).view === 'project' && 'task' in parseRoute(`?project=${PROJECT}&section=agents&task=task_abc`), false);
   assert.equal('task' in parseRoute(`?project=${PROJECT}&task=../x`), false);
+});
+
+test('a mutation receipt keeps the subtask ring the row already had; a read replaces it', () => {
+  const row = { ...task('p'), revision: 2, subtaskProgress: { done: 1, total: 3 } } as NativeTask;
+  const receipt = { ...task('p'), revision: 3 } as NativeTask;
+  assert.deepEqual(newestTaskSnapshot(row, receipt).subtaskProgress, { done: 1, total: 3 });
+  assert.equal(newestTaskSnapshot(row, receipt).revision, 3);
+  const read = { ...receipt, subtaskProgress: { done: 2, total: 3 } } as NativeTask;
+  assert.deepEqual(newestTaskSnapshot(row, read).subtaskProgress, { done: 2, total: 3 });
+  assert.equal(newestTaskSnapshot({ ...row, id: 'other' } as NativeTask, receipt).subtaskProgress, undefined);
 });

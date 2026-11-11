@@ -135,6 +135,8 @@ service. It waits up to 60 minutes (`--wait-minutes N`); after that the service 
 finishing and stops by itself, and `service-status` shows `draining` and
 `turnsInProgress`. Repeat the command to keep waiting, or run plain `service-stop` to
 end the remaining turns now. Native guarded turns retain bounded cleanup after service death.
+A service from before `--after-turns` has no way to finish turns first; the command then
+stops nothing and says to update that one with plain `service-stop`.
 
 This is a hard cutover. Retired stdio entries and process-local runtime commands are
 removed. Fresh stores use schema 6, including durable steering receipts and the immutable failed-launch archive.
