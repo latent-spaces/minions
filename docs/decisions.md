@@ -145,6 +145,10 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   (`http://127.0.0.1:8787/`). `/viewer/…` redirects permanently to the same page at the
   root, because saved share links, project updates and the connector already running on
   this computer still name it; it can go once no saved record or installed connector does.
+- **Open tabs offer Reload after an update.** Each web build writes its id to `version.json`.
+  A tab checks it when it regains focus and every five minutes; when a newer build is served it
+  shows "MyLittleSwarm was updated" with a Reload button. It never reloads by itself, so a
+  half-typed task or message is not lost.
 - **Agent avatars show the coding tool and state, not the owner.** A project has one owner, so
   the owner's circle on an agent's corner said nothing; the owner removed it everywhere. Where the
   coding tool is known, the Claude or Codex badge sits on the bottom-right corner instead. In the

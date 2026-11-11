@@ -187,11 +187,11 @@
 /* ---- Tasks board view (owner direction, 9 November 2026): List/Board switch and status columns of cards. ---- */
 .k42-tasks-view { margin-left: auto; }
 .k42-tasks-view .k42-task-segment { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; padding: 5px 12px; }
-.k42-tasks-board-wrap { display: grid; gap: 12px; }
+.k42-tasks-board-wrap { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .k42-tasks-board-notice, .k42-tasks-board-hint { margin: 0; }
 .k42-tasks-board-hint { font-size: 13px; }
 /* Columns share the row; when they no longer fit (phone width) the board scrolls sideways instead of the page. */
-.k42-tasks-board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(240px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 4px; margin: 0; scroll-snap-type: x proximity; }
+.k42-tasks-board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(160px, 1fr); gap: 12px; overflow-x: auto; padding-bottom: 4px; margin: 0; scroll-snap-type: x proximity; }
 .k42-tasks-column { display: grid; align-content: start; gap: 10px; min-width: 0; padding: 12px; border: var(--card-border); border-radius: var(--surface-radius); background: var(--canvas-sunken); scroll-snap-align: start; }
 .k42-tasks-column.is-over { background: var(--subtle); border-color: var(--ink); }
 .k42-tasks-column.is-refused { border-style: dashed; }

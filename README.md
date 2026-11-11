@@ -175,16 +175,13 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
       and open PRs; the owner merges and updates their own engine.
 - [x] **Update a connector without stopping agents.** `service-stop --after-turns` lets
       each turn finish, and agents continue in the same missions after the update.
-- [ ] **Move the project tabs into the sidebar.**
-- [ ] **Rethink Tasks beside the communication map.** The two don't look good together
-      on the project page. Beside the map the board also shows only about three of its
-      four columns, so Canceled needs a sideways scroll (and the board integration test
-      fails there).
+- [x] **Move the project tabs into the sidebar.**
+- [x] **Rethink Tasks beside the communication map.** The map moved into the Updates
+      panel, and the board's four columns share the width beside it.
 - [x] **Bring back project cover images.** A project's stamp, in the menu and the project
       header, shows the screenshot on its newest update; the banner keeps its gradient.
-- [ ] **Tell open tabs to reload after an update.** A tab opened before an update keeps
-      running the old web app and can show stale or mismatched data (for example
-      different agent avatars) until someone reloads it.
+- [x] **Tell open tabs to reload after an update.** A tab checks `version.json` when it
+      regains focus and every five minutes, and offers Reload when a newer build is served.
 - [x] **Exact subtask counts in the list.** The server counts every accepted direct
       subtask for the list and task-page rings, independent of filters and loaded pages.
 - [x] **Clean up stale run indicators.** Old background observations show Offline
