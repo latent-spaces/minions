@@ -279,7 +279,7 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
           {children.length ? <button type="button" className="k42-task-toggle" aria-expanded={!collapsed.has(task.id)} onClick={() => toggle(task.id)}
             aria-label={`${collapsed.has(task.id) ? 'Show' : 'Hide'} subtasks of ${task.title}`}>{collapsed.has(task.id) ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}</button>
             : toggles && <span className="k42-task-toggle-space" aria-hidden="true" />}
-          <button type="button" className="k42-task-open" onClick={() => setOpenId(task.id)}>{task.title}</button>
+          <button type="button" className="k42-task-open" title={task.title} onClick={() => setOpenId(task.id)}>{task.title}</button>
           {task.proposed && <Proposed />}
           {task.priority === 'high' && <span className="k42-task-priority">High</span>}
           {task.subtaskProgress && <SubtaskRing {...task.subtaskProgress} />}</div></th>

@@ -105,8 +105,11 @@
 /* One line of flex items: a long title wraps inside its own box, so every title starts after the toggle column. */
 .k42-task-cell { display: flex; align-items: center; gap: 2px; padding-left: calc(var(--depth, 0) * 22px); }
 .k42-task-cell > .k42-task-open { flex: 0 1 auto; min-width: 0; }
+/* The Task column takes the spare width; long titles stop after two lines, and hovering shows the full title. */
+.k42-tasks-table tbody th { width: 45%; min-width: 18ch; }
+.k42-task-cell > .k42-task-open { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: break-word; }
 .k42-task-cell > :not(.k42-task-open) { flex: none; }
-.k42-tasks-table td:is([data-label="Agents"], [data-label="Updated"]) { white-space: nowrap; }
+.k42-tasks-table td[data-label="Agents"] { white-space: nowrap; }
 .k42-task-toggle { all: unset; cursor: pointer; display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; color: var(--text-muted); }
 .k42-task-toggle:hover { background: var(--subtle); }
 .k42-task-toggle:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
@@ -130,15 +133,22 @@
 .k42-task-comment-meta { display: flex; align-items: center; gap: 10px; }
 .k42-task-history li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 16px; }
 
-@media (max-width: 720px) {
+/* The list stacks by the Tasks section's own width, so it also stacks when the Updates panel leaves little room. */
+.k42-tasks { container: tasks / inline-size; }
+@container tasks (max-width: 720px) {
   .k42-tasks-table thead { display: none; }
   .k42-tasks-table, .k42-tasks-table tbody, .k42-tasks-table tr, .k42-tasks-table th, .k42-tasks-table td { display: block; }
+  .k42-tasks-table tbody th { width: auto; min-width: 0; }
   .k42-tasks-table tr { border-top: 1px solid var(--hairline-shell); padding: 12px 16px; }
   .k42-tasks-table tr:first-child { border-top: 0; }
   .k42-tasks-table th, .k42-tasks-table td { border: 0; padding: 2px 0; }
   .k42-tasks-table td { display: inline-block; margin-right: 12px; }
   .k42-tasks-table td[data-label="Updated"] { display: block; font-size: 14px; }
   .k42-tasks-table td[data-label="Agents"]::before { content: "Agents: "; color: var(--text-muted); font-size: 14px; }
+  .k42-tasks .k42-tasks-toolbar.is-narrow-only { display: flex; }
+  .k42-tasks .k42-tasks-head-actions { margin-left: 0; flex-wrap: wrap; }
+}
+@media (max-width: 720px) {
   .k42-task-props { grid-template-columns: 1fr; gap: 6px; }
   .k42-task-hint { grid-column: 1; }
 }
@@ -211,7 +221,6 @@
 /* List filters in the column headers (owner, 11 November 2026): Refresh, New task and List/Board share the title row. */
 .k42-tasks-head-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
 .k42-tasks-toolbar.is-narrow-only { display: none; }
-@media (max-width: 720px) { .k42-tasks-toolbar.is-narrow-only { display: flex; } .k42-tasks-head-actions { margin-left: 0; flex-wrap: wrap; } }
 .k42-tasks-table thead th { white-space: nowrap; }
 .k42-th-filter { position: relative; display: inline-flex; align-items: center; gap: 6px; max-width: 100%; margin: -4px -8px; padding: 4px 8px; border-radius: 6px; transition: background-color .12s, color .12s; }
 .k42-th-filter:hover { background: color-mix(in srgb, var(--ink) 7%, transparent); color: var(--ink); }
