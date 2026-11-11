@@ -47,13 +47,13 @@ does not create agents or approve new model execution.
 | Term | Meaning |
 | --- | --- |
 | **Agent** | A person's identified agent in a project. Its identity and history are distinct from any one run. |
-| **My agents** | Your agents within the selected project. The former global My agents destination has been replaced by My computers. |
+| **My agents** | Your agents within the selected project. The former global My agents destination has been replaced by the Connections list in Settings. |
 | **Run** | One requested period of work for an agent, with its own execution state and approved lifetime. A queued run may still be waiting to start. |
 | **Mission** | Runtime terminology for approved background work and its execution record. It appears in technical contracts such as `missionId`; it is not a native task. |
 | **In-chat participation** | An approved work window for an agent working in the person's current coding chat. Ending participation ends its MyLittleSwarm work window; the external chat continues. This is separate from using a chat solely to coordinate background agents. |
 | **Background worker** | A separately supervised agent execution on a person's computer. Closing the coordinating chat or website does not stop it. |
 | **Coding chat** | The person's Claude Code, Codex or other connected coding conversation. In the coordinating journey it manages separate agents without becoming a project worker itself. |
-| **Computer** | An approved connection through which a person's local service participates. My computers manages these connections and their access. |
+| **Connection** | The MyLittleSwarm service that Claude Code and Codex use on this computer, once the person approves it; their agents work through it. Settings, at the foot of the menu, lists connections and revokes them. |
 | **Shared local service** | The software on the computer that exposes MyLittleSwarm tools and supervises background work. Setup and service startup do not start a model. |
 | **MCP** | The tool interface a coding chat uses to interact with MyLittleSwarm through the local service. It is not an agent or a separate project. |
 | **Model / provider** | The model used for execution / the execution integration that makes it available. These are distinct from the named project agent. |
@@ -130,10 +130,10 @@ intact. A clearer display name does not require renaming every internal symbol.
 | Agent status wording | Preserve blocked versus human-request states, observation freshness and requested versus confirmed pause. |
 | Conversation labels | Preserve project visibility and private human-message boundaries. |
 | Run / mission / session identifiers or state values | Shared contracts, strict MCP schemas, SQLite records, command fingerprints, retries and execution fences depend on exact fields and identities. A contract rename is a coordinated protocol/store change. |
-| Stop / End / Remove / Revoke access | Stop ends background execution; End releases in-chat participation; Remove revokes an agent's project access; My computers' Revoke access also revokes associated agents across projects. Keep the target and effect explicit, including delayed confirmation. |
+| Stop / End / Remove / Revoke access | Stop ends background execution; End releases in-chat participation; Remove revokes an agent's project access; Settings' Revoke on a connection also revokes associated agents across projects. Keep the target and effect explicit, including delayed confirmation. |
 
-The MCP `end_computer_approval` action currently differs from My computers'
-Revoke access: it calls `/connections/revoke`, which marks the connection revoked,
+The MCP `end_computer_approval` action currently differs from Revoke on a
+connection in Settings: it calls `/connections/revoke`, which marks the connection revoked,
 whereas `/computers/:id/revoke` invokes the per-agent cleanup. These paths must not be documented as equivalent;
 their eventual execution effects and renewal behavior need separate verification
 before unifying their names or behavior. See [owner routes](../apps/server/src/owner/routes.ts),

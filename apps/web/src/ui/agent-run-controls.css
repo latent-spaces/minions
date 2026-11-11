@@ -3,8 +3,6 @@
 .k42-run-icon { min-width: 0; padding: 4px 6px; line-height: 0; }
 .k42-communication-tooltip-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
 .k42-communication-tooltip-close { position: absolute; top: 4px; right: 6px; border: 0; background: none; cursor: pointer; font-size: 16px; line-height: 1; color: inherit; }
-.k42-another-computer { margin: 8px 0; }
-.k42-another-computer summary { cursor: pointer; }
 .k42-run-length { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .k42-run-length-other { display: inline-flex; align-items: center; gap: 6px; }
 .k42-run-length-other input { width: 5rem; }

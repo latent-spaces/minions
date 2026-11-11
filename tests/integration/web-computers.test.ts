@@ -21,7 +21,7 @@ async function port() {
   await new Promise<void>(resolve => server.close(() => resolve())); return value;
 }
 
-test('actual My computers page is linked from the menu, confirms revocation and handles mobile, errors and empty connections', async () => {
+test('actual app Settings page lists connections, is linked from the menu, confirms revocation and handles mobile, errors and empty connections', async () => {
   await resetEmulator();
   const directory = await mkdtemp(join(tmpdir(), 'mlswarm-computers-')), apiPort = await port(), webPort = await port();
   const fixture = await seed({ profiles: [{ name: 'Computer owner', email: 'computer-owner@example.test' }] });
@@ -58,38 +58,38 @@ test('actual My computers page is linked from the menu, confirms revocation and 
     page = await context.newPage(); const errors: string[] = []; page.on('pageerror', (e: Error) => errors.push(e.message));
     await page.goto(`http://127.0.0.1:${webPort}/?view=computers`);
     await signInBrowser(page, await idTokenFor('computer-owner@example.test'));
-    await page.getByRole('heading', { name: 'My computers', exact: true }).waitFor();
+    await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
     await page.getByText('Synthetic work laptop', { exact: true }).waitFor();
-    // There is no top bar or account menu (owner, 11 November 2026): My computers is linked at the foot of the menu,
+    // There is no top bar or account menu (owner, 11 November 2026): Settings is linked at the foot of the menu,
     // and the connector no longer updates itself, so this page shows no update status.
     expect(await page.locator('.k42-top-bar, .k42-account-menu').count()).toBe(0);
     expect(await page.getByText(/Update status|Update when idle/).count()).toBe(0);
-    expect(await page.getByRole('link', { name: 'My computers', exact: true }).count()).toBe(1);
+    expect(await page.getByRole('link', { name: 'Settings', exact: true }).count()).toBe(1);
     expect(await page.getByRole('link', { name: 'My agents', exact: true }).count()).toBe(0);
-    await page.getByRole('link', { name: 'My computers', exact: true }).click();
+    await page.getByRole('link', { name: 'Settings', exact: true }).click();
     await page.screenshot({ animations: 'disabled', path: join(directory, 'desktop.png') });
     for (const width of [390, 320]) {
       await page.setViewportSize({ width, height: 844 });
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
       await page.screenshot({ animations: 'disabled', path: join(directory, `mobile-${width}.png`) });
     }
-    const revoke = page.getByRole('button', { name: 'Revoke access for Synthetic work laptop', exact: true });
+    const revoke = page.getByRole('button', { name: 'Revoke Synthetic work laptop', exact: true });
     await revoke.click(); const dialog = page.getByRole('dialog');
-    await dialog.getByRole('heading', { name: 'Revoke access for Synthetic work laptop?' }).waitFor();
-    expect(await dialog.innerText()).toContain('all agents connected through it');
+    await dialog.getByRole('heading', { name: 'Revoke Synthetic work laptop?' }).waitFor();
+    expect(await dialog.innerText()).toContain('every agent working through it');
     expect(await dialog.getByRole('button', { name: 'Cancel', exact: true }).evaluate((button: Element) => button === document.activeElement)).toBe(true);
     await page.keyboard.press('Escape'); expect((await computerConnections.doc(id).get()).data()!.revokedAt).toBeNull();
     await page.route('**/api/owner/computers?*', (route: any) => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'Synthetic unavailable' }) }));
     await page.reload(); await page.getByRole('alert').filter({ hasText: 'Could not refresh' }).waitFor();
     await page.unroute('**/api/owner/computers?*'); await page.getByRole('button', { name: 'Try again', exact: true }).click();
     await page.getByText('Synthetic work laptop', { exact: true }).waitFor();
-    await revoke.click(); await page.getByRole('dialog').getByRole('button', { name: 'Revoke access', exact: true }).click();
-    await page.getByText('No connected computers.', { exact: true }).waitFor();
+    await revoke.click(); await page.getByRole('dialog').getByRole('button', { name: 'Revoke', exact: true }).click();
+    await page.getByText('No connections yet.', { exact: true }).waitFor();
     expect((await db.doc(`projects/${TEST_PROJECT}/agents/${agent.agentId}`).get()).data()!.revokedAt).not.toBeNull();
     expect(await inProject(TEST_PROJECT, () => agentByToken(token))).toBeNull();
     await page.screenshot({ animations: 'disabled', path: join(directory, 'empty.png') });
     expect(errors).toEqual([]);
-    console.info(`Actual My computers: desktop, 390px, 320px, keyboard, real revocation, retry and empty state: ${directory}`);
+    console.info(`Actual app Settings: desktop, 390px, 320px, keyboard, real revocation, retry and empty state: ${directory}`);
   } catch (error) {
     if (page) { await page.screenshot({ path: join(directory, 'failure.png'), fullPage: true }).catch(() => {}); console.error(await page.locator('body').innerText().catch(() => ''), output.slice(-1000)); }
     throw error;

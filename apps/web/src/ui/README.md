@@ -247,9 +247,9 @@ for this visibility-only change (OPE-230); accepted work continues normally. Rev
 the retained dialog when the owner decides whether web creation will return.
 `YourAgent`'s Change limits dialog hands over a prompt for the coding agent, where
 limits are chosen. Without an approved computer it shows `SetupCard` instead.
-The **My computers** page, linked at the foot of the menu, (`MyComputers.tsx`) uses the shared
-`MyComputersPage` list. It shows computer names, reported connection status and
-approval expiry, with Revoke access as its only management action. The global
+The app **Settings** page, linked at the foot of the menu, (`AppSettings.tsx`) holds the
+**Connections** list (`ConnectionList`). It shows each approved connection (the shared service Claude Code and Codex use),
+reported online status and approval expiry, with Revoke as its only management action. The global
 My agents page has been removed; agents remain in their projects. Revocation ends
 the computer grant and every associated agent across projects. The confirmation
 explains that background work stops when the computer receives the revocation;

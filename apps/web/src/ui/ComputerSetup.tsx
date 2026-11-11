@@ -118,6 +118,3 @@ export function SetupCard({ onCheck, approved = false, onCancel, onContinue, tit
     </div>
   </div>;
 }
-export function AnotherComputer() {
-  return <details className="k42-another-computer"><summary>Set up another computer</summary><SetupCard /></details>;
-}

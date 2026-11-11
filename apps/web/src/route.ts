@@ -2,7 +2,7 @@
 // so a path per screen would not survive a reload. No parameters means My projects.
 export const SECTIONS = ['overview', 'preview', 'usage', 'teams', 'agents', 'conversations', 'control-center', 'needs-you'] as const;
 export type Section = typeof SECTIONS[number];
-export const GLOBAL_VIEWS = ['projects', 'computers', 'needs-you'] as const;
+export const GLOBAL_VIEWS = ['projects', 'settings', 'needs-you'] as const;
 export type GlobalView = typeof GLOBAL_VIEWS[number];
 export type Route =
   | { view: GlobalView; projectList?: 'archived' }
@@ -46,7 +46,8 @@ export function parseRoute(search: string): Route {
       ...(section === 'agents' && (query.get('filter') === 'all' || q && validSearch(q)) ? { agentFilter: 'all' as const } : {}),
       ...(section === 'overview' && validId(query.get('task') ?? '') ? { task: query.get('task')! } : {}) };
   }
-  const view = query.get('view') as GlobalView | null;
+  // My computers became app Settings (owner, 11 November 2026); old links open it.
+  const view = (query.get('view') === 'computers' ? 'settings' : query.get('view')) as GlobalView | null;
   const selected = view && GLOBAL_VIEWS.includes(view) ? view : 'projects';
   return { view: selected, ...(selected === 'projects' && query.get('list') === 'archived' ? { projectList: 'archived' as const } : {}) };
 }

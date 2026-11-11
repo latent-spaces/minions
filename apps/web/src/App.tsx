@@ -21,7 +21,7 @@ import { SessionLoading, SessionUnavailable } from './ui/SessionLoading';
 import { WorkspaceNavigation, type ProjectMenu, type WorkspaceNavItem } from './ui/WorkspaceNavigation';
 import { COMPACT_SHELL } from './ui/shell-breakpoint';
 import { useMenuCollapsed } from './ui/menu-collapse';
-import { ListTodo, Folder, Settings, Menu, Users, Activity, MonitorPlay, LogOut, MessageSquare, Megaphone, Laptop, Network } from 'lucide-react';
+import { ListTodo, Folder, Settings, Menu, Users, Activity, MonitorPlay, LogOut, MessageSquare, Megaphone, Network } from 'lucide-react';
 import { ProjectUpdatesFeed } from './ProjectUpdatesFeed';
 import { NotificationsBell } from './ui/NotificationsBell';
 import { sidebarAgentRoute, menuMode } from './ui/shell-nav';
@@ -50,7 +50,7 @@ import { MyWorkerControls } from './ui/MyWorkerControls';
 import { useLeaveProject, LeaveProjectFeedback } from './LeaveProject';
 import { Agents } from './Agents';
 import { Conversations } from './Conversations';
-import { MyComputers } from './MyComputers';
+import { AppSettings } from './AppSettings';
 import { BrandLogo } from './ui/BrandLogo';
 import { AddAgentNudge } from './ui/ProjectCheatSheet';
 import type { ProjectEntry, ProjectPage, Workspace } from './project-api';
@@ -120,8 +120,8 @@ export function App() {
 
 const SHORTCUTS = 5;
 const SECTION_NAMES: Record<Section, string> = { overview: 'Tasks', preview: 'Preview', usage: 'Usage', teams: 'Teams', agents: 'Agents', conversations: 'Communication', 'control-center': 'Settings', 'needs-you': 'Needs you' };
-// Needs you is reached from the notifications bell; My computers is linked at the foot of the menu.
-const GLOBAL_NAMES: Record<GlobalView, string> = { projects: 'My projects', computers: 'My computers', 'needs-you': 'Needs you' };
+// Needs you is reached from the notifications bell; Settings is linked at the foot of the menu.
+const GLOBAL_NAMES: Record<GlobalView, string> = { projects: 'My projects', settings: 'Settings', 'needs-you': 'Needs you' };
 /** Project navigation and own-agent shortcuts; web creation is hidden (OPE-230). */
 type ProjectFacts = { projectId: string; connect: (() => void) | null; addTask?: (() => void) | null; openAgent?: (id: string) => void; myAgents?: { provider?: string; id: string; name: string; status: string; detail: string; waiting?: boolean; queued?: boolean }[]; cheatSheet?: { title: string; started: boolean } | null; sections?: { id: Section; current: boolean; locked: boolean }[] };
 const executionLabel = (p: ProjectEntry) => personalProjectStatus({ ...p, kind: 'project', proposalStatus: null }).label;
@@ -301,8 +301,8 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   const openProject = menuMode(route, projectShown ? selected!.id : null) === 'project' ? selected! : null;
   const openFacts = openProject && facts?.projectId === openProject.id ? facts : null;
   const projectsLink: WorkspaceNavItem = { id:'projects', label:GLOBAL_NAMES.projects, icon:<Folder size={18} />, href:formatRoute({ view:'projects' }), current:route.view === 'projects', onNavigate:() => go({ view:'projects' }) };
-  // There is no top bar (owner, 11 November 2026): My computers and the bell sit at the foot of the menu.
-  const computersLink: WorkspaceNavItem = { id:'computers', label:GLOBAL_NAMES.computers, icon:<Laptop size={18} />, href:formatRoute({ view:'computers' }), current:route.view === 'computers', onNavigate:() => go({ view:'computers' }) };
+  // There is no top bar (owner, 11 November 2026): Settings and the bell sit at the foot of the menu.
+  const settingsLink: WorkspaceNavItem = { id:'settings', label:GLOBAL_NAMES.settings, icon:<Settings size={18} />, href:formatRoute({ view:'settings' }), current:route.view === 'settings', onNavigate:() => go({ view:'settings' }) };
   const shortcut = (p: ProjectEntry) => ({ id:p.id, name:p.name, href:formatRoute(projectRoute(p.id)), onNavigate:() => go(projectRoute(p.id)), status:executionLabel(p), private:p.private, cover:covers[p.id] ?? null });
   // Projects and agents are created from Claude through local MCP (owner, 10 November 2026).
   const projectMenu: ProjectMenu | null = openProject && { id:openProject.id, name:openProject.name, status:executionLabel(openProject), private:openProject.private, cover:covers[openProject.id] ?? null,
@@ -321,7 +321,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
     {compact && <CloseButton label="Close navigation" onClick={dismiss} />}
     <WorkspaceNavigation collapsed={rail} onCollapsedChange={compact ? undefined : setMenuCollapsed}
       brand={compact ? undefined : <span className="k42-brand-lockup"><NavLink to={{ view:'projects' }} go={go} className="wordmark"><BrandLogo /></NavLink><span className="k42-tagline">Build together, build it better</span></span>}
-      secondary={[computersLink]}
+      secondary={[settingsLink]}
       footer={<><NotificationsBell user={user} active={visible} go={go} collapsed={rail} /></>}
       globals={[]} projectsLink={projectsLink} project={projectMenu}
       projects={shortcuts.map(shortcut)}
@@ -349,7 +349,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
         </header>}
         <main id="content" ref={content} tabIndex={-1} className="workspace-content">
           <div hidden={route.view !== 'projects'}><MyProjects user={user} view={route.view !== 'project' ? route.projectList ?? 'current' : 'current'} onArchiveChange={archiveChanged} active={route.view === 'projects' && visible} refreshKey={directoryTick} go={go} retry={refreshAll} /></div>
-          {route.view === 'computers' && <MyComputers key={`${user.uid}:${account.person.id}`} user={user} active={visible} refreshKey={directoryTick} go={go} retry={refreshAll} />}
+          {route.view === 'settings' && <AppSettings key={`${user.uid}:${account.person.id}`} user={user} active={visible} refreshKey={directoryTick} go={go} retry={refreshAll} />}
           {route.view === 'needs-you' && <NeedsYou key={user.uid} user={user} go={go} />}
           {selected && <div hidden={!projectShown}><ProjectScope.Provider value={selected.id}><ProjectContent key={selected.id} suppliedProfileId={account.person.id} user={user} projectId={selected.id} section={section} chooseSection={chooseSection} agent={agent} search={agentSearch} agentFilter={route.view === 'project' ? route.agentFilter ?? 'mine' : 'mine'} onAgent={reportAgent} go={go} thread={route.view === 'project' ? route.thread : null} messageId={route.view === 'project' ? route.message : undefined} taskId={route.view === 'project' ? route.task ?? null : null} tick={tick} refresh={refresh} refreshAll={refreshAll} active={projectShown && visible} onDenied={denied} onFacts={setFacts} /></ProjectScope.Provider></div>}
           {route.view === 'project' && !projectShown && !failure && <p className="muted" role="status">Loading project…</p>}

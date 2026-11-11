@@ -13,7 +13,7 @@ import { projectRoute, type Route } from '../route';
 import { runEndLine } from '../run-end';
 import './your-agent.css';
 import { changeLimitsInstructions } from '../setup-instruction';
-import { AnotherComputer, PromptBox, SetupCard, useComputers } from './ComputerSetup';
+import { PromptBox, SetupCard, useComputers } from './ComputerSetup';
 import { AgentObservationList } from './AgentObservationList';
 import { Bot } from 'lucide-react';
 import { EmptyState } from './EmptyState';
@@ -65,11 +65,9 @@ export function YourAgent({ user, tick, refresh, active, projectName, untilConne
     {!readOnly && createPortal(<Dialog ref={dialog} className="agent-connect-dialog" aria-labelledby={titleId}>
       <div className="k42-contrib-body">
       <div className="agent-connections-heading"><h2 id={titleId}>Change {limitsFor}’s limits</h2><CloseButton onClick={() => dialog.current?.close()} /></div>
-      {computers === null ? (computersError ? <div role="alert"><p className="error">Could not load your computers: {computersError}</p><Button className="soft" onClick={refresh}>Try again</Button></div> : <p className="muted" role="status">Loading…</p>)
+      {computers === null ? (computersError ? <div role="alert"><p className="error">Could not load your connections: {computersError}</p><Button className="soft" onClick={refresh}>Try again</Button></div> : <p className="muted" role="status">Loading…</p>)
       : computers.length === 0 ? <SetupCard />
-      : <><AnotherComputer />
-      {limitsFor && <><p>Paste this into your coding agent.</p><PromptBox prompt={changeLimitsInstructions(limitsFor, projectName)} label={`Prompt for ${limitsFor}`} /></>}
-      </>}
+      : limitsFor && <><p>Paste this into Claude Code or Codex.</p><PromptBox prompt={changeLimitsInstructions(limitsFor, projectName)} label={`Prompt for ${limitsFor}`} /></>}
       </div>
     </Dialog>, document.body)}
   </section>;

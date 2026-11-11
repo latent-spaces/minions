@@ -10,6 +10,26 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## My computers becomes app Settings with Connections — owner decision, 11 November 2026
+
+Source: the owner in chat on 11 November 2026: “does my computes still make sense in
+loca luse or we need to check all the copy of that and what it do”. The engine listens
+only on 127.0.0.1, so the page could only ever list Claude Code or Codex on this
+computer. From the options offered the owner chose to fold it “under settings”, as
+“App Settings link”, and added “from claude-code/codex” for the wording.
+
+- **Settings at the foot of the menu.** The My computers link is now **Settings**, an
+  app-wide page (`?view=settings`; old `?view=computers` links open it). Project
+  Settings stays per project.
+- **Connections.** The page's one card lists each approved connection, the shared
+  MyLittleSwarm service that Claude Code and Codex use: name,
+  Online/Offline, approval expiry and **Revoke**, which still revokes every agent working
+  through it in all projects. Its explanation sits behind a ? note.
+- **No “Set up another computer”.** The Change limits dialog no longer offers it; with
+  no connection it still shows the setup steps. “Approve this computer” is unchanged.
+- **Unchanged.** Server routes (`/computers/...`) and server error wording that mention
+  another computer.
+
 ## Project stamps show the newest update screenshot — owner decision, 11 November 2026
 
 Noa replaced project pictures with id gradients on 19 October. Asked where the
