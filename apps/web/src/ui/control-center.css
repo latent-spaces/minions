@@ -1,7 +1,5 @@
 .control-center { max-width: none; min-width: 0; }
 .control-center-heading { margin: 0 0 24px; }
-.control-center-heading h2 { margin: 0 0 8px; font-size: 24px; font-weight: 650; letter-spacing: -.02em; }
-.control-center-heading p { margin: 0; color: var(--text-muted); }
 .control-center-layout { display: grid; grid-template-columns: 208px minmax(0, 1fr); gap: 20px; align-items: start; }
 .control-center-nav { display: grid; gap: 4px; padding: 8px; border: var(--card-border); border-radius: var(--surface-radius); background: var(--canvas); }
 .control-center-nav a { display: flex; align-items: center; gap: 12px; padding: 10px 12px; min-height: 44px; box-sizing: border-box; border-radius: var(--radius-button); text-decoration: none; color: var(--ink); font-size: 14px; }

@@ -149,6 +149,13 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   A tab checks it when it regains focus and every five minutes; when a newer build is served it
   shows "MyLittleSwarm was updated" with a Reload button. It never reloads by itself, so a
   half-typed task or message is not lost.
+- **Every project tab opens with the same heading.** Tasks, Preview, Communication, Usage,
+  Settings and Teams share one 24px heading and an optional one-line intro, 16px below the
+  project header; Usage gained its heading (owner, 11 November 2026).
+- **Long task titles stop after two lines.** In the task list the Task column takes the spare
+  width, a long title ends with "…" after two lines and hovering shows the whole title. The list
+  stacks into rows by its own width, so it also stacks when the Updates panel leaves little room
+  (owner, 11 November 2026).
 - **The project header is two rows under a thin color strip.** The owner chose option B of four
   (one line, thin banner, collapse on scroll, move to the menu). The cover band is a 6px strip;
   the first row holds the stamp, title, status and actions, the second the repository, PR counts

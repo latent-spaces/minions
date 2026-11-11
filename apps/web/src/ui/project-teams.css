@@ -2,8 +2,6 @@
 .k42-teams { display: grid; gap: 20px; min-width: 0; }
 .k42-teams-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .k42-teams-heading h2, .k42-teams-heading h3, .k42-teams-heading h4 { margin: 0; }
-.k42-teams-heading h2 { font-size: 24px; font-weight: 650; }
-.k42-teams-heading p { margin: 6px 0 0; }
 .k42-teams-toolbar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .k42-teams-toolbar .k42-tasks-search { flex: 1 1 180px; }
 .k42-teams-split { display: grid; grid-template-columns: minmax(180px, 2fr) minmax(0, 3fr); border: var(--card-border); border-radius: var(--surface-radius); overflow: hidden; background: var(--canvas); min-width: 0; }

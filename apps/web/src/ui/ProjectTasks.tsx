@@ -243,7 +243,7 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
 
   return <section className="k42-tasks" aria-labelledby="k42-tasks-title">
     <div className="k42-tasks-head">
-      <h2 id="k42-tasks-title">Tasks{tasks && <span className="k42-tasks-heading-count"> ({tasks.length}{next ? '+' : ''})</span>}</h2>
+      <h2 id="k42-tasks-title" className="k42-section-title">Tasks{tasks && <span className="k42-tasks-heading-count"> ({tasks.length}{next ? '+' : ''})</span>}</h2>
       {/* Refresh and New task sit beside List/Board; the list's filters live in its column headers (owner, 11 November 2026). */}
       <div className="k42-tasks-head-actions">
         <Button className="k42-tasks-refresh" onClick={load} aria-label="Refresh tasks" title="Refresh tasks"><RefreshCw size={16} aria-hidden="true" /></Button>

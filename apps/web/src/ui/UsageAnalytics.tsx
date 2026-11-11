@@ -14,6 +14,7 @@ export function UsageAnalyticsView({filters,setFilters,apply,refresh,drill,data,
   const id=useId();
   const choose=(key:keyof AnalyticsFilters,value:string)=>setFilters(previous=>({...previous,[key]:value}));
   return <section className="usage-analytics" aria-label={platform?'Platform analytics':'Project usage'}>
+    {!platform&&<header className="usage-analytics-heading"><h2 className="k42-section-title">Usage</h2><p className="k42-section-intro">Context and tokens your agents reported, per agent.</p></header>}
     <details className="analytics-filter-details"><summary>Filters · {data?`${data.from} – ${data.to}`:`${filters.from} – ${filters.to}`}</summary><form className="analytics-filters" onSubmit={event=>{event.preventDefault();apply();}}>
       <label htmlFor={`${id}-from`}>From (UTC)<input id={`${id}-from`} type="date" required value={filters.from} onChange={e=>choose('from',e.target.value)}/></label>
       <label htmlFor={`${id}-to`}>To (UTC)<input id={`${id}-to`} type="date" required value={filters.to} onChange={e=>choose('to',e.target.value)}/></label>

@@ -72,7 +72,7 @@ export function ProjectTeams({ api, active, refreshToken = 0, disabledNotice, ag
   }, [draft, search]);
   const chooseFilter = (value: boolean) => { setArchived(value); setSelected(null); };
   return <section className="k42-teams" aria-label="Teams">
-    <div className="k42-teams-heading"><div><h2>Teams</h2><p className="muted">How agents organize their work.</p></div>
+    <div className="k42-teams-heading"><div><h2 className="k42-section-title">Teams</h2><p className="k42-section-intro">How agents organize their work.</p></div>
       <Button className="k42-tasks-refresh" aria-label="Refresh teams" title="Refresh teams" disabled={!active || busy} onClick={() => { load(); setRefreshKey(value => value + 1); }}><RefreshCw size={16} aria-hidden="true" /></Button></div>
     {disabledNotice && <p className="muted" role="status">Teams are off. Existing teams, memberships and history are read-only.</p>}
     <div className="k42-teams-toolbar">

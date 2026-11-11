@@ -1,10 +1,9 @@
-.k42-preview { padding: 24px 0 48px; color: var(--text, #141414); }
+.k42-preview { padding: 0 0 48px; color: var(--text, #141414); }
 .k42-preview-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
-.k42-preview h2 { margin: 0; font-size: 28px; letter-spacing: -.02em; }
 .k42-preview p { line-height: 1.5; max-width: 70ch; }
 .k42-preview button, .k42-preview a { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .k42-preview-frame, .k42-preview-placeholder { border: 1px solid #e0e0e0; border-radius: 16px; min-height: 380px; background: #f3f3f3; overflow: hidden; }
 .k42-preview-placeholder { display: grid; place-items: center; padding: 24px; text-align: center; }
 .k42-preview-frame iframe { display: block; border: 0; width: 100%; height: min(70vh, 720px); min-height: 380px; background: #fff; }
 .k42-preview-url { margin: -8px 0 16px; color: #616161; font-size: 14px; overflow-wrap: anywhere; }
-@media (max-width: 600px) { .k42-preview h2 { font-size: 24px; } .k42-preview-frame iframe, .k42-preview-placeholder { min-height: 320px; } }
+@media (max-width: 600px) { .k42-preview-frame iframe, .k42-preview-placeholder { min-height: 320px; } }

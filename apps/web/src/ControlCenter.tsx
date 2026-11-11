@@ -89,7 +89,7 @@ export function ControlCenter({ category, user, workspace, refresh, active, go, 
   if (!owner) return active ? <p role="status">Settings are available to the project owner.</p> : null;
   const closed = workspace.execution === 'closed';
   return <section className={`project-settings control-center${active ? ' is-active' : ''}`} aria-labelledby="control-center-title">
-    <header className="control-center-heading"><h2 id="control-center-title">Settings</h2><p>Manage project activity and rules.</p></header>
+    <header className="control-center-heading"><h2 id="control-center-title" className="k42-section-title">Settings</h2><p className="k42-section-intro">Manage project activity and rules.</p></header>
     <div className="control-center-layout">
     <ControlCenterNavigation projectId={workspace.id} section={tab} owner={owner} go={go} />
     <div className="control-center-panel">

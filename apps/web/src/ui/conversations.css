@@ -1,6 +1,5 @@
 .conversations { container-type:inline-size; }
-.conversations > h2 { margin:20px 0 8px; font-size:20px; }
-.conversations-intro { margin:0 0 16px; }
+.conversations-intro { margin-bottom:16px; }
 .conversation-directory { min-width:0; }
 .conversation-directory > .k42-chat-search { padding:0 0 16px; border:0; }
 .conversation-list { list-style:none; padding:0; margin:0; display:grid; gap:12px; }
