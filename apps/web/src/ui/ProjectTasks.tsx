@@ -1,13 +1,14 @@
 import { nativeTaskTitleMatches } from '@mlswarm/contracts';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import type { NativeTask, NativeTaskContributor, NativeTaskActor, NativeTaskDetail, NativeTaskStatus, NativeTaskActivity } from '@mlswarm/contracts';
-import { Check, Columns3, List, ListTodo, Plus, RefreshCw, Search } from 'lucide-react';
+import type { NativeTask, NativeTaskContributor, NativeTaskActor, NativeTaskDetail, NativeTaskStatus, NativeTaskActivity, NativeTaskSummary } from '@mlswarm/contracts';
+import { closedTask } from '@mlswarm/contracts';
+import { ArrowLeft, Check, ChevronDown, ChevronRight, Columns3, List, ListTodo, Plus, RefreshCw, Search } from 'lucide-react';
 export type TaskAgent = { id: string; name: string; operatorId: string | null; operatorName: string | null; revokedAt: number | null;
   operatorPhoto?: import('@mlswarm/contracts').PublicProfilePhoto | null; personaChoice?: import('@mlswarm/contracts').PersonaChoice | null; assignable?: boolean };
-import { hold, type Route } from '../route';
+import { hold, projectRoute, taskRoute, type Route } from '../route';
 import { NavLink } from '../navigation-link';
 import type { PublicPhoto } from '../profile-photo-api';
-import { TASK_STATUSES, isAccessLoss, isConflict, isTasksDisabled, isSettledRefusal, taskReferenceView, newestTaskSnapshot, taskSourceHref, taskReferenceFromUrl, statusLabel, statusChangeBlock, taskMutation, singleFlight, readTasksView, writeTasksView, type TasksApi, type TasksView } from '../task-model';
+import { TASK_STATUSES, isAccessLoss, isConflict, isTasksDisabled, isSettledRefusal, taskReferenceView, newestTaskSnapshot, taskSourceHref, taskReferenceFromUrl, statusLabel, statusChangeBlock, taskMutation, singleFlight, readTasksView, writeTasksView, nestTasks, subtaskProgress, type TasksApi, type TasksView } from '../task-model';
 import type { NativeTaskMutation } from '@mlswarm/contracts';
 import { AgentAvatar } from './AgentAvatar';
 import { TaskContributorAvatars } from './TaskContributorAvatars';
@@ -41,6 +42,8 @@ export interface ProjectTasksProps {
   disabledNotice?: boolean;
   /** Bumped by the sidebar's Add task button: each new value opens the New task dialog. */
   createRequest?: number;
+  /** The task page open in the URL (owner decision, 11 November 2026: a task opens as its own page with Back, not a drawer). */
+  taskId?: string | null;
   viewerUrl?: string;
   lookup?: TaskLabelLookup;
 }
@@ -82,8 +85,19 @@ function ActorChip({ actor, directory }: { actor: NativeTaskActor; directory: Di
 }
 function Unassigned() { return <span className="k42-task-actor k42-task-unassigned"><span className="k42-task-unassigned-dot" aria-hidden="true" />Unassigned</span>; }
 
-/** The selected simple design: one task per row (title, assigned agent, contributing agents, status, latest update) and a drawer. */
-export function ProjectTasks({ api, agents, people, readOnly = false, active, selfId = null, manager = false, projectId, go, disabledNotice = false, createRequest = 0, viewerUrl, lookup }: ProjectTasksProps) {
+function SubtaskRing({ done, total }: { done: number; total: number }) {
+  if (!total) return null;
+  const r = 7, c = 2 * Math.PI * r;
+  return <span className="k42-subtask-ring" title={`${done} of ${total} subtasks done or canceled`}>
+    <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r={r} className="k42-subtask-ring-track" />
+      <circle cx="9" cy="9" r={r} className="k42-subtask-ring-fill" strokeDasharray={`${c * done / total} ${c}`} transform="rotate(-90 9 9)" /></svg>
+    <span aria-hidden="true">{done}/{total}</span><span className="k42-visually-hidden">{done} of {total} subtasks closed</span>
+  </span>;
+}
+function Proposed() { return <span className="k42-task-proposed">Proposed</span>; }
+
+/** The selected simple design: one task per row (title, assigned agent, contributing agents, status, latest update); a task opens as its own page. */
+export function ProjectTasks({ api, agents, people, readOnly = false, active, selfId = null, manager = false, projectId, go, disabledNotice = false, createRequest = 0, taskId = null, viewerUrl, lookup }: ProjectTasksProps) {
   const [searchDraft, setSearchDraft] = useState('');
   const [search, setSearch] = useState('');
   const [assignee, setAssignee] = useState('');
@@ -96,7 +110,15 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
   const [tasks, setTasks] = useState<NativeTask[] | null>(null);
   const [next, setNext] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [openId, setOpenId] = useState<string | null>(null);
+  // In the app the open task lives in the URL, so Back/Forward and reloads keep it; without navigation it is local state.
+  const [localOpen, setLocalOpen] = useState<string | null>(null);
+  const routed = !!go && !!projectId;
+  const openId = routed ? taskId : localOpen;
+  const setOpenId = useCallback((id: string | null) => {
+    if (routed) go!(id ? taskRoute(projectId!, id) : projectRoute(projectId!)); else setLocalOpen(id);
+  }, [routed, go, projectId]);
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set());
+  const toggle = (id: string) => setCollapsed(current => { const next = new Set(current); if (!next.delete(id)) next.add(id); return next; });
   const [creating, setCreating] = useState(false);
   useEffect(() => { if (createRequest > 0) setCreating(true); }, [createRequest]);
   const [drawerActors, setDrawerActors] = useState<NativeTaskActor[]>([]);
@@ -126,7 +148,7 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
       setNext(cursor); setError(null);
     })().catch(e => {
       if (mine !== generation.current) return;
-      if (isAccessLoss(e)) { setTasks(null); setNext(null); setOpenId(null); setCreating(false); }
+      if (isAccessLoss(e)) { setTasks(null); setNext(null); setLocalOpen(null); setCreating(false); }
       setError(errorText(e));
     });
   }, [api, status, assignedAgentId, search]);
@@ -159,6 +181,10 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
   for (const [id, row] of directory.agent) if (!filterAgents.has(id)) filterAgents.set(id, row.name);
   for (const task of tasks ?? []) if (task.assignedAgentId && !filterAgents.has(task.assignedAgentId)) filterAgents.set(task.assignedAgentId, `Agent (${task.assignedAgentId})`);
   if (assignedAgentId && !filterAgents.has(assignedAgentId)) filterAgents.set(assignedAgentId, `Agent (${assignedAgentId})`);
+
+  if (openId) return <section className="k42-tasks">
+    <TaskPage key={openId} api={api} taskId={openId} directory={directory} agents={assignable} readOnly={readOnly} onActors={setDrawerActors} onChange={replace} onAccessLost={load} onOpen={setOpenId} selfId={selfId} projectId={projectId} go={go} viewerUrl={viewerUrl} />
+  </section>;
 
   return <section className="k42-tasks" aria-labelledby="k42-tasks-title">
     <div className="k42-tasks-head">
@@ -198,12 +224,18 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
     {tasks?.length === 0 && !creating && <EmptyState icon={ListTodo} tone={null} title={next ? 'More tasks to search' : search || assignee ? 'No tasks match these filters' : status ? `No ${statusLabel(status).toLowerCase()} tasks` : 'No tasks yet'}>{next ? 'No matches in this page. Show more to continue searching.' : search || assignee || status ? 'Change the title search, state or assigned agent filter to see more tasks.' : readOnly ? 'Tasks will appear here.' : 'Add the first task. A title is enough; an agent can pick it up from Backlog.'}</EmptyState>}
     {!!tasks?.length && view === 'board' && <TasksBoard api={api} tasks={tasks} directory={directory} readOnly={readOnly} more={!!next}
       canMove={task => !readOnly && (manager || (!!selfId && !!task.assignedAgentId && directory.agent.get(task.assignedAgentId)?.operatorId === selfId))}
-      openId={openId} onOpen={setOpenId} onChange={replace} onReload={load} />}
+      onOpen={setOpenId} onChange={replace} onReload={load} />}
     {!!tasks?.length && view === 'list' && <div className="k42-tasks-tablewrap"><table className="k42-tasks-table">
       <thead><tr><th scope="col">Task</th><th scope="col">Assigned agent</th><th scope="col">Agents</th><th scope="col">Status</th><th scope="col">Updated</th></tr></thead>
-      <tbody>{tasks.map(task => <tr key={task.id} className={openId === task.id ? 'is-open' : undefined}>
-        <th scope="row"><button type="button" className="k42-task-open" onClick={() => setOpenId(task.id)} aria-haspopup="dialog">{task.title}</button>
-          {task.priority === 'high' && <span className="k42-task-priority">High</span>}</th>
+      <tbody>{nestTasks(tasks, collapsed).map(({ task, depth, children }) => <tr key={task.id} className={depth ? 'is-subtask' : undefined}>
+        <th scope="row"><div className="k42-task-cell" style={{ ['--depth' as string]: depth }}>
+          {children.length ? <button type="button" className="k42-task-toggle" aria-expanded={!collapsed.has(task.id)} onClick={() => toggle(task.id)}
+            aria-label={`${collapsed.has(task.id) ? 'Show' : 'Hide'} subtasks of ${task.title}`}>{collapsed.has(task.id) ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}</button>
+            : <span className="k42-task-toggle-space" aria-hidden="true" />}
+          <button type="button" className="k42-task-open" onClick={() => setOpenId(task.id)}>{task.title}</button>
+          {task.proposed && <Proposed />}
+          {task.priority === 'high' && <span className="k42-task-priority">High</span>}
+          <SubtaskRing {...subtaskProgress(children)} /></div></th>
         <td data-label="Assigned">{task.assignedAgentId ? <AgentChip id={task.assignedAgentId} directory={directory} /> : <Unassigned />}</td>
         <td data-label="Agents"><TaskContributorAvatars contributors={task.contributors} agents={directory.agent} /></td>
         <td data-label="Status"><span className={`k42-task-status is-${task.status}`}>{statusLabel(task.status)}</span></td>
@@ -211,7 +243,6 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
       </tr>)}</tbody>
     </table></div>}
     {next && <Button onClick={more} disabled={loadingMore}>{loadingMore ? 'Loading…' : 'Show more'}</Button>}
-    {openId && <TaskDrawer key={openId} api={api} taskId={openId} directory={directory} agents={assignable} readOnly={readOnly} onActors={setDrawerActors} onChange={replace} onAccessLost={load} onClose={() => setOpenId(null)} selfId={selfId} projectId={projectId} go={go} viewerUrl={viewerUrl} />}
   </section>;
 }
 
@@ -263,12 +294,12 @@ function NewTask({ api, agents, onCreated, onCancel }: { api: TasksApi; agents: 
   </Dialog>;
 }
 
-/** Board view: one column per task status, in the existing order, over the same loaded tasks as the list. A card shows title, assigned agent
- *  and state; opening it uses the same drawer. Dropping a card on another column sends the drawer's status change (`update` with the
- *  revision it saw). Like the drawer's status buttons, only a person who may change the task's status (the owner, or the person of its
+/** Board view: one column per task status, in the existing order, over the same loaded tasks as the list, flat (subtasks are cards too).
+ *  A card shows title, assigned agent and state; opening it opens the task page. Dropping a card on another column sends the page's
+ *  status change (`update` with the revision it saw). Like the page's status buttons, only a person who may change the task's status (the owner, or the person of its
  *  assigned agent) can drag it; the server keeps its control and transition rules, and a refusal is shown here without changing anything. */
-function TasksBoard({ api, tasks, directory, readOnly, more, canMove, openId, onOpen, onChange, onReload }: {
-  api: TasksApi; tasks: NativeTask[]; directory: Directory; readOnly: boolean; more: boolean; canMove: (task: NativeTask) => boolean; openId: string | null; onOpen: (id: string) => void; onChange: (task: NativeTask) => void; onReload: () => void;
+function TasksBoard({ api, tasks, directory, readOnly, more, canMove, onOpen, onChange, onReload }: {
+  api: TasksApi; tasks: NativeTask[]; directory: Directory; readOnly: boolean; more: boolean; canMove: (task: NativeTask) => boolean; onOpen: (id: string) => void; onChange: (task: NativeTask) => void; onReload: () => void;
 }) {
   const [dragging, setDragging] = useState<string | null>(null), [over, setOver] = useState<NativeTaskStatus | null>(null);
   const [moving, setMoving] = useState<string | null>(null), [notice, setNotice] = useState<string | null>(null);
@@ -302,11 +333,12 @@ function TasksBoard({ api, tasks, directory, readOnly, more, canMove, openId, on
           onDrop={event => { event.preventDefault(); drop(state.id); }}>
           <h3 className="k42-tasks-column-head"><span className={`k42-task-status is-${state.id}`}>{state.label}</span><span className="k42-tasks-count">{column.length}{more ? '+' : ''}</span></h3>
           <ul className="k42-tasks-cards">
-            {column.map(task => <li key={task.id} className={`k42-tasks-card${openId === task.id ? ' is-open' : ''}${dragging === task.id ? ' is-dragging' : ''}${moving === task.id ? ' is-moving' : ''}`}
+            {column.map(task => <li key={task.id} className={`k42-tasks-card${dragging === task.id ? ' is-dragging' : ''}${moving === task.id ? ' is-moving' : ''}`}
               draggable={!moving && canMove(task)} aria-busy={moving === task.id || undefined}
               onDragStart={event => { if (!canMove(task)) { event.preventDefault(); return; } event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', task.id); setDragging(task.id); }}
               onDragEnd={() => { setDragging(null); setOver(null); }}>
-              <button type="button" className="k42-task-open k42-tasks-card-title" onClick={() => onOpen(task.id)} aria-haspopup="dialog">{task.title}</button>
+              <button type="button" className="k42-task-open k42-tasks-card-title" onClick={() => onOpen(task.id)}>{task.title}</button>
+              {task.proposed && <Proposed />}
               {task.priority === 'high' && <span className="k42-task-priority">High</span>}
               <div className="k42-tasks-card-meta">
                 {task.assignedAgentId ? <AgentChip id={task.assignedAgentId} directory={directory} size={24} /> : <Unassigned />}
@@ -322,8 +354,9 @@ function TasksBoard({ api, tasks, directory, readOnly, more, canMove, openId, on
 }
 
 
-function TaskDrawer({ api, taskId, directory, agents, readOnly: readOnlyProp, onActors, onChange, onAccessLost, onClose, selfId, projectId, go, viewerUrl }: {
-  api: TasksApi; taskId: string; directory: Directory; agents: TaskAgent[]; readOnly: boolean; onActors: (actors: NativeTaskActor[]) => void; onChange: (task: NativeTask) => void; onAccessLost: () => void; onClose: () => void;
+/** One task's page: Back and breadcrumbs (Tasks › parents › task), its fields, subtasks, comments and history. */
+function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onActors, onChange, onAccessLost, onOpen, selfId, projectId, go, viewerUrl }: {
+  api: TasksApi; taskId: string; directory: Directory; agents: TaskAgent[]; readOnly: boolean; onActors: (actors: NativeTaskActor[]) => void; onChange: (task: NativeTask) => void; onAccessLost: () => void; onOpen: (id: string | null) => void;
   selfId: string | null; projectId?: string; go?: (to: Route) => void; viewerUrl?: string;
 }) {
   const [detail, setDetail] = useState<NativeTaskDetail | null>(null);
@@ -340,11 +373,11 @@ function TaskDrawer({ api, taskId, directory, agents, readOnly: readOnlyProp, on
   // Like other editors, typed drafts and a change awaiting its exact retry hold the page and survive an accidental close.
   const unsaved=draftState.current.dirty || draftState.current.busy;
   useEffect(()=>unsaved ? hold() : undefined,[unsaved]);
-  const close=()=>{ if(!draftState.current.dirty && !draftState.current.busy || window.confirm('Discard your unsaved changes to this task?')) onClose(); };
+  const leave=(to:string|null)=>{ if(!draftState.current.dirty && !draftState.current.busy || window.confirm('Discard your unsaved changes to this task?')) onOpen(to); };
   const linkDraft = useRef({ link, label: linkLabel }); linkDraft.current = { link, label: linkLabel };
   const revision=useRef(0);revision.current=detail?.task.revision ?? 0;
   const titleId = useId(), panel = useRef<HTMLElement>(null);
-  // Replies for an earlier api (account/profile) or a closed drawer are dropped.
+  // Replies for an earlier api (account/profile) or a left page are dropped.
   const live = useRef(api); live.current = api;
   useEffect(() => { live.current = api; return () => { live.current = null as unknown as TasksApi; }; }, [api]);
   const current = (from: TasksApi) => live.current === from;
@@ -385,33 +418,8 @@ function TaskDrawer({ api, taskId, directory, agents, readOnly: readOnlyProp, on
       : { ...d, activity: [...d.activity, ...page.activity.filter(a => !d.activity.some(o => o.id === a.id))].sort((a,b)=>a.revision-b.revision), nextActivityCursor: page.nextActivityCursor })),
     e => { if (!current(from)) return; if (isAccessLoss(e)) { setDetail(null); onAccessLost(); } setNotice(errorText(e)); });
   };
-  // Runs once per drawer: a fresh onClose each render must not re-run focus handling while someone types.
-  const closeRef = useRef(close); closeRef.current = close;
-  useEffect(() => {
-    const opener = document.activeElement as HTMLElement | null;
-    panel.current?.focus();
-    const key = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { event.preventDefault(); closeRef.current(); return; }
-      if (event.key !== 'Tab' || !panel.current) return;
-      const items = [...panel.current.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, summary, [tabindex]')].filter(element => {
-        if (element.tabIndex < 0 || element.matches(':disabled') || element.closest('[inert]') || !element.getClientRects().length || getComputedStyle(element).visibility === 'hidden') return false;
-        // Closed disclosures expose only their first summary, never their hidden controls.
-        for (let ancestor = element.parentElement; ancestor && ancestor !== panel.current; ancestor = ancestor.parentElement) {
-          if (ancestor instanceof HTMLDetailsElement && !ancestor.open) {
-            const summary = [...ancestor.children].find(child => child.tagName === 'SUMMARY');
-            if (!summary?.contains(element)) return false;
-          }
-        }
-        return true;
-      });
-      if (!items.length) { event.preventDefault(); panel.current.focus(); return; }
-      const first = items[0], last = items[items.length - 1], focused = document.activeElement;
-      if (event.shiftKey && (focused === first || !items.includes(focused as HTMLElement))) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && (focused === last || !items.includes(focused as HTMLElement))) { event.preventDefault(); first.focus(); }
-    };
-    document.addEventListener('keydown', key);
-    return () => { document.removeEventListener('keydown', key); opener?.focus?.(); };
-  }, []);
+  // Opening a task page moves focus to its heading, like other page changes.
+  useEffect(() => { panel.current?.focus(); }, []);
   const task = detail?.task;
   type Op = Parameters<typeof taskMutation>[0];
   /** Each write sends the revision it saw; a 409 reloads the latest task and keeps any typed draft. */
@@ -479,10 +487,18 @@ function TaskDrawer({ api, taskId, directory, agents, readOnly: readOnlyProp, on
   const resolveLatest=()=>{setTitleDraft(null);setEditing(null);setCommentEdit(null);setReconcile(false);setNotice(null);};
   const viewVersion=(id:string)=>{const from=api;void api.get(taskId,{activityId:id}).then(d=>{if(current(from))setVersions(v=>({...v,[id]:d.activity[0]}));},e=>{if(current(from))setNotice(errorText(e));});};
 
-  return <div className="k42-task-layer">
-    <div className="k42-task-scrim" onClick={close} aria-hidden="true" />
-    <aside ref={panel} tabIndex={-1} className="k42-task-drawer" role="dialog" aria-modal="true" aria-labelledby={titleId}>
-      <div className="k42-task-drawer-head">
+  const ancestors = detail?.ancestors ?? [], subtasks = detail?.subtasks ?? [];
+  const parent = ancestors.at(-1) ?? null;
+  return <article ref={panel} tabIndex={-1} className="k42-task-page" aria-labelledby={titleId}>
+      <div className="k42-task-page-nav">
+        <Button className="k42-task-back" onClick={() => leave(parent?.id ?? null)}><ArrowLeft size={16} aria-hidden="true" />{parent ? 'Back to parent task' : 'Back to Tasks'}</Button>
+        <nav aria-label="Task location"><ol className="k42-task-crumbs">
+          <li><button type="button" className="k42-task-text-action" onClick={() => leave(null)}>Tasks</button></li>
+          {ancestors.map(row => <li key={row.id}><button type="button" className="k42-task-text-action" onClick={() => leave(row.id)}>{row.title}</button></li>)}
+          <li aria-current="page">{task?.title ?? 'Task'}</li>
+        </ol></nav>
+      </div>
+      <div className="k42-task-page-head">
         {titleDraft === null || readOnly
           ? <h2 id={titleId}>{task?.title ?? 'Task'}</h2>
           : <form className="k42-task-title-edit" onSubmit={e => { e.preventDefault(); void saveTitle(); }}>
@@ -490,12 +506,17 @@ function TaskDrawer({ api, taskId, directory, agents, readOnly: readOnlyProp, on
               <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || reconcile || !!uncertain || !titleDraft.trim()}>Save</Button><Button type="button" onClick={() => setTitleDraft(null)}>Cancel</Button></div>
             </form>}
         {task && !readOnly && titleDraft === null && <Button className="k42-task-text-action" onClick={() => setTitleDraft(task.title)} aria-label="Edit title">Edit</Button>}
-        <CloseButton onClick={close} label="Close task" />
       </div>
       {error && <div role="alert"><p className="error">Could not load this task: {error}</p><Button onClick={() => void reload()}>Try again</Button></div>}
       {!detail && !error && <p className="muted" role="status">Loading…</p>}
       {task && <>
         {notice && <div role="status" className="k42-task-notice"><p>{notice}</p>{uncertain && <Button disabled={busy} onClick={() => void send(uncertain)}>Retry</Button>}</div>}
+        {task.proposed && <div className="k42-task-proposal" role="status">
+          <p><Proposed /> An agent proposed this subtask. Nobody can take or start it until a project owner accepts it.</p>
+          {detail.permissions.review && !readOnly && <div className="k42-task-actions">
+            <Button className="primary" disabled={busy || reconcile || !!uncertain} onClick={() => base && void act({ operation: 'review_proposal', ...base, accept: true })}>Accept</Button>
+            <Button disabled={busy || reconcile || !!uncertain} onClick={() => base && void act({ operation: 'review_proposal', ...base, accept: false })}>Decline</Button></div>}
+        </div>}
         {reconcile && <section className="k42-task-conflict" role="alert">
           <h3>Task changed</h3><p>Your draft is kept. Review the current saved text:</p>
           {titleDraft!==null && <p>{task.title}</p>}{editing!==null && <p className="k42-task-description">{task.description || 'No description'}</p>}
@@ -544,6 +565,8 @@ function TaskDrawer({ api, taskId, directory, agents, readOnly: readOnlyProp, on
               <div className="k42-task-actions"><Button className="primary" disabled={busy || reconcile || !!uncertain} onClick={() => void saveDescription()}>{task.status==='done' && editing!==task.description ? 'Save and reopen' : 'Save'}</Button><Button onClick={() => setEditing(null)}>Cancel</Button></div></>}
         </section>
 
+        <Subtasks api={api} parent={task} subtasks={subtasks} directory={directory} readOnly={readOnly || !!task.proposed} onOpen={leave} onCreated={() => void reload()} />
+
         <details className="k42-task-section"><summary>Details{task.priority!=='normal' ? ` · ${task.priority} priority` : ''}</summary><div className="k42-task-props">          <label className="k42-task-prop-label" htmlFor={`${titleId}-priority`}>Priority</label>
           <div>{readOnly ? <span>{task.priority[0].toUpperCase() + task.priority.slice(1)}</span>
             : <select id={`${titleId}-priority`} className="k42-task-priority-select" value={task.priority} disabled={busy || reconcile || !!uncertain} onChange={e => base && void act({ operation: 'update', ...base, priority: e.target.value as NativeTask['priority'] })}>
@@ -590,8 +613,45 @@ function TaskDrawer({ api, taskId, directory, agents, readOnly: readOnlyProp, on
           {detail.nextActivityCursor && <Button onClick={() => more('activity')}>Show more history</Button>}
         </details>
       </>}
-    </aside>
-  </div>;
+  </article>;
+}
+
+/** The page's subtasks: full tasks with one parent. A quick title adds one, unassigned in Backlog. */
+function Subtasks({ api, parent, subtasks, directory, readOnly, onOpen, onCreated }: {
+  api: TasksApi; parent: NativeTask; subtasks: NativeTaskSummary[]; directory: Directory; readOnly: boolean; onOpen: (id: string) => void; onCreated: () => void;
+}) {
+  const [title, setTitle] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
+  // One request ID per draft, so a retry after an unknown outcome cannot add the subtask twice.
+  const requestId = useRef(crypto.randomUUID()), inputId = useId();
+  const add = (event: FormEvent) => {
+    event.preventDefault();
+    const value = title.trim();
+    if (!value || busy) return;
+    setBusy(true); setError(null);
+    api.mutate(taskMutation({ operation: 'create', title: value, parentId: parent.id }, requestId.current)).then(() => {
+      requestId.current = crypto.randomUUID(); setTitle(current => current.trim() === value ? '' : current); onCreated();
+    }, e => {
+      const settled = isSettledRefusal(e);
+      if (settled) requestId.current = crypto.randomUUID();
+      setError(settled ? errorText(e) : 'Could not confirm the subtask was added. Add again sends the same request; it will not add a duplicate.');
+    }).finally(() => setBusy(false));
+  };
+  const progress = subtaskProgress(subtasks);
+  return <section className="k42-task-section" aria-labelledby={`${inputId}-heading`}>
+    <div className="k42-task-section-head"><h3 id={`${inputId}-heading`}>Subtasks</h3><SubtaskRing {...progress} /></div>
+    {subtasks.length ? <ul className="k42-task-subtasks">{subtasks.map(row => <li key={row.id}>
+      <button type="button" className="k42-task-open" onClick={() => onOpen(row.id)}>{row.title}</button>
+      {row.proposed && <Proposed />}
+      <span className="k42-task-subtask-meta">{row.assignedAgentId ? <AgentChip id={row.assignedAgentId} directory={directory} size={24} /> : <Unassigned />}
+        <span className={`k42-task-status is-${row.status}`}>{statusLabel(row.status)}</span></span>
+    </li>)}</ul> : <p className="muted">No subtasks. Split the work into smaller tasks here.</p>}
+    {progress.total > 0 && progress.done === progress.total && !closedTask(parent) && <p className="muted k42-task-hint-inline">All subtasks are done or canceled. This task’s own status is still {statusLabel(parent.status)}.</p>}
+    {!readOnly && <form className="k42-task-inline" onSubmit={add}>
+      <label htmlFor={inputId} className="k42-visually-hidden">New subtask title</label>
+      <input id={inputId} value={title} maxLength={300} readOnly={busy} onChange={e => setTitle(e.target.value)} placeholder="Add a subtask" />
+      <Button type="submit" disabled={busy || !title.trim()}>{busy ? 'Adding…' : 'Add'}</Button></form>}
+    {error && <p role="alert" className="error">{error}</p>}
+  </section>;
 }
 
 function ContributorSummary({ contributors, directory }: { contributors: NativeTaskContributor[]; directory: Directory }) {
@@ -630,7 +690,7 @@ function PickerMenu({ label, summary, items, disabled }: { label: string; summar
 }
 
 function historyLabel(event: NativeTaskActivity) {
-  const labels:Record<string,string>={create:'created the task',claim:'claimed the task',release:'released the task to Backlog',assign:'changed the assigned agent',comment:'added a comment',edit_comment:'edited a comment',add_reference:'added a link',remove_reference:'removed a link'};
-  const fields:Record<string,string>={title:'title',description:'description',status:'status',assignedAgentId:'assigned agent',priority:'priority',contributors:'contributors',references:'links'};
+  const labels:Record<string,string>={create:'created the task',claim:'claimed the task',release:'released the task to Backlog',assign:'changed the assigned agent',comment:'added a comment',edit_comment:'edited a comment',add_reference:'added a link',remove_reference:'removed a link',review_proposal:'reviewed the proposal'};
+  const fields:Record<string,string>={title:'title',description:'description',status:'status',assignedAgentId:'assigned agent',priority:'priority',contributors:'contributors',references:'links',proposed:'proposal'};
   return event.action==='update' ? `changed ${event.fields?.map(f=>fields[f]??f).join(', ') || 'task details'}` : labels[event.action];
 }

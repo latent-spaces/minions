@@ -1,9 +1,9 @@
-import { nativeTaskTitleMatches } from '@mlswarm/contracts';
+import { AGENT_TASK_DEPTH, closedTask, nativeTaskTitleMatches } from '@mlswarm/contracts';
 import { assertNativeTasksEnabled, effectiveNativeTaskSettings } from './native-task-settings.js';
 import { createHash } from 'node:crypto';
 import { FieldPath, FieldValue, Timestamp, type Transaction } from '../firestore.js';
 import { z } from 'zod';
-import type { NativeTask, NativeTaskSummary, NativeTaskActor, NativeTaskMutationResult, NativeTaskPage, NativeTaskDetail, NativeTaskComment, NativeTaskActivity, NativeTaskReference, NativeTaskPermissions } from '@mlswarm/contracts';
+import type { NativeTask, NativeTaskAncestor, NativeTaskSummary, NativeTaskActor, NativeTaskMutationResult, NativeTaskPage, NativeTaskDetail, NativeTaskComment, NativeTaskActivity, NativeTaskReference, NativeTaskPermissions } from '@mlswarm/contracts';
 import { agents, currentProjectId, db, projectCollection } from '../firestore.js';
 import { Refusal } from '../errors.js';
 import { assertAgentMembership, assertMembership, assertProjectWritable, type ProjectRole } from './access.js';
@@ -30,7 +30,7 @@ const REFERENCE = z.discriminatedUnion('kind', [
 const base = { clientRequestId: z.string().uuid() };
 const edit = { ...base, taskId: ID, expectedRevision: z.number().int().positive().max(Number.MAX_SAFE_INTEGER - 1) };
 export const NATIVE_TASK_MUTATION = z.discriminatedUnion('operation', [
-  z.object({ ...base, operation: z.literal('create'), title: z.string().trim().min(1).max(300), description: z.string().max(10000).optional(), assignedAgentId: z.null().optional(), priority: PRIORITY.optional() }).strict(),
+  z.object({ ...base, operation: z.literal('create'), title: z.string().trim().min(1).max(300), description: z.string().max(10000).optional(), assignedAgentId: z.null().optional(), priority: PRIORITY.optional(), parentId: ID.optional() }).strict(),
   z.object({ ...edit, operation: z.literal('update'), title: z.string().trim().min(1).max(300).optional(), description: z.string().max(10000).optional(), status: STATUS.optional(), priority: PRIORITY.optional(), contributors: z.array(CONTRIBUTOR).max(30).optional() }).strict(),
   z.object({ ...edit, operation: z.literal('claim') }).strict(),
   z.object({ ...edit, operation: z.literal('release') }).strict(),
@@ -39,8 +39,9 @@ export const NATIVE_TASK_MUTATION = z.discriminatedUnion('operation', [
   z.object({ ...edit, operation: z.literal('edit_comment'), commentId: ID, body: z.string().trim().min(1).max(6000) }).strict(),
   z.object({ ...edit, operation: z.literal('add_reference'), reference: REFERENCE }).strict(),
   z.object({ ...edit, operation: z.literal('remove_reference'), referenceId: ID }).strict(),
+  z.object({ ...edit, operation: z.literal('review_proposal'), accept: z.boolean() }).strict(),
 ]);
-export const NATIVE_TASK_QUERY = z.object({ search: z.string().trim().max(300).optional(), status: STATUS.optional(), assignedAgentId: ID.optional(), unassigned: z.literal('true').optional(), cursor: ID.optional(), limit: z.coerce.number().int().min(1).max(100).default(50) }).strict().refine(input => !(input.unassigned && input.assignedAgentId), 'Choose an agent or unassigned, not both.');
+export const NATIVE_TASK_QUERY = z.object({ search: z.string().trim().max(300).optional(), status: STATUS.optional(), assignedAgentId: ID.optional(), unassigned: z.literal('true').optional(), parentId: ID.optional(), cursor: ID.optional(), limit: z.coerce.number().int().min(1).max(100).default(50) }).strict().refine(input => !(input.unassigned && input.assignedAgentId), 'Choose an agent or unassigned, not both.');
 export const NATIVE_TASK_DETAIL_QUERY = z.object({ commentCursor: ID.optional(), activityCursor: ID.optional(), activityId: ID.optional(), activityOrder: z.enum(['asc', 'desc']).default('asc'), limit: z.coerce.number().int().min(1).max(100).default(50) }).strict();
 export const nativeTasks = () => projectCollection<NativeTask>('nativeTasks');
 // T2: each task write also stores `changedAt`, the commit time Firestore assigns. It is never a process clock, so the
@@ -97,7 +98,10 @@ async function taskPermissions(tx: Transaction, actor: ProgressActor, task: Nati
   const control = edit && (actor.kind === 'agent' ? task.assignedAgentId === actor.agent.id
     : role === 'owner' || !!assigned && assigned.ownerProfileId === actor.person.id);
   const assign = !edit || task.status === 'canceled' || actor.kind === 'agent' ? 'none' : control ? 'any' : !task.assignedAgentId ? 'own' : 'none';
-  return { edit, editDescription: edit && (task.status !== 'done' || control), control, assign };
+  // A proposed subtask waits for an owner's yes: no one can claim, assign or start it before that.
+  const proposed = task.proposed === true;
+  return { edit, editDescription: edit && (task.status !== 'done' || control), control: control && !proposed, assign: proposed ? 'none' : assign,
+    review: edit && proposed && actor.kind === 'person' && role === 'owner' };
 }
 // Leave headroom below the approved-computer client's 256 KiB cap. Pages are bounded by bytes as well as row count.
 const PAGE_BYTES = 160 * 1024;
@@ -135,6 +139,7 @@ async function readNativeTaskPage<T extends { id: string }>(actor: ProgressActor
     if (input.status) q = q.where('status', '==', input.status);
     if (input.unassigned) q = q.where('assignedAgentId', '==', null);
     else if (input.assignedAgentId) q = q.where('assignedAgentId', '==', input.assignedAgentId);
+    if (input.parentId) q = q.where('parentId', '==', input.parentId);
     if (input.cursor) q = q.startAfter(input.cursor);
     // A projection reads only the fields its shape uses, not each task's description and references.
     // The shape reads only the selected fields, so the narrowed row type is safe here.
@@ -164,11 +169,12 @@ export function listNativeTasks(actor: ProgressActor, query: unknown = {}, now: 
 // Attribution stays internal to the MCP adapter; descriptions and references never
 // enter compact pages, avoiding per-reference visibility reads.
 type AuthoredTaskSummary = NativeTaskSummary & Pick<NativeTask, 'titleAuthor' | 'createdBy'>;
-const SUMMARY_FIELDS = ['id', 'title', 'status', 'assignedAgentId', 'priority', 'revision', 'titleAuthor', 'createdBy'] as const;
+const SUMMARY_FIELDS = ['id', 'title', 'status', 'assignedAgentId', 'priority', 'revision', 'parentId', 'proposed', 'titleAuthor', 'createdBy'] as const;
+const subtaskFields = (task: Pick<NativeTask, 'parentId' | 'proposed'>) => ({ ...(task.parentId ? { parentId: task.parentId } : {}), ...(task.proposed ? { proposed: true } : {}) });
 export function listNativeTaskSummaries(actor: ProgressActor, query: unknown = {}, now: () => number = Date.now) {
   return readNativeTaskPage<AuthoredTaskSummary>(actor, query, now, async (_tx, task) => ({
     id: task.id, title: task.title, status: task.status, assignedAgentId: task.assignedAgentId,
-    priority: task.priority, revision: task.revision, titleAuthor: task.titleAuthor, createdBy: task.createdBy,
+    priority: task.priority, revision: task.revision, ...subtaskFields(task), titleAuthor: task.titleAuthor, createdBy: task.createdBy,
   }), SUMMARY_FIELDS);
 }
 
@@ -239,9 +245,28 @@ export function listNativeTaskChanges(actor: ProgressActor, query: unknown = {},
 }
 export function listNativeTaskSummaryChanges(actor: ProgressActor, query: unknown = {}, now: () => number = Date.now) {
   return readNativeTaskChanges<NativeTaskSummary>(actor, query, now, async (_tx, task) => ({
-    id: task.id, title: task.title, status: task.status, assignedAgentId: task.assignedAgentId, priority: task.priority, revision: task.revision,
-  }), ['id', 'title', 'status', 'assignedAgentId', 'priority', 'revision']);
+    id: task.id, title: task.title, status: task.status, assignedAgentId: task.assignedAgentId, priority: task.priority, revision: task.revision, ...subtaskFields(task),
+  }), ['id', 'title', 'status', 'assignedAgentId', 'priority', 'revision', 'parentId', 'proposed']);
 }
+
+// People may nest without a fixed limit; this bounds the parent walk against corrupt cycles.
+const MAX_TASK_DEPTH = 50;
+const SUBTASK_LIMIT = 100;
+async function ancestorsOf(tx: Transaction, task: Pick<NativeTask, 'parentId'>): Promise<NativeTask[]> {
+  const chain: NativeTask[] = [];
+  for (let id = task.parentId; id; ) {
+    if (chain.length >= MAX_TASK_DEPTH || chain.some(row => row.id === id)) throw new Refusal('bad_input', 'This task is nested too deeply.');
+    const parent = (await tx.get(nativeTasks().doc(id))).data();
+    if (!parent) break;
+    chain.unshift(parent); id = parent.parentId;
+  }
+  return chain;
+}
+async function subtasksOf(tx: Transaction, taskId: string): Promise<NativeTask[]> {
+  const rows = await tx.get(nativeTasks().where('parentId', '==', taskId).limit(SUBTASK_LIMIT));
+  return rows.docs.map(row => row.data()).sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+}
+const summaryOf = (task: NativeTask): NativeTaskSummary => ({ id: task.id, title: task.title, status: task.status, assignedAgentId: task.assignedAgentId, priority: task.priority, revision: task.revision, ...subtaskFields(task) });
 
 export async function getNativeTask(actor: ProgressActor, taskId: string, query: unknown = {}, now: () => number = Date.now): Promise<NativeTaskDetail> {
   parse(ID, taskId); const input = parse(NATIVE_TASK_DETAIL_QUERY, query);
@@ -267,11 +292,13 @@ export async function getNativeTask(actor: ProgressActor, taskId: string, query:
       if (!after.exists) throw new Refusal('bad_input', 'Use this task history’s returned cursor.');
       aq = aq.startAfter(after);
     }
-    const [cr, ar] = await Promise.all([tx.get(cq), tx.get(aq)]);
+    const [cr, ar, chain, children] = await Promise.all([tx.get(cq), tx.get(aq), ancestorsOf(tx, task), subtasksOf(tx, taskId)]);
+    const ancestors: NativeTaskAncestor[] = chain.map(row => ({ id: row.id, title: row.title }));
     const commentPage = bytePage(cr.docs.slice(0, input.limit).map(row => row.data()), 40 * 1024);
     const events = bytePage(ar.docs.slice(0, input.limit).map(row => { const { task: _task, comment: _comment, ...event } = row.data(); return event; }), 24 * 1024);
     return { task: await visibleTask(tx, task), permissions, comments: [...commentPage].reverse(), activity: events,
-      nextCommentCursor: cr.size > commentPage.length ? commentPage.at(-1)!.id : null, nextActivityCursor: ar.size > events.length ? events.at(-1)!.id : null };
+      nextCommentCursor: cr.size > commentPage.length ? commentPage.at(-1)!.id : null, nextActivityCursor: ar.size > events.length ? events.at(-1)!.id : null,
+      ancestors, subtasks: children.map(summaryOf) };
   });
 }
 
@@ -293,9 +320,21 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
     else await assertProjectWritable(tx);
     const at = now();
     let task: NativeTask, before: NativeTask | undefined, comment: NativeTaskComment | undefined, notice: Target[] = [];
+    let closedParent: NativeTask | undefined, closedNotice: Target[] = [];
     if (input.operation === 'create') {
+      let parentId: string | undefined;
+      if (input.parentId) {
+        const parent = (await tx.get(nativeTasks().doc(input.parentId))).data();
+        if (!parent) throw new Refusal('not_found', 'This parent task is unavailable in this project.');
+        if (parent.proposed) throw new Refusal('bad_input', 'Wait for an owner to accept the proposed parent task before adding subtasks to it.');
+        const chain = [...await ancestorsOf(tx, parent), parent];
+        // Agents nest two levels (a task and its subtasks): a deeper agent request is attached under the deepest allowed level.
+        parentId = actor.kind === 'agent' && chain.length >= AGENT_TASK_DEPTH ? chain[AGENT_TASK_DEPTH - 2]!.id : parent.id;
+      }
       task = { id: `task_${key}`, projectId: currentProjectId(), title: input.title, description: input.description ?? '', status: 'backlog', assignedAgentId: null,
-        contributors: [], priority: input.priority ?? 'normal', references: [], createdBy: author, titleAuthor: author, descriptionAuthor: author, referenceAuthors: {}, createdAt: at, updatedAt: at, revision: 1 };
+        contributors: [], priority: input.priority ?? 'normal', references: [], createdBy: author, titleAuthor: author, descriptionAuthor: author, referenceAuthors: {}, createdAt: at, updatedAt: at, revision: 1,
+        // An agent's subtask is a proposal until an owner accepts it.
+        ...(parentId ? { parentId, ...(actor.kind === 'agent' ? { proposed: true } : {}) } : {}) };
     } else {
       const stored = (await tx.get(nativeTasks().doc(input.taskId))).data();
       if (!stored) throw new Refusal('not_found', 'This task is unavailable in this project.');
@@ -303,7 +342,15 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
       if (saved.revision !== input.expectedRevision) throw new Refusal('intent_conflict', `Task changed (current revision ${saved.revision}). Reload it before saving.`);
       before = saved;
       task = { ...saved, updatedAt: at, revision: saved.revision + 1 };
-      if (input.operation === 'claim') {
+      if (saved.proposed && (input.operation === 'claim' || input.operation === 'assign' || input.operation === 'release'
+        || (input.operation === 'update' && input.status !== undefined && input.status !== 'backlog')))
+        throw new Refusal('bad_input', 'This subtask is a proposal. An owner must accept it before anyone takes or starts it.');
+      if (input.operation === 'review_proposal') {
+        if (actor.kind !== 'person' || role !== 'owner') throw new Refusal('forbidden', 'Only a project owner can accept or decline a proposed subtask.');
+        if (!saved.proposed) throw new Refusal('intent_conflict', 'This subtask is no longer a proposal. Reload the task.');
+        delete task.proposed;
+        if (!input.accept) task.status = 'canceled';
+      } else if (input.operation === 'claim') {
         if (actor.kind !== 'agent') throw new Refusal('forbidden', 'Only a working agent can claim for itself.');
         if (task.assignedAgentId !== null || task.status !== 'backlog') throw new Refusal('intent_conflict', 'Only an unassigned Backlog task can be claimed. Reload the task.');
         await assignmentTarget(tx, actor.agent.id);
@@ -370,6 +417,14 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
         task.referenceAuthors = { ...task.referenceAuthors }; delete task.referenceAuthors[input.referenceId];
       }
     }
+    // When the last open subtask closes, its parent's assigned agent hears once. The parent's own status is never computed.
+    if (task.parentId && before && !before.proposed && !closedTask(before) && closedTask(task)) {
+      const parent = (await tx.get(nativeTasks().doc(task.parentId))).data();
+      if (parent?.assignedAgentId) {
+        const siblings = (await subtasksOf(tx, parent.id)).filter(row => row.id !== task.id && !row.proposed);
+        if (siblings.every(closedTask)) { closedParent = parent; closedNotice = await readTargets(tx, [parent.assignedAgentId], `task-children-closed-${parent.id}-${task.id}-${task.revision}`); }
+      }
+    }
     const result: NativeTaskMutationResult = { task, ...(comment ? { comment } : {}), replayed: false };
     if (Buffer.byteLength(JSON.stringify(task)) > TASK_BYTES) throw new Refusal('bad_input', 'This task is too large. Shorten its description or move supporting material to result links.');
     const visibleResult = { ...result, task: await visibleTask(tx, task) };
@@ -377,11 +432,13 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
     tx.set(nativeTasks().doc(task.id), { ...task, [CHANGED_AT]: FieldValue.serverTimestamp() } as unknown as NativeTask);
     if (comment) tx.set(comments(task.id).doc(comment.id), comment);
     const eventId = `${String(task.revision).padStart(12, '0')}_${key}`;
-    const fields = (['title','description','status','assignedAgentId','priority','contributors','references'] as const).filter(field => !before || JSON.stringify(before[field]) !== JSON.stringify(task[field]));
+    const fields = (['title','description','status','assignedAgentId','priority','contributors','references','proposed'] as const).filter(field => !before || JSON.stringify(before[field]) !== JSON.stringify(task[field]));
     tx.create(activity(task.id).doc(eventId), { id: eventId, taskId: task.id, actor: author, action: input.operation, revision: task.revision, at, fields, task, ...(comment ? { comment } : {}) });
     tx.create(receipts().doc(key), { actor: author, fingerprint, result });
     deliver(tx, notice, { sourceId: `task-assigned-${task.id}-${task.revision}`, kind: 'task_assigned', messageId: null,
       payload: { type: 'task_assigned', taskId: task.id, title: task.title, titleAuthor: task.titleAuthor, assignedBy: author, revision: task.revision } }, at);
+    if (closedParent) deliver(tx, closedNotice, { sourceId: `task-children-closed-${closedParent.id}-${task.id}-${task.revision}`, kind: 'task_children_closed', messageId: null,
+      payload: { type: 'task_children_closed', taskId: closedParent.id, title: closedParent.title, titleAuthor: closedParent.titleAuthor, revision: closedParent.revision } }, at);
     return visibleResult;
   });
 }

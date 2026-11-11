@@ -7,8 +7,8 @@ test('Project tab links survive a reload, and a removed tab opens the project ho
   const route = projectRoute(P, 'usage');
   expect(parseRoute(formatRoute(route))).toEqual(route);
   expect(parseRoute(`?project=${P}&section=usage&thread=thread&agent=agent&tab=status`)).toEqual(route);
-  expect(parseRoute(`?project=${P}&section=updates`)).toEqual(projectRoute(P, 'updates'));
-  for (const removed of ['community', 'details']) expect(parseRoute(`?project=${P}&section=${removed}`)).toEqual(projectRoute(P));
+  // Updates is a side panel, not a tab: old Updates and Tasks links open Tasks.
+  for (const removed of ['community', 'details', 'updates', 'tasks']) expect(parseRoute(`?project=${P}&section=${removed}`)).toEqual(projectRoute(P));
 });
 
 test('Control center sections survive direct links and reloads without leaking into other screens', () => {

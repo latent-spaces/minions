@@ -297,7 +297,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   const go = (next: Route, replace = false) => navigate(next, replace);
   const chooseSection = useCallback((next: Section) => {
     const { route: now } = current.current;
-    if (now.view === 'project') navigate({ ...now, section: next, thread: next === 'conversations' ? now.thread : null, agent: null, q: null });
+    if (now.view === 'project') navigate({ ...now, section: next, thread: next === 'conversations' ? now.thread : null, agent: null, q: null, task: undefined });
   }, [navigate]);
   const known = selected && directory && !directory.projects.some(p => p.id === selected.id) ? [selected, ...directory.projects] : directory?.projects ?? [];
   const shortcuts = projectShortcuts(known, selected, SHORTCUTS);
@@ -373,7 +373,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
           <div hidden={route.view !== 'projects'}><MyProjects user={user} view={route.view !== 'project' ? route.projectList ?? 'current' : 'current'} onArchiveChange={archiveChanged} active={route.view === 'projects' && visible} refreshKey={directoryTick} go={go} retry={refreshAll} /></div>
           {route.view === 'computers' && <MyComputers key={`${user.uid}:${account.person.id}`} user={user} active={visible} refreshKey={directoryTick} go={go} retry={refreshAll} />}
           {route.view === 'needs-you' && <NeedsYou key={user.uid} user={user} go={go} />}
-          {selected && <div hidden={!projectShown}><ProjectScope.Provider value={selected.id}><ProjectContent key={selected.id} suppliedProfileId={account.person.id} user={user} projectId={selected.id} section={section} chooseSection={chooseSection} agent={agent} search={agentSearch} agentFilter={route.view === 'project' ? route.agentFilter ?? 'mine' : 'mine'} onAgent={reportAgent} go={go} thread={route.view === 'project' ? route.thread : null} messageId={route.view === 'project' ? route.message : undefined} controlSection={route.view === 'project' ? route.controlSection : undefined} tick={tick} refresh={refresh} refreshAll={refreshAll} active={projectShown && visible} onDenied={denied} onFacts={setFacts} /></ProjectScope.Provider></div>}
+          {selected && <div hidden={!projectShown}><ProjectScope.Provider value={selected.id}><ProjectContent key={selected.id} suppliedProfileId={account.person.id} user={user} projectId={selected.id} section={section} chooseSection={chooseSection} agent={agent} search={agentSearch} agentFilter={route.view === 'project' ? route.agentFilter ?? 'mine' : 'mine'} onAgent={reportAgent} go={go} thread={route.view === 'project' ? route.thread : null} messageId={route.view === 'project' ? route.message : undefined} controlSection={route.view === 'project' ? route.controlSection : undefined} taskId={route.view === 'project' ? route.task ?? null : null} tick={tick} refresh={refresh} refreshAll={refreshAll} active={projectShown && visible} onDenied={denied} onFacts={setFacts} /></ProjectScope.Provider></div>}
           {route.view === 'project' && !projectShown && !failure && <p className="muted" role="status">Loading project…</p>}
           {failure && <section className="project-readme" aria-labelledby="project-unavailable">
             <PathHeading id="project-unavailable" headingRef={failureHeading} tabIndex={-1} go={go} title={failed ? failure.removed ? 'You no longer have access to this project' : 'Project not available' : 'Could not open this project'} />
@@ -409,7 +409,7 @@ const membersPath = () => '/members';
 const allAgentsPath = (cursor: string | null) => `/agents?view=labels${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
 const allMembersPath = (cursor: string | null) => `/members${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`;
 const agentRowsPath = () => '/agents';
-function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSection, agent, search, agentFilter, onAgent, go, thread, messageId, controlSection, tick, refresh, refreshAll, active, onDenied, onFacts }: { suppliedProfileId: string; user: SessionUser; projectId: string; section: Section; chooseSection: (section: Section) => void; agent: string | null; search: string | null; agentFilter: 'mine' | 'all'; onAgent: (projectId: string, id: string, name: string) => void; go: (to: Route, replace?: boolean) => void; thread: string | null; messageId?: string; controlSection?: Extract<Route, { view: 'project' }>['controlSection']; tick: number; refresh: () => void; refreshAll: () => void; active: boolean; onDenied: (projectId: string, error: Error) => void; onFacts: (facts: ProjectFacts) => void }) {
+function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSection, agent, search, agentFilter, onAgent, go, thread, messageId, controlSection, taskId, tick, refresh, refreshAll, active, onDenied, onFacts }: { suppliedProfileId: string; user: SessionUser; projectId: string; section: Section; chooseSection: (section: Section) => void; agent: string | null; search: string | null; agentFilter: 'mine' | 'all'; onAgent: (projectId: string, id: string, name: string) => void; go: (to: Route, replace?: boolean) => void; thread: string | null; messageId?: string; controlSection?: Extract<Route, { view: 'project' }>['controlSection']; taskId: string | null; tick: number; refresh: () => void; refreshAll: () => void; active: boolean; onDenied: (projectId: string, error: Error) => void; onFacts: (facts: ProjectFacts) => void }) {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadedAt, setLoadedAt] = useState<number | null>(null);
@@ -592,15 +592,16 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
 
           {workspace && <div hidden={currentSection !== 'overview'} className="k42-overview">
             {/* The strip keeps Home's setup notes above the tasks and the agent map. */}
-            <div className="k42-overview-strip">
+            <div className="k42-overview-strip" hidden={!!taskId && tasksListed}>
             {waiting && workspace.role !== 'owner' && <WaitingRoomCallout />}
             {waiting && workspace.role !== 'guest' && <WaitingAddAgent projectName={project?.name ?? workspace.definition.title} waitingForOwner={workspace.role !== 'owner'} />}
             {workspace.execution !== 'closed' && workspace.role !== 'guest' && controls.workers.data && !myAgents.length && <AddAgentNudge key={projectId} projectId={projectId} title={workspace.definition.title} started={!!project?.started} />}
             {!project && <ProjectHomePreparation owner={owner} closed={workspace.execution === 'closed'} projectId={projectId} go={go} />}
             </div>
-            <div className={tasksListed && !waiting && project ? 'k42-overview-grid' : undefined}>
-              {tasksListed && <div className="k42-overview-tasks"><ProjectTasks key={`${user.uid}:${projectId}`} api={tasks} agents={taskAgents} people={taskPeople} lookup={project ? taskLabels : undefined} readOnly={taskReadOnly} active={tasksShown} createRequest={taskRequest} selfId={ownProfileId} manager={workspace.role === 'owner'} projectId={projectId} go={go} /></div>}
-              {!waiting && project && <ProjectActivity user={user} tick={tick} active={visible && currentSection === 'overview'} go={go} projectName={project.name ?? workspace.definition.title} canAddAgent={workspace.role !== 'guest'} readOnly={workspace.execution === 'closed'} pauseRequest={project.paused ? project.pauseRequest : undefined} agentRows={agentRows.page?.items ?? []} onOpenAgent={activateAgent} onCopyLink={copyLink} />}
+            {/* An open task page takes the whole main column; the agent map returns with the list. */}
+            <div className={tasksListed && !waiting && project && !taskId ? 'k42-overview-grid' : undefined}>
+              {tasksListed && <div className="k42-overview-tasks"><ProjectTasks key={`${user.uid}:${projectId}`} api={tasks} agents={taskAgents} people={taskPeople} lookup={project ? taskLabels : undefined} readOnly={taskReadOnly} active={tasksShown} createRequest={taskRequest} taskId={taskId} selfId={ownProfileId} manager={workspace.role === 'owner'} projectId={projectId} go={go} /></div>}
+              {!waiting && project && !(taskId && tasksListed) && <ProjectActivity user={user} tick={tick} active={visible && currentSection === 'overview'} go={go} projectName={project.name ?? workspace.definition.title} canAddAgent={workspace.role !== 'guest'} readOnly={workspace.execution === 'closed'} pauseRequest={project.paused ? project.pauseRequest : undefined} agentRows={agentRows.page?.items ?? []} onOpenAgent={activateAgent} onCopyLink={copyLink} />}
             </div>
           </div>}
           {workspace && workspace.role !== 'guest' && currentSection === 'preview' && <ProjectPreview key={`${user.uid}:${projectId}`} title={workspace.definition.title} url={workspace.previewUrl ?? null} appOrigin={window.location.origin} />}

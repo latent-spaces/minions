@@ -8,7 +8,9 @@ export const CONTROL_CENTER_SECTIONS = ['status', 'merging', 'repository', 'agen
 export type ControlCenterSection = typeof CONTROL_CENTER_SECTIONS[number];
 export type Route =
   | { view: GlobalView; projectList?: 'archived' }
-  | { view: 'project'; projectId: string; section: Section; thread: string | null; agent: string | null; q: string | null; agentFilter?: 'all'; message?: string; controlSection?: ControlCenterSection };
+  | { view: 'project'; projectId: string; section: Section; thread: string | null; agent: string | null; q: string | null; agentFilter?: 'all'; message?: string; controlSection?: ControlCenterSection;
+    /** Tasks section: the open task page (owner decision, 11 November 2026). */
+    task?: string };
 
 export const validProjectId = (id: string) => /^[a-f0-9]{64}$/.test(id);
 // Agents owns the directory and agent details. Its default filter is My agents;
@@ -16,6 +18,8 @@ export const validProjectId = (id: string) => /^[a-f0-9]{64}$/.test(id);
 export const projectRoute = (projectId: string, section: Section = 'overview', agent: string | null = null, q: string | null = null, agentFilter: 'mine' | 'all' = 'mine'): Route =>
   ({ view: 'project', projectId, section, thread: null, agent: section === 'agents' ? agent : null, q: section === 'agents' && q ? q : null,
     ...(section === 'agents' && (agentFilter === 'all' || q) ? { agentFilter: 'all' as const } : {}) });
+export const taskRoute = (projectId: string, taskId: string): Route =>
+  ({ view: 'project', projectId, section: 'overview', thread: null, agent: null, q: null, task: taskId });
 export const controlCenterRoute = (projectId: string, category?: ControlCenterSection): Route =>
   ({ view: 'project', projectId, section: 'control-center', thread: null, agent: null, q: null, ...(category ? { controlSection: category } : {}) });
 export const validPairingId = (id: string) => /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(id);
@@ -41,7 +45,8 @@ export function parseRoute(search: string): Route {
       agent: section === 'agents' && agent && validId(agent) ? agent : null, q: section === 'agents' && q && validSearch(q) ? q : null,
       ...(section === 'conversations' && validId(query.get('message') ?? '') ? { message: query.get('message')! } : {}),
       ...(section === 'control-center' && CONTROL_CENTER_SECTIONS.includes(query.get('tab') as ControlCenterSection) ? { controlSection: query.get('tab') as ControlCenterSection } : {}),
-      ...(section === 'agents' && (query.get('filter') === 'all' || q && validSearch(q)) ? { agentFilter: 'all' as const } : {}) };
+      ...(section === 'agents' && (query.get('filter') === 'all' || q && validSearch(q)) ? { agentFilter: 'all' as const } : {}),
+      ...(section === 'overview' && validId(query.get('task') ?? '') ? { task: query.get('task')! } : {}) };
   }
   const view = query.get('view') as GlobalView | null;
   const selected = view && GLOBAL_VIEWS.includes(view) ? view : 'projects';
@@ -61,6 +66,7 @@ export function formatRoute(route: Route): string {
   if (route.agent) query.set('agent', route.agent);
   if (route.q) query.set('q', route.q);
   if (route.section === 'agents' && route.agentFilter === 'all') query.set('filter', 'all');
+  if (route.section === 'overview' && route.task && validId(route.task)) query.set('task', route.task);
   if (route.section === 'control-center' && route.controlSection && CONTROL_CENTER_SECTIONS.includes(route.controlSection)) query.set('tab', route.controlSection);
   return `?${query}`;
 }

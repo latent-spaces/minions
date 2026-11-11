@@ -10,6 +10,31 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Task page and first-class subtasks — owner decision, 11 November 2026
+
+Source: the owner in chat on 11 November 2026: “a tasks clicked should not open the right
+drawer it should go to the task page and have a back button, and we should learn from
+paperclip, and multica on how tasks are organized and that tasks will have subtasks as
+first class”, then approving four points one by one (“Yes, approve 1”, then “Yes, as
+described” for points 2, 3 and 4). This replaces “Task view unchanged” below. Paperclip and
+Multica both open a full task page, model subtasks as full tasks with a parent link, and
+never derive a parent's status from its children.
+
+1. **Task page.** Clicking a task opens its own page with a Back link and breadcrumbs
+   (Tasks › parent › task). The right-side task drawer is removed.
+2. **Subtasks are full tasks.** A subtask has its own status, assignee and conversation and
+   links to one parent task. Agents can nest two levels (a task, its subtasks); a deeper
+   request from an agent is created one level up, under the same parent. People can nest
+   to any depth. A parent's status is never computed from its subtasks: the parent shows a
+   done/total ring, and its assignee is notified once when all of its subtasks are closed
+   (done or canceled).
+3. **Subtasks on the task page.** The page lists the task's subtasks with status and
+   assignee, with a quick Add subtask field. Agents can propose subtasks; a proposal waits
+   for the owner's yes before it becomes a task.
+4. **Nested list, flat board.** In List, subtasks show under their parent with a toggle to
+   collapse them and the done/total ring on the parent row. Board stays flat: each subtask
+   is its own card in its status column.
+
 ## Project page: Tasks main page, Updates panel, Add task — owner decision, 11 November 2026
 
 Source: the owner in chat on 11 November 2026, approving each change one by one, then
@@ -32,7 +57,9 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   and we can use the space in the page better”. The panel grows from 360px to 460px with
   the screen; the map sits beside the tasks only when the main column has room (960px),
   otherwise under them, so the task table keeps readable columns.
-- **Task view unchanged.** The List/Board toggle stays, with List as the default.
+- **Task view unchanged.** The List/Board toggle stays, with List as the default. (Later
+  the same day the owner replaced the task drawer with a task page and added subtasks; see
+  “Task page and first-class subtasks”.)
 
 ## Job time limits come back — owner decision, 11 November 2026
 

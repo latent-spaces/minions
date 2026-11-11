@@ -106,7 +106,7 @@ test('actual Tasks tab offers the list and a status board, remembers the choice 
     expect(await viewSwitch.getByRole('button', { name: 'Board', exact: true }).getAttribute('aria-pressed')).toBe('true');
     await column('In progress').locator('.k42-tasks-card').waitFor();
 
-    // Dropping an assigned Backlog card on In progress sends the drawer's status change; the server records it.
+    // Dropping an assigned Backlog card on In progress sends the task page's status change; the server records it.
     const readyCard = column('Backlog').locator('.k42-tasks-card', { hasText: 'Draft the launch note' });
     expect(await readyCard.getAttribute('draggable')).toBe('true');
     // Holding a card over its own column is a harmless no-op: that column looks neutral, not refused.
@@ -130,12 +130,13 @@ test('actual Tasks tab offers the list and a status board, remembers the choice 
     await column('Canceled').locator('.k42-tasks-card').dragTo(column('Backlog'));
     await column('Backlog').locator('.k42-tasks-card', { hasText: 'Old idea nobody picked up' }).waitFor();
     expect((await stored(dropped.id)).status).toBe('backlog');
-    // Opening a card uses the same drawer.
+    // Opening a card goes to the task page; Back returns to the board.
     await column('Done').getByRole('button', { name: 'Agree the task completion policy', exact: true }).click();
-    const drawer = page.getByRole('dialog', { name: 'Agree the task completion policy', exact: true });
-    await drawer.waitFor();
-    await drawer.getByRole('button', { name: 'Close task', exact: true }).click();
-    await drawer.waitFor({ state: 'detached' });
+    await page.getByRole('heading', { name: 'Agree the task completion policy', exact: true }).waitFor();
+    expect(new URL(page.url()).searchParams.get('task')).toBe(finished.id);
+    await page.getByRole('button', { name: 'Back to Tasks', exact: true }).click();
+    await board.waitFor();
+    expect(new URL(page.url()).searchParams.get('task')).toBeNull();
 
     // Phone width: the board scrolls sideways; the page does not.
     await page.setViewportSize({ width: 390, height: 844 });
@@ -176,11 +177,11 @@ test('actual Tasks tab offers the list and a status board, remembers the choice 
     await kitCard.dragTo(memberColumn('In progress'));
     await memberColumn('In progress').locator('.k42-tasks-card', { hasText: 'Kit checks the sign-in copy' }).waitFor();
     expect((await stored(kitTask.id)).status).toBe('in_progress');
-    // A card the member cannot move still opens the drawer, whose status buttons are disabled too.
+    // A card the member cannot move still opens its task page, whose status buttons are disabled too.
     await foxCard.getByRole('button', { name: 'Store native tasks with atomic claims', exact: true }).click();
-    const memberDrawer = member.getByRole('dialog', { name: 'Store native tasks with atomic claims', exact: true });
-    await memberDrawer.getByRole('button', { name: 'Done', exact: true }).waitFor();
-    expect(await memberDrawer.getByRole('button', { name: 'Done', exact: true }).isDisabled()).toBe(true);
+    const memberPage = member.getByRole('article', { name: 'Store native tasks with atomic claims', exact: true });
+    await memberPage.getByRole('button', { name: 'Done', exact: true }).waitFor();
+    expect(await memberPage.getByRole('button', { name: 'Done', exact: true }).isDisabled()).toBe(true);
 
     expect(errors).toEqual([]);
     console.info(`Verified actual Tasks list/board views, remembered choice, drag status changes and phone width: ${directory}`);

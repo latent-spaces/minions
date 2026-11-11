@@ -156,6 +156,14 @@ optional description, optional assignee); it shows only when Tasks is on and the
 can add tasks. A task created with an assignee is created first, then assigned; if the
 assignment fails the dialog says so and offers Retry assigning.
 
+Clicking a task opens its own page (`taskRoute` in `route.ts`, `task=` in the URL): the
+strip and the map are hidden, and the page has Back (to the parent task, or to Tasks) and
+breadcrumbs from the top-level task down. The page lists the task's subtasks with their
+assignee and status, a done/total ring (done or canceled; pending proposals don't count)
+and a quick Add subtask field. An agent's subtask is a proposal: it shows a Proposed badge
+and, for owners, Accept and Decline. The list nests subtasks under their parent
+(`nestTasks` in `task-model.ts`) with a collapse toggle and the ring; the board stays flat.
+
 On Tasks, `ProjectActivity.tsx` renders the lazily loaded
 `ProjectCommunication` card (see [Conversations on
 Tasks](#conversations-on-tasks)) once the project is set up. Before

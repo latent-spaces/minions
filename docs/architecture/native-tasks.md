@@ -1,13 +1,13 @@
 # Native task architecture
 
-MyLittleSwarm owns the shared task record. GitHub owns repositories, commits, branches and code review. A task can produce a document, investigation or decision without a pull request. Linking or merging a PR does not complete a task. The current implementation is the simple task table/drawer; groups, milestones and dependencies are not implemented by this slice.
+MyLittleSwarm owns the shared task record. GitHub owns repositories, commits, branches and code review. A task can produce a document, investigation or decision without a pull request. Linking or merging a PR does not complete a task. The current implementation is a task list or board, a task page per task, and subtasks: each subtask is a full task with one parent. People nest to any depth; agents nest two levels, and an agent's subtask is a proposal until an owner accepts it. A parent's status is never computed from its subtasks; it shows a done/total ring, and its assigned agent gets one `task_children_closed` notice when every subtask is done or canceled. Groups, milestones and dependencies are not implemented.
 
 ## Boundaries and layers
 
 ```mermaid
 flowchart TB
   Human[Person and coordinating chat] --> OwnerMCP[Shared local owner MCP]
-  Hosted[Hosted task table and drawer] --> API[Cloud API]
+  Hosted[Hosted task list and task page] --> API[Cloud API]
   OwnerMCP --> OwnerHTTP[Approved-computer owner client]
   OwnerHTTP --> API
   Human --> Approval[Explicit agent scope, provider and time]
@@ -149,7 +149,7 @@ Personal export filters authored task fields/comments/history and avoids exporti
 
 Production presentation lives once in `apps/web/src/ui`, with the shared identity avatars/design tokens. Hosted Tasks supports authenticated human creation and edits under the native task permissions; owners/admins manage the task setting in Control center. Mutations require the selected profile to match the verified signed-in person and are checked transactionally for membership, task authority, current setting and project state. The local connector is headless and serves only authenticated loopback MCP/lifecycle routes: it has no browser UI, project browser capability or browser-write ingress. Local emulator and hosted clients use the same person routes and native task service; no demo-only task-write exception remains.
 
-Task settings show a loading state until the current project's saved value is known, rather than briefly displaying the default as an observed value. Request generations discard replies from an earlier project or inactive view. Failed reads offer Try again; an uncertain save retains the identical payload for Retry. These UI states do not change the default-ON server policy. The task drawer keeps keyboard focus among its visible controls, including when Links or History is collapsed, and restores focus when closed.
+Task settings show a loading state until the current project's saved value is known, rather than briefly displaying the default as an observed value. Request generations discard replies from an earlier project or inactive view. Failed reads offer Try again; an uncertain save retains the identical payload for Retry. These UI states do not change the default-ON server policy. A task opens as its own page (`task` in the project route) with Back and breadcrumbs; focus moves to the page when it opens, and leaving with an unsaved draft asks first.
 
 Matching source alone does not update an installed service. See [the release history](../release/deployment.md#release-history) for the identities earlier deployed to `karma42.ai` and [connector README](../../packages/agent-cli/README.md) for lifecycle. Preserve saved runtime/credentials during idle upgrades. There is no previous-project import, reset, dual task store or Issue fallback.
 

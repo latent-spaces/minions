@@ -1,5 +1,6 @@
 import type { NativeTask, NativeTaskDetail, NativeTaskMutation, NativeTaskMutationResult, NativeTaskPage, NativeTaskReference } from '@mlswarm/contracts';
 import type { NativeTaskStatus } from '@mlswarm/contracts';
+import { closedTask } from '@mlswarm/contracts';
 
 export interface TasksApi {
   list(cursor?: string | null, status?: NativeTaskStatus, assignedAgentId?: string | null, search?: string): Promise<NativeTaskPage>;
@@ -45,7 +46,7 @@ export function newestTaskSnapshot(current: NativeTask | null | undefined, incom
 /** Tasks were turned off for the project after this page loaded (server refusal `tasks_disabled`, sent as 409). */
 export const isTasksDisabled = (error: unknown) => !!error && typeof error === 'object' && (error as { code?: string }).code === 'tasks_disabled';
 
-/** A stale revision (409) means someone else changed the task first; the drawer reloads and keeps the draft. */
+/** A stale revision (409) means someone else changed the task first; the task page reloads and keeps the draft. */
 export const isConflict = (error: unknown) => !!error && typeof error === 'object' && 'status' in error && (error as { status: number }).status === 409 && !isTasksDisabled(error);
 
 /** Confirmed refusals: the outcome is known, so the request is not retried. Anything else (network, 5xx) is uncertain. */
@@ -104,4 +105,32 @@ export function singleFlight() {
     start: (generation: number) => owner !== generation && (owner = generation, true),
     end: (generation: number) => owner === generation && (owner = null, true),
   };
+}
+
+/** Done/total of a parent's subtasks, as a small ring. Proposals waiting for an owner don't count; the parent's own status is never computed. */
+export function subtaskProgress(subtasks: Pick<NativeTask, 'status' | 'proposed'>[]): { done: number; total: number } {
+  const counted = subtasks.filter(task => !task.proposed);
+  return { done: counted.filter(closedTask).length, total: counted.length };
+}
+
+export type TaskRow = { task: NativeTask; depth: number; children: NativeTask[] };
+/** List rows: subtasks nest under a loaded parent; a subtask whose parent isn't loaded (other page or filtered out) stays top-level. */
+export function nestTasks(tasks: NativeTask[], collapsed: ReadonlySet<string>): TaskRow[] {
+  const ids = new Set(tasks.map(task => task.id)), children = new Map<string, NativeTask[]>();
+  for (const task of tasks) if (task.parentId && task.parentId !== task.id && ids.has(task.parentId)) children.set(task.parentId, [...children.get(task.parentId) ?? [], task]);
+  for (const kids of children.values()) kids.sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+  const roots = tasks.filter(task => !task.parentId || task.parentId === task.id || !ids.has(task.parentId));
+  // A corrupt parent cycle has no root; those rows show flat rather than disappear.
+  const reached = new Set<string>();
+  const reach = (task: NativeTask) => { if (reached.has(task.id)) return; reached.add(task.id); for (const kid of children.get(task.id) ?? []) reach(kid); };
+  roots.forEach(reach);
+  const rows: TaskRow[] = [], seen = new Set<string>();
+  const walk = (task: NativeTask, depth: number) => {
+    if (seen.has(task.id)) return; seen.add(task.id);
+    const kids = children.get(task.id) ?? [];
+    rows.push({ task, depth, children: kids });
+    if (!collapsed.has(task.id)) for (const kid of kids) walk(kid, depth + 1);
+  };
+  for (const task of [...roots, ...tasks.filter(task => !reached.has(task.id))]) walk(task, 0);
+  return rows;
 }

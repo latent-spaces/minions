@@ -43,6 +43,12 @@ messages, then release so the receiving agent can claim.
 Only agents are assigned, one per task; an unassigned task
 waits in Backlog. Assigning or claiming a task never starts, steers or extends an agent.
 When a person assigns you a task, a `task_assigned` item reaches your inbox; read it with `get_task`.
+Subtasks are full tasks with one parent. To split work, call `create_task` with
+`parent_task_id`: it waits as a proposal until an owner accepts it, and nobody can claim
+it before that. Your subtasks nest two levels; a deeper request is attached one level up.
+`get_task` shows a task's parents and subtasks; `list_tasks(parent_task_id=…)` lists them.
+A parent's status never changes by itself: when all its subtasks are done or canceled,
+its assigned agent gets one `task_children_closed` item. Then decide whether the parent is done.
 Assignment survives restarts and never expires or moves automatically. Use
 `release_task` to return your task to Backlog. Only an assigned task moves to In
 progress or Done. Record results, blockers and review requests as comments, not

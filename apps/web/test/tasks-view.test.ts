@@ -17,7 +17,7 @@ test('the chosen view is written under one key and blocked storage keeps the vis
   assert.equal(readTasksView({ getItem: () => { throw new Error('blocked'); } }), 'list');
 });
 
-test('board moves follow the drawer rules: reopen canceled work first, assign before starting or completing', () => {
+test('board moves follow the task page rules: reopen canceled work first, assign before starting or completing', () => {
   assert.equal(statusChangeBlock({ status: 'canceled', assignedAgentId: null }, 'done'), 'Reopen to Backlog first');
   assert.equal(statusChangeBlock({ status: 'canceled', assignedAgentId: null }, 'backlog'), null);
   assert.equal(statusChangeBlock({ status: 'backlog', assignedAgentId: null }, 'in_progress'), 'Assign an agent before starting or completing this task');

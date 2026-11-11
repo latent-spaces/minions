@@ -38,7 +38,7 @@ export function deliver(tx: Transaction, targets: Target[], delivery: Delivery, 
     });
     tx.set(sourceMarkers(agentId).doc(delivery.sourceId), { seq });
     tx.set(inboxes().doc(agentId), { last: seq, acked: inbox.acked, updatedAt: at,
-      lastDirect: delivery.kind === 'message' || delivery.kind === 'task_assigned' ? seq : (inbox.lastDirect ?? inbox.last) });
+      lastDirect: delivery.kind === 'message' || delivery.kind === 'task_assigned' || delivery.kind === 'task_children_closed' ? seq : (inbox.lastDirect ?? inbox.last) });
     count++;
   }
   return count;
@@ -59,7 +59,7 @@ type PublicItem = Pick<InboxItem, 'seq' | 'kind' | 'deliveredAt' | 'payload'>;
 function publicPayload(payload: InboxItem['payload']): InboxItem['payload'] {
   if (typeof payload.body === 'string') return messageWithSource(payload as { agentId: string; agentName?: string; body: string });
   if (payload.type === 'direction_opened') return { ...payload, title: untrusted(actorSource(payload.openedBy), payload.title) };
-  if (payload.type === 'task_assigned') return { ...payload, title: untrusted(actorSource(payload.titleAuthor), payload.title) };
+  if (payload.type === 'task_assigned' || payload.type === 'task_children_closed') return { ...payload, title: untrusted(actorSource(payload.titleAuthor), payload.title) };
   return payload;
 }
 

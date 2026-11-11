@@ -12,8 +12,8 @@ import { resetEmulator, seed, TEST_PROJECT, idTokenFor } from '../../apps/server
 const root = fileURLToPath(new URL('../../', import.meta.url)), require = createRequire(new URL('../../apps/web/package.json', import.meta.url));
 async function port() { const s = portServer(); await new Promise<void>(resolve => s.listen(0, '127.0.0.1', resolve)); const value = (s.address() as { port: number }).port; await new Promise<void>(resolve => s.close(() => resolve())); return value; }
 
-// The Updates tab left the local app (lean passes, November 2026); Home keeps the communication map and the cheat sheet.
-test('actual project Home keeps the communication map and cheat sheet and fits desktop and phone widths', async () => {
+// Tasks is the project's first tab: it keeps the communication map and the cheat sheet; Updates is the side panel.
+test('actual project Tasks keeps the communication map and cheat sheet and fits desktop and phone widths', async () => {
   await resetEmulator();
   const directory = await mkdtemp(join(tmpdir(), 'mlswarm-home-')), apiPort = await port(), webPort = await port();
   const fixture = await seed({project:{name:'Synthetic Home feed',startsAt:Date.now()-60000},profiles:[{name:'Demo author',email:'author@example.test'}],agents:[{person:0,name:'Demo Fox'},{person:0,name:'Demo Owl'}]});
@@ -38,10 +38,11 @@ test('actual project Home keeps the communication map and cheat sheet and fits d
     await page.goto(`http://127.0.0.1:${webPort}/viewer/?project=${TEST_PROJECT}`);
     await signInBrowser(page, await idTokenFor('author@example.test'));
     const tabs=page.getByRole('navigation',{name:'Project sections',exact:true});
-    await tabs.getByRole('link',{name:'Home',exact:true}).waitFor();
+    await tabs.getByRole('link',{name:'Tasks',exact:true}).waitFor();
     await page.getByRole('button',{name:/Select agent Demo Fox/}).waitFor();
-    expect(await tabs.getByRole('link',{name:'Updates',exact:true}).count()).toBe(1);
-    expect(await page.getByRole('heading',{name:'Project updates',exact:true}).count()).toBe(0);
+    // Updates is the full-height side panel, not a tab.
+    expect(await tabs.getByRole('link',{name:'Updates',exact:true}).count()).toBe(0);
+    expect(await page.getByRole('heading',{name:'Project updates',exact:true}).count()).toBe(1);
     expect(await page.locator('.k42-communication-spotlight').count()).toBe(0);
     expect(await page.locator('.k42-communication-timeline').count()).toBe(0);
     await page.getByRole('button',{name:'Cheat sheet',exact:true}).click();
@@ -61,8 +62,8 @@ test('actual project Home keeps the communication map and cheat sheet and fits d
     await page.getByRole('button',{name:'Exit full screen',exact:true}).click();await page.locator('.k42-communication.is-expanded').waitFor({state:'detached'});
     for (const [name,width,height] of [['desktop',1440,1000],['mobile',390,844]] as const) {
       await page.setViewportSize({width,height});
-      if (name === 'mobile') { await page.reload(); await tabs.getByRole('link',{name:'Home',exact:true}).waitFor(); }
-      expect(await tabs.getByRole('link',{name:'Home',exact:true}).getAttribute('aria-current')).toBe('page');
+      if (name === 'mobile') { await page.reload(); await tabs.getByRole('link',{name:'Tasks',exact:true}).waitFor(); }
+      expect(await tabs.getByRole('link',{name:'Tasks',exact:true}).getAttribute('aria-current')).toBe('page');
       await page.locator('.communication-map').scrollIntoViewIfNeeded();
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
       await page.screenshot({animations:'disabled',path:join(directory,`graph-${name}.png`)});
@@ -85,8 +86,9 @@ test('actual project Home keeps the communication map and cheat sheet and fits d
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
       await page.screenshot({animations:'disabled',path:join(directory,`projects-${width}.png`)});
     }
-    expect(updateReads).toBe(0);expect(eventReads).toBe(0);expect(errors).toEqual([]);
-    console.info(`Verified actual Home at desktop/mobile without feed reads, cheat sheet, fullscreen and My projects: ${directory}`);
+    expect(eventReads).toBe(0); // The Updates panel reads project updates; the map reads no event feed.
+    expect(updateReads).toBeGreaterThan(0);expect(errors).toEqual([]);
+    console.info(`Verified actual Tasks at desktop/mobile without event reads, cheat sheet, fullscreen and My projects: ${directory}`);
   } catch (e) { if (diagnostic) { await diagnostic.screenshot({ animations: 'disabled', path: join(directory, 'failure.png'), fullPage: true }).catch(() => {}); console.error(await diagnostic.locator('body').innerText().catch(() => 'No UI'), apiOutput.slice(-1500)); } throw e; }
   finally { if (browser) for (const context of browser.contexts()) await context.unrouteAll({ behavior: 'wait' }); await browser?.close(); await web.close(); api.kill('SIGTERM'); await new Promise<void>(resolve => { if (api.exitCode !== null) resolve(); else api.once('exit', () => resolve()); }); }
 }, 120_000);

@@ -371,7 +371,7 @@ contributors. Responsibility and status require the assigned agent, its person, 
 the owner; claim is agent-self only. Comments preserve authorship and only their
 author edits them. Every change needs the current task revision, a stable request ID
 and attributed history. Concurrent stale edits are refused instead of overwriting.
-The drawer retains an unconfirmed write for an identical Retry; a confirmed success
+The task page retains an unconfirmed write for an identical Retry; a confirmed success
 clears only its submitted draft, preserving newer text. Task settings show Loading
 until the current project's value is read, discard stale replies and offer Try again
 after a failed read rather than presenting an assumed saved value.
