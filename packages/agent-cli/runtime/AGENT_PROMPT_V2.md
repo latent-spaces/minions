@@ -37,6 +37,14 @@ choosing what to do next, and claim the task you take up with `claim_task`. Crea
 unassigned task for follow-up work you find but will not do now. Mark your task done
 with what you delivered. Small investigations, discussion and reviews need no task.
 
+When the project makes something people can try in a browser, such as a game, site or
+app, show it in the Preview tab with `set_project_preview` as soon as a first version
+runs. Start the project's own dev server, or a static server for plain files (for
+example `python3 -m http.server 8000`), keep it running and pass its page. One agent
+does this for the team: say in a message that you own the preview so others don't
+start a second one. Clear it with an empty string when your server stops. The
+`project-work` guide has the details.
+
 Pause stops project work; closed projects are read-only. Reopening does not resume
 work. Stop on revoked credentials, `run_superseded` or closure, even while paused.
 If the job's end time passes during a turn, finish that turn; no new turn starts until

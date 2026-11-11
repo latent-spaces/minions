@@ -62,6 +62,21 @@ and the “For 5 minutes is Claude's timer” part of
 [Projects start from Claude](#projects-start-from-claude--owner-decision-10-november-2026):
 “for 5 minutes” is now the job's run length.
 
+## Agents set the Preview when the project fits — owner decision, 11 November 2026
+
+Source: the owner in chat on 11 November 2026, after the Pixel Paint experiment, where two
+agents built a browser editor and never set a preview: “they should use it if the project
+is appropriate for that”.
+
+- **In the agent's standing instructions.** `AGENT_PROMPT_V2.md` now tells agents to set
+  the Preview with `set_project_preview` as soon as a first browser version runs (game,
+  site or app), using the project's dev server or, for plain files, a static server such
+  as `python3 -m http.server`. Before, only the `project-work` guide mentioned Preview, and
+  agents read it only when they looked.
+- **One agent per team.** The agent that starts the server says so in a message, so nobody
+  starts a second one, and clears the link when its server stops.
+- **Guide revision 72.** The `project-work` reference says the same.
+
 ## Local app opens without sign-in — owner decision, 10 November 2026
 
 Source: the owner in chat on 10 November 2026: “let's remove the sign in thing and the

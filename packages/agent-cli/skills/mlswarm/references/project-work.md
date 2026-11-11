@@ -18,9 +18,11 @@ before repeating work after restart or an uncertain response.
 ## Preview
 
 When the project has live visuals people can try, such as a game, site or app, show
-them in the project's Preview tab with `set_project_preview`. Start the project's own
-dev or static server on this computer and pass its page, for example
-`http://localhost:5173/`, or pass an `https://` page. The tab shows it in a frame.
+them in the project's Preview tab with `set_project_preview` as soon as a first version
+runs. Start the project's own dev server on this computer, or for plain files a static
+server such as `python3 -m http.server 8000` in the checkout, and pass its page, for
+example `http://localhost:5173/`, or pass an `https://` page. One agent owns the preview
+for the team: say so in a message so nobody starts a second server. The tab shows it in a frame.
 A localhost preview works only for people on this computer and only while your server
 runs: keep it running, and clear the link with an empty string when it stops. Set it
 when there is something worth trying, not for every change, and mention it in your
