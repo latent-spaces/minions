@@ -1,7 +1,8 @@
-/* The notifications bell: a 44px bell with an ink count badge, and a 380px popover with a header
+/* The notifications bell: a row at the foot of the menu with an ink count badge, opening upward, and a 380px popover with a header
    (Notifications, Clear all on Updates) over two tabs: Needs you (open requests, newest first) and
    Updates (unread notices, each clearable). Rows: unread dot, avatar, one sentence over the project, compact age. */
-.k42-top-icon.k42-bell { position:relative; }
+.k42-nav-link.k42-bell { position:relative; }
+.k42-navigation:not(.is-collapsed) .k42-bell-badge { position:static; margin-left:auto; }
 .k42-bell-badge { position:absolute; top:5px; right:3px; min-width:18px; height:18px; box-sizing:border-box; padding:0 5px; border-radius:var(--pill-radius); background:var(--ink); color:var(--on-ink); font-size:11px; font-weight:650; line-height:18px; text-align:center; box-shadow:0 0 0 2px var(--canvas-sunken); pointer-events:none; }
 .k42-bell-panel { --popover-width:380px; }
 .k42-bell-panel:popover-open { display:flex; flex-direction:column; gap:4px; }

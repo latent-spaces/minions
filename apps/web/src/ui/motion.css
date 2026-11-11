@@ -35,7 +35,6 @@
 dialog[open] { animation:k42-pop 260ms var(--k42-ease); }
 dialog[open]::backdrop { animation:k42-fade 200ms var(--k42-ease); }
 .project-sidebar.drawer[open] { animation:k42-slide-in 260ms var(--k42-ease); }
-.k42-account-menu[open] > div,
 .k42-path-overflow details[open] > *:not(summary){ animation:k42-pop 200ms var(--k42-ease); }
 /* Its own rule: a browser without :popover-open drops only this one. */
 .k42-popover:popover-open { animation:k42-pop 200ms var(--k42-ease); }
@@ -46,7 +45,6 @@ dialog[open]::backdrop { animation:k42-fade 200ms var(--k42-ease); }
   dialog[open],
   dialog[open]::backdrop,
   .project-sidebar.drawer[open],
-  .k42-account-menu[open] > div,
   .k42-path-overflow details[open] > *:not(summary){ animation:none; }
   .k42-popover:popover-open { animation:none; }
 }

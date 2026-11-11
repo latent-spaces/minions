@@ -23,11 +23,10 @@ import { SessionLoading, SessionUnavailable } from './ui/SessionLoading';
 import { WorkspaceNavigation, type ProjectMenu, type WorkspaceNavItem } from './ui/WorkspaceNavigation';
 import { COMPACT_SHELL } from './ui/shell-breakpoint';
 import { useMenuCollapsed } from './ui/menu-collapse';
-import { ListTodo, Folder, Settings, Menu, Users, Activity, MonitorPlay, LogOut, MessageSquare, Megaphone } from 'lucide-react';
+import { ListTodo, Folder, Settings, Menu, Users, Activity, MonitorPlay, LogOut, MessageSquare, Megaphone, Laptop } from 'lucide-react';
 import { ProjectUpdatesFeed } from './ProjectUpdatesFeed';
-import { TopBar } from './ui/TopBar';
 import { NotificationsBell } from './ui/NotificationsBell';
-import { sidebarAgentRoute, menuMode, searchScope, searchPlaceholder, searchTarget } from './ui/shell-nav';
+import { sidebarAgentRoute, menuMode } from './ui/shell-nav';
 import { useMediaQuery } from './useMediaQuery';
 // The project, agent connection setup, and read-only agents/conversations.
 // Data refreshes every 30 s while the tab is visible.
@@ -55,7 +54,6 @@ import { Agents } from './Agents';
 import { Conversations } from './Conversations';
 import { MyComputers } from './MyComputers';
 import { SidebarFooter } from './ui/SidebarFooter';
-import { AccountMenu } from './ui/AccountMenu';
 import { BrandLogo } from './ui/BrandLogo';
 import { AddAgentNudge } from './ui/ProjectCheatSheet';
 import { ProjectStartAnnouncement } from './ProjectStartAnnouncement';
@@ -126,7 +124,7 @@ export function App() {
 
 const SHORTCUTS = 5;
 const SECTION_NAMES: Record<Section, string> = { overview: 'Tasks', preview: 'Preview', usage: 'Usage', teams: 'Teams', agents: 'Agents', conversations: 'Conversations', 'control-center': 'Control center', 'needs-you': 'Needs you' };
-// Needs you and My computers are not in the menu: the notifications bell and the account menu reach them.
+// Needs you is reached from the notifications bell; My computers is linked at the foot of the menu.
 const GLOBAL_NAMES: Record<GlobalView, string> = { projects: 'My projects', computers: 'My computers', 'needs-you': 'Needs you' };
 /** Project navigation and own-agent shortcuts; web creation is hidden (OPE-230). */
 type ProjectFacts = { projectId: string; connect: (() => void) | null; addTask?: (() => void) | null; openAgent?: (id: string) => void; myAgents?: { provider?: string; id: string; name: string; status: string; detail: string; waiting?: boolean; queued?: boolean }[]; cheatSheet?: { title: string; started: boolean } | null };
@@ -148,15 +146,6 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   const [visible, setVisible] = useState(true);
   const refresh = useCallback(() => setTick(t => t + 1), []);
   const refreshAll = useCallback(() => { setTick(t => t + 1); setDirectoryTick(t => t + 1); }, []);
-  const communityRequest = useCallback(<T,>(path: string, body?: object) => community<T>(user, path, body), [user]);
-  // Display name for the account row; refreshed after a profile save (refreshAll bumps directoryTick).
-  const [displayName, setDisplayName] = useState<string | null>(null);
-  const [profileIdentity, setProfileIdentity] = useState<import('./community-api').MyProfileData | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    communityRequest<import('./community-api').MyProfileData>('/my-profile').then(profile => { if (!cancelled) { setDisplayName(profile.name); setProfileIdentity(profile); } }, () => {});
-    return () => { cancelled = true; };
-  }, [communityRequest, directoryTick]);
   const compact = useMediaQuery(COMPACT_SHELL);
   // The desktop menu may collapse to an icon rail; compact screens keep the drawer.
   const [menuCollapsed, setMenuCollapsed] = useMenuCollapsed();
@@ -175,7 +164,6 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   const reportAgent = useCallback((projectId: string, id: string, name: string) => setAgentName({ projectId, id, name }), []);
   // Facts belong to the project that reported them.
   const [facts, setFacts] = useState<ProjectFacts | null>(null);
-  const [searchText, setSearchText] = useState('');
   // The open project stays mounted (hidden) on global pages; only opening another project replaces it.
   const current = useRef({ route, selected, navigationOpen });
   current.current = { route, selected, navigationOpen };
@@ -315,12 +303,12 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   }, [location]);
   const failed = failure && failure.error instanceof ApiError && [400, 401, 403, 404].includes(failure.error.status) ? failure : null;
   const openFeedback = () => { setFeedbackOpen(true); setNavigationOpen(false); };
-  // The account lives in the top bar (shell polish 2026-10-18, section 12).
   // Projects first in the menu: the global menu, or inside a project that project's sections and Switch project.
   const openProject = menuMode(route, projectShown ? selected!.id : null) === 'project' ? selected! : null;
   const openFacts = openProject && facts?.projectId === openProject.id ? facts : null;
   const projectsLink: WorkspaceNavItem = { id:'projects', label:GLOBAL_NAMES.projects, icon:<Folder size={18} />, href:formatRoute({ view:'projects' }), current:route.view === 'projects', onNavigate:() => go({ view:'projects' }) };
-  const accountMenu = <AccountMenu personId={profileIdentity?.id} photo={profileIdentity?.photo} name={displayName} go={go} />;
+  // There is no top bar (owner, 11 November 2026): My computers and the bell sit at the foot of the menu.
+  const computersLink: WorkspaceNavItem = { id:'computers', label:GLOBAL_NAMES.computers, icon:<Laptop size={18} />, href:formatRoute({ view:'computers' }), current:route.view === 'computers', onNavigate:() => go({ view:'computers' }) };
   const shortcut = (p: ProjectEntry) => ({ id:p.id, name:p.name, href:formatRoute(projectRoute(p.id)), onNavigate:() => go(projectRoute(p.id)), status:executionLabel(p), private:p.private, cover:covers[p.id] ?? null });
   // Projects and agents are created from Claude through local MCP (owner, 10 November 2026).
   const projectMenu: ProjectMenu | null = openProject && { id:openProject.id, name:openProject.name, status:executionLabel(openProject), private:openProject.private, cover:covers[openProject.id] ?? null,
@@ -333,14 +321,12 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
     cheatSheet: openFacts?.cheatSheet ?? null,
     // Agent activation opens outstanding requests in place; queued starts retain their setup destination.
     myAgents: (openFacts?.myAgents ?? []).map(a => { const to = sidebarAgentRoute(openProject.id, a); return { ...a, ownerId: account.person.id, href: formatRoute(to), onNavigate: () => { if (!a.queued && openFacts?.openAgent) { setNavigationOpen(false); openFacts.openAgent(a.id); } else go(to); } }; }) };
-  // The search belongs to the open project; the box resets when that scope changes.
-  const scope = searchScope(openProject?.id ?? null);
-  useEffect(() => setSearchText(''), [scope]);
   const navigation = <>
     {compact && <CloseButton label="Close navigation" onClick={dismiss} />}
     <WorkspaceNavigation collapsed={rail} onCollapsedChange={compact ? undefined : setMenuCollapsed}
       brand={compact ? undefined : <span className="k42-brand-lockup"><NavLink to={{ view:'projects' }} go={go} className="wordmark"><BrandLogo /></NavLink><span className="k42-tagline">Build together at scale</span></span>}
-      footer={compact ? undefined : <SidebarFooter collapsed={rail} onFeedback={openFeedback} />}
+      secondary={[computersLink]}
+      footer={<><NotificationsBell user={user} active={visible} go={go} collapsed={rail} />{!compact && <SidebarFooter collapsed={rail} onFeedback={openFeedback} />}</>}
       globals={[]} projectsLink={projectsLink} project={projectMenu}
       projects={shortcuts.map(shortcut)}
       projectStatus={listError || !directory ? <>
@@ -362,15 +348,11 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
         </dialog>
         : <aside className="project-sidebar">{navigation}</aside>}
       <div className="workspace-column">
-        <TopBar compact={compact} search={searchText} onSearch={setSearchText} placeholder={openProject ? searchPlaceholder(openProject.name) : null}
-          onSubmit={() => { const next = searchTarget(searchText, openProject?.id ?? null); if (next) go(next); }}
-          notifications={<NotificationsBell user={user} active={visible} go={go} />}
-          leading={<><Button ref={menuButton} className="menu-button" aria-expanded={navigationOpen} aria-controls="workspace-navigation" onClick={() => setNavigationOpen(true)} aria-label="Open navigation"><Menu size={20} /></Button>
-            <NavLink to={{ view:'projects' }} go={go} className="wordmark"><BrandLogo /></NavLink></>}
-          actions={<>
-            {/* Creating starts from the + beside Your projects, so the top bar has no New project button (Noa, 18 October 2026). */}
-            {accountMenu}
-          </>} />
+        {/* Phones keep a slim row to open the menu drawer; wider screens have no top bar (owner, 11 November 2026). */}
+        {compact && <header className="k42-compact-bar">
+          <Button ref={menuButton} className="menu-button" aria-expanded={navigationOpen} aria-controls="workspace-navigation" onClick={() => setNavigationOpen(true)} aria-label="Open navigation"><Menu size={20} /></Button>
+          <NavLink to={{ view:'projects' }} go={go} className="wordmark"><BrandLogo /></NavLink>
+        </header>}
         <main id="content" ref={content} tabIndex={-1} className="workspace-content">
           <div hidden={route.view !== 'projects'}><MyProjects user={user} view={route.view !== 'project' ? route.projectList ?? 'current' : 'current'} onArchiveChange={archiveChanged} active={route.view === 'projects' && visible} refreshKey={directoryTick} go={go} retry={refreshAll} /></div>
           {route.view === 'computers' && <MyComputers key={`${user.uid}:${account.person.id}`} user={user} active={visible} refreshKey={directoryTick} go={go} retry={refreshAll} />}

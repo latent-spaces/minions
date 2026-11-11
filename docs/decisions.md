@@ -23,6 +23,24 @@ area shows the newest update screenshot (else the project's reference image) and
 taller. The owner also asked to drop the Owner, Joined and Waiting chips, because a local
 engine has one person: My projects filters only All (current) or Archived.
 
+## No top bar; the bell and My computers move to the menu — owner decision, 11 November 2026
+
+Source: the owner in chat on 11 November 2026: “let's remove the entire top bar we don't
+need to name since it's always me there is no sign-in and we need to remove and clean sign
+in code, we can clean the bell and notification can go straight on the project or if it's
+too complicated first move to the side bar”.
+
+- The top bar is gone on wider screens, with its account menu (avatar and name) and the
+  project search box. The Agents tab keeps its own search.
+- The notifications bell becomes a Notifications row at the foot of the menu, opening
+  upward, and My computers is linked just above it. This is the first step the owner
+  allowed; putting notifications straight on the project is still open.
+- Phones keep a slim row with only the menu button and the logo, as the menu drawer needs
+  something to open it.
+- Sign-in: the web already had no sign-in step (10 November). Only wording and the
+  account-menu leftovers were removed. The hidden local owner session token stays: it stops
+  other websites in the browser from driving the engine's 127.0.0.1 API.
+
 ## Agents get a model picked for their mission — owner decision, 11 November 2026
 
 Source: the owner's README TODO item “Choose agent models on purpose” and the mission they

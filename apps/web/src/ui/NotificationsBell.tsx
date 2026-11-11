@@ -20,7 +20,7 @@ const refused = (failure: unknown): failure is ApiError => failure instanceof Ap
 
 /** Bell with two tabs: Needs you (open requests, cleared only by answering) and Updates
  * (private unread notices; open, clear one, or clear all, which marks them read on the server). */
-export function NotificationsBell({ user, active, go }: { user: SessionUser; active: boolean; go: (route: Route) => void }) {
+export function NotificationsBell({ user, active, go, collapsed = false }: { user: SessionUser; active: boolean; go: (route: Route) => void; collapsed?: boolean }) {
   const { profileId, error: accessError, retry: checkAccess, deny } = useInvitedProfile(user);
   // Open requests are shared with the Needs you inbox; this bell reads only the notices itself.
   const requests = useNeedsYouPage(user, profileId, '?status=open', { enabled: active }), page = requests.data ?? null;
@@ -33,7 +33,7 @@ export function NotificationsBell({ user, active, go }: { user: SessionUser; act
   const noticeScope = useMemo(() => ({ revision: 0, mutating: 0 }), [user.uid, profileId]);
   const activeScope = useRef(noticeScope); activeScope.current = noticeScope;
   const headingId = useId(), tabsId = useId();
-  const { close, triggerProps, panelProps } = useAnchoredPopover<HTMLElement>({ align: 'end', onOpen: () => { setTab(null); setAsked(n => n + 1); refreshRequests(); } });
+  const { close, triggerProps, panelProps } = useAnchoredPopover<HTMLElement>({ align: 'start', above: true, onOpen: () => { setTab(null); setAsked(n => n + 1); refreshRequests(); } });
   useEffect(() => { setNotices(null); setBusy(null); }, [user.uid, profileId]);
   useEffect(() => { if (refused(requests.error)) deny(requests.error); }, [requests.error, deny]);
   useEffect(() => {
@@ -99,8 +99,9 @@ export function NotificationsBell({ user, active, go }: { user: SessionUser; act
     setTab(next); document.getElementById(`${tabsId}-${next}`)?.focus();
   }
   return <>
-    <button type="button" {...triggerProps} className="k42-top-icon k42-bell" aria-label={bellLabel(count, more)} title="Notifications">
-      <Bell size={20} aria-hidden="true" />{badge && <span className="k42-bell-badge" aria-hidden="true">{badge}</span>}
+    {/* At the foot of the menu (owner, 11 November 2026): it opens upward, over the page. */}
+    <button type="button" {...triggerProps} className="k42-nav-link k42-nav-create k42-bell" aria-label={bellLabel(count, more)} title={collapsed ? 'Notifications' : undefined}>
+      <Bell size={18} aria-hidden="true" /><span className={collapsed ? 'k42-nav-text' : undefined} aria-hidden="true">Notifications</span>{badge && <span className="k42-bell-badge" aria-hidden="true">{badge}</span>}
     </button>
     <section {...panelProps} className={`${panelProps.className} k42-bell-panel`} aria-labelledby={headingId}>
       <div className="k42-bell-header">

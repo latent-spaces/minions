@@ -5,12 +5,12 @@ import './popover.css';
 const ITEMS = 'a[href], button:not(:disabled)';
 
 /**
- * A small popover anchored under its trigger (shell polish 2026-10-18, section 12): the Create menu and the
+ * A small popover anchored under its trigger (or over it, with `above`, when there is more room there) (shell polish 2026-10-18, section 12): the Create menu and the
  * notifications bell. The browser's popover="auto" puts it in the top layer, so the menu column's scrolling does not
  * clip it, and closes it on Escape and outside click; it has no X (Task 9 ruling). Opening focuses its first item,
  * the arrow keys move between its items, Tab out closes it, and closing returns focus to the trigger.
  */
-export function useAnchoredPopover<P extends HTMLElement>({ align, onOpen }: { align: 'start' | 'end'; onOpen?: () => void }) {
+export function useAnchoredPopover<P extends HTMLElement>({ align, above = false, onOpen }: { align: 'start' | 'end'; above?: boolean; onOpen?: () => void }) {
   const id = useId();
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<P>(null);
@@ -43,6 +43,9 @@ export function useAnchoredPopover<P extends HTMLElement>({ align, onOpen }: { a
       if (event.newState !== 'open' || !trigger.current) return;
       const box = trigger.current.getBoundingClientRect(), style = event.currentTarget.style;
       style.setProperty('--anchor-top', `${Math.round(box.bottom + 8)}px`);
+      style.setProperty('--anchor-bottom', `${Math.round(window.innerHeight - box.top + 8)}px`);
+      // `above` opens upward when there is more room over the trigger than under it.
+      event.currentTarget.dataset.side = above && box.top > window.innerHeight - box.bottom ? 'above' : 'below';
       style.setProperty('--anchor-left', `${Math.round(box.left)}px`);
       style.setProperty('--anchor-right', `${Math.round(box.right)}px`);
     },

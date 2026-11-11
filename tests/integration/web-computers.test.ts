@@ -21,7 +21,7 @@ async function port() {
   await new Promise<void>(resolve => server.close(() => resolve())); return value;
 }
 
-test('actual My computers page uses account navigation, confirms revocation and handles mobile, errors and empty connections', async () => {
+test('actual My computers page is linked from the menu, confirms revocation and handles mobile, errors and empty connections', async () => {
   await resetEmulator();
   const directory = await mkdtemp(join(tmpdir(), 'mlswarm-computers-')), apiPort = await port(), webPort = await port();
   const fixture = await seed({ profiles: [{ name: 'Computer owner', email: 'computer-owner@example.test' }] });
@@ -60,11 +60,9 @@ test('actual My computers page uses account navigation, confirms revocation and 
     await signInBrowser(page, await idTokenFor('computer-owner@example.test'));
     await page.getByRole('heading', { name: 'My computers', exact: true }).waitFor();
     await page.getByText('Synthetic work laptop', { exact: true }).waitFor();
-    await page.locator('summary[aria-label="Account menu for Computer owner"]').click();
-    // Account avatars describe browser presence. The connector no longer updates itself,
-    // so neither the account menu nor this page shows an update status.
-    expect(await page.locator('.k42-account-menu').getByText('Updates', { exact: true }).count()).toBe(0);
-    expect(await page.locator('summary[aria-label="Account menu for Computer owner"]').getAttribute('aria-description')).toBeNull();
+    // There is no top bar or account menu (owner, 11 November 2026): My computers is linked at the foot of the menu,
+    // and the connector no longer updates itself, so this page shows no update status.
+    expect(await page.locator('.k42-top-bar, .k42-account-menu').count()).toBe(0);
     expect(await page.getByText(/Update status|Update when idle/).count()).toBe(0);
     expect(await page.getByRole('link', { name: 'My computers', exact: true }).count()).toBe(1);
     expect(await page.getByRole('link', { name: 'My agents', exact: true }).count()).toBe(0);

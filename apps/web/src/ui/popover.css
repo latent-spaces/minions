@@ -3,6 +3,8 @@
    16px gutters. Display belongs to :popover-open, so a closed popover keeps the browser's display:none. */
 .k42-popover { --popover-w:min(var(--popover-width, 320px), calc(100vw - 32px)); position:fixed; inset:auto; top:var(--anchor-top, 16px); margin:0; box-sizing:border-box; width:var(--popover-w); max-height:calc(100dvh - var(--anchor-top, 16px) - 16px); overflow:auto; overscroll-behavior:contain; padding:8px; border:1px solid var(--hairline-shell); border-radius:16px; background:var(--canvas); color:var(--ink); font:inherit; }
 .k42-popover.is-start { left:clamp(16px, var(--anchor-left, 16px), calc(100vw - 16px - var(--popover-w))); }
+/* Opening upward from a trigger at the foot of the menu (the notifications bell). */
+.k42-popover[data-side="above"] { top:auto; bottom:var(--anchor-bottom, 16px); max-height:calc(100dvh - var(--anchor-bottom, 16px) - 16px); }
 .k42-popover.is-end { left:clamp(16px, calc(var(--anchor-right, 100vw) - var(--popover-w)), calc(100vw - 16px - var(--popover-w))); }
-/* Above the menu column's and the top bar's own focus rules, which these popovers sit inside in the DOM. */
+/* Above the menu column's own focus rules, which these popovers sit inside in the DOM. */
 .k42-popover:popover-open :is(a, button):focus-visible { outline:2px solid var(--ink); outline-offset:-2px; }

@@ -89,7 +89,9 @@ Steering is submitted through the shared local service from the coding chat. New
 
 ## Notifications bell
 
-`NotificationsBell` sits in the top bar. Its badge counts open Needs you requests plus unread
+`NotificationsBell` sits at the foot of the menu, as a Notifications row, and its popover
+opens upward when there is more room above it. There is no top bar (owner, 11 November
+2026); on phones a slim row keeps only the menu button and the logo. Its badge counts open Needs you requests plus unread
 updates and disappears when nothing needs the reader and every update is read. The popover
 has two keyboard-accessible tabs (`role="tablist"`, arrow keys, Home/End), each with its
 count; it opens on **Needs you** while anything waits there, otherwise on **Updates**.
@@ -237,7 +239,7 @@ for this visibility-only change (OPE-230); accepted work continues normally. Rev
 the retained dialog when the owner decides whether web creation will return.
 `YourAgent`'s Change limits dialog hands over a prompt for the coding agent, where
 limits are chosen. Without an approved computer it shows `SetupCard` instead.
-The account menu's **My computers** page (`MyComputers.tsx`) uses the shared
+The **My computers** page, linked at the foot of the menu, (`MyComputers.tsx`) uses the shared
 `MyComputersPage` list. It shows computer names, reported connection status and
 approval expiry, with Revoke access as its only management action. The global
 My agents page has been removed; agents remain in their projects. Revocation ends

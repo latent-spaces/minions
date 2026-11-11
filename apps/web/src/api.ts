@@ -4,7 +4,7 @@ import { ApiError, authorizedRequest as request } from './authorized-request';
 import type { SessionClient, SessionUser } from './session-identity';
 import { siteSession } from './site-session';
 
-/** This page's sign-in: the MyLittleSwarm engine's own sessions (src/server-session.ts). */
+/** This page's session: the MyLittleSwarm engine's own sessions (src/server-session.ts). */
 export const session: SessionClient = siteSession;
 
 export type Overview = {

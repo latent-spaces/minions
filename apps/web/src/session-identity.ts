@@ -1,11 +1,11 @@
-// The signed-in person as the web app uses them: a stable account ID, the profile fields shown in the UI and a
+// The local owner as the web app uses them: a stable account ID, the profile fields shown in the UI and a
 // bearer token for the service. The MyLittleSwarm engine issues the session (src/server-session.ts).
 export type SessionUser = {
-  /** The sign-in service's stable account ID; the server's `subject`. */
+  /** The owner account ID the engine issued; the server's `subject`. */
   readonly uid: string;
   readonly email: string | null;
   readonly displayName: string | null;
-  /** A current bearer token for the service; `forceRefresh` asks the sign-in service for a new one. */
+  /** A current bearer token for the service; `forceRefresh` asks the engine for a new one. */
   getIdToken(forceRefresh?: boolean): Promise<string>;
 };
 
