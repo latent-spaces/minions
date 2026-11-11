@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { beforeEach, expect, test } from 'vitest';
 import { inProject, profiles } from '../src/firestore.js';
-import { getNativeTask, listNativeTaskSummaries, mutateNativeTask } from '../src/projects/native-tasks.js';
+import { getNativeTask, listNativeTasks, listNativeTaskSummaries, mutateNativeTask, nativeTasks } from '../src/projects/native-tasks.js';
 import { startRun } from '../src/v2/runs.js';
 import { readUpdates } from '../src/v2/inbox.js';
 import { resetEmulator, seed, loadAgent, TEST_PROJECT } from './helpers.js';
@@ -84,4 +84,56 @@ test('the parent agent hears once when its last open subtask closes; the parent 
   expect(items[0].payload).toMatchObject({ type: 'task_children_closed', taskId: root.id });
   expect(JSON.stringify(items[0].payload.title)).toContain('Root');
   expect((await getNativeTask(owner, root.id, {}, now)).task.status).toBe('backlog');
+}));
+
+test('list and summary progress counts all direct accepted children beyond pages and filters', async () => scope(async () => {
+  const f = await fixture(), owner = f.persons[0];
+  const root = (await mutateNativeTask(owner, create('Counted root'), now)).task;
+  // Fixed IDs put the root alone on page one and every child beyond it. These old-format
+  // records have no proposed field, as most accepted children do in saved databases.
+  const rootId = 'task_000_root';
+  await nativeTasks().doc(rootId).set({ ...root, id: rootId });
+  for (let i = 0; i < 120; i++) {
+    const id = `task_100_child_${String(i).padStart(3, '0')}`;
+    await nativeTasks().doc(id).set({ ...root, id, title: `Child ${i}`, parentId: rootId,
+      status: i < 30 ? 'done' : i < 60 ? 'canceled' : i < 90 ? 'in_progress' : 'backlog',
+      assignedAgentId: f.agents[0].agentId });
+  }
+  // Pending proposals and deeper descendants must not enter this parent's ring.
+  await nativeTasks().doc('task_proposal').set({ ...root, id: 'task_proposal', parentId: rootId, proposed: true });
+  await nativeTasks().doc('task_grandchild').set({ ...root, id: 'task_grandchild', parentId: 'task_100_child_000', status: 'done' });
+  const expected = { done: 60, total: 120 };
+  for (const list of [listNativeTasks, listNativeTaskSummaries]) {
+    const first = await list(owner, { limit: 1 }, now);
+    expect(first.tasks).toEqual([expect.objectContaining({ id: rootId, subtaskProgress: expected })]);
+    expect(first.nextCursor).toBe(rootId);
+    // None of these filters match the children, but the ring still describes all of them.
+    const filtered = await list(owner, { search: 'Counted root', status: 'backlog', unassigned: 'true' }, now);
+    expect(filtered.tasks.find(task => task.id === rootId)?.subtaskProgress).toEqual(expected);
+    const second = await list(owner, { limit: 1, cursor: first.nextCursor! }, now);
+    expect(second.tasks[0]).toMatchObject({ id: 'task_100_child_000', subtaskProgress: { done: 1, total: 1 } });
+  }
+  const detail = await getNativeTask(owner, rootId, {}, now);
+  expect(detail.subtasks).toHaveLength(100); // The child listing is bounded, the ring is exact.
+  expect(detail.task.subtaskProgress).toEqual(expected);
+  expect((await nativeTasks().doc(rootId).get()).data()).not.toHaveProperty('subtaskProgress');
+  expect((await listNativeTasks(owner, { search: 'Counted root' }, now)).tasks.find(task => task.id === root.id)?.subtaskProgress).toEqual({ done: 0, total: 0 });
+}));
+
+test('progress refreshes after proposal review, child status changes and reopening without changing the parent revision', async () => scope(async () => {
+  const f = await fixture(), owner = f.persons[0], agent = f.actors[0];
+  const root = (await mutateNativeTask(owner, create('Root'), now)).task;
+  let child = (await mutateNativeTask(agent, create('Proposed child', root.id), now)).task;
+  const progress = async () => (await listNativeTaskSummaries(owner, { search: 'Root' }, now)).tasks[0];
+  expect(await progress()).toMatchObject({ revision: root.revision, subtaskProgress: { done: 0, total: 0 } });
+  child = (await mutateNativeTask(owner, op('review_proposal', child, { accept: true }), now)).task;
+  expect(await progress()).toMatchObject({ revision: root.revision, subtaskProgress: { done: 0, total: 1 } });
+  child = (await mutateNativeTask(agent, op('claim', child), now)).task;
+  child = (await mutateNativeTask(agent, op('update', child, { status: 'done' }), now)).task;
+  expect(await progress()).toMatchObject({ revision: root.revision, subtaskProgress: { done: 1, total: 1 } });
+  child = (await mutateNativeTask(agent, op('update', child, { status: 'backlog' }), now)).task;
+  expect(await progress()).toMatchObject({ revision: root.revision, subtaskProgress: { done: 0, total: 1 } });
+  const declined = (await mutateNativeTask(agent, create('Declined child', root.id), now)).task;
+  await mutateNativeTask(owner, op('review_proposal', declined, { accept: false }), now);
+  expect(await progress()).toMatchObject({ revision: root.revision, subtaskProgress: { done: 1, total: 2 } });
 }));

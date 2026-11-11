@@ -201,7 +201,7 @@ test('a title edited by another agent is never attributed to the task’s creato
   expect(read.value.task.description.source).toEqual({ type: 'agent', agentId: seeded.agents[0].agentId });
   const summary = (await amber.call('list_tasks')).value.tasks[0];
   expect(summary.title).toEqual(read.value.task.title);
-  expect(Object.keys(summary).sort()).toEqual(['assignedAgentId', 'id', 'status', 'title']);
+  expect(Object.keys(summary).sort()).toEqual(['assignedAgentId', 'id', 'status', 'subtaskProgress', 'title']);
   expect((await amber.call('list_tasks', { detail: true })).value.tasks[0].title).toEqual(read.value.task.title);
 });
 
@@ -325,9 +325,9 @@ test('short task pages preserve combined filters, honor limit and detail, and ke
   // page_size, the older name an agent may still send, is an alias; limit wins when both are given.
   expect((await amber.call('list_tasks', { page_size: 100 })).value.tasks).toHaveLength(100);
   expect((await amber.call('list_tasks', { page_size: 5, limit: 2 })).value.tasks).toHaveLength(2);
-  expect(Object.keys(first.tasks[0]).sort()).toEqual(['assignedAgentId', 'id', 'status', 'title']);
+  expect(Object.keys(first.tasks[0]).sort()).toEqual(['assignedAgentId', 'id', 'status', 'subtaskProgress', 'title']);
   const full = (await amber.call('list_tasks', { detail: true, limit: 1 })).value;
-  expect(Object.keys(full.tasks[0]).sort()).toEqual(['assignedAgentId', 'id', 'priority', 'revision', 'status', 'title']);
+  expect(Object.keys(full.tasks[0]).sort()).toEqual(['assignedAgentId', 'id', 'priority', 'revision', 'status', 'subtaskProgress', 'title']);
   expect(JSON.stringify(first)).not.toContain('Requirements');
   expect(JSON.stringify(first)).not.toContain('example.com');
   const detail = (await amber.call('get_task', { task_id: first.tasks[0].id })).value;

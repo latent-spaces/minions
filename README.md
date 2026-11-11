@@ -185,8 +185,8 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
 - [ ] **Tell open tabs to reload after an update.** A tab opened before an update keeps
       running the old web app and can show stale or mismatched data (for example
       different agent avatars) until someone reloads it.
-- [ ] **Exact subtask counts in the list.** The list's done/total ring counts only the
-      subtasks on loaded pages; the task page's count is exact.
+- [x] **Exact subtask counts in the list.** The server counts every accepted direct
+      subtask for the list and task-page rings, independent of filters and loaded pages.
 - [ ] **Clean up stale runs.** Old runs can still show Working with no process behind them.
 
 ## Why "MyLittleSwarm"?

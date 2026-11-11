@@ -163,7 +163,9 @@ async function readNativeTaskPage<T extends { id: string }>(actor: ProgressActor
   });
 }
 export function listNativeTasks(actor: ProgressActor, query: unknown = {}, now: () => number = Date.now): Promise<NativeTaskPage> {
-  return readNativeTaskPage(actor, query, now, visibleTask);
+  return readNativeTaskPage(actor, query, now, async (tx, task) => ({
+    ...await visibleTask(tx, task), subtaskProgress: await subtaskProgressOf(tx, task.id),
+  }));
 }
 
 // Attribution stays internal to the MCP adapter; descriptions and references never
@@ -172,9 +174,10 @@ type AuthoredTaskSummary = NativeTaskSummary & Pick<NativeTask, 'titleAuthor' | 
 const SUMMARY_FIELDS = ['id', 'title', 'status', 'assignedAgentId', 'priority', 'revision', 'parentId', 'proposed', 'titleAuthor', 'createdBy'] as const;
 const subtaskFields = (task: Pick<NativeTask, 'parentId' | 'proposed'>) => ({ ...(task.parentId ? { parentId: task.parentId } : {}), ...(task.proposed ? { proposed: true } : {}) });
 export function listNativeTaskSummaries(actor: ProgressActor, query: unknown = {}, now: () => number = Date.now) {
-  return readNativeTaskPage<AuthoredTaskSummary>(actor, query, now, async (_tx, task) => ({
+  return readNativeTaskPage<AuthoredTaskSummary>(actor, query, now, async (tx, task) => ({
     id: task.id, title: task.title, status: task.status, assignedAgentId: task.assignedAgentId,
     priority: task.priority, revision: task.revision, ...subtaskFields(task), titleAuthor: task.titleAuthor, createdBy: task.createdBy,
+    subtaskProgress: await subtaskProgressOf(tx, task.id),
   }), SUMMARY_FIELDS);
 }
 
@@ -252,6 +255,19 @@ export function listNativeTaskSummaryChanges(actor: ProgressActor, query: unknow
 // People may nest without a fixed limit; this bounds the parent walk against corrupt cycles.
 const MAX_TASK_DEPTH = 50;
 const SUBTASK_LIMIT = 100;
+async function subtaskProgressOf(tx: Transaction, taskId: string) {
+  // No list filters or child-page limit: a ring describes all direct accepted children.
+  // Project only these two fields, keeping descriptions and references out of count reads.
+  const children = await tx.get(nativeTasks().where('parentId', '==', taskId).select('status', 'proposed'));
+  let done = 0, total = 0;
+  for (const row of children.docs) {
+    const child = row.data() as Pick<NativeTask, 'status' | 'proposed'>;
+    if (child.proposed) continue;
+    total++;
+    if (closedTask(child)) done++;
+  }
+  return { done, total };
+}
 async function ancestorsOf(tx: Transaction, task: Pick<NativeTask, 'parentId'>): Promise<NativeTask[]> {
   const chain: NativeTask[] = [];
   for (let id = task.parentId; id; ) {
@@ -292,11 +308,11 @@ export async function getNativeTask(actor: ProgressActor, taskId: string, query:
       if (!after.exists) throw new Refusal('bad_input', 'Use this task history’s returned cursor.');
       aq = aq.startAfter(after);
     }
-    const [cr, ar, chain, children] = await Promise.all([tx.get(cq), tx.get(aq), ancestorsOf(tx, task), subtasksOf(tx, taskId)]);
+    const [cr, ar, chain, children, progress] = await Promise.all([tx.get(cq), tx.get(aq), ancestorsOf(tx, task), subtasksOf(tx, taskId), subtaskProgressOf(tx, taskId)]);
     const ancestors: NativeTaskAncestor[] = chain.map(row => ({ id: row.id, title: row.title }));
     const commentPage = bytePage(cr.docs.slice(0, input.limit).map(row => row.data()), 40 * 1024);
     const events = bytePage(ar.docs.slice(0, input.limit).map(row => { const { task: _task, comment: _comment, ...event } = row.data(); return event; }), 24 * 1024);
-    return { task: await visibleTask(tx, task), permissions, comments: [...commentPage].reverse(), activity: events,
+    return { task: { ...await visibleTask(tx, task), subtaskProgress: progress }, permissions, comments: [...commentPage].reverse(), activity: events,
       nextCommentCursor: cr.size > commentPage.length ? commentPage.at(-1)!.id : null, nextActivityCursor: ar.size > events.length ? events.at(-1)!.id : null,
       ancestors, subtasks: children.map(summaryOf) };
   });

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { NativeTask } from '@mlswarm/contracts';
-import { nestTasks, subtaskProgress } from '../src/task-model';
+import { nestTasks } from '../src/task-model';
 import { formatRoute, parseRoute, taskRoute } from '../src/route';
 
 const PROJECT = 'a'.repeat(64);
@@ -20,11 +20,6 @@ test('list rows nest subtasks under a loaded parent, oldest first, and a collaps
 
 test('a corrupt parent cycle still shows its rows', () => {
   assert.deepEqual(nestTasks([task('x', 'y'), task('y', 'x')], new Set()).map(r => r.task.id).sort(), ['x', 'y']);
-});
-
-test('the ring counts done and canceled subtasks and leaves proposals out', () => {
-  assert.deepEqual(subtaskProgress([{ status: 'done' }, { status: 'canceled' }, { status: 'in_progress' }, { status: 'backlog', proposed: true }]), { done: 2, total: 3 });
-  assert.deepEqual(subtaskProgress([]), { done: 0, total: 0 });
 });
 
 test('a task page is a Tasks location that survives reloads; other sections drop it', () => {

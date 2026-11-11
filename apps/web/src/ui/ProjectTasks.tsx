@@ -8,7 +8,7 @@ export type TaskAgent = { id: string; name: string; operatorId: string | null; o
 import { hold, projectRoute, taskRoute, type Route } from '../route';
 import { NavLink } from '../navigation-link';
 import type { PublicPhoto } from '../profile-photo-api';
-import { TASK_STATUSES, isAccessLoss, isConflict, isTasksDisabled, isSettledRefusal, taskReferenceView, newestTaskSnapshot, taskSourceHref, taskReferenceFromUrl, statusLabel, statusChangeBlock, taskMutation, singleFlight, readTasksView, writeTasksView, nestTasks, subtaskProgress, type TasksApi, type TasksView } from '../task-model';
+import { TASK_STATUSES, isAccessLoss, isConflict, isTasksDisabled, isSettledRefusal, taskReferenceView, newestTaskSnapshot, taskSourceHref, taskReferenceFromUrl, statusLabel, statusChangeBlock, taskMutation, singleFlight, readTasksView, writeTasksView, nestTasks, type TasksApi, type TasksView } from '../task-model';
 import type { NativeTaskMutation } from '@mlswarm/contracts';
 import { AgentAvatar } from './AgentAvatar';
 import { TaskContributorAvatars } from './TaskContributorAvatars';
@@ -235,7 +235,7 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
           <button type="button" className="k42-task-open" onClick={() => setOpenId(task.id)}>{task.title}</button>
           {task.proposed && <Proposed />}
           {task.priority === 'high' && <span className="k42-task-priority">High</span>}
-          <SubtaskRing {...subtaskProgress(children)} /></div></th>
+          {task.subtaskProgress && <SubtaskRing {...task.subtaskProgress} />}</div></th>
         <td data-label="Assigned">{task.assignedAgentId ? <AgentChip id={task.assignedAgentId} directory={directory} /> : <Unassigned />}</td>
         <td data-label="Agents"><TaskContributorAvatars contributors={task.contributors} agents={directory.agent} /></td>
         <td data-label="Status"><span className={`k42-task-status is-${task.status}`}>{statusLabel(task.status)}</span></td>
@@ -636,16 +636,16 @@ function Subtasks({ api, parent, subtasks, directory, readOnly, onOpen, onCreate
       setError(settled ? errorText(e) : 'Could not confirm the subtask was added. Add again sends the same request; it will not add a duplicate.');
     }).finally(() => setBusy(false));
   };
-  const progress = subtaskProgress(subtasks);
+  const progress = parent.subtaskProgress;
   return <section className="k42-task-section" aria-labelledby={`${inputId}-heading`}>
-    <div className="k42-task-section-head"><h3 id={`${inputId}-heading`}>Subtasks</h3><SubtaskRing {...progress} /></div>
+    <div className="k42-task-section-head"><h3 id={`${inputId}-heading`}>Subtasks</h3>{progress && <SubtaskRing {...progress} />}</div>
     {subtasks.length ? <ul className="k42-task-subtasks">{subtasks.map(row => <li key={row.id}>
       <button type="button" className="k42-task-open" onClick={() => onOpen(row.id)}>{row.title}</button>
       {row.proposed && <Proposed />}
       <span className="k42-task-subtask-meta">{row.assignedAgentId ? <AgentChip id={row.assignedAgentId} directory={directory} size={24} /> : <Unassigned />}
         <span className={`k42-task-status is-${row.status}`}>{statusLabel(row.status)}</span></span>
     </li>)}</ul> : <p className="muted">No subtasks. Split the work into smaller tasks here.</p>}
-    {progress.total > 0 && progress.done === progress.total && !closedTask(parent) && <p className="muted k42-task-hint-inline">All subtasks are done or canceled. This task’s own status is still {statusLabel(parent.status)}.</p>}
+    {progress && progress.total > 0 && progress.done === progress.total && !closedTask(parent) && <p className="muted k42-task-hint-inline">All subtasks are done or canceled. This task’s own status is still {statusLabel(parent.status)}.</p>}
     {!readOnly && <form className="k42-task-inline" onSubmit={add}>
       <label htmlFor={inputId} className="k42-visually-hidden">New subtask title</label>
       <input id={inputId} value={title} maxLength={300} readOnly={busy} onChange={e => setTitle(e.target.value)} placeholder="Add a subtask" />

@@ -40,7 +40,7 @@ test('native create persists title-only Backlog and stable retries with exactly 
   expect((await getNativeTask(f.persons[1], one.task.id, {}, now)).activity).toHaveLength(1);
   const receipts = await db.collection(`projects/${TEST_PROJECT}/nativeTaskReceipts`).get();
   expect(receipts.size).toBe(1); expect(receipts.docs[0].data().actor).toEqual(one.task.createdBy);
-  expect((await listNativeTasks(f.persons[0], {}, now)).tasks).toEqual([one.task]);
+  expect((await listNativeTasks(f.persons[0], {}, now)).tasks).toEqual([{ ...one.task, subtaskProgress: { done: 0, total: 0 } }]);
   await expect(mutateNativeTask(f.persons[0], { ...input, title: 'changed retry' }, now)).rejects.toMatchObject({ code: 'intent_conflict' });
 }));
 

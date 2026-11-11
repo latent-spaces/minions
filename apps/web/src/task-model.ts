@@ -1,6 +1,5 @@
 import type { NativeTask, NativeTaskDetail, NativeTaskMutation, NativeTaskMutationResult, NativeTaskPage, NativeTaskReference } from '@mlswarm/contracts';
 import type { NativeTaskStatus } from '@mlswarm/contracts';
-import { closedTask } from '@mlswarm/contracts';
 
 export interface TasksApi {
   list(cursor?: string | null, status?: NativeTaskStatus, assignedAgentId?: string | null, search?: string): Promise<NativeTaskPage>;
@@ -105,12 +104,6 @@ export function singleFlight() {
     start: (generation: number) => owner !== generation && (owner = generation, true),
     end: (generation: number) => owner === generation && (owner = null, true),
   };
-}
-
-/** Done/total of a parent's subtasks, as a small ring. Proposals waiting for an owner don't count; the parent's own status is never computed. */
-export function subtaskProgress(subtasks: Pick<NativeTask, 'status' | 'proposed'>[]): { done: number; total: number } {
-  const counted = subtasks.filter(task => !task.proposed);
-  return { done: counted.filter(closedTask).length, total: counted.length };
 }
 
 export type TaskRow = { task: NativeTask; depth: number; children: NativeTask[] };

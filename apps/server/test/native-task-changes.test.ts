@@ -169,7 +169,7 @@ test('tasks written before the feed existed are absent until their next write; t
   expect((await listNativeTaskSummaryChanges(admin, { since: all.cursor }, now)).tasks.map(t => t.id)).toEqual([template.id, 'task_legacy']);
 }));
 
-test('counted: an idle poll reads one index entry, against 51 documents for a list page', async () => scope(async () => {
+test('counted: an idle poll avoids list rows and exact subtask progress reads', async () => scope(async () => {
   const admin = await person();
   const template = await create(admin, 'Counted template');
   const quiet = Timestamp.fromMillis(Date.now() - 2 * FEED_OVERLAP_MS);
@@ -193,10 +193,10 @@ test('counted: an idle poll reads one index entry, against 51 documents for a li
     await retitle(admin, (await nativeTasks().orderBy('title').limit(1).get()).docs[0].data(), 'One change');
     reads = 0; await listNativeTaskSummaryChanges(admin, { since: start.cursor }, now); const oneChange = reads;
     console.info(JSON.stringify({ taskChangeFeed: { idlePollReads: idle, oneChangeReads: oneChange, listPage50Reads: list } }));
-    // A person's authorization is 3 reads; the feed query bills max(1, rows); the list reads limit + 1 rows.
+    // A person's authorization is 3 reads; the list reads 51 rows and 50 empty child queries.
     expect(idle).toBe(4);
     expect(oneChange).toBe(4);
-    expect(list).toBe(54);
+    expect(list).toBe(104);
   } finally { (db as { runTransaction: unknown }).runTransaction = original; }
 }));
 
