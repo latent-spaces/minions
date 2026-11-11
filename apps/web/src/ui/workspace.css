@@ -79,6 +79,11 @@
 .k42-navigation.is-collapsed .k42-nav-more { width:var(--shell-control-size); justify-content:center; padding:8px 0; }
 .k42-nav-more-waiting { width:8px; height:8px; border-radius:50%; background:var(--agent-state-attention,#b42318); }
 .k42-navigation.is-collapsed .k42-nav-more-waiting { position:absolute; top:4px; right:4px; }
+.k42-my-agent-strip { display:flex; align-items:center; gap:6px; padding:2px 6px; }
+.k42-my-agent-chip { position:relative; display:inline-flex; border-radius:8px; }
+.k42-my-agent-chip:hover { outline:2px solid var(--hairline); outline-offset:1px; }
+.k42-my-agent-chip:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+.k42-my-agent-strip .k42-nav-more { margin-left:auto; padding:6px 10px; }
 .k42-my-agents-more { width:min(280px, calc(100vw - 32px)); max-height:min(60vh, 480px); overflow:auto; padding:6px; }
 .k42-my-agents-more ul { display:flex; flex-direction:column; gap:2px; margin:0; padding:0; list-style:none; }
 .k42-navigation.is-collapsed .k42-my-agents-more .k42-nav-link { width:100%; justify-content:flex-start; padding:4px 10px; }

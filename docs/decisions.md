@@ -140,6 +140,7 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
 - **My agents fits the space.** The owner chose, over an avatar grid or rotating rows,
   to show the My agents rows that fit the menu's remaining height, agents that need you
   first, with the rest behind “+N more”, which opens a popover list. It replaces Show more.
+  When not even one row fits, a strip of small avatars, named on hover, comes before +N.
 - **Task view unchanged.** The List/Board toggle stays, with List as the default. (Later
   the same day the owner replaced the task drawer with a task page and added subtasks; see
   “Task page and first-class subtasks”.)

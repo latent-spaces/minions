@@ -142,6 +142,7 @@ The project's sections are Tasks, Preview, Teams, Communication, Usage and Setti
 They are links in the menu, below Add task and above My agents; the header has no tab row.
 My agents shows only the rows that fit the menu's remaining height (agents that need you
 first); the rest are behind "+N more", a popover list, so the menu does not scroll for them.
+When not even one row fits, a strip of small avatars (named on hover) takes its place.
 The New task dialog's Assign to is optional: a row of agent avatars, where hovering or
 focusing one names the agent and its person, and clicking the chosen one unassigns it.
 Project updates (`ProjectUpdatesFeed.tsx`) are not a tab: they fill a full-height right
