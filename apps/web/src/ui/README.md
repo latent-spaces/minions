@@ -145,13 +145,13 @@ for project, computer and repository readiness. No browser observation launches 
 The project's tabs are Tasks, Preview, Teams, Conversations, Usage and Control center
 (`PROJECT_TABS` in `App.tsx`; each hides when its feature or the viewer's role rules it out).
 Project updates (`ProjectUpdatesFeed.tsx`) are not a tab: they fill a full-height right
-panel that runs from the top of the page, beside the header and every tab. Below 1200px the panel collapses to an Updates button at the bottom right that
+panel (360–460px, growing with the screen) that runs from the top of the page, beside the header and every tab. Below 1200px the panel collapses to an Updates button at the bottom right that
 opens it as a drawer. Old `section=tasks` and `section=updates` links fall back to Tasks.
 
 Tasks opens with a strip of setup notes (the waiting room, Add your agent, preparation),
-then `ProjectTasks` on the left and the map on the right; below 1440px the map goes under
-the tasks. With native tasks off, the page is the strip and the map. The sidebar's **Add
-task** button, above My agents, goes to Tasks and opens the New task dialog (title,
+then `ProjectTasks` on the left and the map on the right; when the main column is under
+960px wide (a container query) the map goes under the tasks. With native tasks off, the page is the strip and the map. The sidebar's **Add
+task** button, the project menu's primary (ink) action above My agents, goes to Tasks and opens the New task dialog (title,
 optional description, optional assignee); it shows only when Tasks is on and the viewer
 can add tasks. A task created with an assignee is created first, then assigned; if the
 assignment fails the dialog says so and offers Retry assigning.

@@ -26,7 +26,12 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   preparation) sits in a slim strip above the tasks.
 - **Add task in the sidebar.** An Add task button above My agents opens a quick dialog:
   title, optional description, optional assignee. It shows only when Tasks is on and the
-  viewer can add tasks.
+  viewer can add tasks. Later the same day: “add task on the sidebar should be a primary
+  action”, so it is the menu's ink pill button.
+- **Wider updates, better use of space.** Later the same day: “updates could be a bit wider
+  and we can use the space in the page better”. The panel grows from 360px to 460px with
+  the screen; the map sits beside the tasks only when the main column has room (960px),
+  otherwise under them, so the task table keeps readable columns.
 - **Task view unchanged.** The List/Board toggle stays, with List as the default.
 
 ## Job time limits come back — owner decision, 11 November 2026

@@ -92,8 +92,8 @@ export function WorkspaceNavigation({ globals, projectsLink, projects, projectSt
         {!!project.sections?.length && list(project.sections)}
       </nav>
       <div className="k42-project-scroll">
-      {project.addTask && <ul className="k42-nav-add-task"><li><button type="button" className="k42-nav-link k42-nav-create" onClick={project.addTask} title={collapsed ? 'Add task' : undefined} aria-label={collapsed ? 'Add task' : undefined}>
-        {collapsed && <Plus size={18} aria-hidden="true" />}{text('Add task')}{!collapsed && <span className="k42-nav-create-plus" aria-hidden="true"><Plus size={16} /></span>}</button></li></ul>}
+      {project.addTask && <ul className="k42-nav-add-task"><li><button type="button" className="primary k42-nav-add-task-button" onClick={project.addTask} title={collapsed ? 'Add task' : undefined} aria-label={collapsed ? 'Add task' : undefined}>
+        <Plus size={collapsed ? 18 : 16} aria-hidden="true" />{text('Add task')}</button></li></ul>}
       {(project.connect || !!project.myAgents?.length) && <nav className="k42-my-agents" aria-label="My agents">
         {label('My agents')}
         <ul>
