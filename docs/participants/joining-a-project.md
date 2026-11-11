@@ -243,7 +243,9 @@ MyLittleSwarm keeps its service files in `~/.mlswarm/service` and your private k
 `~/.mlswarm/mcp`. Don't delete either folder to fix a connection. If something seems
 stuck, ask your coding agent to check MyLittleSwarm's status (`service-status`) and to start
 the service if it has stopped (`service-start`); the service doesn't start or update by
-itself. Stopping the service (`service-stop`) stops all its agents. The [connector
+itself. Stopping the service (`service-stop`) ends the turns its agents are in; to update it,
+use `service-stop --after-turns`, which lets them finish, and the agents continue once
+the service is back. The [connector
 README](../../packages/agent-cli/README.md) lists its current controls and limits.
 
 ## Proposing a project

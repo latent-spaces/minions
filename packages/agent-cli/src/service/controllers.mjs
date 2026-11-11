@@ -25,7 +25,7 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
   // outage fails every computer's holds and ticks at once, and they must not all return together.
   const spread = ms => Math.min(3600000, Math.round(ms * (1 + 0.5 * Math.min(Math.max(Number(random()) || 0, 0), 0.999))));
   const controllers = new Map(), operations = new Map(), pendingPauses = new Map();
-  let tail = Promise.resolve(), closed = false;
+  let tail = Promise.resolve(), closed = false, draining = false;
   const ready = Promise.all([store.listOperations(), store.listMissions()]).then(([receipts, missions]) => {
     for (const receipt of receipts) operations.set(receipt.operationId, { fingerprint: receipt.fingerprint, accepted: true });
     // Waiting survives a connector restart (owner decision, 9 November 2026). The store kept only missions
@@ -391,6 +391,8 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
         ctrl.requested = false;
         if (ctrl.cleanupPending) { await settle(ctrl, ctrl.cleanupPending.reason); break; }
         if (ctrl.cancelled) { await settle(ctrl, ctrl.stopReason); break; }
+        // Finishing turns for an update: a worker whose turn ended leaves for the next service instead of starting another.
+        if (draining && leaveBetweenTurns(ctrl)) break;
         // A worker restored paused still reconnects, so the cloud sees it paused rather than gone.
         if (executionHeld(ctrl) && !(ctrl.orphaned && ctrl.paused && !ctrl.detached)) { if (pauseUpdateDue(ctrl)) await runPauseUpdate(ctrl); break; }
         if (cloudFactory && !ctrl.cloudInitialized) {
@@ -463,7 +465,7 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
   async function runTurn(ctrl, trigger) {
     const pauseUpdate = trigger === 'pause_update';
     // The pause update runs under the project Pause it reports on; any other hold still stops it.
-    const held = () => pauseUpdate ? ctrl.cancelled || ctrl.detached || locallyPaused(ctrl) || !ctrl.projectPaused : executionHeld(ctrl);
+    const held = () => draining || (pauseUpdate ? ctrl.cancelled || ctrl.detached || locallyPaused(ctrl) || !ctrl.projectPaused : executionHeld(ctrl));
     if (held()) return;
     const turnId = randomUUID(), ref = { missionId: ctrl.mission.missionId, generation: ctrl.mission.generation, turnId };
     ctrl.adapter ??= await adapterFactory(ctrl.mission, { signal: ctrl.lifetime.signal });
@@ -478,7 +480,7 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
     const startedAt = now();
     const prepared = await store.prepareTurn({ ...ref, steering: !pauseUpdate });
     if (ctrl.cancelled) { await settle(ctrl, ctrl.stopReason); return; }
-    if (pauseUpdate ? held() : executionHeld(ctrl) || ctrl.cloud && !workAllowed(ctrl)) { ctrl.mission = await store.deferPreparedTurn(ref); return; }
+    if (held() || !pauseUpdate && ctrl.cloud && !workAllowed(ctrl)) { ctrl.mission = await store.deferPreparedTurn(ref); return; }
     ctrl.mission = prepared.mission;
     if (!pauseUpdate) ctrl.scheduler.beginTurn(ctrl.news);
     const seenProject = newsFingerprint(ctrl.news), seenRevision = ctrl.news.work?.revision;
@@ -548,7 +550,7 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
   }
   function workAllowed(ctrl) {
     const project = ctrl.news?.project;
-    return !ctrl.cancelled && !executionHeld(ctrl) && now() < (ctrl.appliedDeadlineAt ?? ctrl.mission.deadlineAt)
+    return !ctrl.cancelled && !draining && !executionHeld(ctrl) && now() < (ctrl.appliedDeadlineAt ?? ctrl.mission.deadlineAt)
       && ctrl.tokenLimit !== undefined && !capReached(ctrl) && project?.started === true && project.paused === false && project.closed !== true;
   }
   // Turns saved before this was recorded leave it unknown: the restored worker then runs one catch-up turn.
@@ -559,6 +561,14 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
     return { fingerprint: last.project, handledRevision: Math.max(-1, ...revisions), continuation: last.more === true,
       ...(last.limit ? { limitedUntil: last.limit.retryAt, limitResetAt: last.limit.resetAt, limitStreak: last.limit.streak } : {}) };
   }
+  // Waiting survives a connector restart (owner decision, 9 November 2026): a worker between turns keeps its saved
+  // state and the next service continues it. Returns false for a worker in a turn, stopping or needing cleanup.
+  function leaveBetweenTurns(ctrl) {
+    if (ctrl.settled || ctrl.turnBusy || ctrl.settling || ctrl.cancelled || ctrl.halted || ctrl.cleanupPending) return false;
+    ctrl.detached = true; ctrl.settled = true; ctrl.lifetime.abort();
+    clearTimeout(ctrl.retryTimer); clearInterval(ctrl.cloudTimer); return true;
+  }
+  const drainDone = () => [...controllers.values()].every(ctrl => ctrl.settled || ctrl.halted);
   function createController(mission, { restored = false } = {}) {
     const ctrl = { mission, lifetime: new AbortController(), scheduler: createWorkController({ deadline: mission.deadlineAt, now, first: mission.outcomes.length === 0, seen: restored ? restoredSeen(mission) : null }), news: null, cancelled: false, paused: restored && mission.state === 'paused', pauseRequests: new Set(), settled: false, requested: false, pumping: false, stopBarrier: Promise.resolve(),
       // A restored mission may have left detached processes and a dead connector's checkout claim behind.
@@ -677,16 +687,29 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
       if (closed) throw new RuntimeError('closed', 'Runtime is closed.');
       return serialize(() => store.archiveFailedLaunchReport(input));
     },
+    // Updating the connector without stopping agents: no new turn starts, each turn in progress runs to its end,
+    // and every worker then leaves between turns for the next service to continue. Resolves once no turn is left;
+    // the caller then closes. Missions accepted meanwhile also wait for the next service. A plain close still ends
+    // the turns that remain.
+    async drain({ pollMs = 250 } = {}) {
+      await ready;
+      if (closed) throw new RuntimeError('closed', 'Runtime is closed.');
+      draining = true;
+      while (!closed) {
+        for (const ctrl of controllers.values()) leaveBetweenTurns(ctrl);
+        if (drainDone()) return;
+        await new Promise(resolve => setTimeout(resolve, pollMs));
+      }
+    },
+    drainStatus() {
+      return { draining, turnsInProgress: [...controllers.values()].filter(ctrl => !ctrl.settled && !ctrl.halted && (ctrl.turnBusy || ctrl.settling || ctrl.cancelled)).length };
+    },
     async close() {
       await ready; closed = true;
       const leave = ctrl => {
         if (ctrl.settled) return;
-        // Waiting survives a connector restart (owner decision, 9 November 2026): a worker between turns keeps
-        // its saved state and the next service continues it. A turn in progress is still stopped.
-        if (!ctrl.turnBusy && !ctrl.settling && !ctrl.cancelled && !ctrl.halted && !ctrl.cleanupPending) {
-          ctrl.detached = true; ctrl.settled = true; ctrl.lifetime.abort();
-          clearTimeout(ctrl.retryTimer); clearInterval(ctrl.cloudTimer); return;
-        }
+        // A turn in progress is stopped.
+        if (leaveBetweenTurns(ctrl)) return;
         if (ctrl.cleanupPending) ctrl.halted = false;
         latchStop(ctrl, 'shutdown'); ctrl.releaseStop?.(); schedule(ctrl);
       };

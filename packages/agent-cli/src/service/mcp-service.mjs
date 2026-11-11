@@ -63,20 +63,24 @@ export async function startRuntimeService({ controllers, principal, application,
     if (closed) return finish(503, 'closing');
     if (req.headers.host !== authority) return finish(403, 'host_rejected');
     if (req.headers.origin !== undefined && req.headers.origin !== `http://${authority}`) return finish(403, 'origin_rejected');
-    if (lifecycle && ['/service/status', '/service/stop'].includes(req.url)) {
+    if (lifecycle && ['/service/status', '/service/stop', '/service/drain'].includes(req.url)) {
       if (!authenticated(req.headers.authorization, token)) return finish(401, 'unauthorized');
       if (req.url === '/service/status' && req.method === 'GET') {
         let ready = false;
         try { ready = (await controllers.health()).ready === true; } catch { /* Keep authenticated status and stop available during a storage fault. */ }
+        let drain = { draining: false, turnsInProgress: 0 };
+        try { drain = lifecycle.drainStatus?.() ?? drain; } catch {}
         res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        return res.end(JSON.stringify({ running: true, ...identity, ready, packageVersion: VERSION, principal: owner }));
+        return res.end(JSON.stringify({ running: true, ...identity, ready, packageVersion: VERSION, principal: owner, draining: drain.draining === true, turnsInProgress: drain.turnsInProgress }));
       }
-      if (req.url === '/service/stop' && req.method === 'POST') {
+      // Drain lets every turn in progress finish and starts none, then stops; workers continue in the next service.
+      if (['/service/stop', '/service/drain'].includes(req.url) && req.method === 'POST') {
+        if (req.url === '/service/drain' && typeof lifecycle.drain !== 'function') return finish(405, 'method_rejected');
         if (req.headers['x-mlswarm-incarnation'] !== identity.incarnation) return finish(409, 'incarnation_changed');
         if (req.headers['content-length'] !== undefined && req.headers['content-length'] !== '0' || req.headers['transfer-encoding']) return finish(400, 'body_rejected');
         res.writeHead(202, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-        res.end(JSON.stringify({ stopping: true, incarnation: identity.incarnation }));
-        setImmediate(() => { void Promise.resolve().then(() => lifecycle.stop()).catch(() => {}); });
+        res.end(JSON.stringify({ stopping: true, ...(req.url === '/service/drain' ? { afterTurns: true } : {}), incarnation: identity.incarnation }));
+        setImmediate(() => { void Promise.resolve().then(() => req.url === '/service/drain' ? lifecycle.drain() : lifecycle.stop()).catch(() => {}); });
         return;
       }
       return finish(405, 'method_rejected');
