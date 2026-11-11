@@ -4,12 +4,13 @@ export function requestPressure(native: NativeContextObservation|null|undefined)
   const input=native?.lastInputTokens, window=native?.modelContextWindow;
   return typeof input==='number'&&Number.isFinite(input)&&input>=0&&typeof window==='number'&&Number.isFinite(window)&&window>0 ? input/window*100 : null;
 }
-// Fixed order and colors (validated categorical slots 1-8): a source keeps its color across agents, days and filters.
+// Fixed order and colors: a source keeps its color across agents, days and filters. The six per-turn sources take
+// validated categorical slots 1-6 in bar order; MyLittleSwarm's setup is quiet hatched gray, so the variable parts stand out.
 export const SOURCES=[
-  {key:'instructions',label:'Instructions',color:'var(--series-1)'},{key:'prompt',label:'Turn prompt',color:'var(--series-2)'},
-  {key:'steering',label:'Steering',color:'var(--series-3)'},{key:'definitions',label:'Tool definitions',color:'var(--series-4)'},
-  {key:'tasks',label:'Task results',color:'var(--series-5)'},{key:'conversations',label:'Conversation results',color:'var(--series-6)'},
-  {key:'other',label:'Other tools & guide',color:'var(--series-7)'},{key:'arguments',label:'Tool arguments',color:'var(--series-8)'},
+  {key:'instructions',label:'Instructions',color:'var(--setup-1)'},{key:'prompt',label:'Turn prompt',color:'var(--series-1)'},
+  {key:'steering',label:'Steering',color:'var(--series-2)'},{key:'definitions',label:'Tool definitions',color:'var(--setup-2)'},
+  {key:'tasks',label:'Task results',color:'var(--series-3)'},{key:'conversations',label:'Conversation results',color:'var(--series-4)'},
+  {key:'other',label:'Other tools & guide',color:'var(--series-5)'},{key:'arguments',label:'Tool arguments',color:'var(--series-6)'},
   {key:'unsplit',label:'Tool results · unsplit',color:'var(--series-other)'},
 ] as const;
 export type Source=typeof SOURCES[number];

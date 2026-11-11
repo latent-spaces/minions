@@ -21,7 +21,7 @@ async function port() {
   await new Promise<void>(resolve => server.close(() => resolve())); return value;
 }
 
-test('actual app Settings page lists connections, is linked from the menu, confirms revocation and handles mobile, errors and empty connections', async () => {
+test('actual project Settings lists connections, confirms revocation and handles mobile, errors and empty connections', async () => {
   await resetEmulator();
   const directory = await mkdtemp(join(tmpdir(), 'mlswarm-computers-')), apiPort = await port(), webPort = await port();
   const fixture = await seed({ profiles: [{ name: 'Computer owner', email: 'computer-owner@example.test' }] });
@@ -56,17 +56,15 @@ test('actual app Settings page lists connections, is linked from the menu, confi
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     await context.route('**/*', (route: any) => ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
     page = await context.newPage(); const errors: string[] = []; page.on('pageerror', (e: Error) => errors.push(e.message));
-    await page.goto(`http://127.0.0.1:${webPort}/?view=computers`);
+    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=control-center`);
     await signInBrowser(page, await idTokenFor('computer-owner@example.test'));
-    await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
+    await page.getByRole('heading', { name: 'Connections', exact: true }).waitFor();
     await page.getByText('Synthetic work laptop', { exact: true }).waitFor();
-    // There is no top bar or account menu (owner, 11 November 2026): Settings is linked at the foot of the menu,
-    // and the connector no longer updates itself, so this page shows no update status.
+    // There is no top bar or account menu (owner, 11 November 2026), no My computers link and no update status.
     expect(await page.locator('.k42-top-bar, .k42-account-menu').count()).toBe(0);
     expect(await page.getByText(/Update status|Update when idle/).count()).toBe(0);
-    expect(await page.getByRole('link', { name: 'Settings', exact: true }).count()).toBe(1);
+    expect(await page.getByRole('link', { name: 'My computers', exact: true }).count()).toBe(0);
     expect(await page.getByRole('link', { name: 'My agents', exact: true }).count()).toBe(0);
-    await page.getByRole('link', { name: 'Settings', exact: true }).click();
     await page.screenshot({ animations: 'disabled', path: join(directory, 'desktop.png') });
     for (const width of [390, 320]) {
       await page.setViewportSize({ width, height: 844 });
@@ -89,7 +87,7 @@ test('actual app Settings page lists connections, is linked from the menu, confi
     expect(await inProject(TEST_PROJECT, () => agentByToken(token))).toBeNull();
     await page.screenshot({ animations: 'disabled', path: join(directory, 'empty.png') });
     expect(errors).toEqual([]);
-    console.info(`Actual app Settings: desktop, 390px, 320px, keyboard, real revocation, retry and empty state: ${directory}`);
+    console.info(`Actual Settings connections: desktop, 390px, 320px, keyboard, real revocation, retry and empty state: ${directory}`);
   } catch (error) {
     if (page) { await page.screenshot({ path: join(directory, 'failure.png'), fullPage: true }).catch(() => {}); console.error(await page.locator('body').innerText().catch(() => ''), output.slice(-1000)); }
     throw error;

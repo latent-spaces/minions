@@ -38,10 +38,9 @@ test('untrusted route IDs never become authenticated API path traversal', () => 
   for (const view of ['explore', 'propose', 'review', 'admin', 'profile', 'profiles', 'messages', 'invite']) expect(parseRoute(`?view=${view}&person=member_1`)).toEqual({ view: 'projects' });
 });
 
-test('app Settings has its own route, old My computers links open it, and the retired global agent route is gone', () => {
-  expect(parseRoute('?view=settings')).toEqual({ view: 'settings' });
-  expect(formatRoute({ view: 'settings' })).toBe('?view=settings');
-  expect(parseRoute('?view=computers')).toEqual({ view: 'settings' });
+test('connections live in project Settings: old My computers and app Settings links open My projects, and the retired global agent route is gone', () => {
+  expect(parseRoute('?view=computers')).toEqual({ view: 'projects' });
+  expect(parseRoute('?view=settings')).toEqual({ view: 'projects' });
   expect(parseRoute('?view=agents')).toEqual({ view: 'projects' });
   expect(parseRoute(`?project=${P}&section=agents`).view).toBe('project');
 });

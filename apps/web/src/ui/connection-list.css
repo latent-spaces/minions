@@ -1,13 +1,11 @@
-.k42-connections-title { display:flex; align-items:center; gap:4px; margin-top:24px; }
-.k42-connections-title h2 { margin:0; font-size:18px; font-weight:650; }
-.k42-connection-list { list-style:none; margin:12px 0 24px; padding:0 24px; background:var(--canvas); border:var(--card-border); border-radius:var(--surface-radius); }
-.k42-connection-list > li { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:24px 0; }
-.k42-connection-list > li + li { border-top:1px solid var(--line); }
+.k42-connections-title { display:flex; align-items:center; gap:4px; }
+.k42-connections-title h3 { margin:0; font:inherit; }
+.k42-connection-list { list-style:none; margin:0; padding:0; }
+.k42-connection-list > li { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:8px 0; }
+.k42-connection-list > li + li { border-top:var(--card-border); padding-top:16px; margin-top:8px; }
 .k42-connection-detail { min-width:0; overflow-wrap:anywhere; }
-.k42-connection-detail strong { font-size:16px; font-weight:600; }
 .k42-connection-detail p { margin:4px 0 0; }
 .k42-connection-list > li > button { flex-shrink:0; }
 @media (max-width:600px) {
-  .k42-connection-list { padding-inline:16px; }
-  .k42-connection-list > li { align-items:flex-start; flex-direction:column; gap:16px; padding-block:20px; }
+  .k42-connection-list > li { align-items:flex-start; flex-direction:column; gap:12px; }
 }

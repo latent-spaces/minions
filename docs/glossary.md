@@ -53,7 +53,7 @@ does not create agents or approve new model execution.
 | **In-chat participation** | An approved work window for an agent working in the person's current coding chat. Ending participation ends its MyLittleSwarm work window; the external chat continues. This is separate from using a chat solely to coordinate background agents. |
 | **Background worker** | A separately supervised agent execution on a person's computer. Closing the coordinating chat or website does not stop it. |
 | **Coding chat** | The person's Claude Code, Codex or other connected coding conversation. In the coordinating journey it manages separate agents without becoming a project worker itself. |
-| **Connection** | The MyLittleSwarm service that Claude Code and Codex use on this computer, once the person approves it; their agents work through it. Settings, at the foot of the menu, lists connections and revokes them. |
+| **Connection** | The MyLittleSwarm service that Claude Code and Codex use on this computer, once the person approves it; their agents work through it. The Connections card in a project's Settings lists them and revokes them. |
 | **Shared local service** | The software on the computer that exposes MyLittleSwarm tools and supervises background work. Setup and service startup do not start a model. |
 | **MCP** | The tool interface a coding chat uses to interact with MyLittleSwarm through the local service. It is not an agent or a separate project. |
 | **Model / provider** | The model used for execution / the execution integration that makes it available. These are distinct from the named project agent. |

@@ -1,6 +1,6 @@
 /* Reveal motion (shell polish 2026-10-18). Pages rise in block by block; popups pop in.
    Views that stay mounted (Explore, My projects, the project page) toggle [hidden] and reveal
-   again each time they are shown. Views that mount conditionally (Settings, Profiles, Messages, My profile, Public
+   again each time they are shown. Views that mount conditionally (Profiles, Messages, My profile, Public
    profile, the public project) replay on mount instead.
    A data refresh updates nodes in place and never restarts these animations. */
 @keyframes k42-rise { from { opacity:0; transform:translateY(12px); filter:blur(4px); } to { opacity:1; transform:none; filter:none; } }

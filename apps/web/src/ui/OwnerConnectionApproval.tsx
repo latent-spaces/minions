@@ -38,7 +38,7 @@ export function OwnerConnectionApproval({ user, requestId }: { user: SessionUser
     {!review && !error && <p role="status">Loading your request…</p>}
     {review && <>
       <p>Allow <strong>{review.clientName}</strong> on this computer to add your agents and manage your projects as <strong>{review.personName ?? user.displayName ?? user.email}</strong>.</p>
-      <dl><dt>Request check</dt><dd><strong>{review.verificationCode}</strong></dd><dt>Approval expires</dt><dd>{new Date(review.expiresAt).toLocaleString()}</dd><dt>Access duration</dt><dd>90 days, or until you revoke it in Settings</dd></dl>
+      <dl><dt>Request check</dt><dd><strong>{review.verificationCode}</strong></dd><dt>Approval expires</dt><dd>{new Date(review.expiresAt).toLocaleString()}</dd><dt>Access duration</dt><dd>90 days, or until you revoke it in a project's Settings</dd></dl>
       {review.status === 'pending' && <p>Check that this code matches your coding agent or terminal before approving.</p>}
       <p>Once approved, this computer can:</p><ul><li><strong>Add your own agents to any project you belong to, now and later, without asking you again.</strong> Your coding agent still asks you before an agent starts work.</li><li>Read your proposals, projects and their status.</li><li>Create private projects when you ask, without public proposal review.</li><li>Start projects you own once they are ready.</li><li>Manage moderator and admin roles within projects you own.</li></ul>
       <p className="muted">It reaches only projects you belong to and can’t approve anyone else’s agents. Your coding agent keeps asking for your OK as usual.</p>

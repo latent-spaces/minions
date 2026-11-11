@@ -10,9 +10,10 @@ import './ui/settings.css';
 import type { Workspace } from './project-api';
 import type { ProjectControls } from './ui/ProjectControls';
 import { ProjectControlsCard } from './ui/ProjectControls';
+import { Connections } from './ui/Connections';
 import './ui/control-center.css';
 
-// Settings is one page (owner decision, 11 November 2026): Project, Agents and Features, each explained behind a ? note.
+// Settings is one page (owner decision, 11 November 2026): Project, Agents, Features and Connections, each explained behind a ? note.
 export function ControlCenter({ user, workspace, refresh, active, controls, refreshKey }: { refreshKey: number; user: SessionUser; workspace: Workspace; controls: ProjectControls; refresh: () => void; active: boolean }) {
   const catalogRequest = useCallback(<T,>(path: string, body?: object) => projects<T>(user, path, body), [user]);
   if (workspace.role !== 'owner') return active ? <p role="status">Settings are available to the project owner.</p> : null;
@@ -38,6 +39,7 @@ export function ControlCenter({ user, workspace, refresh, active, controls, refr
           <NativeTeamSettings key={`${user.uid}:${workspace.id}:teams`} user={user} projectId={workspace.id} active={active} readOnly={closed} onSaved={() => refresh()} />
         </section>
       </fieldset>
+      <Connections key={`${user.uid}:connections`} user={user} active={active} refreshKey={refreshKey} retry={refresh} />
     </div>
   </section>;
 }

@@ -17,8 +17,7 @@ projects aren't listed there, and once it has loaded, the list is hidden if ther
 none to show; open **My projects** to browse all your projects. On a narrow screen, the
 menu button in the top bar opens the sidebar.
 
-There is no top bar. The foot of the menu holds **Settings**, for the whole app, and
-**Notifications**.
+There is no top bar. The foot of the menu holds **Notifications**.
 
 After you close or pause a project, MyLittleSwarm may ask for optional private feedback. Only
 you and MyLittleSwarm's platform admins can read it; see [the feedback
@@ -91,9 +90,10 @@ building, with a link to your projects on MyLittleSwarm; you can close the setup
 
 Approval lets this computer, for 90 days, add your own agents to any project you belong
 to, read your proposals and projects, create private projects when you ask and start
-projects you own once they're ready. **Settings**, at the foot of the menu, lists your **Connections**: the MyLittleSwarm service
+projects you own once they're ready. A project's **Settings** ends with **Connections**: the MyLittleSwarm service
 that Claude Code and Codex use on this computer, whether it is online and when its approval expires.
-**Revoke** ends that connection and revokes every agent working through it, in all projects.
+A connection serves all your projects, so **Revoke** ends it and revokes every agent working
+through it, in all projects.
 Server access ends immediately; background work stops when the computer receives
 the revocation, including when an offline computer reconnects. MyLittleSwarm cannot stop
 an external Claude Code or Codex conversation. Agent records and work history stay
@@ -386,7 +386,7 @@ one tab does not take another visible tab offline. A failed check never extends 
 last report. The tooltip and accessible label give the status in words.
 
 This measures browser presence, not typing, computer connectivity or agent execution.
-Connections are listed in **Settings**, at the foot of the menu.
+Connections are listed at the end of a project's **Settings**.
 
 ## No hackathon events
 

@@ -10,21 +10,35 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
-## My computers becomes app Settings with Connections — owner decision, 11 November 2026
+## Usage chart colors come from the brand hues — owner request, 11 November 2026
+
+Source: the owner in chat on 11 November 2026: “improve colors here” and “we need nice color
+plate these are not colors that goes well together and fits the app in general”.
+
+- **Six brand hues.** The per-turn parts of the context bar use the project-stamp
+  pastels (sky, peach, aqua, butter, lavender, pink), deepened to one lightness and
+  chroma: `#4081d2`, `#e7885d`, `#008f83`, `#daad46`, `#835cbe`, `#e3769b`. In this
+  fixed order they pass the dataviz validator for lightness, chroma, colorblind
+  separation and normal vision on the light surface. Three are under 3:1 contrast, so the
+  legend and per-segment labels stay.
+- **Setup is quiet.** Instructions and Tool definitions, the same every turn, are two warm
+  grays with a light white hatch; they keep the hatched-setup rule from earlier the same day.
+
+## My computers becomes Connections in project Settings — owner decision, 11 November 2026
 
 Source: the owner in chat on 11 November 2026: “does my computes still make sense in
 loca luse or we need to check all the copy of that and what it do”. The engine listens
-only on 127.0.0.1, so the page could only ever list Claude Code or Codex on this
-computer. From the options offered the owner chose to fold it “under settings”, as
-“App Settings link”, and added “from claude-code/codex” for the wording.
+only on 127.0.0.1, so the page could only ever list the shared service Claude Code and
+Codex use on this computer. The owner chose to fold it “under settings” and asked for
+“claude-code/codex” wording. A first version made a second, app-wide Settings page; the
+owner then said “now we have double settings 😃 we should have folded the computer
+conection to the other settigns”.
 
-- **Settings at the foot of the menu.** The My computers link is now **Settings**, an
-  app-wide page (`?view=settings`; old `?view=computers` links open it). Project
-  Settings stays per project.
-- **Connections.** The page's one card lists each approved connection, the shared
-  MyLittleSwarm service that Claude Code and Codex use: name,
-  Online/Offline, approval expiry and **Revoke**, which still revokes every agent working
-  through it in all projects. Its explanation sits behind a ? note.
+- **Connections card.** Project Settings ends with **Connections**: the connection's
+  name, Online/Offline, approval expiry and **Revoke**, which still revokes every agent
+  working through it in all projects; the ? note and the confirmation say so.
+- **My computers is gone.** No menu-foot link and no page; old `?view=computers` links open
+  My projects.
 - **No “Set up another computer”.** The Change limits dialog no longer offers it; with
   no connection it still shows the setup steps. “Approve this computer” is unchanged.
 - **Unchanged.** Server routes (`/computers/...`) and server error wording that mention
