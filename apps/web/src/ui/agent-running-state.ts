@@ -113,7 +113,7 @@ export function workerAgentStatus(agent: AgentObservation, now: number): AgentSt
 export const CONTROL_LABEL: Record<BackgroundControlInput['kind'], string> = { pause: 'Pause', resume: 'Resume', stop: 'Kill' };
 export const controlLabel = (kind: BackgroundControlInput['kind']) => CONTROL_LABEL[kind];
 
-export function backgroundControlStatus(view: BackgroundControlView, now: number): string {
+export function backgroundControlStatus(view: BackgroundControlView, now: number, session?: AgentObservation['worker']['session']): string {
   if (view.state === 'recovery_required') return 'Needs a fix on your computer';
   // A mission also stops without a Kill (project closed, run refused by the cloud, MyLittleSwarm shutting down, repeated failures): only a Kill says Killing or Killed.
   const killed = view.pending?.kind === 'stop' && !['failed', 'expired'].includes(view.pending.state);
@@ -123,6 +123,15 @@ export function backgroundControlStatus(view: BackgroundControlView, now: number
   if (view.state === 'pausing') return 'Pausing · finishing its turn';
   if (view.pending?.state === 'queued') return `${CONTROL_LABEL[view.pending.kind]} saved · waiting for your computer`;
   if (view.pending?.state === 'accepted') return `${view.pending.kind === 'stop' ? 'Killing' : view.pending.kind === 'pause' ? 'Pausing' : 'Resuming'} on your computer`;
+  // Activity follows the same newest-observation rule as workerAgentStatus. A saved
+  // running snapshot is history once both contacts age out; it is not proof of a live process.
+  if (session && view.missionId === session.missionId && ['running', 'waiting', 'blocked'].includes(view.state)
+    && ['working', 'waiting', 'blocked'].includes(session.phase) && session.lastContactAt > view.deviceLastSeenAt
+    && session.lastContactAt <= now && now - session.lastContactAt < 90_000)
+    return backgroundControlStatus({ ...view, state: session.phase === 'working' ? 'running' : session.phase as 'waiting' | 'blocked',
+      deadlineAt: session.deadlineAt, deviceLastSeenAt: session.lastContactAt }, now);
+  if (view.deviceLastSeenAt > now) return 'Unknown';
+  if (now - view.deviceLastSeenAt >= 90_000) return 'Offline';
   if (view.deadlineAt <= now) return view.state === 'running' ? PAST_END.finishing : PAST_END.waiting;
   return ({ accepted: 'Starting', starting: 'Starting', running: 'Working', waiting: 'Idle', blocked: 'Blocked', paused: 'Paused', stopping: 'Stopping', stopped: 'Stopped', failed: 'Failed' } as Partial<Record<BackgroundControlView['state'], string>>)[view.state] ?? view.state;
 }

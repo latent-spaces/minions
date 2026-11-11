@@ -1,5 +1,5 @@
-import type { BackgroundControlView, CommunicationAgentState } from '@mlswarm/contracts';
-import { PAST_END, TIME_AND_TOKEN_CAP, TOKEN_CAP } from './agent-running-state';
+import type { AgentObservation, BackgroundControlView, CommunicationAgentState } from '@mlswarm/contracts';
+import { backgroundControlStatus, PAST_END, TIME_AND_TOKEN_CAP, TOKEN_CAP } from './agent-running-state';
 
 /** Presentation adapter only: does not resolve runtime state or enable controls. */
 export function agentIconState(label: string): CommunicationAgentState {
@@ -14,11 +14,10 @@ export function agentIconState(label: string): CommunicationAgentState {
   return Object.hasOwn(states, label) ? states[label] : 'unknown';
 }
 
-/** The icon for a background agent's row, from its state rather than its label (mirrors backgroundControlStatus). */
-export function backgroundIconState(view: Pick<BackgroundControlView, 'state' | 'pending' | 'deadlineAt'>, now: number): CommunicationAgentState {
+/** The row icon uses the same contact freshness and mission activity as its text. */
+export function backgroundIconState(view: BackgroundControlView, now: number, session?: AgentObservation['worker']['session']): CommunicationAgentState {
   if (view.state === 'recovery_required') return 'unknown';
   if (['stopping', 'stopped', 'failed'].includes(view.state)) return 'stopped';
   if (view.state === 'pausing' || view.pending && ['queued', 'accepted'].includes(view.pending.state)) return 'pausing';
-  if (view.deadlineAt <= now) return view.state === 'running' ? 'working' : 'waiting';
-  return ({ accepted: 'waiting', starting: 'waiting', running: 'working', waiting: 'idle', blocked: 'blocked', paused: 'paused' } as Partial<Record<BackgroundControlView['state'], CommunicationAgentState>>)[view.state] ?? 'unknown';
+  return agentIconState(backgroundControlStatus(view, now, session));
 }
