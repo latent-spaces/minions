@@ -140,6 +140,8 @@ status panel reads. No browser observation launches work.
 The project's sections are Tasks, Preview, Teams, Communication, Usage and Settings
 (`PROJECT_TABS` in `App.tsx`; each hides when its feature or the viewer's role rules it out).
 They are links in the menu, below Add task and above My agents; the header has no tab row.
+My agents shows only the rows that fit the menu's remaining height (agents that need you
+first); the rest are behind "+N more", a popover list, so the menu does not scroll for them.
 The New task dialog's Assign to is optional: a row of agent avatars, where hovering or
 focusing one names the agent and its person, and clicking the chosen one unassigns it.
 Project updates (`ProjectUpdatesFeed.tsx`) are not a tab: they fill a full-height right

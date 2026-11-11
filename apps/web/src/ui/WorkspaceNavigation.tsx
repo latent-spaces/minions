@@ -1,7 +1,7 @@
 import { AgentStatusIcon } from './AgentStatusIcon';
 import { Button } from './Button';
 import { personInitials } from './person-initials';
-import { Fragment, useState, type ReactNode } from 'react';
+import { Fragment, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { projectGradient } from './project-gradient';
 import { ArrowLeft, Folder, Plus, LockKeyhole, PanelLeftClose, PanelLeftOpen, Globe, SquareTerminal } from 'lucide-react';
 import './workspace.css';
@@ -9,6 +9,7 @@ import { CodingAgentAvatar } from './CodingAgentAvatar';
 import { PrivateBadge, PrivateNote } from './PrivateBadge';
 import { groupAgents } from './agent-running-state';
 import { CheatSheetButton } from './ProjectCheatSheet';
+import { useAnchoredPopover } from './use-anchored-popover';
 
 export interface WorkspaceNavItem { id: string; label: string; icon?: ReactNode; href: string; current?: boolean; locked?: string; onNavigate: () => void; }
 /** `private` marks a project that is not listed in Explore: a lock on its stamp (shell polish 2026-10-18, section 12). */
@@ -55,8 +56,30 @@ function ProjectStamp({ project, className = '' }: { project: { id: string; name
   return project.private ? <span className="k42-stamp-frame">{stamp}<PrivateBadge /></span> : stamp;
 }
 
-// My agents shows a handful first, like a recents list, and the rest on Show more.
-const AGENTS_SHOWN = 5;
+/** My agents shows the rows that fit the menu's remaining height, agents that need you first; the rest sit behind "+N more",
+ *  which opens a popover list, so the menu never scrolls for them (owner, 11 November 2026). Re-measured when the space or the agents change. */
+function useFittedCount(total: number, deps: unknown[]) {
+  const box = useRef<HTMLDivElement>(null), list = useRef<HTMLUListElement>(null);
+  const [count, setCount] = useState(total), [tick, setTick] = useState(0);
+  useLayoutEffect(() => {
+    const element = box.current; if (!element || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(() => setTick(n => n + 1)); observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  useLayoutEffect(() => {
+    const element = box.current, rows = list.current; if (!element || !rows) return;
+    const row = rows.querySelector<HTMLElement>('.k42-my-agent')?.parentElement, step = row ? row.offsetHeight + 2 : 50;
+    const heading = rows.querySelector<HTMLElement>('.k42-my-agent-group')?.offsetHeight ?? 0;
+    const slack = element.clientHeight - element.scrollHeight;
+    const shown = Math.min(count, total);
+    // Too tall: drop rows. Room for another row (and a group heading it might bring): add rows. Each pass settles the next.
+    if (slack < 0 && shown > 0) setCount(Math.max(0, shown - Math.ceil(-slack / step)));
+    else if (shown < total && element.scrollHeight <= element.clientHeight && slack >= step + heading) setCount(Math.min(total, shown + Math.max(1, Math.floor((slack - heading) / step))));
+    else if (count !== shown) setCount(shown);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [count, total, tick, ...deps]);
+  return { box, list, count: Math.min(count, total) };
+}
 export function WorkspaceNavigation({ globals, projectsLink, projects, projectStatus, project, secondary = [], brand, footer, collapsed = false, onCollapsedChange }: WorkspaceNavigationProps) {
   const text = (label: ReactNode) => <span className={collapsed ? 'k42-nav-text' : undefined}>{label}</span>;
   // Collapsed links retain their accessible names and tooltips.
@@ -69,8 +92,13 @@ export function WorkspaceNavigation({ globals, projectsLink, projects, projectSt
   };
   const list = (items: WorkspaceNavItem[]) => <ul>{items.map(item => <li key={item.id}>{link(item, <>{item.icon}{text(item.label)}</>)}</li>)}</ul>;
   const label = (value: string) => <p className={`k42-nav-label${collapsed ? ' k42-nav-text' : ''}`}>{value}</p>;
-  const [allAgents, setAllAgents] = useState(false);
-  const agents = groupAgents(project?.myAgents ?? []), shownAgents = allAgents ? agents : agents.slice(0, AGENTS_SHOWN);
+  const agents = groupAgents(project?.myAgents ?? []);
+  const fitted = useFittedCount(agents.length, [collapsed, project?.id, !!project?.connect]);
+  const shownAgents = agents.slice(0, fitted.count), hiddenAgents = agents.slice(fitted.count);
+  const more = useAnchoredPopover<HTMLDivElement>({ align: 'start', above: true });
+  // In the +N popover a row always shows its name and status, even from the collapsed rail.
+  const agentRow = ({ agent }: (typeof agents)[number], onNavigate = agent.onNavigate, full = false) => link({ id: agent.id, label: `${agent.name}, ${agent.waiting ? 'waiting for you' : agent.status}`, href: agent.href, onNavigate },
+    <><span className="k42-my-agent-avatar-wrap"><CodingAgentAvatar provider={collapsed && !full ? undefined : agent.provider} name={agent.name} id={agent.id} ownerId={agent.ownerId} persona={agent.personaChoice} size={32} decorative />{(!collapsed || full || agent.waiting) && <AgentStatusIcon label={agent.waiting ? 'Waiting for you' : agent.status} overlay />}</span>{(full ? (v: ReactNode) => <span>{v}</span> : text)(<span className="k42-my-agent-text"><strong>{agent.name}</strong><small>{agent.detail}</small></span>)}</>, 'k42-nav-link k42-my-agent');
   // Group headings only help when the agents are in more than one state.
   const headed = !collapsed && new Set(agents.map(row => row.group)).size > 1;
   const toggleLabel = collapsed ? 'Expand menu' : 'Collapse menu';
@@ -95,13 +123,18 @@ export function WorkspaceNavigation({ globals, projectsLink, projects, projectSt
           <Plus size={collapsed ? 18 : 16} aria-hidden="true" />{text('Add task')}</button></li></ul>}
         {!!project.sections?.length && list(project.sections)}
       </nav>
-      <div className="k42-project-scroll">
+      <div className="k42-project-scroll" ref={fitted.box}>
       {(project.connect || !!project.myAgents?.length) && <nav className="k42-my-agents" aria-label="My agents">
         {label('My agents')}
-        <ul>
-          {shownAgents.map(({ agent, group }, i) => <Fragment key={agent.id}>{headed && group !== shownAgents[i - 1]?.group && <li className="k42-my-agent-group">{group}</li>}<li>{link({ id: agent.id, label: `${agent.name}, ${agent.waiting ? 'waiting for you' : agent.status}`, href: agent.href, onNavigate: agent.onNavigate },
-            <><span className="k42-my-agent-avatar-wrap"><CodingAgentAvatar provider={collapsed ? undefined : agent.provider} name={agent.name} id={agent.id} ownerId={agent.ownerId} persona={agent.personaChoice} size={32} decorative />{(!collapsed || agent.waiting) && <AgentStatusIcon label={agent.waiting ? 'Waiting for you' : agent.status} overlay />}</span>{text(<span className="k42-my-agent-text"><strong>{agent.name}</strong><small>{agent.detail}</small></span>)}</>, 'k42-nav-link k42-my-agent')}</li></Fragment>)}
-          {!collapsed && agents.length > AGENTS_SHOWN && <li><button type="button" className="k42-nav-more" aria-expanded={allAgents} onClick={() => setAllAgents(value => !value)}>{allAgents ? 'Show less' : 'Show more'}</button></li>}
+        <ul ref={fitted.list}>
+          {shownAgents.map((row, i) => <Fragment key={row.agent.id}>{headed && row.group !== shownAgents[i - 1]?.group && <li className="k42-my-agent-group">{row.group}</li>}<li>{agentRow(row)}</li></Fragment>)}
+          {hiddenAgents.length > 0 && <li><button type="button" className="k42-nav-more" {...more.triggerProps} title={collapsed ? `${hiddenAgents.length} more agents` : undefined}
+            aria-label={`${hiddenAgents.length} more agents${hiddenAgents.some(row => row.agent.waiting) ? ', some waiting for you' : ''}`}>
+            {collapsed ? `+${hiddenAgents.length}` : `+${hiddenAgents.length} more`}{hiddenAgents.some(row => row.agent.waiting) && <span className="k42-nav-more-waiting" aria-hidden="true" />}</button>
+            <div {...more.panelProps} className={`${more.panelProps.className} k42-my-agents-more`} aria-label="More agents">
+              <ul>{hiddenAgents.map((row, i) => <Fragment key={row.agent.id}>{new Set(hiddenAgents.map(r => r.group)).size > 1 && row.group !== hiddenAgents[i - 1]?.group && <li className="k42-my-agent-group">{row.group}</li>}
+                <li>{agentRow(row, () => { more.close(false); row.agent.onNavigate(); }, true)}</li></Fragment>)}</ul>
+            </div></li>}
           {project.connect && <li><button type="button" className="k42-nav-link k42-nav-create" onClick={project.connect} title={collapsed ? 'Add agent' : undefined} aria-label={collapsed ? 'Add agent' : undefined}>
             {/* Looks like New project: the label with its plus on the right (owner, 21 October 2026). */}
             {collapsed && <Plus size={18} aria-hidden="true" />}{text('Add agent')}{!collapsed && <span className="k42-nav-create-plus" aria-hidden="true"><Plus size={16} /></span>}</button></li>}
