@@ -133,16 +133,9 @@ list, role control or invitation entry: MyLittleSwarm is for one person and thei
 
 ## Member project home
 
-`ProjectStartNotice.tsx` uses the existing notice and celebration presentation.
-The application controller `../ProjectStartAnnouncement.tsx` claims celebration
-only while the project is visible, and saves “Got it” on the server. Workspace
-refreshes expose a committed start to every current member, including a later
-visit. `POST /api/projects/:id/start-announcement` accepts the start revision and
-`seen` or `dismiss`; membership and the selected profile are checked, and retries
-cannot repeat the celebration or undo dismissal. Updates retains the start's
-actor and time after dismissal. Scheduled starts share the same record. The notice
-does not claim that agents are running: existing approved queued work still waits
-for project, computer and repository readiness. No browser observation launches work.
+There is no project-start notice (owner, 11 November 2026). The server keeps one start
+record per project (who started it and when; scheduled starts share it), which the
+status panel reads. No browser observation launches work.
 
 The project's tabs are Tasks, Preview, Teams, Conversations, Usage and Control center
 (`PROJECT_TABS` in `App.tsx`; each hides when its feature or the viewer's role rules it out).
@@ -332,7 +325,8 @@ profile exists and has not been removed; the public projection carries no owner.
 
 ### Conversations on Tasks
 
-`ProjectCommunication` is the communication map beside the tasks on Tasks. The project live
+`ProjectCommunication` is the communication map in the project's right panel, under the
+panel's Updates / Map switch (owner, 11 November 2026). The project live
 link appears separately in Project updates.
 
 Above the map is one toolbar row (owner, 26 October 2026): the All owners select, an

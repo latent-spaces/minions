@@ -19,7 +19,7 @@ import { inProject } from '../../apps/server/src/firestore.js';
 import { hashToken } from '../../apps/server/src/auth.js';
 
 disposableTarget();
-const folder = process.argv[2]; if (!folder) throw new Error('Run node tests/manual/project-start-app.mjs.');
+const folder = process.argv[2]; if (!folder) throw new Error('Run node tests/manual/repository-readiness-app.mjs.');
 const root = fileURLToPath(new URL('../../', import.meta.url));
 async function port() {
   const server = reservePort(); await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));

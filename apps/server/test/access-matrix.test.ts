@@ -32,7 +32,6 @@ type Row = { reads?: 'member' | 'operator'; body?: object; query?: Record<string
 const MANAGEMENT: Record<string, Row> = {
   'GET /:id': { reads: 'member' },
   'POST /:id/visit': { body: {} },
-  'POST /:id/start-announcement': { body: { revision: 1, action: 'seen' } },
   'GET /:id/my-karma': { reads: 'member' },
   'GET /:id/native-task-settings': { reads: 'member' },
   'POST /:id/native-task-settings': { body: { enabled: false, expectedRevision: 0, clientRequestId: '21111111-1111-4111-8111-111111111111' } },
@@ -129,7 +128,7 @@ afterAll(async () => {
 beforeEach(resetEmulator);
 
 async function call(method: string, path: string, token: string, body?: object) {
-  const privateEndpoint = /\/(?:private|invitations)(?:\/|$)|\/(?:leave|personal-archive|personal-star|visit|start-announcement)$|\/(?:tasks|native-task-settings|native-team-settings)(?:\/|$)/.test(path);
+  const privateEndpoint = /\/(?:private|invitations)(?:\/|$)|\/(?:leave|personal-archive|personal-star|visit)$|\/(?:tasks|native-task-settings|native-team-settings)(?:\/|$)/.test(path);
   const email = privateEndpoint ? (await identity().verifySession(token))?.email ?? null : null;
   const person = email ? (await profiles.where('email', '==', email).limit(1).get()).docs[0] : null;
   const response = await fetch(base + path, { method, headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', ...(person ? { 'X-Mlswarm-Profile-Id': person.id } : {}) },

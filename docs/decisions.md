@@ -107,6 +107,14 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   and we can use the space in the page better”. The panel grows from 360px to 460px with
   the screen; the map sits beside the tasks only when the main column has room (960px),
   otherwise under them, so the task table keeps readable columns.
+- **The map moves into the Updates panel.** Later the same day: “move the agent
+  communication map to the updates panel and have on top selection between the map and
+  updates”. The right panel opens on Updates, with an Updates / Map switch at its top; the
+  tasks now span the main column. Before a project starts (or in its waiting room) the
+  panel shows only Updates, as there is no map yet.
+- **No project-start notice.** Later the same day: “Oron Anschel started the project …
+  remove these toasts”. The notice, its Got it, the celebration and the seen/dismiss
+  endpoint are removed; the start record (who and when) stays for the status panel.
 - **Task view unchanged.** The List/Board toggle stays, with List as the default. (Later
   the same day the owner replaced the task drawer with a task page and added subtasks; see
   “Task page and first-class subtasks”.)

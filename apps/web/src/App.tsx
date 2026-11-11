@@ -23,7 +23,7 @@ import { SessionLoading, SessionUnavailable } from './ui/SessionLoading';
 import { WorkspaceNavigation, type ProjectMenu, type WorkspaceNavItem } from './ui/WorkspaceNavigation';
 import { COMPACT_SHELL } from './ui/shell-breakpoint';
 import { useMenuCollapsed } from './ui/menu-collapse';
-import { ListTodo, Folder, Settings, Menu, Users, Activity, MonitorPlay, LogOut, MessageSquare, Megaphone, Laptop } from 'lucide-react';
+import { ListTodo, Folder, Settings, Menu, Users, Activity, MonitorPlay, LogOut, MessageSquare, Megaphone, Laptop, Network } from 'lucide-react';
 import { ProjectUpdatesFeed } from './ProjectUpdatesFeed';
 import { NotificationsBell } from './ui/NotificationsBell';
 import { sidebarAgentRoute, menuMode } from './ui/shell-nav';
@@ -56,7 +56,6 @@ import { MyComputers } from './MyComputers';
 import { SidebarFooter } from './ui/SidebarFooter';
 import { BrandLogo } from './ui/BrandLogo';
 import { AddAgentNudge } from './ui/ProjectCheatSheet';
-import { ProjectStartAnnouncement } from './ProjectStartAnnouncement';
 import type { ProjectEntry, ProjectPage, Workspace } from './project-api';
 import { formatRoute, mayLeaveProject, ownerApprovalRequest, parseRoute, projectRoute, validProjectId, type GlobalView, type Route, type Section } from './route';
 import { NavLink, time, usePages } from './shared';
@@ -525,13 +524,15 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
     }) ?? [])], [controls.workers.data, controls.workers.now, openRequests.agentIds]);
   const myAgentsKey = myAgents.map(a => `${a.id}:${a.provider}:${a.status}:${a.detail}:${a.waiting}`).join(',');
   const cheatSheet = useMemo(() => workspace && workspace.execution !== 'closed' ? { title: workspace.definition.title, started: !!project?.started } : null, [workspace?.execution, workspace?.definition.title, project?.started]);
-  // Tasks share the project's main page with the agent map; a waiting room hides them like the other tabs.
+  // Tasks fill the project's main page (the agent map is in the right panel); a waiting room hides them like the other tabs.
   const tasksListed = tasksOn && !restricted;
   const taskReadOnly = !workspace || workspace.role === 'guest' || workspace.execution === 'closed' || !ownProfileId || !tasksOn;
   const [taskRequest, setTaskRequest] = useState(0);
   const addTask = useMemo(() => tasksListed && !taskReadOnly ? () => { chooseSection('overview'); setTaskRequest(n => n + 1); } : null, [tasksListed, taskReadOnly, chooseSection]);
   // Project updates sit in a right panel on every tab; on narrow screens a button opens it.
   const [updatesOpen, setUpdatesOpen] = useState(false);
+  // The panel shows either the updates or the agent communication map (owner, 11 November 2026).
+  const [panel, setPanel] = useState<'updates' | 'map'>('updates');
   useEffect(() => { onFacts({ projectId, connect: null, addTask, openAgent: activateAgent, myAgents, cheatSheet }); }, [onFacts, projectId, myAgentsKey, activateAgent, cheatSheet, addTask]);
   const owner = workspace?.role === 'owner';
   const isPrivate = !!workspace?.privacy;
@@ -567,7 +568,6 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
           {!workspace && <><div className="project-heading"><PathHeading title={project?.name ?? ''} parents={[{label:'My projects',to:{view:'projects'}}]} go={go} />
             <span className={`badge execution${toneClass(statusTone(status))}`}>{status}</span></div>{tabs}</>}
           <LeaveProjectFeedback controls={leave} />
-          {workspace?.startAnnouncement && <ProjectStartAnnouncement key={`${user.uid}:${projectId}:${workspace.startAnnouncement.revision}`} user={user} profileId={suppliedProfileId} projectId={projectId} announcement={workspace.startAnnouncement} active={visible} onUpdated={refreshAll} />}
           {workspace && <ProjectControlFeedback controls={controls} disabled={controlsDisabled} />}
           {workspace && detail && !agent && <div className="project-heading">
             <PathHeading trail={false} title={SECTION_NAMES[currentSection]}
@@ -576,18 +576,14 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
           </div>}
 
           {workspace && <div hidden={currentSection !== 'overview'} className="k42-overview">
-            {/* The strip keeps Home's setup notes above the tasks and the agent map. */}
+            {/* The strip keeps Home's setup notes above the tasks. */}
             <div className="k42-overview-strip" hidden={!!taskId && tasksListed}>
             {waiting && workspace.role !== 'owner' && <WaitingRoomCallout />}
             {waiting && workspace.role !== 'guest' && <WaitingAddAgent projectName={project?.name ?? workspace.definition.title} waitingForOwner={workspace.role !== 'owner'} />}
             {workspace.execution !== 'closed' && workspace.role !== 'guest' && controls.workers.data && !myAgents.length && <AddAgentNudge key={projectId} projectId={projectId} title={workspace.definition.title} started={!!project?.started} />}
             {!project && <ProjectHomePreparation owner={owner} closed={workspace.execution === 'closed'} projectId={projectId} go={go} />}
             </div>
-            {/* An open task page takes the whole main column; the agent map returns with the list. */}
-            <div className={tasksListed && !waiting && project && !taskId ? 'k42-overview-grid' : undefined}>
-              {tasksListed && <div className="k42-overview-tasks"><ProjectTasks key={`${user.uid}:${projectId}`} api={tasks} agents={taskAgents} people={taskPeople} lookup={project ? taskLabels : undefined} readOnly={taskReadOnly} active={tasksShown} createRequest={taskRequest} taskId={taskId} selfId={ownProfileId} manager={workspace.role === 'owner'} projectId={projectId} go={go} /></div>}
-              {!waiting && project && !(taskId && tasksListed) && <ProjectActivity user={user} tick={tick} active={visible && currentSection === 'overview'} go={go} projectName={project.name ?? workspace.definition.title} canAddAgent={workspace.role !== 'guest'} readOnly={workspace.execution === 'closed'} pauseRequest={project.paused ? project.pauseRequest : undefined} agentRows={agentRows.page?.items ?? []} onOpenAgent={activateAgent} onCopyLink={copyLink} />}
-            </div>
+            {tasksListed && <div className="k42-overview-tasks"><ProjectTasks key={`${user.uid}:${projectId}`} api={tasks} agents={taskAgents} people={taskPeople} lookup={project ? taskLabels : undefined} readOnly={taskReadOnly} active={tasksShown} createRequest={taskRequest} taskId={taskId} selfId={ownProfileId} manager={workspace.role === 'owner'} projectId={projectId} go={go} /></div>}
           </div>}
           {workspace && workspace.role !== 'guest' && currentSection === 'preview' && <ProjectPreview key={`${user.uid}:${projectId}`} title={workspace.definition.title} url={workspace.previewUrl ?? null} appOrigin={window.location.origin} />}
           {workspace && workspace.role !== 'guest' && currentSection === 'usage' && visible && <UsageAnalytics scope={`${user.uid}:${projectId}`} request={analyticsRequest} />}
@@ -617,9 +613,14 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
       </div>
       {workspace && overview && <>
         <Button className="k42-updates-toggle" aria-expanded={updatesOpen} aria-controls={`updates-panel-${projectId}`} onClick={() => setUpdatesOpen(open => !open)}><Megaphone size={16} aria-hidden="true" />Updates</Button>
-        <aside id={`updates-panel-${projectId}`} className="k42-updates-panel" data-open={updatesOpen || undefined} aria-label="Project updates">
+        <aside id={`updates-panel-${projectId}`} className="k42-updates-panel" data-open={updatesOpen || undefined} aria-label="Project updates and map">
           {updatesOpen && <CloseButton label="Close updates" onClick={() => setUpdatesOpen(false)} />}
-          <ProjectUpdatesFeed key={`${user.uid}:${projectId}`} projectId={projectId} user={user} tick={tick} active={visible} go={go} />
+          {!waiting && project && <div className="k42-task-segments k42-panel-switch" role="group" aria-label="Panel view">
+            <button type="button" className="k42-task-segment" aria-pressed={panel === 'updates'} onClick={() => setPanel('updates')}><Megaphone size={16} aria-hidden="true" />Updates</button>
+            <button type="button" className="k42-task-segment" aria-pressed={panel === 'map'} onClick={() => setPanel('map')}><Network size={16} aria-hidden="true" />Map</button>
+          </div>}
+          <div hidden={panel === 'map' && !waiting && !!project}><ProjectUpdatesFeed key={`${user.uid}:${projectId}`} projectId={projectId} user={user} tick={tick} active={visible && (panel === 'updates' || waiting || !project)} go={go} /></div>
+          {panel === 'map' && !waiting && project && <ProjectActivity user={user} tick={tick} active={visible && panel === 'map'} go={go} projectName={project.name ?? workspace.definition.title} canAddAgent={workspace.role !== 'guest'} readOnly={workspace.execution === 'closed'} pauseRequest={project.paused ? project.pauseRequest : undefined} agentRows={agentRows.page?.items ?? []} onOpenAgent={activateAgent} onCopyLink={copyLink} />}
         </aside>
       </>}
     </div>

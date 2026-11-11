@@ -2,7 +2,6 @@ import { editMergePolicy, readMergePolicy } from './merge-policy.js';
 import { readNativeTaskSettings, saveNativeTaskSettings } from './native-task-settings.js';
 import { readNativeTeamSettings, saveNativeTeamSettings } from './native-team-settings.js';
 import { getNativeTeam, listNativeTeams } from './native-teams.js';
-import { acknowledgeStart, START_ACKNOWLEDGEMENT } from './start-announcement.js';
 import { listNativeTasks, listNativeTaskChanges, getNativeTask, mutateNativeTask } from './native-tasks.js';
 import { recordProjectVisit } from '../onboarding/journeys.js';
 import { MERGING_QUERY, readMergingAccess } from './merging.js';
@@ -122,8 +121,6 @@ export function projectManagementRoutes(now: () => number) {
     parsed(z.object({}).strict(), req.body);
     return recordProjectVisit(privatePerson(req, res), id(req), now);
   }));
-  router.post('/:id/start-announcement', (req, res) => answer(res, () => inProject(id(req), () =>
-    acknowledgeStart(privatePerson(req, res).id, parsed(START_ACKNOWLEDGEMENT, req.body), now))));
   router.get('/:id/my-karma', (req, res) => answer(res, async () => {
     parsed(z.object({}).strict(), req.query);
     const projectId = id(req), actor = res.locals.operator;

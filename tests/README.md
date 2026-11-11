@@ -40,4 +40,3 @@ Benchmark studies are explicit
 operator actions, not startup or default tests. Moving tests grants no model, GitHub or cloud authority.
 
 Project start is covered by `npm run test:backend -- test/access-matrix.test.ts test/web-agent-starts.test.ts test/start-announcement.test.ts test/scheduled-start.test.ts`.
-`node tests/manual/project-start-app.mjs` independently checks owner cancellation, actual owner Start, live member announcements, normal/reduced-motion celebration, acknowledgement retry, keyboard dismissal and persistence across devices at desktop/mobile widths. Both use disposable local services and synthetic identities, with no models.

@@ -24,10 +24,12 @@
   .k42-updates-panel[data-open] { display:block; position:fixed; inset:0 0 0 auto; z-index:40; width:min(460px,92vw); height:auto; align-self:stretch; border-radius:0; border:0; background:var(--canvas); box-shadow:-8px 0 24px rgba(0,0,0,.14); }
   .k42-updates-panel[data-open] .k42-updates-close { display:flex; justify-content:flex-end; }
 }
-/* Tasks merges Home: setup notes in a strip, then the tasks beside the agent map. */
+/* Tasks merges Home: setup notes in a strip, then the tasks across the main column. */
 .k42-overview-strip { display:flex; flex-direction:column; gap:12px; }
 .k42-overview-strip:empty { display:none; }
-.k42-overview-grid { display:grid; grid-template-columns:minmax(0,1.8fr) minmax(300px,1fr); gap:20px; align-items:start; }
 .k42-overview-tasks { min-width:0; }
-/* Map beside tasks only when the main column has room for both; otherwise the map goes under the tasks. */
-@container (max-width:959px) { .k42-overview-grid { grid-template-columns:minmax(0,1fr); } }
+/* The panel's Updates / Map switch spans its width (owner, 11 November 2026: the map moved into the panel). */
+.k42-panel-switch.k42-task-segments { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); width:100%; margin-bottom:12px; }
+.k42-panel-switch .k42-task-segment { display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px; padding:5px 12px; }
+.k42-panel-switch .k42-task-segment[aria-pressed="true"]:hover { background:var(--ink); color:var(--on-ink); }
+.k42-panel-switch .k42-task-segment:focus-visible { outline:2px solid var(--ink); outline-offset:-2px; }
