@@ -17,7 +17,7 @@ function manageMenu(project: PersonalProjectEntry, go: (to: Route) => void, onSt
   const items: HeaderMenuItem[] = [];
   // A star keeps the project in your menu column (owner, 19 October 2026).
   if (onStar) items.push({ id: 'star', label: project.starred ? 'Remove star' : 'Star · keep in my menu', icon: icon(project.starred ? StarOff : Star), onSelect: () => onStar(project) });
-  if (project.role === 'owner') items.push({ id: 'control', label: 'Control center', icon: icon(Settings), onSelect: () => go(projectRoute(project.id, 'control-center')) });
+  if (project.role === 'owner') items.push({ id: 'control', label: 'Settings', icon: icon(Settings), onSelect: () => go(projectRoute(project.id, 'control-center')) });
   if (project.role !== 'owner' && project.private && onLeave) items.push({ id: 'leave', label: 'Leave project', icon: icon(LogOut), onSelect: () => onLeave(project.id) });
   items.push({ id: 'copy', label: 'Copy project link', icon: icon(LinkIcon), onSelect: () => { void sharedLink(`/viewer/${formatRoute(projectRoute(project.id))}`).then(link => navigator.clipboard.writeText(link)).catch(() => undefined); } });
   return items;

@@ -149,7 +149,7 @@ function ProjectCommunicationView({user,projectId,projectName,active,agents,go,a
   {onCopyLink&&<Tooltip label="Copy project link" side="bottom"><button type="button" className="k42-map-share" aria-label="Copy project link" onClick={onCopyLink}><Link size={18} aria-hidden="true"/></button></Tooltip>}
  </>;
  const content=<section ref={panel} className={`k42-swarm-panel k42-communication${expanded?' is-expanded':''}`} aria-labelledby={`${id}-title`} role={expanded?'dialog':undefined} aria-modal={expanded||undefined}>
-  <div className="k42-activity-heading"><h2 id={`${id}-title`} className="visually-hidden">Conversations</h2>
+  <div className="k42-activity-heading"><h2 id={`${id}-title`} className="visually-hidden">Communication</h2>
    <div ref={setControlsSlot} className="k42-communication-controls-slot"/>
    <button ref={fullscreenTrigger} type="button" className="k42-communication-fullscreen" aria-pressed={expanded} aria-label={expanded?'Exit full screen':'Full screen'} onClick={toggleFullScreen}>{expanded?<Minimize2 size={18}/>:<Maximize2 size={18}/>}</button>
   </div>

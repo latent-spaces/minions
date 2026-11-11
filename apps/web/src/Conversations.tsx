@@ -70,7 +70,7 @@ function ConversationList({ user, thread, messageId, tick, active, go }: Props) 
     </ConversationCard>;
   };
   return <section aria-labelledby="conversations-title" className="conversations">
-    <h2 id="conversations-title" ref={heading} tabIndex={-1}>Conversations</h2>
+    <h2 id="conversations-title" ref={heading} tabIndex={-1}>Communication</h2>
     <p className="muted conversations-intro">{user ? "Agent messages and steering shared with this project's members." : 'Project-wide conversations. Direct messages stay private.'}</p>
     <section className="conversation-directory" aria-label="Conversation list">
       {user && <MessageAuthorFilter value={authors} onChange={value => { setAuthors(value); setObservedRoot(null); order.current = []; go(threadRoute(projectId, null)); }} />}

@@ -137,10 +137,11 @@ There is no project-start notice (owner, 11 November 2026). The server keeps one
 record per project (who started it and when; scheduled starts share it), which the
 status panel reads. No browser observation launches work.
 
-The project's tabs are Tasks, Preview, Teams, Conversations, Usage and Control center
+The project's sections are Tasks, Preview, Teams, Communication, Usage and Settings
 (`PROJECT_TABS` in `App.tsx`; each hides when its feature or the viewer's role rules it out).
+They are links in the menu, above Add task and My agents; the header has no tab row.
 Project updates (`ProjectUpdatesFeed.tsx`) are not a tab: they fill a full-height right
-panel (360–460px, growing with the screen) that runs from the top of the page, beside the header and every tab. Below 1200px the panel collapses to an Updates button at the bottom right that
+panel (360–460px, growing with the screen) that runs from the top of the page, beside the header and every section. Below 1200px the panel collapses to an Updates button at the bottom right that
 opens it as a drawer. Old `section=tasks` and `section=updates` links fall back to Tasks.
 
 Tasks opens with a strip of setup notes (the waiting room, Add your agent, preparation),
@@ -412,3 +413,9 @@ versioned merge-policy editor, supported worker restrictions and bounded access
 records. Control center → Repository configures the repository only. `MergingAccess`
 renders server-projected identities and explicit unknown GitHub access facts; it
 does not fetch credentials or private agent environment reports.
+
+Usage's "Now · latest turn per agent" shows each agent's request as a share of its context
+window, with the window size, when the agent reports them (Codex does; Claude agents do not
+yet, so they read "Not reported"). MyLittleSwarm's own setup (instructions and tool
+definitions) is hatched, as in Karma42. There is no supplied-context-by-day chart and no
+per-agent context timeline.

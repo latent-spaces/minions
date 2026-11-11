@@ -1,13 +1,8 @@
-import type {ContextSummary, ContextTurnPage, NativeContextObservation} from '@mlswarm/contracts';
+import type {ContextSummary, NativeContextObservation} from '@mlswarm/contracts';
 
 export function requestPressure(native: NativeContextObservation|null|undefined): number|null {
   const input=native?.lastInputTokens, window=native?.modelContextWindow;
   return typeof input==='number'&&Number.isFinite(input)&&input>=0&&typeof window==='number'&&Number.isFinite(window)&&window>0 ? input/window*100 : null;
-}
-export function pressureStats(turns:ContextTurnPage['turns']) {
-  const values=turns.map(t=>requestPressure(t.nativeContext)).filter((v):v is number=>v!==null).sort((a,b)=>a-b);
-  const middle=Math.floor(values.length/2);
-  return {count:values.length,peak:values.length?values.at(-1)!:null,median:values.length?(values.length%2?values[middle]!:(values[middle-1]!+values[middle]!)/2):null};
 }
 // Fixed order and colors (validated categorical slots 1-8): a source keeps its color across agents, days and filters.
 export const SOURCES=[
@@ -18,6 +13,8 @@ export const SOURCES=[
   {key:'unsplit',label:'Tool results · unsplit',color:'var(--series-other)'},
 ] as const;
 export type Source=typeof SOURCES[number];
+/** The two sources that are MyLittleSwarm's own setup, hatched in charts: standing instructions and tool definitions. */
+export const isSetupSource=(key:Source['key'])=>key==='instructions'||key==='definitions';
 const taskTools=['list_tasks','get_task','create_task','update_task','claim_task','release_task','comment_task','link_task'],conversationTools=['read_thread','read_agent_inbox'];
 /** Measured supplied bytes per source, in fixed order; sources a report did not measure are absent, not zero. */
 export function suppliedSources(context:ContextSummary|null):(Source&{bytes:number})[] {

@@ -122,11 +122,11 @@ export function App() {
 }
 
 const SHORTCUTS = 5;
-const SECTION_NAMES: Record<Section, string> = { overview: 'Tasks', preview: 'Preview', usage: 'Usage', teams: 'Teams', agents: 'Agents', conversations: 'Conversations', 'control-center': 'Control center', 'needs-you': 'Needs you' };
+const SECTION_NAMES: Record<Section, string> = { overview: 'Tasks', preview: 'Preview', usage: 'Usage', teams: 'Teams', agents: 'Agents', conversations: 'Communication', 'control-center': 'Settings', 'needs-you': 'Needs you' };
 // Needs you is reached from the notifications bell; My computers is linked at the foot of the menu.
 const GLOBAL_NAMES: Record<GlobalView, string> = { projects: 'My projects', computers: 'My computers', 'needs-you': 'Needs you' };
 /** Project navigation and own-agent shortcuts; web creation is hidden (OPE-230). */
-type ProjectFacts = { projectId: string; connect: (() => void) | null; addTask?: (() => void) | null; openAgent?: (id: string) => void; myAgents?: { provider?: string; id: string; name: string; status: string; detail: string; waiting?: boolean; queued?: boolean }[]; cheatSheet?: { title: string; started: boolean } | null };
+type ProjectFacts = { projectId: string; connect: (() => void) | null; addTask?: (() => void) | null; openAgent?: (id: string) => void; myAgents?: { provider?: string; id: string; name: string; status: string; detail: string; waiting?: boolean; queued?: boolean }[]; cheatSheet?: { title: string; started: boolean } | null; sections?: { id: Section; current: boolean; locked: boolean }[] };
 const executionLabel = (p: ProjectEntry) => personalProjectStatus({ ...p, kind: 'project', proposalStatus: null }).label;
 
 export function Viewer({ user, account }: { user: SessionUser; account: CommunityAccount }) {
@@ -312,7 +312,9 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   // Projects and agents are created from Claude through local MCP (owner, 10 November 2026).
   const projectMenu: ProjectMenu | null = openProject && { id:openProject.id, name:openProject.name, status:executionLabel(openProject), private:openProject.private, cover:covers[openProject.id] ?? null,
     back: { id:'all-projects', label:'All projects', href:formatRoute({ view:'projects' }), onNavigate:() => go({ view:'projects' }) },
-    // Project sections live in header tabs; the menu keeps identity and own-agent shortcuts.
+    // The project's sections sit in the menu, above Add task and My agents (owner, 11 November 2026).
+    sections: (openFacts?.sections ?? []).map(({ id, current, locked }) => { const tab = PROJECT_TABS.find(t => t.id === id)!, Icon = tab.icon, to = projectRoute(openProject.id, id);
+      return { id, label: tab.label, icon: <Icon size={18} aria-hidden="true" />, href: formatRoute(to), current, locked: locked ? 'Available when the project starts' : undefined, onNavigate: () => { setNavigationOpen(false); go(to); } }; }),
     connect: openFacts?.connect ?? null,
     // Add task opens the New task dialog on the project's Tasks page.
     addTask: openFacts?.addTask ? () => { setNavigationOpen(false); openFacts.addTask!(); } : null,
@@ -370,13 +372,10 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   </div></LifecycleFeedbackProvider>;
 }
 
-// Task 11: the project's tabs, shared by the header's tab row and the menu.
+// The project's sections, listed in the menu above My agents (owner, 11 November 2026).
 type ProjectTab = { id: Section; label: string; icon: typeof Activity };
-const PROJECT_TABS: ProjectTab[] = [{ id:'overview', label:'Tasks', icon:ListTodo }, { id:'preview', label:'Preview', icon:MonitorPlay }, { id:'teams', label:'Teams', icon:Users }, { id:'conversations', label:'Conversations', icon:MessageSquare }, { id:'usage', label:'Usage', icon:Activity },
-  { id:'control-center', label:'Control center', icon:Settings }];
-function tabRoute(projectId: string, tab: ProjectTab): Route {
-  return projectRoute(projectId, tab.id);
-}
+const PROJECT_TABS: ProjectTab[] = [{ id:'overview', label:'Tasks', icon:ListTodo }, { id:'preview', label:'Preview', icon:MonitorPlay }, { id:'teams', label:'Teams', icon:Users }, { id:'conversations', label:'Communication', icon:MessageSquare }, { id:'usage', label:'Usage', icon:Activity },
+  { id:'control-center', label:'Settings', icon:Settings }];
 // Sharing a link preserves the server's existing admission and project-access rules.
 async function shareProjectLink(projectId: string) {
   let link: string;
@@ -438,18 +437,6 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   const waiting = !!workspace && !project?.started && workspace.execution !== 'closed';
   const restricted = waiting && !!workspace!.privacy && workspace!.role !== 'owner';
   const currentSection = restricted ? 'overview' : section;
-  const projectTabsRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (currentSection !== 'control-center' || !canManageMerging(workspace?.role)) return;
-    const reveal = () => {
-      const nav = projectTabsRef.current, selected = nav?.querySelector<HTMLElement>('[aria-current="page"]');
-      if (!nav || !selected) return;
-      const strip = nav.getBoundingClientRect(), item = selected.getBoundingClientRect();
-      if (item.left < strip.left || item.right > strip.right) nav.scrollLeft += item.left - strip.left - (strip.width - item.width) / 2;
-    };
-    reveal(); window.addEventListener('resize', reveal);
-    return () => window.removeEventListener('resize', reveal);
-  }, [currentSection, workspace?.role]);
   useEffect(() => { if (restricted && section !== 'overview') chooseSection('overview'); }, [restricted, section, chooseSection]);
   const status = workspace ? workspaceProjectStatus(workspace).label : 'Loading project…';
   // The people chat stays docked beside every section.
@@ -533,7 +520,12 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   const [updatesOpen, setUpdatesOpen] = useState(false);
   // The panel shows either the updates or the agent communication map (owner, 11 November 2026).
   const [panel, setPanel] = useState<'updates' | 'map'>('updates');
-  useEffect(() => { onFacts({ projectId, connect: null, addTask, openAgent: activateAgent, myAgents, cheatSheet }); }, [onFacts, projectId, myAgentsKey, activateAgent, cheatSheet, addTask]);
+  // Detail pages and the sections not in the menu keep their breadcrumb heading; the card's title is then an h2.
+  const detail = !allAgents && (!!agent || !['overview', 'preview', 'usage', 'teams', 'conversations', 'needs-you', 'control-center'].includes(currentSection));
+  // Before a private project starts, only Tasks opens for members other than the owner.
+  const sections = PROJECT_TABS.filter(tab => (tab.id !== 'conversations' || workspace?.role !== 'guest' || workspace.publicationOrigin !== 'owner_conversion') && (tab.id !== 'preview' || workspace?.role !== 'guest') && (tab.id !== 'usage' || workspace?.role !== 'guest') && (tab.id !== 'control-center' || canManageMerging(workspace?.role)) && (tab.id !== 'teams' || nativeTeamsEnabled(workspace?.nativeTeams))).map(tab => ({ id: tab.id, current: currentSection === tab.id && !detail, locked: restricted && tab.id !== 'overview' }));
+  const sectionsKey = JSON.stringify(sections);
+  useEffect(() => { onFacts({ projectId, connect: null, addTask, openAgent: activateAgent, myAgents, cheatSheet, sections }); }, [onFacts, projectId, myAgentsKey, activateAgent, cheatSheet, addTask, sectionsKey]);
   const owner = workspace?.role === 'owner';
   const isPrivate = !!workspace?.privacy;
   const analyticsRequest = useCallback(<T,>(path: string) => read<T>(user, path, projectId), [user, projectId]);
@@ -544,12 +536,6 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
     // Personal membership actions stay in the project menu.
     ...(isPrivate && !restricted && !owner && workspace?.role !== 'guest' ? [{ id:'leave', label:'Leave project', icon:<LogOut size={18} aria-hidden="true" />, onSelect:() => void leave.act(projectId) }] : []),
   ];
-  // Detail pages and the sections without a tab keep their breadcrumb heading; the card's title is then an h2.
-  const detail = !allAgents && (!!agent || !['overview', 'preview', 'usage', 'teams', 'conversations', 'needs-you', 'control-center'].includes(currentSection));
-  const tabs = <nav ref={projectTabsRef} className="k42-ph-tabs" aria-label="Project sections">
-    {PROJECT_TABS.filter(tab => (tab.id !== 'conversations' || workspace?.role !== 'guest' || workspace.publicationOrigin !== 'owner_conversion') && (tab.id !== 'preview' || workspace?.role !== 'guest') && (tab.id !== 'usage' || workspace?.role !== 'guest') && (tab.id !== 'control-center' || canManageMerging(workspace?.role)) && (tab.id !== 'teams' || nativeTeamsEnabled(workspace?.nativeTeams))).map(tab => restricted && tab.id !== 'overview' ? <Button key={tab.id} disabled aria-disabled="true" title="Available when the project starts">{tab.label}</Button> : <NavLink key={tab.label} to={tabRoute(projectId, tab)} go={go}
-      current={currentSection === tab.id && !detail}>{tab.label}</NavLink>)}
-  </nav>;
   return (
     <MyWorkersContext.Provider value={controls.workers}>
     {requestAgent && <AgentRequestsPopup key={requestAgent.id} user={user} projectId={projectId} agentId={requestAgent.id} name={agentRows.page?.items.find(row => row.id === requestAgent.id && row.revokedAt === null)?.name ?? openRequests.requests.find(row => row.agentId === requestAgent.id)?.agentName ?? 'Agent'} requests={openRequests.requests.filter(row => row.agentId === requestAgent.id)} loading={!openRequests.ready} loadError={openRequests.error} retry={openRequests.retry} readOnly={workspace?.execution === 'closed'} go={go} onClose={() => setRequestAgent(null)} />}
@@ -564,9 +550,9 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
             onCopyLink={copyLink}
             menu={menu}
             observed={<>{stale && <p className="warn observation-age">Out of date: last updated {time(overview.generatedAt)}</p>}</>}
-            tabs={tabs} titleLevel={detail ? 2 : 1} />}
+            titleLevel={detail ? 2 : 1} />}
           {!workspace && <><div className="project-heading"><PathHeading title={project?.name ?? ''} parents={[{label:'My projects',to:{view:'projects'}}]} go={go} />
-            <span className={`badge execution${toneClass(statusTone(status))}`}>{status}</span></div>{tabs}</>}
+            <span className={`badge execution${toneClass(statusTone(status))}`}>{status}</span></div></>}
           <LeaveProjectFeedback controls={leave} />
           {workspace && <ProjectControlFeedback controls={controls} disabled={controlsDisabled} />}
           {workspace && detail && !agent && <div className="project-heading">

@@ -124,6 +124,14 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   free text”. Edit the prompt opens the choices in the tile (private or public repository,
   1–10 agents, what to build) and the quoted prompt follows them; the model and the five
   minutes stay as in the example.
+- **Project sections in the menu.** Later the same day the owner moved the project's
+  sections from the header tabs to the menu, above My agents, and renamed two of them:
+  Conversations is now Communication and Control center is now Settings (Tasks, Preview,
+  Teams and Usage keep their names).
+- **Usage keeps less context detail.** Later the same day the owner removed “Supplied
+  context by day” and the per-agent context timeline from Usage. “Now · latest turn per
+  agent” shows the share of each agent's context window and the window size where
+  reported, and hatches MyLittleSwarm's own setup as Karma42 does.
 - **Task view unchanged.** The List/Board toggle stays, with List as the default. (Later
   the same day the owner replaced the task drawer with a task page and added subtasks; see
   “Task page and first-class subtasks”.)

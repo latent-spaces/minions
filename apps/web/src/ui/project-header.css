@@ -11,7 +11,7 @@
 .k42-ph-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
 .k42-ph-thin { display:inline-flex; align-items:center; gap:8px; height:var(--shell-control-size); padding:0 14px; border:var(--card-border); border-radius:var(--radius-button); background:var(--canvas); color:var(--ink); font:inherit; font-weight:600; text-decoration:none; cursor:pointer; }
 .k42-ph-thin:hover { border-color:var(--hairline-strong); background:var(--canvas); }
-.k42-ph-thin:focus-visible, .k42-ph-tabs a:focus-visible, .k42-ph-tabs button:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
+.k42-ph-thin:focus-visible { outline:3px solid var(--accent); outline-offset:2px; }
 .k42-ph-more { position:relative; }
 .k42-ph-more summary { list-style:none; }
 .k42-ph-more summary::-webkit-details-marker { display:none; }
@@ -21,12 +21,6 @@
 .k42-ph-menu .is-danger { color:var(--error); border-top:var(--card-border); margin-top:4px; }
 .k42-ph-contribute { height:var(--shell-control-size); }
 /* The tab row closes the card and shows on desktop too (Task 11 reverses the part-A ruling that hid it). */
-.k42-ph-tabs { display:flex; gap:4px; overflow-x:auto; border-top:var(--card-border); margin-top:12px; padding:0 12px; scrollbar-width:none; }
-.k42-ph-tabs a:focus-visible { outline-offset:-3px; }
-.k42-ph-tabs a, .k42-ph-tabs button { display:flex; align-items:center; gap:8px; flex:none; min-height:48px; padding:0 14px; border:0; border-bottom:3px solid transparent; border-radius:0; background:transparent; color:var(--text-muted); font:inherit; font-weight:600; text-decoration:none; cursor:pointer; }
-.k42-ph-tabs a:hover, .k42-ph-tabs button:hover { color:var(--ink); background:var(--canvas-sunken); }
-.k42-ph-tabs [aria-current="page"] { color:var(--ink); border-bottom-color:var(--ink); }
-.k42-ph-tabs button:disabled, .k42-ph-tabs button:disabled:hover { color:var(--muted); opacity:.5; cursor:not-allowed; background:transparent; }
 @media (max-width:600px) {
   .k42-ph-head { padding:0 16px; }
   .k42-ph-cover { height:110px; }
@@ -34,7 +28,6 @@
   .k42-ph-actions { position:relative; }
   .k42-ph-more { position:static; }
   .k42-ph-menu { left:0; right:auto; max-width:calc(100vw - 32px); }
-  .k42-ph-tabs { padding:0 4px; }
 }
 .k42-ph-links { margin:8px 0 0; font-size:13px; }
 .k42-ph-links a { color:var(--ink); font-weight:600; text-decoration:underline; text-underline-offset:3px; }

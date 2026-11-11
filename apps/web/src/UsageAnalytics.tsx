@@ -1,4 +1,3 @@
-import {ContextTimeline} from './ContextTimeline';
 import { useEffect, useState } from 'react';
 import type { ContextNow, UsageAnalytics as Data } from '@mlswarm/contracts';
 import { UsageAnalyticsView, type AnalyticsFilters as Filters } from './ui/UsageAnalytics';
@@ -28,5 +27,5 @@ function ScopedUsageAnalytics({request,platform}:{request:Request;platform:boole
   },[request,platform,applied.projectId,tick]);
   return <UsageAnalyticsView filters={filters} setFilters={setFilters} apply={()=>{setApplied({...filters});setTick(n=>n+1);}}
     refresh={()=>setTick(n=>n+1)} projectLabel={projectLabel?.id===data?.projectId?projectLabel?.label:undefined} drill={projectId=>{const group=data?.groups.find(g=>g.projectId===projectId);setProjectLabel(group?{id:projectId,label:group.label}:null);const next={...applied,projectId,groupBy:projectId?'model':'project'};setFilters(next);setApplied(next);}}
-    timeline={data?<ContextTimeline request={request} platform={platform} projectId={data.projectId}/>:undefined} data={data} now={now} error={error} busy={busy} platform={platform}/>;
+    data={data} now={now} error={error} busy={busy} platform={platform}/>;
 }

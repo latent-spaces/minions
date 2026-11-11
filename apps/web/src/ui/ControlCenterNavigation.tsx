@@ -28,7 +28,7 @@ export function ControlCenterNavigation({ projectId, section, owner, go }: {
     reveal(); window.addEventListener('resize', reveal);
     return () => window.removeEventListener('resize', reveal);
   }, [section]);
-  return <nav ref={navigation} className="control-center-nav" aria-label="Control center sections">
+  return <nav ref={navigation} className="control-center-nav" aria-label="Settings sections">
     {visibleControlSections({ owner }).map(({ id, label, icon: Icon }) => <a key={id}
       href={formatRoute(controlCenterRoute(projectId, id))} aria-current={section === id ? 'page' : undefined}
       onClick={event => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); go(controlCenterRoute(projectId, id)); }}>

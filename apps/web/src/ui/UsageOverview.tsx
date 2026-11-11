@@ -1,7 +1,7 @@
 import {useRef,useState,type CSSProperties,type FocusEvent,type PointerEvent,type ReactNode} from 'react';
 import type {ContextNow,UsageAnalytics as Data} from '@mlswarm/contracts';
 import {Button} from './Button';
-import {SOURCES,requestPressure,suppliedSources,type Source} from './context-metrics';
+import {SOURCES,isSetupSource,requestPressure,suppliedSources,type Source} from './context-metrics';
 
 type Tip={x:number;y:number;title:string;lines:string[]};
 const number=new Intl.NumberFormat('en',{maximumFractionDigits:1});
@@ -19,12 +19,13 @@ function Card({title,aside,children,className}:{title:string;aside?:ReactNode;ch
   {tip&&<div role="tooltip" className="usage-tip" style={{left:tip.x,top:tip.y}}><strong>{tip.title}</strong>{tip.lines.map(line=><span key={line}>{line}</span>)}</div>}
  </section>;
 }
-const Legend=({sources}:{sources:readonly Source[]})=><ul className="usage-legend">{sources.map(s=><li key={s.key} style={{'--swatch':s.color} as CSSProperties}>{s.label}</li>)}</ul>;
+const Legend=({sources}:{sources:readonly Source[]})=><ul className="usage-legend">{sources.map(s=><li key={s.key} data-setup={isSetupSource(s.key)||undefined} style={{'--swatch':s.color} as CSSProperties}>{s.label}</li>)}</ul>;
+const tokens=new Intl.NumberFormat('en',{notation:'compact',maximumFractionDigits:1});
 
 function Ring({value}:{value:number|null}){
- if(value===null)return <span className="usage-ring" title="Pressure not reported">–</span>;
+ if(value===null)return <span className="usage-ring">–</span>;
  const r=13,length=2*Math.PI*r;
- return <span className="usage-ring" title="Latest request input ÷ reported model window"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r={r}/><circle cx="16" cy="16" r={r} strokeDasharray={`${Math.min(100,value)/100*length} ${length}`}/></svg><b>{Math.round(value)}%</b></span>;
+ return <span className="usage-ring"><svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r={r}/><circle cx="16" cy="16" r={r} strokeDasharray={`${Math.min(100,value)/100*length} ${length}`}/></svg><b>{Math.round(value)}%</b></span>;
 }
 function Spark({values}:{values:(number|null)[]}){
  if(!values.some(v=>v!==null))return <span className="usage-spark"/>;
@@ -38,17 +39,21 @@ export function AgentNow({now}:{now:ContextNow}){
  const rows=now.agents.map(agent=>{
   const latest=[...agent.turns].reverse().find(t=>t.context),sources=suppliedSources(latest?.context??null);
   const pressures=agent.turns.map(t=>requestPressure(t.nativeContext));
-  return {agent,latest,sources,total:sources.reduce((n,s)=>n+s.bytes,0),pressure:pressures.findLast(v=>v!==null)??null,pressures};
+  const native=agent.turns.findLast(t=>requestPressure(t.nativeContext)!==null)?.nativeContext??null;
+  return {agent,latest,sources,total:sources.reduce((n,s)=>n+s.bytes,0),pressure:pressures.findLast(v=>v!==null)??null,pressures,window:native?.modelContextWindow??null,input:native?.lastInputTokens??null};
  });
  const max=Math.max(1,...rows.map(r=>r.total)),used=SOURCES.filter(s=>rows.some(r=>r.sources.some(x=>x.key===s.key&&x.bytes>0)));
- return <Card title="Now · latest turn per agent" className="usage-now" aside={<span className="usage-aside">Supplied context · pressure</span>}>{show=><>
+ return <Card title="Now · latest turn per agent" className="usage-now" aside={<span className="usage-aside">Supplied context · share of the context window</span>}>{show=><>
   {!rows.length?<p className="usage-empty">No agent turns reported yet.</p>:<>
    <Legend sources={used}/>
-   <div className="usage-now-rows">{rows.map(({agent,latest,sources,total,pressure,pressures})=>{const name=agent.agentName??'Agent';return <div key={agent.agentId} className="usage-now-row">
+   {/* Hatched marks are MyLittleSwarm setup, as in Karma42 (owner, 11 November 2026). */}
+   {used.some(s=>isSetupSource(s.key))&&<p className="usage-pattern-key"><span aria-hidden="true" data-setup="true"/>Hatched: MyLittleSwarm setup, the same every turn.</p>}
+   <div className="usage-now-row usage-now-column-labels" aria-hidden="true"><span>Agent</span><span>Supplied context</span><span>Size</span><span>Window</span><span>Trend</span></div>
+   <div className="usage-now-rows">{rows.map(({agent,latest,sources,total,pressure,pressures,window,input})=>{const name=agent.agentName??'Agent';return <div key={agent.agentId} className="usage-now-row">
     <span className="usage-now-name">{name}</span>
-    <div className="usage-stack" style={{width:`${total/max*100}%`}}>{latest?sources.filter(s=>s.bytes>0).map(s=><Button key={s.key} type="button" className="usage-seg" style={{flexGrow:s.bytes,background:s.color}}
-      aria-label={`${name} · ${s.label}: ${kb(s.bytes)}, ${share(s.bytes,total)}`} {...show({title:`${name} · ${s.label}`,lines:[`${kb(s.bytes)} · ${share(s.bytes,total)}`,`Turn ${latest.sequence}`]})}/>):<span className="usage-none">Not measured</span>}</div>
-    <span className="usage-total">{latest?kb(total):''}</span><Ring value={pressure}/><Spark values={pressures}/>
+    <div className="usage-stack" style={{width:`${total/max*100}%`}}>{latest?sources.filter(s=>s.bytes>0).map(s=><Button key={s.key} type="button" className="usage-seg" data-setup={isSetupSource(s.key)||undefined} style={{flexGrow:s.bytes,backgroundColor:s.color}}
+      aria-label={`${name} · ${s.label}: ${kb(s.bytes)}, ${share(s.bytes,total)}`} {...show({title:`${name} · ${s.label}`,lines:[`${kb(s.bytes)} · ${share(s.bytes,total)}`,...(isSetupSource(s.key)?['Hatched · MyLittleSwarm setup']:[]),`Turn ${latest.sequence}`]})}/>):<span className="usage-none">Not measured</span>}</div>
+    <span className="usage-total">{latest?kb(total):''}</span><span className="usage-window" title={window!==null&&input!==null?`${input.toLocaleString()} input tokens of a ${window.toLocaleString()}-token context window`:'The agent did not report its context window'}><Ring value={pressure}/><small>{window!==null?`of ${tokens.format(window)}`:'Not reported'}</small></span><Spark values={pressures}/>
    </div>;})}</div>
   </>}
  </>}</Card>;
@@ -73,24 +78,4 @@ export function Outcomes({data}:{data:Data}){
   <div className="usage-donut-center"><b>{total.toLocaleString()}</b><span>turns</span></div>
   <ul className="usage-legend usage-legend-column">{outcomes.map(o=><li key={o.key} style={{'--swatch':o.color} as CSSProperties}>{o.label}<b>{data.totals.outcomes[o.key].toLocaleString()}</b></li>)}</ul>
  </div>}</Card>;
-}
-
-// Day totals split the same way as a turn: prompt excludes steering, other tools exclude task and conversation results.
-function daySources(metrics:Data['points'][number]['metrics']){
- if(!metrics.instructionBytes.known)return [];
- const steering=metrics.steeringBytes.sum,tasks=metrics.taskResponseBytes.sum,conversations=metrics.conversationResponseBytes.sum;
- const bytes:Partial<Record<Source['key'],number>>={instructions:metrics.instructionBytes.sum,prompt:metrics.turnPromptBytes.sum-steering,steering,definitions:metrics.catalogBytes.sum,tasks,conversations,other:Math.max(0,metrics.toolResponseBytes.sum-tasks-conversations)};
- return SOURCES.filter(s=>bytes[s.key]).map(s=>({...s,bytes:bytes[s.key]!}));
-}
-export function SourcesByDay({data}:{data:Data}){
- const days=data.points.map(p=>({day:p.day,sources:daySources(p.metrics)})).map(d=>({...d,total:d.sources.reduce((n,s)=>n+s.bytes,0)}));
- const max=Math.max(1,...days.map(d=>d.total)),used=SOURCES.filter(s=>days.some(d=>d.sources.some(x=>x.key===s.key)));
- return <Card title="Supplied context by day" className="usage-days">{show=>!days.some(d=>d.total)?<p className="usage-empty">No context measured in this range.</p>:<>
-  <Legend sources={used}/>
-  <div className="usage-columns" style={{'--max':`"${kb(max)}"`,'--mid':`"${kb(max/2)}"`} as CSSProperties}>{days.map(d=><div key={d.day} className="usage-column">
-   <Button type="button" className="usage-column-stack" style={{height:`${d.total/max*100}%`}} disabled={!d.total} aria-label={`${d.day}: ${kb(d.total)}`}
-    {...show({title:`${d.day} · ${kb(d.total)}`,lines:[...d.sources].reverse().map(s=>`${s.label} ${kb(s.bytes)}`)})}>{d.sources.map(s=><span key={s.key} style={{flexGrow:s.bytes,background:s.color}}/>)}</Button>
-   <small>{d.day.slice(5)}</small>
-  </div>)}</div>
- </>}</Card>;
 }

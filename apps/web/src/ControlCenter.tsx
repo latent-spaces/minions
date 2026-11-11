@@ -86,10 +86,10 @@ export function ControlCenter({ category, user, workspace, refresh, active, go, 
         {configurationDirty && <Button className="soft" type="button" onClick={() => { setConfigurationDirty(false); setError(null); refresh(); }}>Discard changes</Button>}</div>
       </fieldset>
     </form>;
-  if (!owner) return active ? <p role="status">Control center is available to the project owner.</p> : null;
+  if (!owner) return active ? <p role="status">Settings are available to the project owner.</p> : null;
   const closed = workspace.execution === 'closed';
   return <section className={`project-settings control-center${active ? ' is-active' : ''}`} aria-labelledby="control-center-title">
-    <header className="control-center-heading"><h2 id="control-center-title">Control center</h2><p>Manage project activity and rules.</p></header>
+    <header className="control-center-heading"><h2 id="control-center-title">Settings</h2><p>Manage project activity and rules.</p></header>
     <div className="control-center-layout">
     <ControlCenterNavigation projectId={workspace.id} section={tab} owner={owner} go={go} />
     <div className="control-center-panel">

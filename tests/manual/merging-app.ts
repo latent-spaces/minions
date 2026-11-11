@@ -83,7 +83,7 @@ try {
   page.on('response', async response => { if(response.url().endsWith('/community/me') && response.status()>=400) console.error('Failed community identity check:',response.status(),await response.text()); });
   await signIn(page, owner.email);
   await page.getByRole('heading', { name: 'People and agents', exact: true }).waitFor();
-  assert.equal(await page.getByRole('navigation', { name: 'Project sections' }).getByRole('link', { name: 'Control center', exact: true }).count(), 1);
+  assert.equal(await page.getByRole('navigation', { name: 'Project', exact: true }).getByRole('link', { name: 'Settings', exact: true }).count(), 1);
   const policy = page.getByRole('region', { name: 'Current merge rules' });
   assert.match(await policy.innerText(), /Agent discretion/);
   await policy.locator('summary[aria-label="Edit merge rules"]').click();
@@ -180,12 +180,6 @@ try {
   await page.getByRole('link', { name: '7 open pull requests, latest available count on GitHub (opens in a new tab)', exact: true }).waitFor();
   for (const [width, height, name] of [[1440, 1000, 'desktop'], [390, 844, 'mobile']] as const) {
     await page.setViewportSize({ width, height });
-    await page.waitForFunction(() => {
-      const nav = document.querySelector('.k42-ph-tabs'), link = nav?.querySelector('[aria-current="page"]');
-      if (!nav || !link) return false;
-      const strip = nav.getBoundingClientRect(), item = link.getBoundingClientRect();
-      return item.left >= strip.left && item.right <= strip.right;
-    });
     assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${name}: no page overflow`);
     const panels = await page.locator('.k42-merging-panel').evaluateAll(nodes => nodes.map(n => ({ label: n.getAttribute('aria-label') ?? n.getAttribute('aria-labelledby') ?? n.tagName, width: n.clientWidth, content: n.scrollWidth })));
     assert.ok(panels.every(n => n.content <= n.width), `${name}: panels fit: ${JSON.stringify(panels)}`);
@@ -196,7 +190,7 @@ try {
       pane.scrollTop += nav.getBoundingClientRect().top - pane.getBoundingClientRect().top - 80;
     });
     for (const section of ['Repository', 'Merge rules', 'Repository', 'Merge rules']) {
-      const link = page.getByRole('navigation', { name: 'Control center sections' }).getByRole('link', { name: section, exact: true });
+      const link = page.getByRole('navigation', { name: 'Settings sections' }).getByRole('link', { name: section, exact: true });
       await link.evaluate(element => {
         const nav = element.parentElement!;
         nav.scrollLeft += element.getBoundingClientRect().left - nav.getBoundingClientRect().left - 8;
@@ -209,15 +203,15 @@ try {
       const after = await page.locator('.workspace-content').evaluate(pane => pane.scrollTop);
       assert.ok(Math.abs(after - before) <= 1, `${name}: ${section} keeps page position (${before} → ${after})`);
     }
-    await page.getByRole('heading', { name: 'Control center', exact: true }).scrollIntoViewIfNeeded();
+    await page.getByRole('heading', { name: 'Settings', exact: true }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: join(folder, `merging-${name}.png`), animations: 'disabled' });
     await page.getByRole('heading', { name: /^Merge requirements/ }).scrollIntoViewIfNeeded();
     await page.screenshot({ path: join(folder, `merging-${name}-access.png`), animations: 'disabled' });
   }
   const accessPath = `**/api/projects/${project.id}/merging?*`;
   await page.route(accessPath, route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"message":"Synthetic access failure"}' }));
-  await page.getByRole('navigation', { name: 'Project sections' }).getByRole('link', { name: 'About', exact: true }).click();
-  await page.getByRole('navigation', { name: 'Project sections' }).getByRole('link', { name: 'Control center', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Project', exact: true }).getByRole('link', { name: 'Tasks', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Project', exact: true }).getByRole('link', { name: 'Settings', exact: true }).click();
   await page.getByRole('link', { name: 'Merge rules', exact: true }).click();
   await page.getByText('Synthetic access failure', { exact: true }).waitFor();
   assert.equal(await page.getByRole('heading', { name: 'People and agents', exact: true }).count(), 0);
@@ -229,7 +223,7 @@ try {
   await page.reload();
   await page.getByRole('heading', { name: 'People and agents', exact: true }).waitFor();
   await page.getByRole('link', { name: /@local-example/ }).waitFor();
-  assert.ok(await page.getByRole('navigation', { name: 'Project sections' }).getByRole('link', { name: 'Control center', exact: true }).evaluate(link => {
+  assert.ok(await page.getByRole('navigation', { name: 'Project', exact: true }).getByRole('link', { name: 'Settings', exact: true }).evaluate(link => {
     const strip = link.parentElement!.getBoundingClientRect(), item = link.getBoundingClientRect();
     return item.left >= strip.left && item.right <= strip.right;
   }), 'Mobile direct-link entry reveals selected Merging tab');
@@ -240,7 +234,7 @@ try {
     const otherContext = await browser.newContext(), other = await otherContext.newPage();
     await signIn(other, `merging-${role}@example.test`);
     await other.getByText('Control center is available to the project owner.', { exact: true }).waitFor();
-    assert.equal(await other.getByRole('navigation', { name: 'Project sections' }).getByRole('link', { name: 'Control center', exact: true }).count(), 0);
+    assert.equal(await other.getByRole('navigation', { name: 'Project', exact: true }).getByRole('link', { name: 'Settings', exact: true }).count(), 0);
     assert.equal(await other.getByRole('heading', { name: 'People and agents', exact: true }).count(), 0);
     await otherContext.close();
   }

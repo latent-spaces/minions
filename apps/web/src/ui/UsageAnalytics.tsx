@@ -1,10 +1,10 @@
 import {contextSourceLabels as sourceLabels} from './context-source-labels';
 import { MeasurementPlot } from './MeasurementPlot';
-import { useId, useState, type ReactNode } from 'react';
+import { useId, useState } from 'react';
 import { PROMPT_SOURCES } from '@mlswarm/contracts';
 import type { AnalyticsMeasure, ContextNow, UsageAnalytics as Data, UsageMetric } from '@mlswarm/contracts';
 import { Button } from './Button';
-import { AgentNow, Outcomes, SourcesByDay, TopTools } from './UsageOverview';
+import { AgentNow, Outcomes, TopTools } from './UsageOverview';
 import './usage-analytics.css';
 
 export type AnalyticsFilters = { from: string; to: string; provider: string; model: string; projectId: string; groupBy: string };
@@ -18,10 +18,10 @@ const number = (measure: AnalyticsMeasure, metric: UsageMetric) => measure.known
 const format = (value: number|null) => value===null ? 'Not measured' : compact.format(value);
 function coverage(value: AnalyticsMeasure,reports:number) { return `${value.known.toLocaleString()} of ${reports.toLocaleString()} reports${value.partial ? ' · partial source' : ''}`; }
 
-export function UsageAnalyticsView({filters,setFilters,apply,refresh,drill,data,now,error,busy,platform,timeline,projectLabel}: {
+export function UsageAnalyticsView({filters,setFilters,apply,refresh,drill,data,now,error,busy,platform,projectLabel}: {
   filters:AnalyticsFilters;setFilters:(update:(previous:AnalyticsFilters)=>AnalyticsFilters)=>void;
   apply:()=>void;refresh:()=>void;drill:(projectId:string)=>void;
-  data:Data|null;now?:ContextNow|'error'|null;error:string;busy:boolean;platform:boolean;timeline?:ReactNode;projectLabel?:string;
+  data:Data|null;now?:ContextNow|'error'|null;error:string;busy:boolean;platform:boolean;projectLabel?:string;
 }) {
   const [metric,setMetric]=useState<UsageMetric>('input'); const id=useId();
   const choose=(key:keyof AnalyticsFilters,value:string)=>setFilters(previous=>({...previous,[key]:value}));
@@ -41,8 +41,6 @@ export function UsageAnalyticsView({filters,setFilters,apply,refresh,drill,data,
       {platform&&data.projectId&&<div className="context-project-scope"><Button onClick={()=>drill('')}>All projects</Button><strong>{projectLabel??`Project ${data.projectId.slice(0,8)}`}</strong></div>}
       {now==='error'?<p className="error" role="alert">Could not load the latest agent turns. <Button onClick={refresh}>Retry</Button></p>:now&&<AgentNow now={now}/>}
       <div className="usage-grid"><TopTools data={data}/><Outcomes data={data}/></div>
-      <SourcesByDay data={data}/>
-      {timeline}
       <details className="analytics-project-details"><summary>Exact values & coverage</summary>
       <div className="analytics-coverage"><strong>{data.totals.reports.toLocaleString()} projected turn reports</strong><span>{data.from} – {data.to} · UTC completion days</span><span>{data.pendingReports}{data.pendingReportsCapped?'+':''} pending reports in this scope, across all dates</span><span>Historical coverage not verified. Offline computers may have unreported work.</span><span>{data.lastProjectedAt===null?'No projection in this range':`Latest bucket update: ${new Date(data.lastProjectedAt).toLocaleString()}`}</span></div>
       <SourceOverhead data={data} drill={platform?drill:undefined}/>
