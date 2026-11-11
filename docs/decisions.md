@@ -10,6 +10,14 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Empty Preview and Tasks use the large empty state — owner request, 11 November 2026
+
+"when there is no preview or no tasks we already had some better placeholders like in the
+projects in karma42": an empty Preview tab and a project with no tasks now use the large
+empty state (icon tile, title, one line, dashed outline) chosen for empty pages on
+19 October 2026. No tasks yet also offers New task. Filtered task results that come back
+empty keep the small grey state.
+
 ## Resume copy and no feedback — owner decision, 11 November 2026
 
 - **Resume copy.** A paused project's status reads "Paused · agents are waiting", its

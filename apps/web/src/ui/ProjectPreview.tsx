@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink, MonitorPlay } from 'lucide-react';
+import { EmptyState } from './EmptyState';
 import './project-preview.css';
 
 // The Preview tab: the page an agent set to show live work, such as a local game (owner, 10 November 2026).
@@ -15,6 +16,8 @@ export function ProjectPreview({ title, url, appOrigin }: { title: string; url: 
     {url && <p className="k42-preview-url">{url}{url.startsWith('http:') ? ' · runs on the agent’s computer while the agent keeps it running' : ''}</p>}
     {framable ? <div className="k42-preview-frame"><iframe ref={frame} tabIndex={0} onLoad={() => frame.current?.focus()} title={`${title} — preview`} src={url} sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock" allow="fullscreen; gamepad" allowFullScreen referrerPolicy="no-referrer" onError={() => setFrameError(true)} />
       {frameError && <p role="alert">The preview could not be opened. Try opening it separately.</p>}</div>
-      : <div className="k42-preview-placeholder"><p>{url ? 'This preview opens separately.' : 'No preview yet. When an agent has something running you can try, like a game or a site, it shows here.'}</p></div>}
+      : url ? <div className="k42-preview-placeholder"><p>This preview opens separately.</p></div>
+      // An empty tab gets the large empty state, like other empty pages (owner, 11 November 2026).
+      : <EmptyState icon={MonitorPlay} size="large" title="No preview yet">When an agent has something running you can try, like a game or a site, it shows here.</EmptyState>}
   </section>;
 }

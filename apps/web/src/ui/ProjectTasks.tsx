@@ -289,7 +289,10 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
         <td data-label="Updated" className="muted">{when(task.updatedAt)}</td>
       </tr>)}</tbody>
     </table></div>}
-    {tasks?.length === 0 && !creating && <EmptyState icon={ListTodo} tone={null} title={next ? 'More tasks to search' : search || assignee ? 'No tasks match these filters' : status ? `No ${statusLabel(status).toLowerCase()} tasks` : 'No tasks yet'}>{next ? 'No matches in this page. Show more to continue searching.' : search || assignee || status ? 'Change the title search, state or assigned agent filter to see more tasks.' : readOnly ? 'Tasks will appear here.' : 'Add the first task. A title is enough; an agent can pick it up from Backlog.'}</EmptyState>}
+    {/* No tasks at all gets the large empty state, like other empty pages (owner, 11 November 2026); filtered results stay small. */}
+    {tasks?.length === 0 && !creating && (next || search || assignee || status
+      ? <EmptyState icon={ListTodo} tone={null} title={next ? 'More tasks to search' : search || assignee || !status ? 'No tasks match these filters' : `No ${statusLabel(status).toLowerCase()} tasks`}>{next ? 'No matches in this page. Show more to continue searching.' : 'Change the title search, state or assigned agent filter to see more tasks.'}</EmptyState>
+      : <EmptyState icon={ListTodo} size="large" title="No tasks yet" action={!readOnly && <Button className="primary" onClick={() => setCreating(true)}><Plus size={18} aria-hidden="true" />New task</Button>}>{readOnly ? 'Tasks will appear here.' : 'Add the first task. A title is enough; an agent can pick it up from Backlog.'}</EmptyState>)}
     {next && <Button onClick={more} disabled={loadingMore}>{loadingMore ? 'Loading…' : 'Show more'}</Button>}
   </section>;
 }
