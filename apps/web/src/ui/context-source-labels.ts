@@ -1,2 +1,0 @@
-import type {PromptSource} from '@mlswarm/contracts';
-export const contextSourceLabels:Record<PromptSource,string>={mission:'Approved mission',runtime:'Runtime/work-window guidance',steering:'Steering prompt material',deliveryNotices:'Delivery notices',permissions:'Native permission guidance',project:'Project and task-policy guidance',persona:'Participant persona',attribution:'Attribution footer',unattributed:'Unattributed base prompt'};
