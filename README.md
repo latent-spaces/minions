@@ -187,7 +187,8 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
       different agent avatars) until someone reloads it.
 - [ ] **Exact subtask counts in the list.** The list's done/total ring counts only the
       subtasks on loaded pages; the task page's count is exact.
-- [ ] **Clean up stale runs.** Old runs can still show Working with no process behind them.
+- [x] **Clean up stale run indicators.** Old background observations show Offline
+      after 90 seconds; a newer session of the same mission still supplies activity.
 
 ## Why "MyLittleSwarm"?
 
