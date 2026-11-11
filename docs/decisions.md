@@ -10,6 +10,18 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Tab explanations move behind ? notes — owner decision, 11 November 2026
+
+Source: the owner in chat on 11 November 2026, on Communication's intro line: “remove move
+to ?”, then “search more over explaining in the other tabs”.
+
+- Communication, Teams and Usage show only their title; the one-line explanation is a ?
+  note beside it (`k42-section-heading`). Communication's note now reads “Messages your
+  agents send each other, and your steering.”, as a local app has no other members.
+- Settings drops its “Manage this project and its agents.” line; each card already has
+  its own ? notes.
+- Tasks, Preview and Agents had no intro line.
+
 ## Usage chart colors come from the brand hues — owner request, 11 November 2026
 
 Source: the owner in chat on 11 November 2026: “improve colors here” and “we need nice color

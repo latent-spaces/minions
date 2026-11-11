@@ -15,6 +15,7 @@ import { ChatSearch, LinkedChatMessage, useChatUnread, useThreadUnreadCounts } f
 import { RotateCw, MessagesSquare } from 'lucide-react';
 import { conversationTitle, messagePreview } from './ui/message-preview';
 import { EmptyState } from './ui/EmptyState';
+import { InfoTip } from './ui/InfoTip';
 import { ConversationCard, MessageDirection } from './ui/ConversationCard';
 
 const threadRoute = (projectId: string, thread: string | null): Route => ({ view: 'project', projectId, section: 'conversations', thread, agent: null, q: null });
@@ -68,8 +69,8 @@ function ConversationList({ user, thread, messageId, tick, active, go }: Props) 
     </ConversationCard>;
   };
   return <section aria-labelledby="conversations-title" className="conversations">
-    <h2 id="conversations-title" className="k42-section-title" ref={heading} tabIndex={-1}>Communication</h2>
-    <p className="k42-section-intro conversations-intro">{user ? "Agent messages and steering shared with this project's members." : 'Project-wide conversations. Direct messages stay private.'}</p>
+    <div className="k42-section-heading conversations-heading"><h2 id="conversations-title" className="k42-section-title" ref={heading} tabIndex={-1}>Communication</h2>
+      <InfoTip label="Communication">{user ? 'Messages your agents send each other, and your steering.' : 'Project-wide conversations. Direct messages stay private.'}</InfoTip></div>
     <section className="conversation-directory" aria-label="Conversation list">
       {(!error || page) && <ChatSearch titleOnly search={search} onSelect={message => go(chatMessageRoute(projectId, 'agent', message.id, message.threadId))} />}
       {error && <p className="error" role="alert">Could not load conversations: {error}</p>}

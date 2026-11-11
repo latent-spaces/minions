@@ -19,7 +19,7 @@ export function ControlCenter({ user, workspace, refresh, active, controls, refr
   if (workspace.role !== 'owner') return active ? <p role="status">Settings are available to the project owner.</p> : null;
   const closed = workspace.execution === 'closed';
   return <section className={`project-settings control-center${active ? ' is-active' : ''}`} aria-labelledby="control-center-title">
-    <header className="control-center-heading"><h2 id="control-center-title" className="k42-section-title">Settings</h2><p className="k42-section-intro">Manage this project and its agents.</p></header>
+    <header className="control-center-heading"><h2 id="control-center-title" className="k42-section-title">Settings</h2></header>
     <div className="settings-category-pages control-center-stack">
       <section className="settings-card" aria-labelledby="settings-project-title">
         <h3 id="settings-project-title" className="settings-group-title">Project</h3>

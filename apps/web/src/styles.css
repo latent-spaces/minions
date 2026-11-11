@@ -184,4 +184,6 @@ details[open] > summary::after { transform: rotate(180deg); }
 .agent-profile-photo { position: relative; flex: none; display: inline-flex; }
 /* Every project tab opens with the same heading and optional one-line intro (owner, 11 November 2026). */
 .k42-section-title.k42-section-title { margin:0; font-size:24px; font-weight:650; line-height:1.2; letter-spacing:0; color:var(--ink); }
-.k42-section-intro.k42-section-intro { margin:6px 0 0; font-size:14px; color:var(--text-muted); }
+/* A tab title with its explanation behind a ? note (owner, 11 November 2026). */
+.k42-section-heading { display:flex; align-items:center; gap:4px; }
+.k42-section-heading > .k42-section-title { margin:0; }

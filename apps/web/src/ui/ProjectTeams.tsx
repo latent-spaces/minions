@@ -12,6 +12,7 @@ import { CloseButton } from './CloseButton';
 import './segments.css';
 import './project-tasks.css';
 import './project-teams.css';
+import { InfoTip } from './InfoTip';
 
 const message = (error: unknown) => error instanceof Error ? error.message : 'Could not read teams. Try again.';
 const when = (at: number) => new Date(at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
@@ -72,7 +73,7 @@ export function ProjectTeams({ api, active, refreshToken = 0, disabledNotice, ag
   }, [draft, search]);
   const chooseFilter = (value: boolean) => { setArchived(value); setSelected(null); };
   return <section className="k42-teams" aria-label="Teams">
-    <div className="k42-teams-heading"><div><h2 className="k42-section-title">Teams</h2><p className="k42-section-intro">How agents organize their work.</p></div>
+    <div className="k42-teams-heading"><div className="k42-section-heading"><h2 className="k42-section-title">Teams</h2><InfoTip label="Teams">How agents organize their work.</InfoTip></div>
       <Button className="k42-tasks-refresh" aria-label="Refresh teams" title="Refresh teams" disabled={!active || busy} onClick={() => { load(); setRefreshKey(value => value + 1); }}><RefreshCw size={16} aria-hidden="true" /></Button></div>
     {disabledNotice && <p className="muted" role="status">Teams are off. Existing teams, memberships and history are read-only.</p>}
     <div className="k42-teams-toolbar">
