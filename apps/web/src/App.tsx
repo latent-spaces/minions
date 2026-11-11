@@ -6,9 +6,7 @@ import { sharedLink } from './shared-link';
 import { AgentRequestsPopup } from './ui/AgentRequestsPopup';
 import { privateProjects } from './api';
 import { LifecycleFeedbackProvider } from './ui/LifecycleFeedback';
-import { FeedbackDialog } from './ui/FeedbackDialog';
 import { feedbackRequest } from './feedback-api';
-import type { FeedbackPage } from '@mlswarm/contracts';
 import { projectShortcuts } from './ui/project-shortcuts';
 import { useShellFocus } from './ui/use-shell-focus';
 import { NeedsYou, useOpenRequests } from './ui/NeedsYou';
@@ -54,7 +52,6 @@ import { useLeaveProject, LeaveProjectFeedback } from './LeaveProject';
 import { Agents } from './Agents';
 import { Conversations } from './Conversations';
 import { MyComputers } from './MyComputers';
-import { SidebarFooter } from './ui/SidebarFooter';
 import { BrandLogo } from './ui/BrandLogo';
 import { AddAgentNudge } from './ui/ProjectCheatSheet';
 import type { ProjectEntry, ProjectPage, Workspace } from './project-api';
@@ -139,7 +136,6 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   const [listError, setListError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
   const [directoryTick, setDirectoryTick] = useState(0);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const requestFeedback = useMemo(() => feedbackRequest(user), [user]);
   // A tab loads when it opens, even one opened in the background (e.g. by an agent checking the page); it stops
   // refreshing once it is hidden and carries on when shown again.
@@ -302,7 +298,6 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
     return () => { document.title = 'MyLittleSwarm'; };
   }, [location]);
   const failed = failure && failure.error instanceof ApiError && [400, 401, 403, 404].includes(failure.error.status) ? failure : null;
-  const openFeedback = () => { setFeedbackOpen(true); setNavigationOpen(false); };
   // Projects first in the menu: the global menu, or inside a project that project's sections and Switch project.
   const openProject = menuMode(route, projectShown ? selected!.id : null) === 'project' ? selected! : null;
   const openFacts = openProject && facts?.projectId === openProject.id ? facts : null;
@@ -326,9 +321,9 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   const navigation = <>
     {compact && <CloseButton label="Close navigation" onClick={dismiss} />}
     <WorkspaceNavigation collapsed={rail} onCollapsedChange={compact ? undefined : setMenuCollapsed}
-      brand={compact ? undefined : <span className="k42-brand-lockup"><NavLink to={{ view:'projects' }} go={go} className="wordmark"><BrandLogo /></NavLink><span className="k42-tagline">Build together at scale</span></span>}
+      brand={compact ? undefined : <span className="k42-brand-lockup"><NavLink to={{ view:'projects' }} go={go} className="wordmark"><BrandLogo /></NavLink><span className="k42-tagline">Build together, build it better</span></span>}
       secondary={[computersLink]}
-      footer={<><NotificationsBell user={user} active={visible} go={go} collapsed={rail} />{!compact && <SidebarFooter collapsed={rail} onFeedback={openFeedback} />}</>}
+      footer={<><NotificationsBell user={user} active={visible} go={go} collapsed={rail} /></>}
       globals={[]} projectsLink={projectsLink} project={projectMenu}
       projects={shortcuts.map(shortcut)}
       projectStatus={listError || !directory ? <>
@@ -337,9 +332,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
       </> : undefined}
     />
   </>;
-  const feedbackPage: FeedbackPage = route.view === 'project' ? 'Project' : route.view === 'projects' ? 'My projects' : route.view === 'needs-you' ? 'Needs you' : 'Other';
   return <LifecycleFeedbackProvider request={requestFeedback} profileId={account.person.id} accountId={user.uid}><div className="page workspace">
-    {feedbackOpen && <FeedbackDialog key={`${user.uid}:${account.person.id}`} request={requestFeedback} profileId={account.person.id} accountId={user.uid} page={feedbackPage} onClose={() => { setFeedbackOpen(false); requestAnimationFrame(() => content.current?.focus({ preventScroll: true })); }} />}
     <a className="skip-link" href="#content" onClick={e => { e.preventDefault(); content.current?.focus(); }}>Skip to content</a>
     <div className={`workspace-layout${rail ? ' is-menu-collapsed' : ''}`}>
       {compact

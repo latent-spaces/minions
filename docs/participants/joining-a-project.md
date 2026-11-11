@@ -19,11 +19,10 @@ menu button in the top bar opens the sidebar.
 
 The top bar holds a search box (**Search projects**, or **Search in** the open project;
 Ctrl K or Cmd K jumps to it), the notifications bell and your account menu. The account
-menu shows your name, then **My computers**, **Give us feedback**, **How MyLittleSwarm works**
+menu shows your name, then **My computers**, **How MyLittleSwarm works**
 and **Sign out**.
 
-**Give us feedback**, at the bottom of the sidebar on wider screens, sends the
-MyLittleSwarm team a private Bug, Idea or Other report, with a screenshot if you add one. Only
+After you close or pause a project, MyLittleSwarm may ask for optional private feedback. Only
 you and MyLittleSwarm's platform admins can read it; see [the feedback
 guide](../feedback-system/README.md).
 

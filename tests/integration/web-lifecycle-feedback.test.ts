@@ -107,16 +107,6 @@ test('actual lifecycle feedback follows success, stays optional, retries private
     await act('Close project');
     await expect.poll(() => new URL(page.url()).searchParams.get('view')).toBe('projects');
     expect(await page.getByRole('dialog').count()).toBe(0);
-    // Manual feedback remains usable alongside the lifecycle invitation flow.
-    await page.setViewportSize({ width: 1440, height: 1000 });
-    await page.getByRole('button', { name: 'Give us feedback', exact: true }).click();
-    dialog = page.getByRole('dialog');
-    await dialog.getByRole('heading', { name: 'Give us feedback', exact: true }).waitFor();
-    await dialog.getByLabel('What would you like us to know?', { exact: true }).fill('Synthetic manual feedback regression');
-    await dialog.getByRole('button', { name: 'Send feedback', exact: true }).click();
-    await dialog.getByRole('heading', { name: 'Feedback sent', exact: true }).waitFor();
-    expect((await db.collection('feedbackReports').get()).size).toBe(2);
-    await dialog.getByRole('button', { name: 'Done', exact: true }).click();
     expect(errors).toEqual([]);
     console.info(`Lifecycle feedback actual app desktop/mobile, keyboard-native choices, retry, failed action, navigation and saved opt-out: ${directory}`);
   } catch (error) {

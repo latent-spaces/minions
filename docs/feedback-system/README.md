@@ -1,7 +1,7 @@
 # Private feedback system
 
-Signed-in beta participants can open **Give us feedback** from the workspace sidebar.
-The centered dialog sends a private Bug, Idea or Other report to the MyLittleSwarm team. Only
+Feedback is offered after you close or pause a project (below); the menu has no feedback
+button (owner, 11 November 2026). The dialog sends a private report to the MyLittleSwarm team. Only
 the author and existing verified platform admins can read its text or screenshot. This
 is feedback about MyLittleSwarm itself. It is separate from the feedback reviewers give on
 proposals.
@@ -18,7 +18,7 @@ Choose a reason, write a comment, or both. Only the lifecycle action, selected r
 and comment are sent to the existing private inbox; no project identifier, title,
 screenshot or conversation is attached. Don’t ask me again disables both invitations
 across your projects and devices. Re-enable them in **My profile → Feedback preferences**.
-**Give us feedback** remains available regardless of this preference. If an earlier
+If an earlier
 report needs retrying, the dialog recovers that report instead of replacing it.
 
 ## Sending a report

@@ -168,6 +168,11 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
 - **Updates panel and conversations.** The Updates/Map switch stays at the top while the panel
   scrolls. An open conversation is as tall as its messages and scrolls inside only when long, and
   the "Agent messages are read-only" note under it is gone (owner, 11 November 2026).
+- **No author filter, no feedback button, a new tagline.** The engine has one owner, so the
+  owner removed Communication's **All / Me + my agents** filter; it always shows every
+  conversation. The menu's **Give us feedback** button is gone; feedback is still offered after
+  closing or pausing a project. The tagline under the wordmark reads "Build together, build it
+  better" (owner, 11 November 2026).
 - **The project header names no owner, privacy or running time.** The engine is local with one
   owner, so the owner removed the "Private project · Created by" pill and the "Active" label with
   its running clock, and the "Active" label under the project in the menu. Paused, Closed and Ready to start still show, with Pause, Resume and Start

@@ -30,6 +30,7 @@
 .k42-overview-tasks { min-width:0; }
 /* The panel's Updates / Map switch spans its width (owner, 11 November 2026: the map moved into the panel). */
 .k42-panel-switch.k42-task-segments { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); width:100%; margin-bottom:12px; }
-/* The Updates/Map switch stays at the top while the panel scrolls (owner, 11 November 2026); the shadow covers the panel's padding. */
-.k42-updates-panel > .k42-panel-switch { position:sticky; top:-16px; z-index:3; box-shadow:0 -16px 0 0 var(--canvas), 0 0 0 4px var(--canvas); }
+/* The Updates/Map switch stays at the top while the panel scrolls, keeping the panel's 16px inset (owner, 11 November 2026).
+   The shadows paint the panel's background above and below it, so scrolled posts don't show through. */
+.k42-updates-panel > .k42-panel-switch { position:sticky; top:0; z-index:3; box-shadow:0 -16px 0 0 var(--canvas), 0 12px 0 0 var(--canvas), 0 0 0 6px var(--canvas); }
 .k42-panel-switch .k42-task-segment { display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px; padding:5px 12px; }
