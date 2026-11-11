@@ -444,7 +444,6 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   const communityAgents = currentSection === 'agents' && agentFilter === 'all';
   const allAgents = communityAgents && !agent;
   const members = usePages<{ id: string; owner?: boolean; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null }>(user, membersPath, tick, visible && !!workspace);
-  const crowd = members.page?.items ?? [];
   const agentStatusTick = useRealtimeTick(user, projectId, 'agents', visible && !!project);
   const agentNeedsTick = useRealtimeTick(user, projectId, 'needs-you', visible && !!project);
   const teamsTick = useRealtimeTick(user, projectId, 'teams', visible && currentSection === 'teams' && !!project);
@@ -553,7 +552,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
         {error && <div role="alert"><p className="error">Could not load: {error}</p><Button onClick={() => { document.getElementById('content')?.focus({ preventScroll: true }); refresh(); }}>Try again</Button></div>}
         {!overview && !error && <p className="muted" role="status">Loading…</p>}
         {overview && <>
-          {workspace && <ProjectHeader id={projectId} cover={headerCover} name={project?.name ?? workspace.definition.title} isPrivate={isPrivate} createdBy={members.first ? crowd.find(person => person.owner === true)?.name ?? null : null} statusPanel={<ProjectStatusPanel workspace={workspace} controls={controls} disabled={controlsDisabled} />}
+          {workspace && <ProjectHeader id={projectId} cover={headerCover} name={project?.name ?? workspace.definition.title} statusPanel={<ProjectStatusPanel workspace={workspace} controls={controls} disabled={controlsDisabled} />}
             repositorySummary={overview.repositorySummary} usage={usage} repoUrl={project?.repoUrl}
             onCopyLink={copyLink}
             menu={menu}

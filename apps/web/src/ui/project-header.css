@@ -66,14 +66,7 @@
 .k42-ph-repo-link { align-self:center; }
 .k42-ph-repo-counters a { padding-bottom:2px; }
 .k42-ph-visibility .badge { display:inline-flex; align-items:center; gap:6px; }
-.k42-ph-live-dot { width:8px; height:8px; border-radius:50%; background:#22a55b; box-shadow:0 0 0 0 rgba(34,165,91,.5); animation:k42-live-pulse 2s infinite; }
-@keyframes k42-live-pulse { 70% { box-shadow:0 0 0 6px rgba(34,165,91,0); } 100% { box-shadow:0 0 0 0 rgba(34,165,91,0); } }
-@media (prefers-reduced-motion: reduce) { .k42-ph-live-dot { animation:none; } }
-.k42-ph-timer { font-variant-numeric:tabular-nums; color:var(--text-muted); }
-.k42-ph-created { padding-left:8px; border-left:1px solid var(--hairline); }
-.k42-ph-created strong { font-weight:600; color:var(--ink); }
 .k42-ph { position:relative; }
-.k42-ph-meta { position:absolute; top:12px; right:12px; z-index:2; display:inline-flex; align-items:center; gap:6px 8px; margin:0; padding:4px 10px; border-radius:999px; background:rgba(255,255,255,.85); font-size:13px; color:var(--text-muted); }
 .k42-ph-visibility { padding-left:0; }
 .k42-ph-visibility .k42-status-panel { padding-left:0; border-left:0; }
 /* Minimal repository bar (Noa, 27 October 2026): icons with numbers; labels on hover. */

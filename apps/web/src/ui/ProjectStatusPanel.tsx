@@ -2,7 +2,6 @@ import { useEffect, useId, useState } from 'react';
 import { Archive, CircleAlert, Hourglass, Pause, Play } from 'lucide-react';
 import type { Workspace } from '../project-api';
 import { Button } from './Button';
-import { ActiveTimer } from './ProjectHeader';
 import { StartProject, startWork, type ProjectControls } from './ProjectControls';
 import { timeLeft } from '../observation-time';
 import './project-header.css';
@@ -20,12 +19,12 @@ export function ProjectStatusPanel({ workspace, controls, disabled = false }: { 
   const titleId = useId();
   const closed = workspace.execution === 'closed', started = !!workspace.project?.started, paused = !!workspace.project?.paused;
   const manager = workspace.role === 'owner';
-  const since = workspace.startAnnouncement?.startedAt;
   const waiting = startWork(workspace);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
   const endsAt = workspace.endsAt ?? null, showTime = started && !closed && !manager, timeUp = showTime && (endsAt === null || endsAt <= now);
-  const status = closed ? 'Closed' : !started ? manager ? 'Ready to start' : 'Waiting for the owner to start' : paused ? 'Paused' : 'Active';
+  // A running project says nothing about itself; only the states that change what you can do are named (owner, 11 November 2026).
+  const status = closed ? 'Closed' : !started ? manager ? 'Ready to start' : 'Waiting for the owner to start' : paused ? 'Paused' : null;
   const help = closed ? 'Read-only. History is kept.'
     : paused ? 'Agents take no new turns. Chat stays open.'
     : timeUp ? 'Agents finish their turn, then wait until the owner adds time.'
@@ -38,13 +37,13 @@ export function ProjectStatusPanel({ workspace, controls, disabled = false }: { 
   return <section className="k42-status-panel" aria-labelledby={titleId}>
     <h2 id={titleId} className="visually-hidden">Project status</h2>
     <div className="k42-status-line">
-      {Icon ? <span className="k42-notice-icon k42-status-tile" aria-hidden="true"><Icon size={20} /></span> : <i className="k42-ph-live-dot" aria-hidden="true" />}
-      <div className="k42-status-text">
-        <strong>{status}{status === 'Active' && since ? <> · <ActiveTimer since={since} /></> : null}
-          {showTime && (timeUp ? <> · <span className="k42-status-time">Time is up</span></>
-            : <> · <span className="k42-status-time" title={`The job ends ${new Date(endsAt!).toLocaleString()}`}>{timeLeft(endsAt! - now)} · ends {new Date(endsAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span></>)}</strong>
+      {Icon && <span className="k42-notice-icon k42-status-tile" aria-hidden="true"><Icon size={20} /></span>}
+      {(status || showTime || help) && <div className="k42-status-text">
+        {(status || showTime) && <strong>{status}
+          {showTime && <>{status && ' · '}{timeUp ? <span className="k42-status-time">Time is up</span>
+            : <span className="k42-status-time" title={`The job ends ${new Date(endsAt!).toLocaleString()}`}>{timeLeft(endsAt! - now)} · ends {new Date(endsAt!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}</>}</strong>}
         {help && <span>{help}</span>}
-      </div>
+      </div>}
       <div className="k42-status-actions">
         {/* Start lives here, with the project's status (Noa, 26 October 2026). */}
         {canStart && <StartProject id={`${titleId}-length`} className="k42-ph-thin" disabled={disabled || controls.locked} controls={controls} />}

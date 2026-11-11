@@ -1,7 +1,6 @@
 /* Home's project status panel (Noa, 26 October 2026). */
 .k42-status-panel { margin:0 0 16px; padding:14px 16px; border:var(--card-border); border-radius:var(--surface-radius); background:var(--canvas); }
 .k42-status-line { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
-.k42-status-line > .k42-ph-live-dot { flex:none; margin:0 4px; }
 .k42-status-tile { background:var(--canvas-soft); color:var(--muted); }
 .k42-status-text { flex:1 1 240px; min-width:0; display:flex; flex-direction:column; gap:2px; }
 .k42-status-text strong { font-size:16px; font-variant-numeric:tabular-nums; }
@@ -17,7 +16,6 @@
 /* Compact, on the Public/Private line in the header (Noa, 26 October 2026). */
 .k42-ph-visibility .k42-status-panel { display:inline-flex; align-items:center; gap:8px; margin:0; padding:0 0 0 10px; border:0; border-left:1px solid var(--hairline); border-radius:0; background:none; }
 .k42-ph-visibility .k42-status-line { gap:8px; flex-wrap:nowrap; }
-.k42-ph-visibility .k42-status-line > .k42-ph-live-dot { margin:0; }
 .k42-ph-visibility .k42-status-tile { display:none; }
 .k42-ph-visibility .k42-status-text { flex:none; flex-direction:row; align-items:center; gap:8px; }
 .k42-ph-visibility .k42-status-text strong { font-size:13px; color:var(--ink); }

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { projectGradient } from './project-gradient';
-import { Bot, Ellipsis, Globe, Link, LockKeyhole, ArrowUpRight, GitPullRequest, GitMerge } from 'lucide-react';
+import { Bot, Ellipsis, Link, ArrowUpRight, GitPullRequest, GitMerge } from 'lucide-react';
 import { canonicalGithubRepo, githubRepositoryParts, type ProjectUsage, type RepositorySummary } from '@mlswarm/contracts';
 import { ProjectUsageFigures } from './ProjectUsageFigures';
 import { Button } from './Button';
@@ -19,10 +19,10 @@ export type HeaderMenuItem = { id: string; label: string; icon: ReactNode; dange
  * 26 October 2026): a pastel cover, the stamp overlapping it, the title, the actions, and the repository bar.
  * The project's sections are in the menu (owner, 11 November 2026). People, agents and the map live in the map toolbar on Tasks.
  */
-export function ProjectHeader({ id, name, cover, isPrivate = false, statusPanel, createdBy, repoUrl, repositorySummary, usage, onCopyLink, menu, onContribute, observed, about, titleLevel = 1 }: {
+export function ProjectHeader({ id, name, cover, statusPanel, repoUrl, repositorySummary, usage, onCopyLink, menu, onContribute, observed, about, titleLevel = 1 }: {
   about?: ReactNode;
   titleLevel?: 1 | 2;
-  id: string; name: string; /** A loaded image URL for the stamp: the screenshot on the newest update. */ cover?: string | null; isPrivate?: boolean; /** The project status panel, above the repository bar (Noa, 26 October 2026). */ statusPanel?: ReactNode; /** The owner's name, shown as Created by beside Public/Private. */ createdBy?: string | null; repoUrl?: string | null;
+  id: string; name: string; /** A loaded image URL for the stamp: the screenshot on the newest update. */ cover?: string | null; /** The project status panel, above the repository bar (Noa, 26 October 2026). */ statusPanel?: ReactNode; repoUrl?: string | null;
   repositorySummary?: RepositorySummary | null; usage?: ProjectUsage | null;
   /** Copies the public project's link. */
   onCopyLink?: (() => void) | null; menu: HeaderMenuItem[]; onContribute?: (() => void) | null; observed?: ReactNode;
@@ -30,8 +30,6 @@ export function ProjectHeader({ id, name, cover, isPrivate = false, statusPanel,
   const titleId = useId();
   return <section className="k42-ph" aria-labelledby={titleId}>
     <div className="k42-ph-cover" style={{ background: projectGradient(id) }} aria-hidden="true" />
-    {/* What kind of project and who created it, in the cover's top-right corner (Noa, 26 October 2026). */}
-    <p className="k42-ph-meta">{isPrivate ? <LockKeyhole size={15} aria-hidden="true" /> : <Globe size={15} aria-hidden="true" />}{isPrivate ? 'Private project' : 'Public project'}{createdBy && <span className="k42-ph-created">Created by <strong>{createdBy}</strong></span>}</p>
     <div className="k42-ph-head">
       <span className="k42-ph-stamp" style={{ background: projectGradient(id) }} aria-hidden="true">{cover ? <img src={cover} alt="" /> : personInitials(name)}</span>
       <div className="k42-ph-title">
@@ -82,16 +80,6 @@ export function ProjectRepository({ repoUrl, summary, usage }: { repoUrl?: strin
     </div>
     <p id={noteId} className="k42-ph-repo-note">{note}</p>
   </section>;
-}
-
-/** How long the project has been running, ticking each second (Noa, 26 October 2026). */
-export function ActiveTimer({ since }: { since: number }) {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
-  const total = Math.max(0, Math.floor((now - since) / 1000)), days = Math.floor(total / 86400);
-  const pad = (value: number) => String(value).padStart(2, '0');
-  const clock = `${pad(Math.floor(total % 86400 / 3600))}:${pad(Math.floor(total % 3600 / 60))}:${pad(total % 60)}`;
-  return <span className="k42-ph-timer" title={`Running since ${new Date(since).toLocaleString()}`}><span className="visually-hidden">Running for </span>{days ? `${days}d ` : ''}{clock}</span>;
 }
 
 /** The ⋯ menu: opens below its trigger, kept inside the viewport; Escape and an outside click close it and
