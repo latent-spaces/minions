@@ -182,6 +182,9 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
       fails there).
 - [ ] **Bring back project cover images.** They're gone. In Karma42 a project's cover
       was taken from its updates.
+- [ ] **Tell open tabs to reload after an update.** A tab opened before an update keeps
+      running the old web app and can show stale or mismatched data (for example
+      different agent avatars) until someone reloads it.
 - [ ] **Exact subtask counts in the list.** The list's done/total ring counts only the
       subtasks on loaded pages; the task page's count is exact.
 - [ ] **Clean up stale runs.** Old runs can still show Working with no process behind them.
