@@ -203,6 +203,8 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
   for (const task of tasks ?? []) if (task.assignedAgentId && !filterAgents.has(task.assignedAgentId)) filterAgents.set(task.assignedAgentId, `Agent (${task.assignedAgentId})`);
   if (assignedAgentId && !filterAgents.has(assignedAgentId)) filterAgents.set(assignedAgentId, `Agent (${assignedAgentId})`);
 
+  // Titles keep a toggle column only when some row can expand, so the header and every title line up.
+  const rows = tasks ? nestTasks(tasks, collapsed) : [], toggles = rows.some(row => row.children.length > 0);
   const submitSearch = (event: FormEvent) => { event.preventDefault(); const value = searchDraft.trim(); if (value === search) load(); else { generation.current++; setSearch(value); } };
   const clearSearch = () => { setSearchDraft(''); setSearchOpen(false); if (search) { generation.current++; setSearch(''); } };
   const searchField = (header: boolean) => <form className={header ? 'k42-th-search' : 'k42-tasks-search'} role="search" aria-label="Task titles" onSubmit={submitSearch}>
@@ -267,14 +269,14 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
       onOpen={setOpenId} onChange={replace} onReload={load} />}
     {!!tasks && (tasks.length > 0 || !!(search || assignee || status)) && view === 'list' && <div className="k42-tasks-tablewrap"><table className="k42-tasks-table">
       <thead><tr>
-        <th scope="col" className="k42-th-task">{searchOpen || searchDraft ? searchField(true)
+        <th scope="col" className={`k42-th-task${toggles ? ' has-toggles' : ''}`}>{searchOpen || searchDraft ? searchField(true)
           : <button type="button" className="k42-th-filter k42-th-search-open" aria-label="Task · search tasks" title="Search tasks (/)" onClick={() => setSearchOpen(true)}>Task<Search size={13} className="k42-th-filter-icon" aria-hidden="true" /></button>}</th>
         <th scope="col">{assigneeFilter(true)}</th><th scope="col">Agents</th><th scope="col">{stateFilter(true)}</th><th scope="col">Updated</th></tr></thead>
-      <tbody>{nestTasks(tasks, collapsed).map(({ task, depth, children }) => <tr key={task.id} className={depth ? 'is-subtask' : undefined}>
+      <tbody>{rows.map(({ task, depth, children }) => <tr key={task.id} className={depth ? 'is-subtask' : undefined}>
         <th scope="row"><div className="k42-task-cell" style={{ ['--depth' as string]: depth }}>
           {children.length ? <button type="button" className="k42-task-toggle" aria-expanded={!collapsed.has(task.id)} onClick={() => toggle(task.id)}
             aria-label={`${collapsed.has(task.id) ? 'Show' : 'Hide'} subtasks of ${task.title}`}>{collapsed.has(task.id) ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}</button>
-            : <span className="k42-task-toggle-space" aria-hidden="true" />}
+            : toggles && <span className="k42-task-toggle-space" aria-hidden="true" />}
           <button type="button" className="k42-task-open" onClick={() => setOpenId(task.id)}>{task.title}</button>
           {task.proposed && <Proposed />}
           {task.priority === 'high' && <span className="k42-task-priority">High</span>}
