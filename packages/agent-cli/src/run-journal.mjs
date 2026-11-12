@@ -91,7 +91,7 @@ export function readRunJournal({ directory, identity, after = 0, limit = 100 }) 
 export function createRunJournal({ directory, identity, redact = [] }) {
   identity = validateIdentity(identity);
   const secrets = redact.filter(value => typeof value === 'string' && value.length).sort((a,b) => b.length - a.length);
-  const clean = (value, maximum) => { let text = value; for (const secret of secrets) text = text.split(secret).join('[REDACTED]'); return [...text.replace(/\0/g, '')].slice(0, maximum).join(''); };
+  const clean = value => { let text = value; for (const secret of secrets) text = text.split(secret).join('[REDACTED]'); return [...text.replace(/\0/g, '')]; };
   let bytes = 0, sequence = 0, device, inode, truncated = false, failure = null;
   const status = () => ({ availability: failure ? 'unavailable' : 'available', truncated, faults: failure ? [failure] : [], scope: 'collector-visible' });
   try {
@@ -127,8 +127,10 @@ export function createRunJournal({ directory, identity, redact = [] }) {
         const record = { kind: event.kind, turnId: event.turnId, attemptId: event.attemptId };
         if (['assistant_text','status'].includes(event.kind)) {
           if (typeof event.text !== 'string') throw fault('journal_invalid_event');
-          record.text = clean(event.text, event.kind === 'status' ? 180 : RUN_JOURNAL_LIMITS.text);
-          record.textTruncated = [...event.text].length > (event.kind === 'status' ? 180 : RUN_JOURNAL_LIMITS.text) || event.sourceTruncated === true;
+          const maximum = event.kind === 'status' ? 180 : RUN_JOURNAL_LIMITS.text, text = clean(event.text);
+          // Redaction can lengthen or shorten the text, so a cut in either spelling counts.
+          record.text = text.slice(0, maximum).join('');
+          record.textTruncated = text.length > maximum || [...event.text].length > maximum || event.sourceTruncated === true;
         } else if (['tool','permission','model'].includes(event.kind)) {
           if (!identifier(event.name)) throw fault('journal_invalid_event'); record.name = secrets.some(secret => event.name.includes(secret)) ? 'redacted' : event.name;
         } else if (event.kind === 'session') { record.sessionId = validateUuid(event.sessionId, 'sessionId'); }

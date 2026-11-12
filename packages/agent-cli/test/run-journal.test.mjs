@@ -34,3 +34,12 @@ for (const provider of ['claude','codex']) test(`${provider} collector scrubs a 
   const record=readRunJournal({directory,identity}).records[0];
   assert.equal(record.textTruncated,true); assert.equal(record.text.includes('synthetic-long-bridge'),false); assert.ok(record.text.includes('[REDACTED]'));
 }));
+
+test('text cut short only because redaction lengthened it is marked truncated', () => fixture(directory => {
+  const journal = createRunJournal({ directory, identity, redact: ['ab'] }), attempt = event('attempt_started');
+  journal.append(attempt);
+  journal.append({ ...attempt, kind: 'assistant_text', text: `ab${'x'.repeat(3998)}` });
+  const [, record] = readRunJournal({ directory, identity }).records;
+  assert.equal([...record.text].length, 4000);
+  assert.equal(record.textTruncated, true);
+}));
