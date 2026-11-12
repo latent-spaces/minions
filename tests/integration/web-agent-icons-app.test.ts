@@ -7,7 +7,10 @@ import { fileURLToPath } from 'node:url';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { db, profiles } from '../../apps/server/src/firestore.js';
+import { PERSONA_OPTIONS } from '@mlswarm/contracts';
+import { startRun, reportPhase } from '../../apps/server/src/v2/runs.js';
+import { randomUUID } from 'node:crypto';
+import { db, profiles, inProject } from '../../apps/server/src/firestore.js';
 import { resetEmulator, seed, TEST_PROJECT, idTokenFor } from '../../apps/server/test/helpers.js';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const require = createRequire(new URL('../../apps/web/package.json', import.meta.url));
@@ -31,13 +34,16 @@ test('actual app keeps coding-tool identity separate from model names across sid
       tokenCoverage:{input:0,output:0,cacheRead:0,cacheWrite:0},inputSemantics:'uncached',
     });
   }
+  await db.doc(`projects/${TEST_PROJECT}/agents/${fixture.agents[1].agentId}`).update({persona:{text:PERSONA_OPTIONS.find(p=>p.id==='build')!.text}});
+  const run = await inProject(TEST_PROJECT,()=>startRun(fixture.agents[0].agentId,{clientRunId:randomUUID(),runnerVersion:'synthetic-no-model',takeover:false},Date.now));
+  await inProject(TEST_PROJECT,()=>reportPhase(fixture.agents[0].agentId,run.run_id,{phase:'turn'},Date.now));
   const api = spawn(process.execPath, ['--import','tsx','apps/server/test/api-process.ts'], {cwd:root,stdio:['ignore','pipe','pipe'],
     env:{...process.env,HOST:'127.0.0.1',PORT:String(apiPort),ADMIN_EMAILS:'admin@example.test'}});
   let output=''; api.stdout?.on('data',data=>{output+=String(data);});api.stderr?.on('data',data=>{output+=String(data);});
   const {createServer}=require('vite'),{chromium}=require('playwright');
   const web=await createServer({root:join(root,'apps/web'),configFile:join(root,'apps/web/vite.config.ts'),
-    server:{host:'127.0.0.1',port:webPort,strictPort:true,proxy:Object.fromEntries(['/api','/community','/p'].map(path=>[path,`http://127.0.0.1:${apiPort}`]))}});
-  let browser:any,page:any;
+    server:{host:'127.0.0.1',port:webPort,strictPort:true,proxy:Object.fromEntries(['/api','/community','/p','/s'].map(path=>[`^${path}(?:/|$)`,`http://127.0.0.1:${apiPort}`]))}});
+  let browser:any,page:any; const errors:string[]=[], diagnostics:string[]=[];
   try {
     for(let attempt=0;;attempt++) {
       if(api.exitCode!==null)throw new Error(output);
@@ -47,7 +53,7 @@ test('actual app keeps coding-tool identity separate from model names across sid
     await web.listen();browser=await chromium.launch({headless:true,...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MLSWARM_TEST_BROWSER_EXECUTABLE}:{})});
     const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
     await context.route('**/*',(route:any)=>['127.0.0.1','localhost','[::1]'].includes(new URL(route.request().url()).hostname)?route.continue():route.abort());
-    page=await context.newPage();const errors:string[]=[];page.on('pageerror',(error:Error)=>errors.push(error.message));
+    page=await context.newPage();page.on('pageerror',(error:Error)=>errors.push(error.message));page.on('console',(msg:any)=>{if(msg.type()==='error')diagnostics.push(msg.text());});page.on('requestfailed',(req:any)=>diagnostics.push(req.url()+': '+req.failure()?.errorText));
     const url=`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=agents&filter=all`;
     await page.goto(url);
     await signInBrowser(page, await idTokenFor('icons@example.test'));
@@ -56,6 +62,11 @@ test('actual app keeps coding-tool identity separate from model names across sid
     await directoryView.getByRole('img',{name:'Coding agent: Codex',exact:true}).waitFor();
     await sidebar.getByRole('img',{name:'Coding agent: Claude Code',exact:true}).waitFor();
     await sidebar.getByRole('img',{name:'Coding agent: Codex',exact:true}).waitFor();
+    expect(await directoryView.locator('.k42-directory-card').filter({hasText:'Alpha worker'}).locator('[data-character]').getAttribute('data-character')).toMatch(/^(cat|dog|fox|raccoon|bear|panda|rabbit|owl|koala|frog|red-panda|tiger)$/);
+    expect(await directoryView.locator('.k42-directory-card').filter({hasText:'Beta worker'}).locator('[data-character]').getAttribute('data-character')).toMatch(/^(cat|dog|fox|raccoon|bear|panda|rabbit|owl|koala|frog|red-panda|tiger)$/);
+    expect(await directoryView.locator('.k42-directory-card').filter({hasText:'Gamma unknown'}).locator('[data-character]').count()).toBe(1);
+    expect(await directoryView.locator('.k42-directory-card').filter({hasText:'Alpha worker'}).locator('.k42-agent-hat').count()).toBe(0);
+    expect(await directoryView.locator('.k42-directory-card').filter({hasText:'Beta worker'}).locator('.k42-agent-hat').count()).toBe(1);
     expect(await directoryView.locator('.k42-directory-card').filter({hasText:'Gamma unknown'}).locator('.k42-tool-badge').count()).toBe(0);
     for(const width of [1440,390]) {
       await page.setViewportSize({width,height:1000});
@@ -64,6 +75,16 @@ test('actual app keeps coding-tool identity separate from model names across sid
       await page.screenshot({animations:'disabled',path:join(directory,`cards-${width}.png`)});
     }
     await page.setViewportSize({width:1440,height:1000});
+    await page.emulateMedia({reducedMotion:'no-preference'});
+    await directoryView.locator('.k42-directory-card').filter({hasText:'Alpha worker'}).scrollIntoViewIfNeeded();
+    await page.waitForFunction(()=>document.querySelector('.k42-directory-card [data-character-avatar]')?.getAttribute('data-motion')==='work-loop');
+    // A transparent animation must replace the still, never composite over it.
+    await page.waitForFunction(()=>{
+      const avatar=document.querySelector('.k42-directory-card [data-character-avatar]');
+      const neutral=avatar?.querySelector('.k42-character-neutral'),strip=avatar?.querySelector('.k42-character-strip');
+      return neutral&&strip&&getComputedStyle(neutral).visibility==='hidden'&&getComputedStyle(strip).opacity==='1';
+    });
+    await page.screenshot({path:join(directory,'writing.png')});
     await directoryView.locator('.k42-directory-card').filter({hasText:'Alpha worker'}).click();
     const detail=page.locator('.agent-detail:visible');await detail.getByRole('heading',{name:'Alpha worker',exact:true}).waitFor();
     await detail.locator('.agent-side .k42-tool-label').getByText('Claude Code',{exact:true}).waitFor();
@@ -75,7 +96,28 @@ test('actual app keeps coding-tool identity separate from model names across sid
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
       await page.screenshot({animations:'disabled',path:join(directory,`detail-${width}.png`)});
     }
-    expect(errors).toEqual([]);console.info(`Full-source card/detail/sidebar acceptance: ${directory}`);
-  } catch(error) {if(page)await page.screenshot({path:join(directory,'failure.png'),fullPage:true}).catch(()=>{});console.error(output.slice(-2000));throw error;}
+    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=control-center`);
+    const choices=page.getByRole('group',{name:'Choose my character'});
+    await choices.getByRole('button',{name:'Character 4',exact:true}).click();
+    await page.getByRole('button',{name:'Save character',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('.my-character-save button')?.hasAttribute('disabled'));
+    expect((await profiles.doc(fixture.personIds[0]).get()).data()?.character).toBe('person-04');
+    await page.reload();
+    await page.waitForFunction(()=>document.querySelector('button[aria-label="Character 4"]')?.getAttribute('aria-pressed')==='true');
+    expect(await page.locator('#settings-project-title').count()).toBe(0);
+    await page.screenshot({path:join(directory,'settings.png'),fullPage:true,animations:'disabled'});
+    await page.setViewportSize({width:1440,height:1000});
+    await page.screenshot({path:join(directory,'settings-desktop.png'),fullPage:true,animations:'disabled'});
+    // Failed strips keep the consent-free bundled still visible as a fallback.
+    await context.route('**/sprites/*.webp*',(route:any)=>route.request().resourceType()==='image'?route.abort():route.continue());
+    await page.goto(url);
+    await page.waitForFunction(()=>{
+      const avatar=document.querySelector('.k42-directory-card [data-character-avatar]');
+      const neutral=avatar?.querySelector<HTMLImageElement>('.k42-character-neutral'),strip=avatar?.querySelector('.k42-character-strip');
+      return avatar?.getAttribute('data-motion')==='work-loop'&&neutral?.complete&&neutral.naturalWidth>0&&getComputedStyle(neutral).visibility==='visible'&&strip&&getComputedStyle(strip).opacity==='0';
+    });
+    await page.screenshot({path:join(directory,'animation-fallback.png')});
+    expect(errors).toEqual([]);console.info(`Full-source card/detail/sidebar/settings acceptance: ${directory}`);
+  } catch(error) {if(page)await page.screenshot({path:join(directory,'failure.png'),fullPage:true}).catch(()=>{});console.error(output.slice(-2000),errors,diagnostics,await page?.url());throw error;}
   finally {if(browser)for(const context of browser.contexts())await context.unrouteAll({behavior:'wait'});await browser?.close();await web.close();api.kill('SIGTERM');await new Promise<void>(resolve=>{if(api.exitCode!==null)resolve();else api.once('exit',()=>resolve());});}
 },120_000);

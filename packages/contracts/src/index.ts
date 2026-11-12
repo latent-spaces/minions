@@ -16,6 +16,7 @@ export type * from './project-setup.js';
 export type * from './needs-you.js';
 export type * from './background-controls.js';
 export type * from './profile-photos.js';
+export { PERSON_CHARACTERS } from './profile-photos.js';
 export type * from './reported-usage.js';
 export { normalizeReportedUsage, combineReportedUsage } from './reported-usage.js';
 export * from './run-length.js';

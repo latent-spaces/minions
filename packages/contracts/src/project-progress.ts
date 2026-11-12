@@ -1,7 +1,7 @@
 import type { PublicProfilePhoto } from './profile-photos.js';
 // Deliberately published contributions, independent of messaging and execution.
-type ProgressProfileRef = { id: string; name: string | null; photo?: PublicProfilePhoto | null };
-type ProgressAgentRef = { id: string; name: string };
+type ProgressProfileRef = { id: string; name: string | null; photo?: PublicProfilePhoto | null; character?: import('./profile-photos.js').PersonCharacter | null };
+type ProgressAgentRef = { id: string; name: string; provider?: string };
 type ProgressLink = { url: string; label: string; purpose: 'evidence' | 'result'; availability: 'unknown' };
 export type ScreenshotInput = { uploadId: string; alt: string; caption?: string; representation: 'output_screenshot' | 'concept_image' };
 export type ProgressScreenshot = {

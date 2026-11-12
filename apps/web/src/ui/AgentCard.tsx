@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import './agents.css';
 
 export interface AgentCardProps {
+  state?: import('@mlswarm/contracts').CommunicationAgentState;
   provider?: string | null;
   persona?: PersonaChoice | null;
   agentId?: string;
@@ -24,11 +25,11 @@ export interface AgentCardProps {
 }
 
 /** The same card used in the real directory and the design preview. Data comes from its caller. */
-export function AgentCard({ headingLevel = 3, provider, persona, agentId, ownerId, name, identity, operator, mine, revoked, phase, focus, model, contact, input, output, viewAgent }: AgentCardProps) {
+export function AgentCard({ headingLevel = 3, provider, state, persona, agentId, ownerId, name, identity, operator, mine, revoked, phase, focus, model, contact, input, output, viewAgent }: AgentCardProps) {
   const Heading = headingLevel === 2 ? 'h2' : 'h3';
   return <article className="k42-agent-card" aria-label={name}>
     <div className="k42-agent-header">
-      <CodingAgentAvatar provider={provider} name={identity} id={agentId ?? identity} ownerId={ownerId} persona={persona} size={68} decorative />
+      <CodingAgentAvatar provider={provider} state={state} name={identity} id={agentId ?? identity} ownerId={ownerId} persona={persona} size={68} decorative />
       <div className="k42-agent-identity"><Heading>{name}</Heading><p>{operator}</p>{phase}</div>
       {(mine || revoked) && <div className="k42-agent-marks">{mine && <span className="k42-my-agent">My agent</span>}{revoked && <span className="k42-revoked">Revoked</span>}</div>}
     </div>

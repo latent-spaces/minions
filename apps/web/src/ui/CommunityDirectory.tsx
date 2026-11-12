@@ -45,7 +45,7 @@ export function CommunityDirectory({ projectId, members, agents, loading, now, g
       : <ul className="k42-directory-list">{shown.map(entry => <li key={`${entry.kind}:${entry.id}`}>
         {/* One card for people and agents alike (owner, 19 October 2026): photo, name, what they are, then a details line. */}
         <NavLink to={entry.kind === 'person' ? projectRoute(projectId, 'agents', null, null, 'all') : projectRoute(projectId, 'agents', entry.id, agentQuery || null, 'all')} go={go} className="k42-directory-card">
-          <span className="k42-directory-photo">{entry.kind === 'person' ? <PersonAvatar id={entry.id} photo={entry.photo} name={entry.name} /> : <CodingAgentAvatar provider={entry.provider} name={entry.name} id={entry.id} persona={entry.personaChoice} ownerName={entry.ownerName} ownerId={entry.ownerId} size={56} decorative />}
+          <span className="k42-directory-photo">{entry.kind === 'person' ? <PersonAvatar id={entry.id} photo={entry.photo} character={entry.character} name={entry.name} /> : <CodingAgentAvatar state={entry.state} provider={entry.provider} name={entry.name} id={entry.id} persona={entry.personaChoice} ownerName={entry.ownerName} ownerId={entry.ownerId} size={56} decorative />}
             {entry.kind === 'agent' && <AgentStatusIcon state={entry.state} overlay />}</span>
           <span className="k42-directory-text"><strong>{entry.name}</strong>
             <small>{entry.kind === 'person' ? entry.owner ? 'Owner' : 'Member' : entry.ownerName ? `Agent of ${entry.ownerName}` : 'Agent'}</small></span>

@@ -10,7 +10,7 @@ export function PersonMapNode({ node, crowded = false, onSelect, onInspect, onLe
     onClick={event => { event.currentTarget.focus(); onSelect(); }} onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); onDismiss(); } if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(); } }}>
     <rect className="k42-communication-agent-hit" x="-48" y="-30" width="96" height="96" rx="12" />
     <circle className="k42-communication-owner-ring" r="25" aria-hidden="true" />
-    <foreignObject x="-20" y="-20" width="40" height="40" pointerEvents="none"><div className="k42-person-map-avatar"><PersonAvatar id={node.personId} photo={node.photo} name={name} size={40} /></div></foreignObject>
+    <foreignObject x="-20" y="-20" width="40" height="40" pointerEvents="none"><div className="k42-person-map-avatar"><PersonAvatar id={node.personId} photo={node.photo} character={node.character} name={name} size={40} /></div></foreignObject>
     <text y="38" textAnchor="middle" className="k42-communication-name">{[...name].length > 14 ? `${[...name].slice(0, 13).join('')}…` : name}</text>
     <text y="54" textAnchor="middle" className="k42-communication-state">Person</text>
   </g>;

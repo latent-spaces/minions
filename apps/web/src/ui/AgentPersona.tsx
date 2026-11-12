@@ -20,7 +20,7 @@ const PERSONA_CARDS = [
 
 type Read = { agentId: string; persona: Persona; canEditPersona: boolean };
 type Edit = { text: string; expectedRevision: number };
-export function AgentPersona({ user, projectId, agentId, active, tick, agentName = 'Agent', ownerId, onSaved }: { user: SessionUser | null; projectId: string; agentId: string; active: boolean; tick: number; agentName?: string; ownerId?: string | null; onSaved?: (text: string) => void }) {
+export function AgentPersona({ user, projectId, agentId, active, tick, agentName = 'Agent', ownerId, provider, onSaved }: { user: SessionUser | null; projectId: string; agentId: string; active: boolean; tick: number; agentName?: string; ownerId?: string | null; provider?: string | null; onSaved?: (text: string) => void }) {
   const [saved, setSaved] = useState<Read | null>(null), [text, setText] = useState('');
   const [choice, setChoice] = useState<PersonaChoice>('default'), customDraft = useRef('');
   const [pending, setPending] = useState<Edit | null>(null), [busy, setBusy] = useState(false);
@@ -101,7 +101,7 @@ export function AgentPersona({ user, projectId, agentId, active, tick, agentName
               aria-label={label} aria-describedby={inputId + '-' + id + '-description'} onChange={() => {
                 setChoice(id); setText(id === 'custom' ? customDraft.current : PERSONA_OPTIONS.find(option => option.id === id)!.text); setNotice('');
               }} />
-            <span className="persona-choice-content"><AgentAvatar name={agentName} id={agentId} ownerId={ownerId} persona={id} size={40} decorative />
+            <span className="persona-choice-content"><AgentAvatar provider={provider} name={agentName} id={agentId} ownerId={ownerId} persona={id} size={40} decorative />
               <strong>{label}</strong><span id={inputId + '-' + id + '-description'}>{description}</span></span>
           </label>)}
         </div>

@@ -59,7 +59,7 @@ import { ProjectHeader, type HeaderMenuItem } from './ui/ProjectHeader';
 import { useProjectUsage } from './ui/ProjectUsage';
 import { CommunityDirectory } from './ui/CommunityDirectory';
 import { ProjectHomePreparation } from './ui/ProjectHomePreparation';
-import { waitingTitle, workerAgentStatus } from './ui/agent-running-state';
+import { waitingTitle, workerAgentStatus, workerAvatarState } from './ui/agent-running-state';
 import { MyWorkersContext } from './ui/MyWorkerControls';
 import type { CommunityAccount } from './community-api';
 import { useProjectCovers } from './project-covers';
@@ -120,7 +120,7 @@ const SECTION_NAMES: Record<Section, string> = { overview: 'Tasks', preview: 'Pr
 // Needs you is reached from the notifications bell.
 const GLOBAL_NAMES: Record<GlobalView, string> = { projects: 'My projects', 'needs-you': 'Needs you' };
 /** Project navigation and own-agent shortcuts; web creation is hidden (OPE-230). */
-type ProjectFacts = { projectId: string; connect: (() => void) | null; addTask?: (() => void) | null; openAgent?: (id: string) => void; myAgents?: { provider?: string; id: string; name: string; status: string; detail: string; waiting?: boolean; queued?: boolean }[]; cheatSheet?: { title: string; started: boolean } | null; sections?: { id: Section; current: boolean; locked: boolean }[] };
+type ProjectFacts = { projectId: string; connect: (() => void) | null; addTask?: (() => void) | null; openAgent?: (id: string) => void; myAgents?: { state?: import('@mlswarm/contracts').CommunicationAgentState; provider?: string; id: string; name: string; status: string; detail: string; waiting?: boolean; queued?: boolean }[]; cheatSheet?: { title: string; started: boolean } | null; sections?: { id: Section; current: boolean; locked: boolean }[] };
 const executionLabel = (p: ProjectEntry) => personalProjectStatus({ ...p, kind: 'project', proposalStatus: null }).label;
 
 export function Viewer({ user, account }: { user: SessionUser; account: CommunityAccount }) {
@@ -427,7 +427,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   // The people chat stays docked beside every section.
   const communityAgents = currentSection === 'agents' && agentFilter === 'all';
   const allAgents = communityAgents && !agent;
-  const members = usePages<{ id: string; owner?: boolean; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null }>(user, membersPath, tick, visible && !!workspace);
+  const members = usePages<{ id: string; owner?: boolean; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null }>(user, membersPath, tick, visible && !!workspace);
   const agentStatusTick = useRealtimeTick(user, projectId, 'agents', visible && !!project);
   const agentNeedsTick = useRealtimeTick(user, projectId, 'needs-you', visible && !!project);
   const teamsTick = useRealtimeTick(user, projectId, 'teams', visible && currentSection === 'teams' && !!project);
@@ -453,7 +453,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   // Directory cursors belong to this surface. Paging never replaces the first-page
   // observations used by the project header or its contextual shortcuts.
   const directoryShown = visible && allAgents;
-  const directoryPeople = usePages<{ id: string; owner?: boolean; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null }>(user,
+  const directoryPeople = usePages<{ id: string; owner?: boolean; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null }>(user,
     cursor => `/members${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`, tick, directoryShown && !!workspace);
   const directoryBots = usePages<AgentRow>(user, cursor => {
     const params = new URLSearchParams();
@@ -498,9 +498,9 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
     ...(controls.workers.data?.agents.map(row => {
       const { label: status, title } = workerAgentStatus(row, controls.workers.now);
       // A waiting agent says what it waits for, the same line a queued website agent shows.
-      return { id: row.agentId, name: row.agentName, provider: row.run?.execution.provider ?? row.usage?.provider, personaChoice: row.personaChoice, status, detail: row.focus?.text || (status === 'Waiting' ? title : status), waiting: openRequests.agentIds.includes(row.agentId) };
+      return { state: workerAvatarState(row, controls.workers.now, openRequests.agentIds.includes(row.agentId)), id: row.agentId, name: row.agentName, provider: row.run?.execution.provider ?? row.usage?.provider, personaChoice: row.personaChoice, status, detail: row.focus?.text || (status === 'Waiting' ? title : status), waiting: openRequests.agentIds.includes(row.agentId) };
     }) ?? [])], [controls.workers.data, controls.workers.now, openRequests.agentIds]);
-  const myAgentsKey = myAgents.map(a => `${a.id}:${a.provider}:${a.status}:${a.detail}:${a.waiting}`).join(',');
+  const myAgentsKey = myAgents.map(a => `${a.id}:${a.provider}:${a.state}:${a.status}:${a.detail}:${a.waiting}`).join(',');
   const cheatSheet = useMemo(() => workspace && workspace.execution !== 'closed' ? { title: workspace.definition.title, started: !!project?.started } : null, [workspace?.execution, workspace?.definition.title, project?.started]);
   // Tasks fill the project's main page (the agent map is in the right panel); a waiting room hides them like the other tabs.
   const tasksListed = tasksOn && !restricted;
@@ -514,7 +514,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   // Detail pages and the sections not in the menu keep their breadcrumb heading; the card's title is then an h2.
   const detail = !allAgents && (!!agent || !['overview', 'preview', 'usage', 'teams', 'conversations', 'needs-you', 'control-center'].includes(currentSection));
   // Before a private project starts, only Tasks opens for members other than the owner.
-  const sections = PROJECT_TABS.filter(tab => (tab.id !== 'conversations' || workspace?.role !== 'guest' || workspace.publicationOrigin !== 'owner_conversion') && (tab.id !== 'preview' || workspace?.role !== 'guest') && (tab.id !== 'usage' || workspace?.role !== 'guest') && (tab.id !== 'control-center' || workspace?.role === 'owner') && (tab.id !== 'teams' || nativeTeamsEnabled(workspace?.nativeTeams))).map(tab => ({ id: tab.id, current: currentSection === tab.id && !detail, locked: restricted && tab.id !== 'overview' }));
+  const sections = PROJECT_TABS.filter(tab => (tab.id !== 'conversations' || workspace?.role !== 'guest' || workspace.publicationOrigin !== 'owner_conversion') && (tab.id !== 'preview' || workspace?.role !== 'guest') && (tab.id !== 'usage' || workspace?.role !== 'guest') && (tab.id !== 'teams' || nativeTeamsEnabled(workspace?.nativeTeams))).map(tab => ({ id: tab.id, current: currentSection === tab.id && !detail, locked: restricted && tab.id !== 'overview' && tab.id !== 'control-center' }));
   const sectionsKey = JSON.stringify(sections);
   useEffect(() => { onFacts({ projectId, connect: null, addTask, openAgent: activateAgent, myAgents, cheatSheet, sections }); }, [onFacts, projectId, myAgentsKey, activateAgent, cheatSheet, addTask, sectionsKey]);
   const owner = workspace?.role === 'owner';

@@ -1,5 +1,6 @@
 import { FieldPath } from '../firestore.js';
-import { agents, currentProjectId } from '../firestore.js';
+import { agents, currentProjectId, db } from '../firestore.js';
+import { runnerUsage } from '../v2/records.js';
 import { Refusal } from '../errors.js';
 import { decodeCursor, encodeCursor } from '../cursor.js';
 
@@ -14,6 +15,10 @@ export async function communicationRoster(query: Record<string, unknown>, now: n
     scan = scan.startAfter(cursor[1]);
   }
   const found = await scan.select('name', 'ownerProfileId', 'createdAt').get(), page = found.docs.slice(0, 200);
-  return { agents: page.map(doc => ({ id: doc.id, name: doc.get('name'), operatorId: doc.get('ownerProfileId') ?? null, createdAt: doc.get('createdAt') })),
+  // The existing usage report is the authoritative coding-tool identity. Read
+  // it once per paged agent, never guess from names, models or ownership.
+  const usage = page.length ? await db.getAll(...page.map(doc => runnerUsage().doc(doc.id))) : [];
+  return { agents: page.map((doc, index) => ({ id: doc.id, name: doc.get('name'), operatorId: doc.get('ownerProfileId') ?? null, createdAt: doc.get('createdAt'),
+    ...(usage[index]?.get('provider') ? { provider: usage[index].get('provider') } : {}) })),
     next: found.size > 200 ? encodeCursor([scope, page.at(-1)!.id]) : null, serverTime: now };
 }

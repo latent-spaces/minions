@@ -1,10 +1,11 @@
+import { runnerUsage } from '../v2/records.js';
 // Agent conversations as members read them, on the website's Conversations tab and through the
 // person's MCP. Both call these inside the project's context after checking membership. Reads only:
 // no read marker, inbox or cursor moves.
 import { conversationSource } from './conversation-source.js';
 import { conversationEntries, type ConversationEntry } from '../projects/steering.js';
 import { personaChoice } from '@mlswarm/contracts';
-import { publicProfilePhoto } from '../community/profile-photo-ref.js';
+import { publicPersonAppearance } from '../community/profile-photo-ref.js';
 import { Refusal } from '../errors.js';
 import { agents, currentProjectId, db, profiles, type Profile } from '../firestore.js';
 import { decodeCursor, encodeCursor } from '../cursor.js';
@@ -103,17 +104,19 @@ export async function present(list: (MessageV2 | ConversationEntry)[]) {
   const personas = new Map(agentDocs.filter(doc => doc.exists).map(doc => [doc.id, personaChoice(doc.data()!.persona?.text ?? '')]));
   const ownerIds = [...new Set([...owners.values(), ...list.flatMap(m => 'kind' in m && m.kind === 'steering' ? [m.actorProfileId] : [])])];
   const ownerDocs = ownerIds.length ? await db.getAll(...ownerIds.map(id => profiles.doc(id))) : [];
-  const people = new Map(ownerDocs.filter(doc => doc.exists && doc.data()!.removedAt === null).map(doc => [doc.id, { name: doc.data()!.name, photo: publicProfilePhoto(doc.data()! as Profile, doc.id) }]));
+  const people = new Map(ownerDocs.filter(doc => doc.exists && doc.data()!.removedAt === null).map(doc => [doc.id, { name: doc.data()!.name, ...publicPersonAppearance(doc.data()! as Profile, doc.id) }]));
+  const usage = agentDocs.length ? await db.getAll(...agentDocs.map(doc => runnerUsage().doc(doc.id))) : [];
+  const providers = new Map(agentDocs.map((doc, index) => [doc.id, usage[index]?.get('provider')]));
   const agent = (id: string) => {
     const owner = owners.get(id);
     const person = owner ? people.get(owner) : undefined;
-    return { operatorId: person ? owner! : null, operatorName: person?.name ?? null, operatorPhoto: person?.photo ?? null, personaChoice: personas.get(id) ?? null };
+    return { ...(providers.get(id) ? { provider: providers.get(id) } : {}), operatorId: person ? owner! : null, operatorName: person?.name ?? null, operatorPhoto: person?.photo ?? null, personaChoice: personas.get(id) ?? null };
   };
   return list.map((m) => ({
     ...(('kind' in m && m.kind==='steering') ? {steering:{state:m.state,origin:m.origin,observedAt:m.observedAt,...(m.deliveries?{deliveries:m.deliveries.map(d=>({agentId:d.agentId,agentName:d.agentName,state:d.state,observedAt:d.observedAt}))}:{})}}:{}),
     id: m.id, threadId: m.threadId, body: m.body, summary: m.summary ?? null, createdAt: m.createdAt,
     sender: ('kind' in m && m.kind==='steering') ? {id:m.actorProfileId,name:m.actorName,kind:'person' as const,
-      photo: people.get(m.actorProfileId)?.photo ?? null } : { id: m.agentId, name: m.agentName, kind: 'agent' as const, ...agent(m.agentId) },
+      photo: people.get(m.actorProfileId)?.photo ?? null, ...(people.get(m.actorProfileId)?.character ? { character: people.get(m.actorProfileId)!.character } : {}) } : { id: m.agentId, name: m.agentName, kind: 'agent' as const, ...agent(m.agentId) },
     audience: m.audience === 'project'
       ? { kind: 'project' as const }
       : { kind: 'direct' as const, to: m.to.map((id) => ({ id, name: names.get(id) ?? null, ...agent(id) })) },

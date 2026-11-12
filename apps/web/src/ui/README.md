@@ -372,10 +372,12 @@ will resume shortly." and waits for the Retry-After time (60 seconds by default)
 nothing. Its layout worker, controls, message passes and data loading are described in
 [the communication map guide](communication-map/README.md).
 
-Avatars use the same bundled animal portraits as the agent directory
-(`animal-family.ts`), with stable owner families/colors, a shared face-focused crop,
-a thin silhouette outline and the agent's persona hat. Unknown owners use a neutral
-background and the same current asset pool. State and the latest
+Avatars share the bundled offbeat 2D animal set (`character-set.ts`) with the
+agent directory. Immutable agent IDs select faces independently of tool/provider;
+owner IDs retain pastel grouping. `CharacterAvatar` renders fixed canonical
+geometry and lossless facial strips; separate persona hats use crown/brim anchors.
+Unknown owners use a neutral background and the same asset pool. People choose
+one of four human characters in Settings, or keep a consented custom photo. State and the latest
 agent-authored focus come from `/api/view/communication/agents/current`, the map's only
 status read: a first read, then the changes since the last one, every 15 seconds (see the
 [map guide](communication-map/README.md#how-the-home-card-feeds-the-map)).

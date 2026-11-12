@@ -1,5 +1,5 @@
 import { prepareOnboardingProgress } from '../onboarding/progress.js';
-import { publicProfilePhoto } from './profile-photo-ref.js';
+import { publicPersonAppearance } from './profile-photo-ref.js';
 import { platformSettings } from '../platform/settings.js';
 import type { Transaction } from '../firestore.js';
 import { Refusal } from '../errors.js';
@@ -23,6 +23,6 @@ export async function communityAccount(actor: CommunityActor, now: () => number 
   return db.runTransaction(async tx => {
     const { operator, canReview, canAdminPlatform } = await assertCommunityActor(tx, actor);
     const progress = await prepareOnboardingProgress(tx, operator.id, now()); progress(['signedIn']);
-    return { person: { id: operator.id, name: operator.name, photo: publicProfilePhoto(operator, operator.id) }, canReviewProposals: canReview, canAdminPlatform, canInvite: true };
+    return { person: { id: operator.id, name: operator.name, ...publicPersonAppearance(operator, operator.id) }, canReviewProposals: canReview, canAdminPlatform, canInvite: true };
   });
 }

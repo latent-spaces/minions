@@ -135,3 +135,15 @@ export function backgroundControlStatus(view: BackgroundControlView, now: number
   if (view.deadlineAt <= now) return view.state === 'running' ? PAST_END.finishing : PAST_END.waiting;
   return ({ accepted: 'Starting', starting: 'Starting', running: 'Working', waiting: 'Idle', blocked: 'Blocked', paused: 'Paused', stopping: 'Stopping', stopped: 'Stopped', failed: 'Failed' } as Partial<Record<BackgroundControlView['state'], string>>)[view.state] ?? view.state;
 }
+
+/** Decorative animation state from the same verified observation as the sidebar label. */
+export function workerAvatarState(agent: AgentObservation, now: number, needsYou = false): import('@mlswarm/contracts').CommunicationAgentState {
+  const label = workerAgentStatus(agent, now).label;
+  const states: Record<AgentStatus['label'], import('@mlswarm/contracts').CommunicationAgentState> = {
+    Working:'working', Idle:'idle', Paused:'paused', Waiting:'waiting', Stopped:'stopped',
+    Blocked:'blocked', Offline:'offline', Recovery:'unknown', Stopping:'pausing',
+    Pausing:'pausing', 'Pause unconfirmed':'pause_unconfirmed', Unknown:'unknown',
+  };
+  const state = states[label];
+  return needsYou && ['working','idle','waiting'].includes(state) ? 'needs_you' : state;
+}

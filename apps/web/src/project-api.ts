@@ -29,4 +29,4 @@ export type Workspace = {
   /** Optional native tasks, on by default (read with nativeTasksEnabled). */
   nativeTasks?: import('@mlswarm/contracts').NativeTaskSettings; communityRules: CommunityRulesData; previewUrl?: string | null };
 export type CardVersion = { version: number; at: number; editorName: string | null; source: 'edit' | 'approved' | 'created'; definition: CardDefinition };
-export type Member = { operatorId: string; projectId: string; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null; email: string | null; role: Exclude<ProjectRole, 'owner'>; revision: number; removedAt: number | null; banned?: boolean };
+export type Member = { operatorId: string; projectId: string; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null; email: string | null; role: Exclude<ProjectRole, 'owner'>; revision: number; removedAt: number | null; banned?: boolean };

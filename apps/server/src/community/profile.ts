@@ -6,9 +6,9 @@ import { GITHUB_USERNAME } from '../projects/github-username.js';
 import express from 'express';
 import { requestLimits } from '../request-state.js';
 import { createHash } from 'node:crypto';
-import { publicProfilePhoto } from './profile-photo-ref.js';
+import { publicPersonAppearance } from './profile-photo-ref.js';
 import { githubPhotoSource, profileOperations, preparePhotoPublication, readProfilePhoto } from './profile-photos.js';
-import type { MyProfile } from '@mlswarm/contracts';
+import { PERSON_CHARACTERS, type MyProfile } from '@mlswarm/contracts';
 import { DISPLAY_NAME } from '../display-name.js';
 
 export const MY_PROFILE = z.object({
@@ -18,12 +18,13 @@ export const MY_PROFILE = z.object({
   expected_revision: z.number().int().min(0),
   client_request_id: z.uuid(),
   photo: z.object({ id: z.string().regex(/^[a-f0-9]{64}$/), publicConsent: z.literal(true) }).strict().nullable(),
+  character: z.enum(PERSON_CHARACTERS).nullable().optional(),
 }).strict();
 
 function profileOf(person: Profile, id: string, githubPhotoAvailable = false): MyProfile {
   return { id, name: person.name, bio: person.profile?.bio ?? '',
     linkedinProfileUrl: person.profile?.linkedinProfileUrl ?? null, revision: person.profileRevision ?? 0,
-    photo: publicProfilePhoto(person, id), githubPhotoAvailable, githubUsername: person.githubUsername ?? null, email: person.email };
+    ...publicPersonAppearance(person, id), githubPhotoAvailable, githubUsername: person.githubUsername ?? null, email: person.email };
 }
 
 // Public identity is deliberately independent of private memberships, invitation
@@ -39,7 +40,7 @@ async function readPublicProfile(id: string) {
   const github = GITHUB_USERNAME.safeParse(person.githubUsername);
   const linkedin = MY_PROFILE.shape.linkedinProfileUrl.safeParse(person.profile?.linkedinProfileUrl);
   const bio = MY_PROFILE.shape.bio.safeParse(person.profile?.bio ?? '');
-  return { id, name: name.data, photo: publicProfilePhoto(person, id), bio: bio.success ? bio.data : '',
+  return { id, name: name.data, ...publicPersonAppearance(person, id), bio: bio.success ? bio.data : '',
     githubUsername: github.success ? github.data : null, linkedinProfileUrl: linkedin.success ? linkedin.data : null };
 }
 
@@ -80,7 +81,7 @@ export async function saveMyProfile(actor: CommunityActor, input: unknown, now: 
   if (actor.kind !== 'person') throw new Refusal('forbidden', 'Only you can edit your profile.');
   const parsed = MY_PROFILE.safeParse(input);
   if (!parsed.success) throw new Refusal('bad_input', z.prettifyError(parsed.error));
-  const { expected_revision, client_request_id, photo, ...desired } = parsed.data;
+  const { expected_revision, client_request_id, photo, character, ...desired } = parsed.data;
   const fingerprint = createHash('sha256').update(JSON.stringify(parsed.data)).digest('hex');
   const githubAvailable = await githubPhotoSource(actor).then(Boolean).catch(() => false);
   const result = await db.runTransaction(async tx => {
@@ -95,12 +96,15 @@ export async function saveMyProfile(actor: CommunityActor, input: unknown, now: 
     if (current.revision !== expected_revision) throw new Refusal('proposal_conflict', 'Your profile was changed somewhere else. Reload it, then edit again.');
     const publication = await preparePhotoPublication(tx, operator.id, operator, photo, now);
     const same = current.name === desired.name && current.bio === desired.bio
-      && current.linkedinProfileUrl === desired.linkedinProfileUrl && (current.photo?.id ?? null) === (photo?.id ?? null);
+      && current.linkedinProfileUrl === desired.linkedinProfileUrl && (current.photo?.id ?? null) === (photo?.id ?? null)
+      && (character === undefined || (current.character ?? null) === character);
     const updated: Profile = { ...operator, name: desired.name, profile: { bio: desired.bio, linkedinProfileUrl: desired.linkedinProfileUrl },
-      profileRevision: current.revision + (same ? 0 : 1), photo: publication.photo };
+      profileRevision: current.revision + (same ? 0 : 1), photo: publication.photo,
+      ...(character !== undefined ? { character } : {}) };
     const saved = profileOf(updated, operator.id, githubAvailable);
     if (!same) {
-      tx.update(profiles.doc(operator.id), { name: updated.name, profile: updated.profile!, profileRevision: saved.revision, photo: publication.photo });
+      tx.update(profiles.doc(operator.id), { name: updated.name, profile: updated.profile!, profileRevision: saved.revision, photo: publication.photo,
+        ...(character !== undefined ? { character } : {}) });
       publication.commit();
     }
     tx.create(receiptRef, { fingerprint, profile: saved, createdAt: now() });

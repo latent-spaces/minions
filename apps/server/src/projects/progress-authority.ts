@@ -1,3 +1,4 @@
+import { runnerUsage } from '../v2/records.js';
 import type { Transaction } from '../firestore.js';
 import type { PublishedUpdate } from '@mlswarm/contracts';
 import { agents, currentProjectId, profiles, type Agent, type Profile, type WithId } from '../firestore.js';
@@ -24,7 +25,8 @@ export async function authorizeProgressPublisher(tx: Transaction, actor: Progres
     await assertRunInTransaction(tx, actor.agent.id, actor.runId);
     const current = (await tx.get(agents().doc(actor.agent.id))).data();
     if (!current || current.ownerProfileId !== profileId || current.tokenHash !== actor.agent.tokenHash) throw new Refusal('unauthorized', 'This agent was added again, so this copy can no longer act for it.');
-    agentRef = { id: actor.agent.id, name: label(current.name) };
+    const provider = (await tx.get(runnerUsage().doc(actor.agent.id))).get('provider');
+    agentRef = { id: actor.agent.id, name: label(current.name), ...(provider ? { provider } : {}) };
   }
   return { profile: { id: profileId, name: profile.name }, agent: agentRef };
 }

@@ -38,6 +38,21 @@ const upload = () => prepareProfilePhoto(actor, randomUUID(), { source: 'upload'
 const save = (photo: null | { id: string; publicConsent: true }) => ({
   name: 'Person', bio: '', linkedinProfileUrl: null, expected_revision: 0, client_request_id: randomUUID(), photo,
 });
+
+test('character choice persists publicly, preserves photos, validates IDs and respects revision', async () => {
+  const pending = await upload();
+  const photo = { id: pending.id, publicConsent: true as const };
+  const saved = await saveMyProfile(actor, { ...save(photo), character: 'person-02' }, now);
+  expect(saved).toMatchObject({ character: 'person-02', revision: 1, photo: { id: pending.id } });
+  expect(await readMyProfile(actor)).toMatchObject({ character: 'person-02' });
+  expect(await (await request('/api/profiles/person')).json()).toMatchObject({ character: 'person-02' });
+  await expect(saveMyProfile(actor, { ...save(photo), character: 'person-03' }, now)).rejects.toMatchObject({ code: 'proposal_conflict' });
+  await expect(saveMyProfile(actor, { ...save(photo), expected_revision: 1, character: 'claude-01' }, now)).rejects.toMatchObject({ code: 'bad_input' });
+  const omitted = await saveMyProfile(actor, { ...save(photo), expected_revision: 1, bio: 'Updated bio' }, now);
+  expect(omitted.character).toBe('person-02');
+  const cleared = await saveMyProfile(actor, { ...save(photo), expected_revision: omitted.revision, character: null }, now);
+  expect(cleared).toMatchObject({ character: null, photo: { id: pending.id } });
+});
 async function request(path: string, token?: string, profileId?: string, body?: object | Buffer, extra: Record<string, string> = {}) {
   return fetch(base + path, { method: body ? 'POST' : 'GET', headers: {
     ...(token ? { authorization: `Bearer ${token}` } : {}), ...(profileId ? { 'x-mlswarm-profile-id': profileId } : {}),

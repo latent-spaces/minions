@@ -4,7 +4,7 @@ import { COMMUNICATION_AGENT_LABELS, communicationAgentState } from './ui/commun
 // The Community tab's directory (owner request, 19 October 2026): everyone in the project, people and agents,
 // built only from the members and agents pages the project page already loads.
 
-export type DirectoryMember = { id: string; name: string | null; photo?: PublicPhoto | null };
+export type DirectoryMember = { id: string; name: string | null; photo?: PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null };
 export type DirectoryAgent = { id: string; name: string; operatorId: string | null; operatorName: string | null; operatorPhoto?: PublicPhoto | null; revokedAt: number | null;
   usage?: { provider?: string } | null;
   state: CommunicationAgentState; freshUntil: number | null;
@@ -12,13 +12,13 @@ export type DirectoryAgent = { id: string; name: string; operatorId: string | nu
   focus?: import('@mlswarm/contracts').AgentFocus | null };
 export type DirectoryKind = 'all' | 'people' | 'agents';
 export type DirectoryEntry =
-  | { kind: 'person'; id: string; name: string; photo?: PublicPhoto | null; owner: boolean; agents: number }
+  | { kind: 'person'; id: string; name: string; photo?: PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null; owner: boolean; agents: number }
   | { kind: 'agent'; state: CommunicationAgentState; provider?: string; id: string; name: string; ownerId: string | null; ownerName: string | null; operatorPhoto?: PublicPhoto | null; status: string; personaChoice?: import('@mlswarm/contracts').PersonaChoice | null };
 
 /** The members page lists the owner first on its first page (the service puts the owner there), so `ownerFirst`
  *  marks that entry as the owner; other roles are not in the members data and are left out. */
 export function directoryEntries(members: DirectoryMember[], agents: DirectoryAgent[], now: number, ownerFirst = true): DirectoryEntry[] {
-  const people: DirectoryEntry[] = members.map((m, index) => ({ kind: 'person', id: m.id, name: m.name ?? 'Removed person', photo: m.photo, owner: ownerFirst && index === 0,
+  const people: DirectoryEntry[] = members.map((m, index) => ({ kind: 'person', id: m.id, name: m.name ?? 'Removed person', photo: m.photo, character: m.character, owner: ownerFirst && index === 0,
     agents: agents.filter(a => a.operatorId === m.id && a.revokedAt === null).length }));
   const bots: DirectoryEntry[] = agents.map(a => ({ kind: 'agent', state: communicationAgentState(a, now), provider: a.usage?.provider, id: a.id, name: a.name, ownerId: a.operatorId, ownerName: a.operatorName, operatorPhoto: a.operatorPhoto,
     personaChoice: a.personaChoice, status: COMMUNICATION_AGENT_LABELS[communicationAgentState(a, now)] }));

@@ -10,6 +10,34 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Offbeat 2D characters and stable facial animation — owner selection, 12 November 2026
+
+Source: owner requests in the character conversation: four blended human heads,
+twelve recognizable animals, large irregular eyes, separate mix-and-match hats,
+“do not relate it to Claude or Codex”, and approval of the stabilized four-face
+pilot followed by “do it for all … fully integrate in the app”, four at a time.
+This supersedes the 11 November Clay/provider-family selection.
+
+Agent IDs select stable animals independently of provider, model or name. Actual
+coding-tool metadata still determines the separate tool badge. Settings offers
+four human characters, saved on the person's own profile; existing choices retain
+their IDs and consented photos remain available. Whole-set switching is deferred.
+Hats are independent anchored decorative persona sprites, without new authority.
+
+Use the canonical flat artwork and a deterministic 12-frame facial rig following
+the approved native acting reference. Colors, head pixels outside explicit eye
+masks and alpha silhouettes stay fixed; native sources remain archived separately.
+Quiet blink covers ordinary states; working uses a focused blink, stopping relaxes,
+needs-you looks up, blocked holds a squint, and new actual messages give one wink.
+Offline/revoked/unknown and reduced motion stay still. Text and freshness remain
+authoritative. Heads do not acquire invented writing/hand body artwork.
+
+Every integration requires visual alignment inspection in the actual local app at
+small/large and desktop/mobile placements, with screenshots. Maximize each face
+inside its designated space, using identical crop and scale across every action.
+Check separate hat fit, load fallback, independent timing and state transitions.
+The repeatable procedure lives in the workspace's character-exploration/RUNBOOK.md.
+
 ## Empty Preview and Tasks use the large empty state — owner request, 11 November 2026
 
 "when there is no preview or no tasks we already had some better placeholders like in the

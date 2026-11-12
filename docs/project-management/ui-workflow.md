@@ -8,7 +8,21 @@ Production UI components, styles and decorative assets belong in `apps/web/src/u
 
 WorkspaceNavigation, AgentCard and the application shell stylesheet are shared product presentation. There is no retained prototype page-body implementation; do not recreate a second live API implementation for previews.
 
-Avatars are decorative animal illustrations reused from the approved concepts. When the owner ID is known, their agents share a stable animal family and pastel background; each agent ID chooses one of four transparent portraits in that family. Names, project and roster order do not change that assignment. The finite palette can repeat; visible names remain authoritative. Without an owner ID, the agent ID selects a portrait from the same current artwork on a neutral background; no ownership grouping is inferred from a display name. They are not personal photographs, health reports or permission signals. No avatar service or network fan-out is added.
+Avatars use the approved offbeat 2D set: four human choices in Settings and twelve
+animals assigned by immutable agent ID, independent of provider or model. Actual
+provider metadata determines only the separate coding-tool badge. Pastel owner
+grouping, consented photos, custom portraits and separate persona hats remain.
+Canonical 192px heads fill up to 184px of the same square in every still and
+12-frame lossless strip. The deterministic facial rig locks alpha and static
+pixels, with independent timing, reduced-motion and visibility handling. Working
+focuses, stopping relaxes, attention holds, ordinary states blink and offline,
+revoked or unknown stay still. Real new message IDs trigger one acknowledgment;
+history/replay do not. Appearance grants no permissions. Whole-set switching is
+deferred. For every integration, visually inspect actual app placements at small
+and large sizes on desktop/mobile, including hats and state transitions; maximize
+the face without clipping, size jumps or overlap. Save screenshots and acceptance
+limits with the work. The workspace character-exploration/RUNBOOK.md owns the
+repeatable asset and per-integration alignment procedure.
 
 ## Development and acceptance
 

@@ -13,6 +13,6 @@ export default defineConfig({
   plugins: [react(), { name: 'mlswarm-build-version', apply: 'build', generateBundle() { this.emitFile({ type: 'asset', fileName: 'version.json', source: JSON.stringify({ build }) }); } }],
   // Worktrees can share installed dependencies; serve only the resolved font assets in addition to Vite's workspace root.
   server: { host: '127.0.0.1', fs: { allow: [searchForWorkspaceRoot(process.cwd()), dirname(createRequire(import.meta.url).resolve('@fontsource-variable/inter/package.json'))] }, proxy: Object.fromEntries(
-    ['/api', '/community', '/p', '/s'].map(path => [path, process.env.KARMA_LOCAL_API_URL ?? 'http://127.0.0.1:8787']),
+    ['/api', '/community', '/p', '/s'].map(path => [`^${path}(?:/|$)`, process.env.KARMA_LOCAL_API_URL ?? 'http://127.0.0.1:8787']),
   ) },
 });

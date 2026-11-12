@@ -1,0 +1,4 @@
+.k42-character-avatar { display:block; position:relative; width:100%; height:100%; overflow:hidden; }
+.k42-character-stage { display:block; position:relative; width:100%; height:100%; overflow:hidden; }
+.k42-character-stage > .k42-character-neutral { display:block; width:100%; height:100%; object-fit:contain; }
+.k42-character-stage > .k42-character-strip { position:absolute; top:0; left:0; display:block; width:1200%; max-width:none; height:100%; object-fit:fill; transform-origin:0 0; }

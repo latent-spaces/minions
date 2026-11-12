@@ -8,7 +8,7 @@ import { Refusal } from '../errors.js';
 import { authorizeProgressPublisher, authorizeProgressRead, assertNewProgressAction, progressPublisherKey, type ProgressActor } from './progress-authority.js';
 import { prepareProgressScreenshot } from './progress-media.js';
 import { effectiveProjectUpdateSettings } from './progress-settings.js';
-import { publicProfilePhoto } from '../community/profile-photo-ref.js';
+import { publicPersonAppearance } from '../community/profile-photo-ref.js';
 import { projects } from './records.js';
 
 const bytes = (value: unknown) => Buffer.byteLength(JSON.stringify(value), 'utf8');
@@ -112,7 +112,7 @@ function decodeCursor(value: string): Cursor {
 function publicUpdate(record: StoredUpdate, projectId: string, profile: Profile | undefined): PublishedUpdate {
   const { kind, id, author, title, body, links, screenshot, publishedAt } = record;
   const safe: PublishedUpdate = { kind, id, projectId,
-    author: { profile: { id: author.profile.id, name: author.profile.name, photo: profile ? publicProfilePhoto(profile,author.profile.id) : null }, agent: author.agent ? { id: author.agent.id, name: author.agent.name } : null },
+    author: { profile: { id: author.profile.id, name: author.profile.name, ...(profile ? publicPersonAppearance(profile,author.profile.id) : {photo:null}) }, agent: author.agent ? { id: author.agent.id, name: author.agent.name, ...(author.agent.provider ? { provider: author.agent.provider } : {}) } : null },
     title, body, links: links.map(link => ({ url: link.url, label: link.label, purpose: link.purpose, availability: 'unknown' })),
     screenshot: screenshot ? { id: screenshot.id, contentPath: screenshot.contentPath, mimeType: screenshot.mimeType,
       byteSize: screenshot.byteSize, width: screenshot.width, height: screenshot.height, alt: screenshot.alt,

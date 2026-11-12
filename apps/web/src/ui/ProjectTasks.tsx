@@ -23,7 +23,7 @@ import { useLabelLookup } from '../label-lookup';
 import './segments.css';
 import './project-tasks.css';
 
-export type TaskPerson = { id: string; name: string | null; photo?: PublicPhoto | null };
+export type TaskPerson = { id: string; name: string | null; photo?: PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null };
 /** Labels by id for actors the directory walks have not reached (at most 60 ids per call). */
 export type TaskLabelLookup = { agents: (ids: string[]) => Promise<TaskAgent[]>; members: (ids: string[]) => Promise<TaskPerson[]> };
 export interface ProjectTasksProps {
@@ -84,7 +84,7 @@ function AgentChip({ id, directory, size = 28 }: { id: string; directory: Direct
 function ActorChip({ actor, directory }: { actor: NativeTaskActor; directory: Directory }) {
   if (actor.kind === 'agent') return <AgentChip id={actor.id} directory={directory} size={24} />;
   const person = directory.person.get(actor.id);
-  return <span className="k42-task-actor"><PersonAvatar id={actor.id} name={person?.name ?? null} photo={person?.photo} size={24} /><span>{directory.name(actor)}</span></span>;
+  return <span className="k42-task-actor"><PersonAvatar id={actor.id} name={person?.name ?? null} photo={person?.photo} character={person?.character} size={24} /><span>{directory.name(actor)}</span></span>;
 }
 function Unassigned() { return <span className="k42-task-actor k42-task-unassigned"><span className="k42-task-unassigned-dot" aria-hidden="true" />Unassigned</span>; }
 

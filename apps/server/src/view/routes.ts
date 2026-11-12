@@ -2,7 +2,7 @@ import { projectContext } from '../analytics/context.js';
 import { readProjectAnalytics } from '../analytics/read.js';
 import { conversationOwner, conversationSource } from './conversation-source.js';
 import { conversationEntries } from '../projects/steering.js';
-import { publicProfilePhoto } from '../community/profile-photo-ref.js';
+import { publicProfilePhoto, publicPersonAppearance } from '../community/profile-photo-ref.js';
 import { cursorFrom, present, readConversations, readThread } from './conversations.js';
 import { readRuntime } from '../projects/records.js';
 // Read-only endpoints for the rehearsal viewer,
@@ -277,12 +277,12 @@ async function queuedRows(at: number) {
     operatorId: owners.has(r.profileId) ? r.profileId : null, createdAt: r.createdAt, revokedAt: null, focus: null, v2Contact: null, activity: null, usage: null,
     personaChoice: null, state: 'waiting' as const, freshUntil: null }));
 }
-// The label part of a row: no presence, run, session, usage or status reads.
+// Labels include provider identity from usage; no presence, run, session or status resolution.
 async function agentLabels(docs: DocumentSnapshot<Agent>[]) {
-  const owners = await peopleOf([...new Set(docs.map(d => d.data()!.ownerProfileId))]);
-  return docs.map(d => {
+  const [owners, usage] = await Promise.all([peopleOf([...new Set(docs.map(d => d.data()!.ownerProfileId))]), docs.length ? db.getAll(...docs.map(d => runnerUsage().doc(d.id))) : []]);
+  return docs.map((d, index) => {
     const agent = d.data()!, owner = owners.get(agent.ownerProfileId);
-    return { id: d.id, name: agent.name, operatorName: owner?.name ?? null, operatorPhoto: owner?.photo ?? null,
+    return { id: d.id, name: agent.name, ...(usage[index]?.get('provider') ? { provider: usage[index].get('provider') } : {}), operatorName: owner?.name ?? null, operatorPhoto: owner?.photo ?? null,
       operatorId: owner ? agent.ownerProfileId : null, createdAt: agent.createdAt, revokedAt: agent.revokedAt,
       personaChoice: personaChoice(agent.persona?.text ?? '') };
   });
@@ -338,13 +338,13 @@ async function membersById(ids: string[]) {
 async function rosterPeople(ids: string[], ownerId: string) {
   const persons = ids.length ? await db.getAll(...ids.map(id => profiles.doc(id))) : [];
   return persons.filter(d => d.exists && d.get('removedAt') === null)
-    .map(d => ({ id: d.id, owner: d.id === ownerId, name: d.get('name'), photo: publicProfilePhoto(d.data()! as Profile, d.id) }));
+    .map(d => ({ id: d.id, owner: d.id === ownerId, name: d.get('name'), ...publicPersonAppearance(d.data()! as Profile, d.id) }));
 }
 
-async function peopleOf(personIds: string[]): Promise<Map<string, { name: string; photo: ReturnType<typeof publicProfilePhoto> }>> {
+async function peopleOf(personIds: string[]): Promise<Map<string, { name: string; photo: ReturnType<typeof publicProfilePhoto>; character?: import('@mlswarm/contracts').PersonCharacter | null }>> {
   if (personIds.length === 0) return new Map();
   const docs = await db.getAll(...personIds.map((id) => profiles.doc(id)));
-  return new Map(docs.filter((d) => d.exists).map((d) => [d.id, { name: d.data()!.name, photo: publicProfilePhoto(d.data()! as Profile, d.id) }]));
+  return new Map(docs.filter((d) => d.exists).map((d) => [d.id, { name: d.data()!.name, ...publicPersonAppearance(d.data()! as Profile, d.id) }]));
 }
 
 async function answer(res: Response, handle: () => Promise<object>): Promise<void> {

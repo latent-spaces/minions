@@ -10,7 +10,7 @@ export function CodingAgentAvatar({ provider, status, ...props }: ComponentProps
   const agent = codingAgent(provider);
   const style = { '--k42-tool-badge-size': `${Math.max(14, Math.min(24, Math.round((props.size ?? 32) * .35)))}px` } as CSSProperties;
   return <span className="k42-coding-agent-avatar" style={style}>
-    <AgentAvatar {...props} />
+    <AgentAvatar {...props} provider={provider} state={status?.state ?? props.state} />
     {agent && <span className="k42-tool-badge" role="img" aria-label={`Coding agent: ${agent.name}`} tabIndex={0}>
       <span className={`k42-tool-glyph is-${agent.id}`} aria-hidden="true" />
       <span className="k42-tool-tooltip" aria-hidden="true">{agent.name}</span>

@@ -47,7 +47,7 @@ test('actual Tasks tab offers the list and a status board, remembers the choice 
   let apiOutput = ''; api.stdout?.on('data', data => { apiOutput += String(data); }); api.stderr?.on('data', data => { apiOutput += String(data); });
   const { createServer } = require('vite'), { chromium } = require('playwright');
   const web = await createServer({ root: join(root, 'apps/web'), configFile: join(root, 'apps/web/vite.config.ts'),
-    server: { host: '127.0.0.1', port: webPort, strictPort: true, proxy: { '/api': `http://127.0.0.1:${apiPort}`, '/community': `http://127.0.0.1:${apiPort}`, '/p': `http://127.0.0.1:${apiPort}` } } });
+    server: { host: '127.0.0.1', port: webPort, strictPort: true, proxy: Object.fromEntries(['/api', '/community', '/p', '/s'].map(path => [`^${path}(?:/|$)`, `http://127.0.0.1:${apiPort}`])) } });
   let browser: any, diagnostic: any;
   try {
     for (let n = 0; ; n++) {
@@ -70,7 +70,7 @@ test('actual Tasks tab offers the list and a status board, remembers the choice 
     expect(await viewSwitch.getByRole('button', { name: 'List', exact: true }).getAttribute('aria-pressed')).toBe('true');
     expect(await tasks.locator('table.k42-tasks-table').count()).toBe(1);
     expect(await tasks.locator('.k42-tasks-board').count()).toBe(0);
-    expect(await tasks.locator('table thead th').allInnerTexts()).toEqual(['Task', 'Assigned agent', 'Agents', 'Status', 'Updated']);
+    expect(await tasks.locator('table thead th').evaluateAll((nodes: Element[]) => nodes.map(node => { const copy = node.cloneNode(true) as Element; copy.querySelectorAll('select').forEach(select => select.remove()); return copy.textContent?.trim(); }))).toEqual(['Task', 'Assigned agent', 'Agents', 'Status', 'Updated']);
     // A State filter chosen in the list does not apply to the board: its columns are the states.
     await tasks.getByRole('combobox', { name: 'State', exact: true }).selectOption('done');
     await tasks.locator('table tbody tr').filter({ hasText: 'Agree the task completion policy' }).waitFor();

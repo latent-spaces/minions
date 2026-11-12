@@ -164,6 +164,12 @@ export function CommunicationMap(props:Props){
    const raster=canvas.current!,pixelWidth=Math.round(box.width*devicePixelRatio),pixelHeight=Math.round(height*devicePixelRatio);if(raster.width!==pixelWidth)raster.width=pixelWidth;if(raster.height!==pixelHeight)raster.height=pixelHeight;drawing.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);drawing.clearRect(0,0,box.width,height);drawing.strokeStyle=getComputedStyle(element).getPropertyValue('--ink')||'#141414';drawing.fillStyle=drawing.strokeStyle;
    drawing.save();drawing.lineWidth=1;for(const line of worldGrid(frame,box.width,height,dimensions,orbit.current.yaw,orbit.current.pitch,floorY,gridRadius)){drawing.globalAlpha=line.major ? .12 : .065;drawing.beginPath();drawing.moveTo(line.x1,line.y1);drawing.lineTo(line.x2,line.y2);drawing.stroke();}drawing.restore();
    const passes=flights.sample(c.traffic,at,animationClock,c.replay,c.running);
+   for(const sent of flights.takeStarts()){
+    if(c.replay)continue;
+    const position=index.get(sent.from);
+    if(position!==undefined)nodeElements[position]?.querySelector('[data-character-avatar]')
+      ?.dispatchEvent(new CustomEvent('character-message',{detail:{id:sent.id}}));
+   }
    const byPair=new Map<string,number[]>();for(const flight of passes){const key=JSON.stringify([flight.from,flight.to]),values=byPair.get(key)??[];values.push(flight.phase);byPair.set(key,values);}
    edgeAppearance.begin(at,time,c.replay,c.running);
    for(const group of element.querySelectorAll<SVGGElement>('[data-map-edge]')){

@@ -1,4 +1,4 @@
-export type CommunicationNode = { id: string; name: string | null };
+export type CommunicationNode = { provider?: string | null; id: string; name: string | null };
 export type CommunicationEdge = { from: string; to: string; count: number; latestAt: number };
 export type PositionedAgent = CommunicationNode & { x: number; y: number };
 export function elapsed(ms: number) {

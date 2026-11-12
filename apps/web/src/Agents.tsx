@@ -91,7 +91,7 @@ function Directory({ user, q, mine, tick, active, go }: { user: SessionUser | nu
     </div>}
     {!!page?.items.length && <UsageSummary rows={page.items.map(a => a.usage)} scope="Agents on this page" />}
     {!!page?.items.length && <ul className="agent-grid">{page.items.map(a => <li key={a.id}>
-      <AgentCard provider={a.usage?.provider} agentId={a.id} ownerId={a.operatorId} persona={a.personaChoice} name={a.name} identity={a.name} operator={a.operatorId && a.operatorName ? <PersonLink photo={a.operatorPhoto} id={a.operatorId} name={a.operatorName} /> : a.operatorName ? `@${a.operatorName}` : 'Removed person'} mine={mine?.has(a.id)} revoked={!!a.revokedAt}
+      <AgentCard state={communicationAgentState(a,now)} provider={a.usage?.provider} agentId={a.id} ownerId={a.operatorId} persona={a.personaChoice} name={a.name} identity={a.name} operator={a.operatorId && a.operatorName ? <PersonLink photo={a.operatorPhoto} id={a.operatorId} name={a.operatorName} /> : a.operatorName ? `@${a.operatorName}` : 'Removed person'} mine={mine?.has(a.id)} revoked={!!a.revokedAt}
         phase={<Phase agent={a} now={now} />}
         focus={<AgentFocus focus={a.focus} now={now} />}
         model={a.usage?.model ? <span className="k42-model-name"><ModelMark model={a.usage.model} provider={a.usage.provider} />{a.usage.model}</span> : 'Unknown'} contact={<LastContact agent={a} now={now} />}
@@ -148,7 +148,7 @@ function Detail({ user, id, q, filter, onAgent, mine, tick, active, go }: { user
     {a && <div className="agent-detail-columns">
       <div className="agent-main">
         <section className="agent-panel">
-          <div className="agent-name-line"><span className="agent-profile-photo"><CodingAgentAvatar provider={a.usage?.provider} name={a.name} id={a.id} ownerId={a.operatorId} persona={a.personaChoice} size={76} decorative />
+          <div className="agent-name-line"><span className="agent-profile-photo"><CodingAgentAvatar state={communicationAgentState(a,now)} provider={a.usage?.provider} name={a.name} id={a.id} ownerId={a.operatorId} persona={a.personaChoice} size={76} decorative />
             <AgentStatusIcon state={runtimeState} overlay /></span>
             <h2 id="agent-title">{a.name}</h2>
             {mine?.has(a.id) && <span className="agent-mine k42-tone-butter">My agent</span>}
@@ -170,8 +170,8 @@ function Detail({ user, id, q, filter, onAgent, mine, tick, active, go }: { user
           </dl>
         </section>
         <AgentUsage usage={usage} now={now} />
-        <AgentPersona key={`${user?.uid ?? 'guest'}:${projectId}:${id}`} user={user} projectId={projectId} agentId={id} agentName={a.name} ownerId={a.operatorId} onSaved={text => setResult(previous => previous ? {...previous, agent: {...previous.agent, personaChoice: personaChoice(text)}} : previous)} active={active} tick={tick} />
-        {own && user && <AgentEnvironment key={`${user.uid}:${projectId}:${id}`} user={user} projectId={projectId} agentId={id} active={active} tick={tick} />}
+        <AgentPersona key={`${user?.uid ?? 'guest'}:${projectId}:${id}:persona`} user={user} projectId={projectId} agentId={id} agentName={a.name} provider={a.usage?.provider} ownerId={a.operatorId} onSaved={text => setResult(previous => previous ? {...previous, agent: {...previous.agent, personaChoice: personaChoice(text)}} : previous)} active={active} tick={tick} />
+        {own && user && <AgentEnvironment key={`${user.uid}:${projectId}:${id}:environment`} user={user} projectId={projectId} agentId={id} active={active} tick={tick} />}
         {own ? <OwnedTasks user={user} id={id} tick={tick} active={active} /> : <section className="agent-panel" aria-labelledby="agent-responsibility">
           <h3 id="agent-responsibility">Current responsibility</h3>
           <p>Conversations, tasks and pull requests show the work.</p>

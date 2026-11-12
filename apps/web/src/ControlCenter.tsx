@@ -12,15 +12,18 @@ import type { ProjectControls } from './ui/ProjectControls';
 import { ProjectControlsCard } from './ui/ProjectControls';
 import { Connections } from './ui/Connections';
 import './ui/control-center.css';
+import { MyCharacter } from './ui/MyCharacter';
 
 // Settings is one page (owner decision, 11 November 2026): Project, Agents, Features and Connections, each explained behind a ? note.
 export function ControlCenter({ user, workspace, refresh, active, controls, refreshKey }: { refreshKey: number; user: SessionUser; workspace: Workspace; controls: ProjectControls; refresh: () => void; active: boolean }) {
   const catalogRequest = useCallback(<T,>(path: string, body?: object) => projects<T>(user, path, body), [user]);
-  if (workspace.role !== 'owner') return active ? <p role="status">Settings are available to the project owner.</p> : null;
+  const isOwner = workspace.role === 'owner';
   const closed = workspace.execution === 'closed';
   return <section className={`project-settings control-center${active ? ' is-active' : ''}`} aria-labelledby="control-center-title">
     <header className="control-center-heading"><h2 id="control-center-title" className="k42-section-title">Settings</h2></header>
     <div className="settings-category-pages control-center-stack">
+      <MyCharacter key={user.uid} user={user} active={active} onSaved={refresh} />
+      {isOwner && <>
       <section className="settings-card" aria-labelledby="settings-project-title">
         <h3 id="settings-project-title" className="settings-group-title">Project</h3>
         <ProjectControlsCard workspace={workspace} controls={controls} />
@@ -40,6 +43,7 @@ export function ControlCenter({ user, workspace, refresh, active, controls, refr
         </section>
       </fieldset>
       <Connections key={`${user.uid}:connections`} user={user} active={active} refreshKey={refreshKey} retry={refresh} />
+      </>}
     </div>
   </section>;
 }

@@ -1,4 +1,4 @@
-export type MapAgent = { id: string; name: string; operatorId: string | null; createdAt: number };
+export type MapAgent = { provider?: string | null; id: string; name: string; operatorId: string | null; createdAt: number };
 export type RosterPage = { agents: MapAgent[]; next: string | null; serverTime: number };
 
 /** No display cap: pages are bounded; incomplete loading is visible to the caller. */

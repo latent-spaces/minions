@@ -1,17 +1,16 @@
 import { PERSONA_OPTIONS, type PersonaChoice } from '@mlswarm/contracts';
-import type { AnimalFamily } from './animal-family';
-import build from './assets/agents/hats/build.webp';
-import review from './assets/agents/hats/review.webp';
-import updates from './assets/agents/hats/updates.webp';
-import moderator from './assets/agents/hats/moderator.webp';
-import custom from './assets/agents/hats/custom.webp';
-
-const hats = { build, review, updates, moderator, custom };
-/** Decorative only: no new persona storage, execution role or permission. */
-export function agentHat(persona: PersonaChoice | null | undefined, family: AnimalFamily) {
-  if (!persona || persona === 'default' || !Object.hasOwn(hats, persona)) return null;
-  const tallEars = ['fox', 'cat', 'rabbit', 'parrot'].includes(family);
-  const fit = { width: family === 'rabbit' ? .58 : .66, top: tallEars ? -.10 : -.20 };
-  const lift = persona === 'custom' || persona === 'review' ? .05 : 0;
-  return { label: PERSONA_OPTIONS.find(option => option.id === persona)?.label ?? 'Custom', src: hats[persona as keyof typeof hats], width: fit.width, left: (1 - fit.width) / 2, top: fit.top - lift };
+import { characterGeometry } from './character-set';
+import geometry from './assets/characters/offbeat/geometry.json';
+const sprites = import.meta.glob<string>('./assets/characters/offbeat/hats/*.png', { eager: true, query: '?url', import: 'default' });
+const personaHats = { build: 'construction', review: 'detective', updates: 'conductor', moderator: 'police', custom: 'beret' };
+/** A separate decorative sprite; switching persona never regenerates or rescales the face. */
+export function agentHat(persona: PersonaChoice | null | undefined, character: string) {
+  if (!persona || persona === 'default' || !Object.hasOwn(personaHats, persona)) return null;
+  const head = characterGeometry(character), id = personaHats[persona as keyof typeof personaHats];
+  const hat = geometry.hats.find(item => item.id === id)!;
+  const width = head.hatWidth * hat.widthRatio, height = width * hat.height / hat.width;
+  return { label: PERSONA_OPTIONS.find(option => option.id === persona)?.label ?? 'Custom',
+    src: sprites[`./assets/characters/offbeat/hats/${id}.png`], width: width / 192,
+    left: (head.anchor[0] - width * hat.attachment[0]) / 192,
+    top: (head.anchor[1] - height * hat.attachment[1]) / 192, behind: head.hatBehind };
 }

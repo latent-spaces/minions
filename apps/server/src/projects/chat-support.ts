@@ -7,7 +7,7 @@ import { conversationEntries } from './steering.js';
 import { assertMembership } from './access.js';
 import { assertChatWrite, chatReadAccess, humanMessages, type HumanMessage } from './chat-records.js';
 import { Refusal } from '../errors.js';
-import { publicProfilePhoto } from '../community/profile-photo-ref.js';
+import { publicProfilePhoto, publicPersonAppearance } from '../community/profile-photo-ref.js';
 import { decodeCursor, encodeCursor } from '../cursor.js';
 
 const ID = z.string().regex(/^[A-Za-z0-9_-]{1,200}$/);
@@ -42,7 +42,8 @@ export async function decorateHumanChat(tx:Transaction,id:string,operator:WithId
   const ids=[...new Set(rows.flatMap(row=>[row.message.sender.id,...(row.message.reply?[row.message.reply.sender.id]:[])]))].filter(value=>ID.safeParse(value).success);
   const people=ids.length?await tx.getAll(...ids.map(person=>profiles.doc(person))):[];
   const photos=new Map(people.map(person=>[person.id,person.exists?publicProfilePhoto(person.data()!,person.id):null]));
-  const sender=(person:HumanMessage['sender'])=>({...person,photo:photos.get(person.id)??null});
+  const appearances=new Map(people.filter(person=>person.exists).map(person=>[person.id,publicPersonAppearance(person.data()!,person.id)]));
+  const sender=(person:HumanMessage['sender'])=>({...person,...(appearances.get(person.id)??{photo:photos.get(person.id)??null})});
   return rows.map((r,index)=>({id:r.id,...r.message,sender:sender(r.message.sender),reply:r.message.reply?{...r.message.reply,sender:sender(r.message.reply.sender)}:null,attachments:r.message.attachments??[],reactions:decorated[index].reactions}));
 }
 export async function readHumanChatMessage(id:string,operator:WithId<Profile>|null,key:unknown,now:()=>number) {

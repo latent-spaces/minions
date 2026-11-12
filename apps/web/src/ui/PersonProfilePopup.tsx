@@ -16,6 +16,6 @@ export function PersonProfilePopup({ person, onClose }: { person: DirectoryMembe
     return () => { current = false; };
   }, [person.id, retry]);
   return <ParticipantPopup title={person.name ?? 'Project member'} onClose={onClose}>
-    {profile ? <ProfileSummary profile={profile} hideName /> : <><PersonAvatar id={person.id} name={person.name} photo={person.photo} size={56} />{error ? <div role="alert"><p>{error}</p><Button onClick={() => setRetry(value => value + 1)}>Try again</Button></div> : <p role="status">Loading profile…</p>}</>}
+    {profile ? <ProfileSummary profile={profile} hideName /> : <><PersonAvatar id={person.id} name={person.name} photo={person.photo} character={person.character} size={56} />{error ? <div role="alert"><p>{error}</p><Button onClick={() => setRetry(value => value + 1)}>Try again</Button></div> : <p role="status">Loading profile…</p>}</>}
   </ParticipantPopup>;
 }

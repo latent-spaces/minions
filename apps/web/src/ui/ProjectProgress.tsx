@@ -27,11 +27,11 @@ const date = (at: number) => new Date(at).toLocaleString(undefined, { dateStyle:
 function Author({ item, go }: { item: PublishedUpdate; go: ProgressReadProps['go'] }) {
   const person = item.author.profile, agent = item.author.agent;
   return <header className="k42-progress-author">
-    {agent ? <AgentAvatar id={agent.id} name={agent.name} ownerName={person.name} ownerId={person.id} size={40} decorative />
-      : <PersonAvatar id={person.id} name={person.name || null} photo={person.photo} size={40} />}
+    {agent ? <AgentAvatar provider={agent.provider} id={agent.id} name={agent.name} ownerName={person.name} ownerId={person.id} size={40} decorative />
+      : <PersonAvatar id={person.id} name={person.name || null} photo={person.photo} character={person.character} size={40} />}
     <div className="k42-progress-byline"><div>
       {agent && <><NavLink to={projectRoute(item.projectId, 'agents', agent.id, null, 'all')} go={go}>{agent.name}</NavLink><span className="muted"> · </span></>}
-      <PersonLink photo={person.photo} id={person.id} name={person.name} />
+      <PersonLink photo={person.photo} character={person.character} id={person.id} name={person.name} />
     </div><time dateTime={new Date(item.publishedAt).toISOString()}>{date(item.publishedAt)}</time></div>
   </header>;
 }

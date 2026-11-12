@@ -1,0 +1,429 @@
+{
+  "heads": [
+    {
+      "id": "person-01",
+      "bounds": [
+        4,
+        4,
+        183,
+        184
+      ],
+      "anchor": [
+        95.5,
+        59.088659793814436
+      ],
+      "hatWidth": 161.04000000000002,
+      "hatBehind": false
+    },
+    {
+      "id": "person-02",
+      "bounds": [
+        7,
+        4,
+        178,
+        184
+      ],
+      "anchor": [
+        96.0,
+        57.297184115523464
+      ],
+      "hatWidth": 156.64,
+      "hatBehind": false
+    },
+    {
+      "id": "person-03",
+      "bounds": [
+        5,
+        4,
+        181,
+        184
+      ],
+      "anchor": [
+        95.5,
+        57.22156794425087
+      ],
+      "hatWidth": 159.28,
+      "hatBehind": false
+    },
+    {
+      "id": "person-04",
+      "bounds": [
+        4,
+        7,
+        184,
+        178
+      ],
+      "anchor": [
+        96.0,
+        63.90416107382552
+      ],
+      "hatWidth": 161.92,
+      "hatBehind": false
+    },
+    {
+      "id": "cat",
+      "bounds": [
+        4,
+        12,
+        184,
+        168
+      ],
+      "anchor": [
+        96.0,
+        77.3263448275862
+      ],
+      "hatWidth": 143.52,
+      "hatBehind": false
+    },
+    {
+      "id": "dog",
+      "bounds": [
+        4,
+        25,
+        184,
+        142
+      ],
+      "anchor": [
+        96.0,
+        60.53894080996883
+      ],
+      "hatWidth": 154.56,
+      "hatBehind": false
+    },
+    {
+      "id": "fox",
+      "bounds": [
+        4,
+        11,
+        184,
+        169
+      ],
+      "anchor": [
+        96.0,
+        78.75099337748344
+      ],
+      "hatWidth": 139.84,
+      "hatBehind": false
+    },
+    {
+      "id": "raccoon",
+      "bounds": [
+        4,
+        17,
+        184,
+        157
+      ],
+      "anchor": [
+        96.0,
+        65.65176470588236
+      ],
+      "hatWidth": 150.88,
+      "hatBehind": false
+    },
+    {
+      "id": "bear",
+      "bounds": [
+        4,
+        11,
+        184,
+        170
+      ],
+      "anchor": [
+        96.0,
+        58.543017543859655
+      ],
+      "hatWidth": 152.72,
+      "hatBehind": false
+    },
+    {
+      "id": "panda",
+      "bounds": [
+        4,
+        12,
+        184,
+        168
+      ],
+      "anchor": [
+        96.0,
+        65.66014184397162
+      ],
+      "hatWidth": 150.88,
+      "hatBehind": false
+    },
+    {
+      "id": "rabbit",
+      "bounds": [
+        4,
+        4,
+        184,
+        183
+      ],
+      "anchor": [
+        96.0,
+        101.20541935483872
+      ],
+      "hatWidth": 121.44000000000003,
+      "hatBehind": false
+    },
+    {
+      "id": "owl",
+      "bounds": [
+        4,
+        18,
+        184,
+        155
+      ],
+      "anchor": [
+        96.0,
+        63.01706840390877
+      ],
+      "hatWidth": 145.35999999999999,
+      "hatBehind": false
+    },
+    {
+      "id": "koala",
+      "bounds": [
+        4,
+        23,
+        184,
+        145
+      ],
+      "anchor": [
+        96.0,
+        63.69095541401273
+      ],
+      "hatWidth": 141.68,
+      "hatBehind": false
+    },
+    {
+      "id": "frog",
+      "bounds": [
+        4,
+        24,
+        184,
+        144
+      ],
+      "anchor": [
+        96.0,
+        72.81054945054944
+      ],
+      "hatWidth": 95.67999999999999,
+      "hatBehind": true
+    },
+    {
+      "id": "red-panda",
+      "bounds": [
+        4,
+        20,
+        184,
+        151
+      ],
+      "anchor": [
+        96.0,
+        66.93916666666668
+      ],
+      "hatWidth": 147.20000000000002,
+      "hatBehind": false
+    },
+    {
+      "id": "tiger",
+      "bounds": [
+        4,
+        16,
+        184,
+        159
+      ],
+      "anchor": [
+        96.0,
+        63.65599999999999
+      ],
+      "hatWidth": 150.88,
+      "hatBehind": false
+    }
+  ],
+  "hats": [
+    {
+      "id": "construction",
+      "width": 274,
+      "height": 195,
+      "src": "hats/construction.png",
+      "widthRatio": 1,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "police",
+      "width": 292,
+      "height": 193,
+      "src": "hats/police.png",
+      "widthRatio": 1.08,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "firefighter",
+      "width": 297,
+      "height": 204,
+      "src": "hats/firefighter.png",
+      "widthRatio": 1.08,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "chef",
+      "width": 277,
+      "height": 217,
+      "src": "hats/chef.png",
+      "widthRatio": 1.24,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "baseball",
+      "width": 255,
+      "height": 203,
+      "src": "hats/baseball.png",
+      "widthRatio": 1.03,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "beanie",
+      "width": 268,
+      "height": 192,
+      "src": "hats/beanie.png",
+      "widthRatio": 1,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "bucket",
+      "width": 297,
+      "height": 195,
+      "src": "hats/bucket.png",
+      "widthRatio": 1.08,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "cowboy",
+      "width": 307,
+      "height": 183,
+      "src": "hats/cowboy.png",
+      "widthRatio": 1.3,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "beret",
+      "width": 290,
+      "height": 173,
+      "src": "hats/beret.png",
+      "widthRatio": 1.15,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "sailor",
+      "width": 276,
+      "height": 165,
+      "src": "hats/sailor.png",
+      "widthRatio": 1,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "graduation",
+      "width": 291,
+      "height": 199,
+      "src": "hats/graduation.png",
+      "widthRatio": 1.22,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "wizard",
+      "width": 313,
+      "height": 249,
+      "src": "hats/wizard.png",
+      "widthRatio": 1.08,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "detective",
+      "width": 299,
+      "height": 167,
+      "src": "hats/detective.png",
+      "widthRatio": 1.2,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "gardener",
+      "width": 298,
+      "height": 145,
+      "src": "hats/gardener.png",
+      "widthRatio": 1.32,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "crown",
+      "width": 236,
+      "height": 156,
+      "src": "hats/crown.png",
+      "widthRatio": 0.9,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    },
+    {
+      "id": "conductor",
+      "width": 263,
+      "height": 169,
+      "src": "hats/conductor.png",
+      "widthRatio": 1.05,
+      "attachment": [
+        0.5,
+        0.95
+      ]
+    }
+  ],
+  "viewBox": [
+    0,
+    0,
+    192,
+    192
+  ],
+  "note": "Independent PNG layers; per-head crown anchor and per-hat brim anchor. Frog hats draw behind the head so its raised eyes occlude the brim."
+}

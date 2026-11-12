@@ -15,10 +15,10 @@ const name = (agent: { id: string; name: string | null }) => agent.name ?? agent
 export function MessageDirection({ message, projectId, go, deliveryDetails=true }: { message: MessageRow; deliveryDetails?: boolean; projectId?: string; go?: (route: Route) => void }) {
   const multiple = message.audience.kind === 'direct' && message.audience.to.length > 1;
   const identity = (agent: MessageRow['sender'] | Extract<MessageRow['audience'], {kind:'direct'}>['to'][number], sender: boolean) => {
-    if('kind' in agent && agent.kind==='person')return <span className="conversation-agent"><PersonAvatar name={agent.name} id={agent.id} photo={agent.photo} size={40}/><span>{name(agent)}</span></span>;
+    if('kind' in agent && agent.kind==='person')return <span className="conversation-agent"><PersonAvatar name={agent.name} id={agent.id} photo={agent.photo} character={agent.character} size={40}/><span>{name(agent)}</span></span>;
     const ownerLabel = agent.operatorId ? `Agent of ${agent.operatorName ?? 'a removed person'}` : null;
     const compact = multiple && !sender;
-    const content = <><span className="conversation-portrait" title={`${name(agent)}${ownerLabel ? ` · ${ownerLabel}` : ''}`}><AgentAvatar id={agent.id} name={name(agent)} ownerId={agent.operatorId} ownerName={agent.operatorId ? agent.operatorName : undefined} persona={agent.personaChoice} size={compact ? 32 : 40} decorative /></span><span className={compact ? 'visually-hidden' : undefined}>{name(agent)}{ownerLabel && <span className="visually-hidden">, {ownerLabel}</span>}</span></>;
+    const content = <><span className="conversation-portrait" title={`${name(agent)}${ownerLabel ? ` · ${ownerLabel}` : ''}`}><AgentAvatar provider={agent.provider} id={agent.id} name={name(agent)} ownerId={agent.operatorId} ownerName={agent.operatorId ? agent.operatorName : undefined} persona={agent.personaChoice} size={compact ? 32 : 40} decorative /></span><span className={compact ? 'visually-hidden' : undefined}>{name(agent)}{ownerLabel && <span className="visually-hidden">, {ownerLabel}</span>}</span></>;
     return projectId && go ? <NavLink className="conversation-agent" to={projectRoute(projectId, 'agents', agent.id, null, 'all')} go={go}>{content}</NavLink>
       : <span className="conversation-agent">{content}</span>;
   };

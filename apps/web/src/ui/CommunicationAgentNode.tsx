@@ -1,8 +1,8 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { agentCharacter, ownerTone } from './character-set';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { CommunicationAgent } from '@mlswarm/contracts';
 import { AgentStateBubble } from './AgentStateBubble';
-import { agentPortrait, ANIMAL_ZOOM, ANIMAL_FOCUS } from './animal-family';
 import { agentHat } from './agent-hat';
 import { AgentAvatar } from './AgentAvatar';
 import { ago, time } from '../shared';
@@ -14,14 +14,13 @@ export function CommunicationAgentNode({ node, agent, now, selected, replay, sim
   simulated?: boolean; crowded?: boolean; ownerLabel?: string; tooltipId: string; inspecting: boolean; onInspect: (element: SVGGElement) => void;
   onLeave: () => void; onDismiss: () => void; onSelect: () => void;
 }) {
-  const clip = useId().replace(/:/g, ''), [failed, setFailed] = useState(false);
   const name = node.name ?? node.id, state = communicationAgentState(agent, now), label = COMMUNICATION_AGENT_LABELS[state];
   const characters = [...name], limit = compact ? 14 : 22;
-  const portrait = agentPortrait(node.id, node.ownerId);
-  const src = portrait.src, hat = agentHat(agent?.personaChoice, portrait.family);
+  const tone = ownerTone(node.ownerId);
+  const character = agentCharacter(node.id);
+  const hat = agentHat(agent?.personaChoice, character.id);
   // A working agent shows what it is on right now (owner, from the 19 October onboarding test); the full line is in its title and tooltip.
   const focus = !replay && state === 'working' ? agent?.focus?.text?.trim() ?? '' : '', focusCharacters = [...focus], focusLimit = compact ? 16 : 26;
-  useEffect(() => setFailed(false), [src]);
   return <g role="button" tabIndex={0} aria-label={`Select agent ${name}. ${simulated ? 'Simulated status' : 'Current status'}: ${label}.${ownerLabel ? ` Agent of: ${ownerLabel}.` : ''}${hat ? ` Persona: ${hat.label}.` : ''}${focus ? ` Focus: ${focus}` : ''}`}
     aria-pressed={selected} aria-describedby={inspecting ? tooltipId : undefined}
     className={`k42-communication-agent${!replay || simulated ? ' has-state-bubble' : ''}${selected ? ' selected' : ''}${crowded ? ' is-crowded' : ''}${inspecting ? ' is-inspecting' : ''}`} transform={`translate(${node.x},${node.y})`}
@@ -32,13 +31,13 @@ export function CommunicationAgentNode({ node, agent, now, selected, replay, sim
       if (event.key === 'Escape') { event.preventDefault(); onDismiss(); }
       if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(); onInspect(event.currentTarget); }
     }}>
-    <defs><clipPath id={clip}><rect x="-20" y="-20" width="40" height="40" rx="12" /></clipPath></defs>
     <rect className="k42-communication-agent-hit" x="-48" y="-30" width="96" height={focus ? 112 : 96} rx="12" />
     {ownerLabel && <rect className="k42-communication-owner-ring" x="-25" y="-25" width="50" height="50" rx="17" aria-hidden="true"/>}
-    <rect className="k42-communication-avatar-frame" style={portrait.tone ? { fill: `var(--pastel-${portrait.tone})` } : undefined} x="-22" y="-22" width="44" height="44" rx="14" />
-    {failed ? <text textAnchor="middle" dominantBaseline="central" className="k42-communication-initials">{[...name][0]?.toUpperCase() ?? '?'}</text>
-      : <g clipPath={`url(#${clip})`}><image className="k42-communication-avatar k42-animal-cutout" href={src} x={-20 * ANIMAL_ZOOM} y={-20 + (1 - ANIMAL_ZOOM) * 40 * ANIMAL_FOCUS} width={40 * ANIMAL_ZOOM} height={40 * ANIMAL_ZOOM} preserveAspectRatio="xMidYMid meet" onError={() => setFailed(true)} /></g>}
-    {!failed && hat && <image className="k42-communication-persona-hat" href={hat.src} x={-20+40*hat.left+40*hat.width*0.1} y={-20+40*hat.top+40*hat.width*0.15} width={40*hat.width*0.8} height={40*hat.width*0.8} pointerEvents="none" aria-hidden="true" />}
+    <rect className="k42-communication-avatar-frame" style={tone ? { fill: `var(--pastel-${tone})` } : undefined} x="-22" y="-22" width="44" height="44" rx="14" />
+    <foreignObject x="-32" y="-44" width="64" height="76" style={{overflow:'visible'}}><div style={{ padding: '24px 12px 12px', width: 64, height: 76 }}>
+      <AgentAvatar name={name} id={node.id} ownerId={node.ownerId} provider={node.provider}
+        state={!replay || simulated ? state : 'idle'} persona={agent?.personaChoice} size={40} decorative />
+    </div></foreignObject>
     <text y="38" textAnchor="middle" className="k42-communication-name">{characters.length > limit ? `${characters.slice(0, limit - 1).join('')}…` : name}</text>
     {(!replay || simulated) && <text y="54" textAnchor="middle" className={`k42-communication-state state-${state}`}>{label}</text>}
     {focus && <text y="70" textAnchor="middle" className="k42-communication-focus"><title>{focus}</title>{focusCharacters.length > focusLimit ? `${focusCharacters.slice(0, focusLimit - 1).join('')}…` : focus}</text>}
@@ -46,8 +45,8 @@ export function CommunicationAgentNode({ node, agent, now, selected, replay, sim
   </g>;
 }
 
-export function CommunicationAgentTooltip({ id, anchor, name, ownerLabel, ownerId, agentId, agent, now, replay, simulated=false, onKeep, onLeave, onDismiss, onPin, ownStatus, actions, portalContainer }: {
-  id: string; anchor: SVGGElement; name: string; ownerLabel?: string; ownerId?: string | null; agentId?: string; agent?: CommunicationAgent; now: number; replay: boolean;
+export function CommunicationAgentTooltip({ id, anchor, name, ownerLabel, ownerId, agentId, provider, agent, now, replay, simulated=false, onKeep, onLeave, onDismiss, onPin, ownStatus, actions, portalContainer }: {
+  id: string; anchor: SVGGElement; name: string; ownerLabel?: string; ownerId?: string | null; agentId?: string; provider?: string | null; agent?: CommunicationAgent; now: number; replay: boolean;
   simulated?: boolean;
   // For the person's own agents in the live view: their one-word status and Play/Pause.
   ownStatus?: string; actions?: React.ReactNode; onPin?: () => void; portalContainer?: Element;
@@ -83,7 +82,7 @@ export function CommunicationAgentTooltip({ id, anchor, name, ownerLabel, ownerI
   return createPortal(<div ref={ref} id={id} role={actions ? 'dialog' : 'tooltip'} aria-label={actions ? name : undefined} className="k42-communication-agent-tooltip"
     style={{ ...position, visibility: position ? 'visible' : 'hidden' }} onMouseEnter={onKeep} onMouseLeave={onLeave} onPointerDown={onPin} onFocus={onPin}>
     {actions && <button type="button" className="k42-communication-tooltip-close" aria-label="Close" onClick={onDismiss}>×</button>}
-    <div className="k42-communication-tooltip-identity"><AgentAvatar name={name} id={agentId ?? agent?.id ?? name} ownerId={ownerId} persona={agent?.personaChoice} size={40} decorative /><div><strong>{name}</strong>
+    <div className="k42-communication-tooltip-identity"><AgentAvatar provider={provider} state={!replay ? state : 'idle'} name={name} id={agentId ?? agent?.id ?? name} ownerId={ownerId} persona={agent?.personaChoice} size={40} decorative /><div><strong>{name}</strong>
       <span>{agent?.mine ? 'Your agent · ' : ''}{simulated ? 'Simulated status' : 'Current status'}: {agent?.projectPause ? COMMUNICATION_AGENT_LABELS[state] : ownStatus ?? COMMUNICATION_AGENT_LABELS[state]}</span></div></div>
     {ownerLabel && <p className="k42-communication-tooltip-owner">Agent of: {ownerLabel}</p>}
     {actions && <div className="k42-communication-tooltip-actions">{actions}</div>}
