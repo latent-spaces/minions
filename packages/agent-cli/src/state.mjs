@@ -92,5 +92,4 @@ export function connectionDir(home, id) {
   return dir;
 }
 export function save(dir, record) { writePrivate(join(dir, 'connection.json'), record); }
-export function load(dir) { return readPrivate(join(dir, 'connection.json'), true); }
 export function lstatExists(path) { try { lstatSync(path); return true; } catch (e) { if (e.code === 'ENOENT') return false; throw e; } }
