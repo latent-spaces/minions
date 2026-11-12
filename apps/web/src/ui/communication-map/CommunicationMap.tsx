@@ -30,7 +30,7 @@ const connectorStyles={
  envelope:{stroke:'#93869f',packet:'#756183',width:.5,radius:0,trail:0,glyph:'envelope'},
  tube:{stroke:'#93869f',packet:'#756183',width:.5,radius:0,trail:0,glyph:'tube',shape:'soft'},
  'round-tube':{stroke:'#887697',packet:'#756183',width:.5,radius:0,trail:0,glyph:'tube',shape:'round'},
- 'rubber-tube':{stroke:'#7f6b8e',packet:'#756183',width:.5,radius:0,trail:0,glyph:'tube',shape:'rubber'},
+ 'rubber-tube':{stroke:'#211b27',packet:'#756183',width:.5,radius:0,trail:0,glyph:'tube',shape:'rubber'},
 } as const;
 
 const focusMode=(mode:Crowding)=>mode==='focus-active'||mode==='focus-ring';
@@ -211,7 +211,8 @@ export function CommunicationMap(props:Props){
     const from=group.dataset.from!,to=group.dataset.to!,a=index.get(from),b=index.get(to),link=weights.get(JSON.stringify([from,to]));
     if(a===undefined||b===undefined){group.style.display='none';continue;}
     const eligible=!!link&&link.weight>=EDGE_MIN_WEIGHT,dimmed=c.highlightedOwner&&positions[a].ownerId!==c.highlightedOwner&&positions[b].ownerId!==c.highlightedOwner;
-    const appearance=edgeAppearance.sample(JSON.stringify([from,to]),eligible?Math.max(.24,(1-Math.exp(-link.weight))*.75)*(dimmed ? .2 : 1):0,eligible?Math.min(4,1+Math.log2(1+link.weight)):1,time,reduced.matches||!c.running);
+    const opacity=eligible?(connectorStyle==='rubber-tube'?.88+Math.min(.08,link.weight*.06):Math.max(.24,(1-Math.exp(-link.weight))*.75))*(dimmed ? .2 : 1):0;
+    const appearance=edgeAppearance.sample(JSON.stringify([from,to]),opacity,eligible?Math.min(4,1+Math.log2(1+link.weight)):1,time,reduced.matches||!c.running);
     // Inactive connections can finish their visual fade, but cannot be clicked.
     group.style.display=eligible?'':'none';if(appearance.opacity===0)continue;
     const x=screen[a].x,y=screen[a].y,dx=screen[b].x-x,dy=screen[b].y-y,length=Math.max(1,Math.hypot(dx,dy)),ra=24*scales[a],rb=26*scales[b],sx=x+dx/length*ra,sy=y+dy/length*ra,tx=x+dx-dx/length*rb,ty=y+dy-dy/length*rb;

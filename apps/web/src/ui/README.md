@@ -428,7 +428,7 @@ agent by hovering, clicking or focusing its portrait.
 
 On the live map each avatar shows its state label and marker, and a working agent shows
 its latest focus. The tooltip for one of your own
-agents also offers its Start, Pause or Resume control. Thin rubber pipes retain
+agents also offers its Start, Pause or Resume control. Dark charcoal-violet, thin rubber pipes retain
 three minutes of direct-message history. A 1.4-second visual pass repeats every
 3.6 seconds with independent pair phases, including traffic already sent. New
 message IDs alone trigger avatar acknowledgments; visual replay never sends a

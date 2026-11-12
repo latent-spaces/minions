@@ -12,7 +12,9 @@ default: the retained pipes replay visual pulses even without new sends. Toggle
 New sample messages to add synthetic events every four seconds, or press Send
 sample message once. Pause stops visual motion and the local clock.
 
-Selected tubes are thin (1.6px resting radius, 0.9px outline), with round ends,
+Selected tubes are dark charcoal-violet (#352b3d fill, #211b27 outline), held
+at 88–96% opacity with a faint glint so old pipes remain clearly visible. They
+are thin (1.6px resting radius, 0.9px outline), with round ends,
 a compact 3.2px traveling swell and a small warm bead. Visible connections last
 three minutes; physical attraction retains the original 45-second lifetime.
 Visual replay repeats every 3.6 seconds per pair and never creates an avatar
