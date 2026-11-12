@@ -58,6 +58,7 @@ function scan(directory, identity) {
     const lines = bytes.toString('utf8').split('\n'); lines.pop();
     const records = []; let corrupt = false, header;
     try { header = JSON.parse(lines.shift()); } catch { throw fault('journal_corrupt_header'); }
+    if (!header || typeof header !== 'object' || Array.isArray(header)) throw fault('journal_corrupt_header');
     if (header.version !== 1 || header.kind !== 'identity' || !sameIdentity(validateIdentity(header.identity), identity)) throw fault('journal_identity');
     for (const line of lines) {
       try {

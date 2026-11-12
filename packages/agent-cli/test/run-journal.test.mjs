@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, realpathSync, rmSync, readFileSync } from 'node:fs';
+import { mkdtempSync, realpathSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -33,4 +33,13 @@ for (const provider of ['claude','codex']) test(`${provider} collector scrubs a 
   else { stream.threadId='11111111-1111-4111-8111-111111111111'; stream.turnId='test-turn'; stream.feed(JSON.stringify({method:'item/completed',params:{threadId:stream.threadId,turnId:stream.turnId,item:{type:'agentMessage',text}}})+'\n'); }
   const record=readRunJournal({directory,identity}).records[0];
   assert.equal(record.textTruncated,true); assert.equal(record.text.includes('synthetic-long-bridge'),false); assert.ok(record.text.includes('[REDACTED]'));
+}));
+
+test('a JSON null or array header reads as corrupt, not as an I/O failure', () => fixture(directory => {
+  for (const header of ['null', '[]', '"identity"']) {
+    writeFileSync(join(directory, 'run-evidence.jsonl'), `${header}\n`, { mode: 0o600 });
+    const result = readRunJournal({ directory, identity });
+    assert.equal(result.availability, 'corrupt', header);
+    assert.deepEqual(result.faults, ['journal_corrupt_header'], header);
+  }
 }));
