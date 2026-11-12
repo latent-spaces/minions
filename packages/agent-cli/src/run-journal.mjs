@@ -127,8 +127,10 @@ export function createRunJournal({ directory, identity, redact = [] }) {
         const record = { kind: event.kind, turnId: event.turnId, attemptId: event.attemptId };
         if (['assistant_text','status'].includes(event.kind)) {
           if (typeof event.text !== 'string') throw fault('journal_invalid_event');
-          record.text = clean(event.text, event.kind === 'status' ? 180 : RUN_JOURNAL_LIMITS.text);
-          record.textTruncated = [...event.text].length > (event.kind === 'status' ? 180 : RUN_JOURNAL_LIMITS.text) || event.sourceTruncated === true;
+          // A short secret becomes the longer [REDACTED], so redacted text can pass the limit when the source did not.
+          const maximum = event.kind === 'status' ? 180 : RUN_JOURNAL_LIMITS.text, full = [...clean(event.text, Infinity)];
+          record.text = full.slice(0, maximum).join('');
+          record.textTruncated = [...event.text].length > maximum || full.length > maximum || event.sourceTruncated === true;
         } else if (['tool','permission','model'].includes(event.kind)) {
           if (!identifier(event.name)) throw fault('journal_invalid_event'); record.name = secrets.some(secret => event.name.includes(secret)) ? 'redacted' : event.name;
         } else if (event.kind === 'session') { record.sessionId = validateUuid(event.sessionId, 'sessionId'); }
