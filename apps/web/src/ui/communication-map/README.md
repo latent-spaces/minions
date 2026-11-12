@@ -272,6 +272,7 @@ See [the lab instructions](../../../../../tools/communication-lab/README.md).
 
 Grid, tubes and avatar billboards have explicit separate layers. The tube canvas
 subtracts the union of all avatar footprints after drawing, including transparent
-hair/hat margins and scaled crowded-map dots. Thus even a line crossing a third
+hair, active hat margins and scaled crowded-map dots. Bare heads use a close-fitting
+footprint so connections remain attached to their owner ring. Thus even a line crossing a third
 avatar, overlapping avatars, or the moving bulge stays behind. The grid remains
 intact on its own canvas. SVG edge hit paths remain below the avatar groups.

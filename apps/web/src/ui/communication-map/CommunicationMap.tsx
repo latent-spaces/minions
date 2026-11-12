@@ -219,7 +219,7 @@ export function CommunicationMap(props:Props){
      }
     }
    }
-   occludeAvatars(drawing,screen,scales);
+   occludeAvatars(drawing,screen,scales,positions.map(node=>{const persona=c.observations.get(node.id)?.personaChoice;return !!persona&&persona!=='default';}));
    element.dataset.mapCamera=JSON.stringify(frame);element.dataset.mapRenderedDimensions=String(dimensions);element.dataset.mapFrames=String(Number(element.dataset.mapFrames??0)+1);element.dataset.mapAt=String(at);
    window.dispatchEvent(new Event('communication-map-tick'));
   };raf=requestAnimationFrame(paint);

@@ -17,9 +17,10 @@ test('connector mask subtracts overlapping avatars at normal and high pixel dens
   background.scale(dpr,dpr);background.fillStyle='#ddd';background.fillRect(0,59,300,2);
   context.scale(dpr,dpr);context.globalAlpha=.7;
   drawTubeConnector(context,10,60,290,60,[.28],'#887697','rubber');
-  occludeAvatars(context,[{x:80,y:60},{x:110,y:60},{x:210,y:60}],[1,1,.3]);
+  context.fillRect(72,20,16,12);context.fillRect(104,20,12,12);
+  occludeAvatars(context,[{x:80,y:60},{x:110,y:60},{x:210,y:60}],[1,1,.3],[true,false,false]);
   const alpha=(ctx,x,y)=>ctx.getImageData(Math.round(x*dpr),Math.round(y*dpr),1,1).data[3];
-  results.push({dpr,inside:alpha(context,70,60),overlap:alpha(context,95,60),scaled:alpha(context,210,60),outside:alpha(context,170,60),grid:alpha(background,95,60),composite:context.globalCompositeOperation,opacity:context.globalAlpha});
+  results.push({dpr,inside:alpha(context,70,60),overlap:alpha(context,95,60),scaled:alpha(context,210,60),outside:alpha(context,170,60),hat:alpha(context,80,25),aboveBareHead:alpha(context,110,25),grid:alpha(background,95,60),composite:context.globalCompositeOperation,opacity:context.globalAlpha});
  }
  document.querySelector('#result').textContent=JSON.stringify(results);
  </script>`;
@@ -31,7 +32,7 @@ test('connector mask subtracts overlapping avatars at normal and high pixel dens
   await page.goto(`http://127.0.0.1:${(server.httpServer!.address() as {port:number}).port}/__occlusion.html`);
   await page.waitForFunction(()=>document.querySelector('#result')?.textContent?.startsWith('['));
   const results=JSON.parse(await page.locator('#result').textContent());
-  for(const result of results){expect(result.inside).toBe(0);expect(result.overlap).toBe(0);expect(result.scaled).toBe(0);expect(result.outside).toBeGreaterThan(0);expect(result.grid).toBe(255);expect(result.composite).toBe('source-over');expect(result.opacity).toBeCloseTo(.7);}
+  for(const result of results){expect(result.inside).toBe(0);expect(result.overlap).toBe(0);expect(result.scaled).toBe(0);expect(result.hat).toBe(0);expect(result.aboveBareHead).toBeGreaterThan(0);expect(result.outside).toBeGreaterThan(0);expect(result.grid).toBe(255);expect(result.composite).toBe('source-over');expect(result.opacity).toBeCloseTo(.7);}
   expect(errors).toEqual([]);
  }finally{await browser?.close();await server.close();}
 },30_000);
