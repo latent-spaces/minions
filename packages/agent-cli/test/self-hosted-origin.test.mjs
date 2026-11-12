@@ -77,3 +77,10 @@ test('same project names and IDs on independent sites receive separate default w
   assert.notEqual(folder(first), folder(other));
   assert.match(defaultSiteStateHome('service', enrolled, userHome), /instances[/\\][a-f0-9]{24}[/\\]service$/);
 });
+
+test('enrollment refuses subdomains of the live site too', () => {
+  for (const value of ['https://www.karma42.ai', 'https://app.karma42.ai', 'https://preview.karma42-launch.web.app']) {
+    assert.throws(() => selfHostedWebsiteOrigin({ MLSWARM_SELF_HOSTED_ORIGIN: value }), /canonical HTTPS origin/, value);
+  }
+  assert.equal(selfHostedWebsiteOrigin({ MLSWARM_SELF_HOSTED_ORIGIN: 'https://notkarma42.ai' }), 'https://notkarma42.ai');
+});

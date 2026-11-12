@@ -2,7 +2,9 @@
 // The default is the local engine that npm run setup starts (owner decision, 10 November 2026);
 // this repository no longer connects to the live site, so its hosts are refused even as an enrolled origin.
 export const DEFAULT_WEBSITE_ORIGIN = 'http://127.0.0.1:8787';
-const liveSite = new Set(['karma42.ai', 'karma42-launch.web.app']);
+const liveSite = ['karma42.ai', 'karma42-launch.web.app'];
+// Subdomains such as www. are the live site too.
+const isLiveSite = hostname => liveSite.some(host => hostname === host || hostname.endsWith(`.${host}`));
 
 // An operator opts into exactly one independent service. Project/tool inputs
 // cannot add origins. Require the canonical spelling, including any HTTPS port.
@@ -12,7 +14,7 @@ export function selfHostedWebsiteOrigin(env = process.env) {
   let url;
   try { url = new URL(value); } catch {}
   if (!url || url.protocol !== 'https:' || url.origin !== value || url.username || url.password
-    || url.hostname.endsWith('.') || url.hostname.includes('*') || liveSite.has(url.hostname)) {
+    || url.hostname.endsWith('.') || url.hostname.includes('*') || isLiveSite(url.hostname)) {
     throw new Error('MLSWARM_SELF_HOSTED_ORIGIN must be one canonical HTTPS origin, without a path, credentials, query or fragment.');
   }
   return url.origin;
