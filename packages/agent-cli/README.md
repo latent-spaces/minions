@@ -650,7 +650,7 @@ context when measurement is available: instruction and assembled turn-prompt UTF
 bytes, returned MCP catalog bytes, and tool calls/argument bytes/returned text bytes
 by fixed category. The worker facade measures sanitized returned replies, including
 local workflow-guide reads; preparation reads and deferred background retries are
-excluded. Closing a turn fences out late replies. Missing summaries remain unknown. Prompt-source counters separately identify mission,
+excluded. Closing a turn fences out late replies. A Claude turn closes five seconds after the client reports its result, even when a command left in the background keeps the client alive. Missing summaries remain unknown. Prompt-source counters separately identify mission,
 runtime/work-window guidance, steering, delivery notices, permissions, project/task
 policy, persona, attribution and otherwise unattributed base text. These source sizes
 sum to the assembled turn prompt. A steering message count and new/resumed session
