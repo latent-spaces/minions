@@ -38,7 +38,7 @@ export function projectGuidanceForTurn(participation) {
 }
 
 // The team aims for one shared update at the pace the owner chose (owner, 10 and 12 November 2026).
-export function projectUpdateGuidance(due, everyMinutes = 5) {
+function projectUpdateGuidance(due, everyMinutes = 5) {
   return `Project updates: the team aims for one update about every ${everyMinutes} minutes of work, one for the whole team, not one per agent. `
     + (due === true ? 'An update is due now: if you have something new, check list_project_updates, then post one idea with publish_project_update: an image, a short headline and one sentence. ' : '')
     + 'See get_mlswarm_guide updates-and-help.';
@@ -60,7 +60,7 @@ export function nativeTaskGuidance(enabled, counts = null) {
 
 // Codex saves its scope before the first thread is allocated. That pending record is resumable
 // as a fresh thread only when its bridge name and the approved work still match.
-export function validateWorkerModelSession(session, { client, folder, promptHash }) {
+function validateWorkerModelSession(session, { client, folder, promptHash }) {
   if (!session) return;
   const allocated = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(session.id ?? '');
   const pending = client === 'codex' && session.id === null && /^project_[a-f0-9]{32}$/.test(session.mcpName ?? '');

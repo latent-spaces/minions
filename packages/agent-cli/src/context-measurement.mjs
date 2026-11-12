@@ -1,6 +1,6 @@
 import { CONTEXT_TOOL_NAMES, validPromptSources } from './turn-context.mjs';
 // Numeric MyLittleSwarm-supplied context only; not the native client's full context window.
-export const CONTEXT_CATEGORIES = ['project', 'discovery', 'updates', 'threads', 'messaging', 'checkpoints', 'coordination', 'other'];
+const CONTEXT_CATEGORIES = ['project', 'discovery', 'updates', 'threads', 'messaging', 'checkpoints', 'coordination', 'other'];
 const exact = (value, keys) => value && typeof value === 'object' && !Array.isArray(value)
   && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
 const count = (value, max = 1e15) => Number.isSafeInteger(value) && value >= 0 && value <= max;
