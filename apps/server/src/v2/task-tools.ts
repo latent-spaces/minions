@@ -153,7 +153,8 @@ export function registerTaskTools(server: McpServer, actor: () => ProgressActor,
     description: 'Add or remove a typed link: a pull_request or result by https URL, or a MyLittleSwarm conversation or message by id. '
       + 'Encouraged when a task comes from a discussion, a relevant PR is opened or found (including drafts), or a discussion records scope or decisions. '
       + 'Before completion or handoff, check for useful missing references and delivery or validation results; links are optional, not completion gates. '
-      + 'An optional label explains the relationship, such as reference only or delivery evidence. '
+      + 'Leave label out unless the link needs one to be understood (such as reference only); never put a status such as awaiting review in it. '
+      + 'Task history records each link, so do not repeat a linked pull request in a comment. '
       + 'A link grants no access to what it points to, and linking a pull request never changes the task status.',
     inputSchema: { task_id: TASK_ID, expected_revision: REVISION, action: z.enum(['add', 'remove']),
       kind: z.enum(['pull_request', 'result', 'conversation', 'message']).optional(), url: z.string().url().max(2000).optional(),

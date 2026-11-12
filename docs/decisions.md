@@ -25,6 +25,25 @@ This adds no execution state, delivery guarantee, background scenery or routing
 optimization. The small lab imports the production renderer and retains the
 alternative art styles for comparison.
 
+## The task page is simpler and has no editing — owner request, 12 November 2026
+
+"let's simplify the entire task card", then "yes, and no editing" and "i meant the dropdown
+was ok also the add link comment or subtask but no edit the name description": a task page
+is Back, the title, one row of chips (status, owner, the agents who worked on it, priority,
+links), the description, subtasks and one Activity feed of comments and history. Status,
+owner and priority are menus on their chips. The title, the description and comments are not
+edited on the page. The breadcrumb, the Details and History sections, saved versions and the
+contributors picker are gone. Back-to-back history by one actor shares one line.
+
+"add a subtask is a + not all these empty text and buttons": subtasks and links each have a
+"+" that opens one field; Enter adds and Escape closes. An empty Subtasks section says nothing.
+
+"link PR label should be there only there is something like that and i see that PRs are in
+the activity so the instructions/skill need update": a pull request chip shows its repository
+and number, with any label on hover. The guide (revision 76) and `link_task` tell agents to leave
+the label out unless it is needed, never to put a status in it, and not to repeat a linked pull
+request in a comment.
+
 ## My agents is one strip of faces; the map's agent card is reorganized — owner request, 12 November 2026
 
 "my agents we can do the all them in one line map character strip with +N where we are out

@@ -132,14 +132,10 @@ try {
   await page.screenshot({ path: join(evidence, 'tasks-title-search-mobile.png'), fullPage: true, animations: 'disabled' });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'Title search fits mobile viewport');
   await page.setViewportSize({ width: 1440, height: 1000 });
+  // The task page has no title editing (owner decision, 12 November 2026).
   await page.getByRole('button', { name: 'Find NEEDLE 200 · synthetic', exact: true }).click();
-  await page.locator('article.k42-task-page').getByRole('button', { name: 'Edit title', exact: true }).click();
-  await page.locator('article.k42-task-page').getByRole('textbox', { name: 'Title', exact: true }).fill('Renamed synthetic work');
-  await page.locator('article.k42-task-page').getByRole('button', { name: 'Save', exact: true }).click();
-  await page.locator('article.k42-task-page').getByRole('heading', { name: 'Renamed synthetic work', exact: true }).waitFor();
+  assert.equal(await page.locator('article.k42-task-page').getByRole('button', { name: 'Edit title', exact: true }).count(), 0);
   await page.getByRole('button', { name: 'Back to Tasks', exact: true }).click();
-  await page.getByRole('button', { name: 'Find NEEDLE 200 · synthetic', exact: true }).waitFor({ state: 'hidden' });
-  assert.equal(await page.locator('.k42-task-open').count(), 2);
   await titleSearch.fill('no-such-title'); await page.getByRole('button', { name: 'Search tasks', exact: true }).click();
   await page.getByText('More tasks to search', { exact: true }).waitFor();
   await page.getByRole('button', { name: 'Show more', exact: true }).click();
@@ -149,7 +145,7 @@ try {
   await assignmentFilter.selectOption(''); await stateFilter.selectOption('');
   await page.getByRole('button', { name: 'Refresh tasks', exact: true }).click();
   await page.getByRole('button', { name: create.title, exact: true }).waitFor();
-  checks.push('Actual title search combines filters, traverses an empty bounded page to all matches, handles rename/no-results/clear, and fits desktop/mobile');
+  checks.push('Actual title search combines filters, traverses an empty bounded page to all matches, handles no-results/clear, and fits desktop/mobile');
 
 
 
@@ -175,10 +171,6 @@ try {
   await page.screenshot({ path: join(evidence, 'tasks-desktop.png'), fullPage: true, animations: 'disabled' });
   await page.getByText(create.title, { exact: true }).first().click();
   await page.getByText('Real API and disposable Firestore; this is synthetic verification data.', { exact: true }).waitFor();
-  await page.getByRole('button', { name: 'Contributors: change', exact: true }).click();
-  assert.equal(await page.getByRole('menuitemcheckbox').count(), 4, 'Only project agents appear in contributor picker');
-  assert.equal(await page.getByRole('menuitemcheckbox', { name: 'Oron · synthetic', exact: true }).count(), 0);
-  await page.keyboard.press('Escape');
 
   await page.screenshot({ path: join(evidence, 'task-page-desktop.png'), fullPage: true, animations: 'disabled' });
   await page.getByRole('button', { name: 'Back to Tasks', exact: true }).click();
@@ -211,32 +203,35 @@ try {
   checks.push('Lost successful create reply retries identical payload and request ID through the actual UI');
   assert.equal('assignedAgentId' in createAttempts[0], false, 'Create request has no assignment');
   const taskPage = page.locator('article.k42-task-page');
+  /** Status is one chip with a menu on the task page. */
+  const setStatus = async (label: string) => {
+    await taskPage.getByRole('button', { name: 'Status: change', exact: true }).click();
+    await taskPage.getByRole('menuitemcheckbox', { name: label, exact: true }).click();
+    await taskPage.locator('.k42-task-chips .k42-task-status').filter({ hasText: label }).waitFor();
+  };
   await taskPage.getByRole('heading', { name: 'Created through the real UI · synthetic', exact: true }).waitFor();
-  await taskPage.getByText('Unassigned', { exact: true }).waitFor();
-  assert.equal(await taskPage.getByRole('button', { name: 'In progress', exact: true }).isDisabled(), true);
-  await taskPage.getByRole('button', { name: 'Assigned agent: change', exact: true }).click();
+  await taskPage.getByText('No owner', { exact: true }).waitFor();
+  await taskPage.getByRole('button', { name: 'Status: change', exact: true }).click();
+  assert.equal(await taskPage.getByRole('menuitemcheckbox', { name: 'In progress', exact: true }).isDisabled(), true);
+  await page.keyboard.press('Escape');
+  await taskPage.getByRole('button', { name: 'Owner: change', exact: true }).click();
   await taskPage.getByRole('menuitemcheckbox', { name: 'code-owl', exact: true }).click();
-  await taskPage.getByRole('button', { name: 'In progress', exact: true }).waitFor({ state: 'visible' });
-  await taskPage.getByRole('button', { name: 'In progress', exact: true }).click();
-  await page.waitForFunction(() => document.querySelector('.k42-task-segment.is-in_progress')?.getAttribute('aria-pressed') === 'true');
-  await taskPage.getByRole('region', { name: 'Description', exact: true }).getByRole('button', { name: 'Edit', exact: true }).click();
-  await taskPage.getByRole('textbox', { name: 'Description', exact: true }).fill('Description edited in the actual application.');
-  await taskPage.getByRole('button', { name: 'Save', exact: true }).click();
-  await taskPage.getByText('Description edited in the actual application.', { exact: true }).waitFor();
+  await setStatus('In progress');
+  assert.equal(await taskPage.getByRole('textbox', { name: 'Description', exact: true }).count(), 0, 'The description is not edited on the task page');
   await taskPage.getByRole('textbox', { name: 'Comment', exact: true }).pressSequentially('Comment submitted through the actual UI.', { delay: 8 });
   assert.equal(await taskPage.getByRole('textbox', { name: 'Comment', exact: true }).inputValue(), 'Comment submitted through the actual UI.');
   await taskPage.getByRole('button', { name: 'Comment', exact: true }).click();
   await taskPage.getByText('Comment submitted through the actual UI.', { exact: true }).waitFor();
-  await taskPage.getByRole('button', { name: 'Done', exact: true }).click();
-  await page.waitForFunction(() => document.querySelector('.k42-task-segment.is-done')?.getAttribute('aria-pressed') === 'true');
-  await taskPage.getByRole('button', { name: 'Assigned agent: change', exact: true }).click();
+  await setStatus('Done');
+  await taskPage.getByRole('button', { name: 'Owner: change', exact: true }).click();
   await taskPage.getByRole('menuitem', { name: 'Release to Backlog', exact: true }).click();
-  await taskPage.getByText('Unassigned', { exact: true }).waitFor();
-  checks.push('Actual UI title-only create, agent assignment, status, description, comment, non-code Done and explicit release persist');
-  await taskPage.getByRole('button', { name: 'Canceled', exact: true }).click();
-  await page.waitForFunction(() => document.querySelector('.k42-task-segment.is-canceled')?.getAttribute('aria-pressed') === 'true');
-  assert.equal(await taskPage.getByRole('button', { name: 'In progress', exact: true }).isDisabled(), true);
-  assert.equal(await taskPage.getByRole('button', { name: 'Assigned agent: change', exact: true }).count(), 0);
+  await taskPage.getByText('No owner', { exact: true }).waitFor();
+  checks.push('Actual UI title-only create, agent assignment, status, comment, non-code Done and explicit release persist');
+  await setStatus('Canceled');
+  await taskPage.getByRole('button', { name: 'Status: change', exact: true }).click();
+  assert.equal(await taskPage.getByRole('menuitemcheckbox', { name: 'In progress', exact: true }).isDisabled(), true);
+  await page.keyboard.press('Escape');
+  assert.equal(await taskPage.getByRole('button', { name: 'Owner: change', exact: true }).count(), 0);
   await page.getByRole('button', { name: 'Back to Tasks', exact: true }).click();
   await stateFilter.selectOption('canceled');
   await assignmentFilter.selectOption('unassigned');
@@ -244,8 +239,7 @@ try {
   await page.getByRole('button', { name: create.title, exact: true }).waitFor({ state: 'hidden' });
   await page.screenshot({ path: join(evidence, 'tasks-canceled-filter.png'), fullPage: true, animations: 'disabled' });
   await page.getByRole('button', { name: 'Created through the real UI · synthetic', exact: true }).click();
-  await taskPage.getByRole('button', { name: 'Backlog', exact: true }).click();
-  await page.waitForFunction(() => document.querySelector('.k42-task-segment.is-backlog')?.getAttribute('aria-pressed') === 'true');
+  await setStatus('Backlog');
   await page.getByRole('button', { name: 'Back to Tasks', exact: true }).click();
   await stateFilter.selectOption('');
   await assignmentFilter.selectOption('');
@@ -257,24 +251,17 @@ try {
   await page.getByRole('button', { name: 'Created through the real UI · synthetic', exact: true }).waitFor();
   await page.getByRole('button', { name: create.title, exact: true }).waitFor({ state: 'hidden' });
   await page.getByRole('button', { name: 'Created through the real UI · synthetic', exact: true }).click();
-  await page.locator('article.k42-task-page').getByRole('button', { name: 'Assigned agent: change', exact: true }).click();
+  await page.locator('article.k42-task-page').getByRole('button', { name: 'Owner: change', exact: true }).click();
   await page.getByRole('menuitemcheckbox', { name: 'code-owl', exact: true }).click();
   await page.waitForFunction(() => document.querySelectorAll('.k42-task-open').length === 0);
   await page.getByRole('button', { name: 'Back to Tasks', exact: true }).click();
   await assignmentFilter.selectOption('');
   await page.getByRole('button', { name: 'Created through the real UI · synthetic', exact: true }).click();
   checks.push('Unassigned task is visible and leaves the filtered list immediately after assignment in the drawer');
-  await taskPage.getByRole('button', { name: 'Canceled', exact: true }).click();
-  await page.waitForFunction(() => document.querySelector('.k42-task-segment.is-canceled')?.getAttribute('aria-pressed') === 'true');
-  await taskPage.getByText('code-owl', { exact: true }).waitFor();
-  await taskPage.getByRole('region', { name: 'Description', exact: true }).getByRole('button', { name: 'Edit', exact: true }).click();
-  await taskPage.getByRole('textbox', { name: 'Description', exact: true }).fill('Canceled with history preserved.');
-  await taskPage.getByRole('button', { name: 'Save', exact: true }).click();
-  await taskPage.getByText('Canceled with history preserved.', { exact: true }).waitFor();
-  await taskPage.getByRole('textbox', { name: 'Description', exact: true }).waitFor({ state: 'hidden' });
-  assert.equal(await taskPage.getByRole('button', { name: 'Canceled', exact: true }).getAttribute('aria-pressed'), 'true');
+  await setStatus('Canceled');
+  await taskPage.getByRole('button', { name: 'code-owl', exact: true }).waitFor();
   await page.screenshot({ path: join(evidence, 'task-canceled-desktop.png'), fullPage: true, animations: 'disabled' });
-  checks.push('Actual UI assigned cancellation preserves the agent and Canceled after description edits; starting requires Backlog reopening');
+  checks.push('Actual UI assigned cancellation preserves the agent; starting requires Backlog reopening');
 
 
   await page.setViewportSize({ width: 390, height: 844 });
