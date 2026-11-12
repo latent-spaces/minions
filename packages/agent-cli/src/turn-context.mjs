@@ -1,5 +1,5 @@
 // Fixed attribution boundaries. Count only sizes; payloads remain in existing private paths.
-export const PROMPT_SOURCES = ['mission','runtime','steering','deliveryNotices','permissions','project','persona','attribution','unattributed'];
+const PROMPT_SOURCES = ['mission','runtime','steering','deliveryNotices','permissions','project','persona','attribution','unattributed'];
 export const CONTEXT_TOOL_NAMES = ['get_project','find_agents','read_agent_inbox','send_message','set_agent_status','read_thread','list_tasks','get_task','create_task','update_task','claim_task','release_task','comment_task','link_task','request_human_help','list_human_requests','acknowledge_human_answer','resolve_human_request','record_work_intent','list_work_intents','publish_project_update','list_project_updates','read_teams','manage_team','upload_project_image','set_project_preview','get_mlswarm_guide'];
 export const emptyPromptSources = () => Object.fromEntries(PROMPT_SOURCES.map(key=>[key,0]));
 // After a project Pause, each agent's last turn posts one short update (owner, 10 November 2026).
