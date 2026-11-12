@@ -99,7 +99,6 @@ export async function openRuntimeStore({ directory, requestTimeoutMs = 10000, re
     bindParticipationCloud: input => request('bindParticipationCloud', input),
     expireParticipations: () => request('expireParticipations'),
     getParticipationOperation: input => request('getParticipationOperation', input),
-    listParticipationOperations: () => request('listParticipationOperations'),
     accept(command) { validateCommand(command); try { reserveOperation({ operationId: command.operationId, fingerprint: commandFingerprint(command) }); } catch (error) { return Promise.reject(error); } return request('accept', structuredClone(command)); },
     reserveSteeringGroup(input) { reserveOperation(input); return request('reserveSteeringGroup',structuredClone(input)); },
     reserveSteering(input) { validateCommand(input);if(input.kind!=='steer')throw new RuntimeError('invalid_command','Use a steering intent.');const reservation={operationId:input.operationId,fingerprint:commandFingerprint(input)};reserveOperation(reservation);return request('reserveCloudOperation',reservation); },
@@ -119,7 +118,6 @@ export async function openRuntimeStore({ directory, requestTimeoutMs = 10000, re
       catch(error) { return Promise.reject(error); }
       return request('applyMissionRecovery',command);
     },
-    listArchiveOperations: () => request('listArchiveOperations'),
     acknowledgeReport: input => request('acknowledgeReport', input),
     failReport: input => request('failReport', input),
     applyCloudDeadline: input => request('applyCloudDeadline', input),
@@ -127,7 +125,7 @@ export async function openRuntimeStore({ directory, requestTimeoutMs = 10000, re
     getOperation: input => request('getOperation', input), getMission: input => request('getMission', input),
     latestBackgroundsForTargets: input => request('latestBackgroundsForTargets',input),
     listMissions: () => request('listMissions'), listOperations: () => request('listOperations'), recordGuard: input => request('recordGuard', input),
-    markTurnSubmitted: input => request('markTurnSubmitted', input), blockMission: input => request('blockMission', input),
+    markTurnSubmitted: input => request('markTurnSubmitted', input),
     listMissionSummaries: input => request('listMissionSummaries', input),
     deferPreparedTurn: input => request('deferPreparedTurn', input),
     prepareTurn: input => request('prepareTurn', input), markTurnApplied: input => request('markTurnApplied', input),
