@@ -290,3 +290,13 @@ test('private-to-public conversion needs exact disclosure consent and preserves 
   assert.equal(OWNER_TOOLS.find(x=>x.name==='make_project_public').annotations.destructiveHint,true);
  }finally{f.close();}
 });
+
+test('owner refusals carry only the fields their callers read', async () => {
+ const f=fixture();try{
+  await f.client.connect();f.approve();await f.client.finish();
+  const client=createOwnerClient({home:f.home,workspace:f.workspace,site,now:()=>1000,fetchImpl:async()=>new Response(JSON.stringify({error:'not_found',message:'No such project'}),{status:404,headers:{'Retry-After':'5'}})});
+  const error=await client.operation('get_project_overview',{project_id:P}).catch(e=>e);
+  assert.equal(error.refusal,true);assert.equal(error.code,'not_found');
+  assert.equal(Object.hasOwn(error,'httpStatus'),false);assert.equal(Object.hasOwn(error,'retryAfterSeconds'),false);
+ }finally{f.close();}
+});
