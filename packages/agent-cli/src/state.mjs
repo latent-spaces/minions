@@ -11,10 +11,14 @@ const exposed = stat => !windows && (stat.mode & 0o077);
 // The native call also expands Windows short names (RUNNER~1), so one folder has one spelling.
 export const physicalPath = windows ? realpathSync.native : realpathSync;
 
-export function canonicalPath(value) {
+export function canonicalPath(value, { exists = lstatExists } = {}) {
   let path = resolve(value);
   const tail = [];
-  while (!lstatExists(path)) { tail.unshift(basename(path)); path = dirname(path); }
+  while (!exists(path)) {
+    // A missing root (a Windows drive letter that is not mounted) is its own dirname.
+    if (dirname(path) === path) return resolve(value);
+    tail.unshift(basename(path)); path = dirname(path);
+  }
   return join(physicalPath(path), ...tail);
 }
 // True when path is root or below it. Windows separates with a backslash and ignores letter case.
