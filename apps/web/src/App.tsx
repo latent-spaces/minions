@@ -566,7 +566,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
           {workspace && workspace.role !== 'guest' && currentSection === 'usage' && visible && <UsageAnalytics scope={`${user.uid}:${projectId}`} request={analyticsRequest} />}
           {workspace && currentSection === 'needs-you' && visible && <NeedsYou key={`${user.uid}:${projectId}`} user={user} projectId={projectId} readOnly={workspace.execution === 'closed'} />}
           <div hidden={currentSection !== 'control-center'}>
-            {workspace && <ControlCenter refreshKey={tick} controls={controls} user={user} workspace={workspace} refresh={refreshAll} active={visible && currentSection === 'control-center'} />}
+            {workspace && <ControlCenter refreshKey={tick} user={user} workspace={workspace} refresh={refreshAll} active={visible && currentSection === 'control-center'} />}
           </div>
           <div hidden={currentSection !== 'agents'}>
             {workspace && allAgents && <CommunityDirectory projectId={projectId} members={directoryMembers} agents={directoryAgents} loading={!!project && !directoryBots.page} now={clock} go={go} paging={directoryPaging} ownerFirst={directoryPeople.first} agentQuery={search ?? ''} onAgentQuery={searchAgents} />}

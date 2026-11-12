@@ -60,12 +60,12 @@ test('actual project Pause shows pending, confirmed and unreachable agents on Ho
     page = await context.newPage(); const errors: string[] = []; page.on('pageerror', (e: Error) => errors.push(e.message));
     await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=control-center`);
     await signInBrowser(page, await idTokenFor('pause-reviewer@example.test'));
-    await page.locator('.project-controls-card').getByRole('button',{name:'Pause project',exact:true}).waitFor({timeout:25000});
-    await page.locator('.project-controls-card').getByRole('button',{name:'Pause project',exact:true}).click();
+    await page.locator('.k42-status-panel').getByRole('button',{name:'Pause all agents',exact:true}).waitFor({timeout:25000});
+    await page.locator('.k42-status-panel').getByRole('button',{name:'Pause all agents',exact:true}).click();
     const dialog=page.getByRole('dialog');
     expect(await dialog.innerText()).toContain('Each agent finishes its current turn, then waits.');
     await dialog.getByRole('button',{name:'Pause project',exact:true}).click();
-    await page.locator('.project-controls-card').getByRole('button',{name:'Resume agents',exact:true}).waitFor();
+    await page.locator('.k42-status-panel').getByRole('button',{name:'Resume all agents',exact:true}).waitFor();
     await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}`);
     const banner=page.locator('.k42-project-pause-status');
     await banner.waitFor({timeout:25000});

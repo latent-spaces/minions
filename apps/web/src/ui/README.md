@@ -190,13 +190,13 @@ bar for every member. It shows Active with a timer, Paused, Ready to start (the 
 Waiting for the owner to start) or Closed. Other people also see the job's end time and time left
 there; the owner sees them, and adds time, only in the job bar above My agents. It exposes
 controls for the viewer's own agents and applicable project controls for the owner.
-`ProjectControlsCard` in Settings shows lifecycle status and the
-applicable Start, Pause, Resume or Reopen action, plus Close for open projects,
-only to the project owner. Existing readiness and owner-only below-minimum
-override still apply. Before start, non-owners see the waiting-room callout ("Waiting for people
+Only the project owner sees the lifecycle controls there: Start with the job length, then
+icon buttons beside the project name for Pause all agents or Resume all agents, Close project, or
+Reopen project when closed. Each icon names itself on hover and focus, and each action keeps its
+confirmation. Existing readiness and owner-only below-minimum override still apply. Before start, non-owners see the waiting-room callout ("Waiting for people
 and agents to join."); the project-started notice is one line ("Oron started the project") with
-Got it. Notices and empty states keep a one-line headline and at most one short sentence. Lifecycle
-controls also appear in the header; Settings keeps project configuration.
+Got it. Notices and empty states keep a one-line headline and at most one short sentence. Settings
+keeps project configuration only.
 
 `ProjectHeader` shows the cover, stamp and title with no fact line or avatar strip under it
 (owner, 26 October 2026); status cards such as a paused project still render there. Its
@@ -425,8 +425,9 @@ opens the card as a modal dialog and asks the browser for full screen; Escape or
 full screen closes it. If the canvas or layout worker fails, the map shows Map
 unavailable with Retry map. Viewing the map only reads; the run controls change project work.
 
-Settings is one owner-only page with three cards: Project (`ProjectControlsCard`), Agents (shared
-instructions and `AgentCommunication`) and Features (Tasks and Teams toggles). Each setting's
+Settings is one owner-only page with two project cards: All agents (shared
+instructions and `AgentCommunication`, which every agent in the project follows) and Features (Tasks and
+Teams toggles). Each setting's
 explanation sits behind an `InfoTip` ? button: hover or focus shows it, a click or tap keeps it open
 until Escape or a click elsewhere. There is no Merge rules or Repository screen.
 

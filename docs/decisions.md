@@ -10,6 +10,19 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Project lifecycle controls are header icons; Settings names All agents — owner request, 12 November 2026
+
+"this could be removed from settings and have good enogh icon + hover info next to the top top
+header and where there is the paus e all agents now": Settings no longer has a Project card. Beside
+the project name the owner sees icon buttons for Pause all agents or Resume all agents, Close project,
+and Reopen project when closed; each names itself and what it does on hover and focus, and keeps its
+confirmation. Start keeps its job-length choice there. "the header need to improve that it will
+convaty ALl agents settings": the Agents settings card is now All agents, with the line "Every agent
+in this project follows these, yours and other people's."
+
+"reomve filters": a project's Usage page has no filters and always shows the last 7 days. The
+platform admin view keeps them.
+
 ## The first-project prompt can be edited, and does not say Claude — owner request, 12 November 2026
 
 "why don't we have here the thing with the edit", then "yes and it should be the same prompt,

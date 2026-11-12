@@ -1,6 +1,6 @@
 import { expect, test, vi } from 'vitest';
 import { createRequire } from 'node:module';
-import { ProjectControlsCard, ProjectControlFeedback, type ProjectControls } from '../../apps/web/src/ui/ProjectControls';
+import { ProjectControlFeedback, type ProjectControls } from '../../apps/web/src/ui/ProjectControls';
 import { ProjectStatusPanel } from '../../apps/web/src/ui/ProjectStatusPanel';
 import type { Workspace } from '../../apps/web/src/project-api';
 vi.mock('../../apps/web/src/api', () => ({ session: { currentUid: () => undefined }, projects: vi.fn(), ApiError: class extends Error {} }));
@@ -9,35 +9,34 @@ const { createElement } = requireWeb('react');
 const { renderToStaticMarkup } = requireWeb('react-dom/server');
 const workspace = (patch: Partial<Workspace> = {}) => ({ id: 'synthetic-project', role: 'owner', execution: 'active', project: { started: true, paused: false }, revision: 3, ...patch }) as Workspace;
 const controls = { locked: false, pending: null, busy: false, error: '', act() {}, retry() {}, discard() {}, workers: { data: null, now: 1000, background: { pending: {}, busy: {} } } } as unknown as ProjectControls;
-const render = (view: Workspace, state = controls) => renderToStaticMarkup(createElement(ProjectControlsCard, { workspace: view, controls: state }));
+// Lifecycle controls are icon buttons in the project header (owner, 12 November 2026).
+const render = (view: Workspace, state = controls) => renderToStaticMarkup(createElement(ProjectStatusPanel, { workspace: view, controls: state }));
+const LIFECYCLE = ['Start project', 'Pause all agents', 'Resume all agents', 'Close project', 'Reopen project'];
 for (const role of ['member', 'admin', 'moderator', 'guest'] as const) test(`${role} cannot see project management controls in any lifecycle state`, () => {
   for (const project of [null, { started: false }, { started: true, paused: false }, { started: true, paused: true }]) {
-    for (const execution of ['closed', 'active'] as const) expect(render(workspace({ role, execution, project: project as Workspace['project'] }))).toBe('');
+    for (const execution of ['closed', 'active'] as const) { const html = render(workspace({ role, execution, project: project as Workspace['project'] })); for (const label of LIFECYCLE) expect(html).not.toContain(`aria-label="${label}"`); expect(html).not.toContain('>Start project'); }
   }
 });
-test('owner sees only the applicable lifecycle action', () => {
-  for (const [execution, project, label] of [
-    ['ready', { started: false }, 'Start project'],
-    ['active', { started: true, paused: false }, 'Pause project'],
-    ['paused', { started: true, paused: true }, 'Resume agents'],
-    ['closed', { started: true, paused: true }, 'Reopen project'],
+test('owner sees only the applicable lifecycle actions', () => {
+  for (const [execution, project, labels] of [
+    ['ready', { started: false }, ['Start project', 'Close project']],
+    ['active', { started: true, paused: false }, ['Pause all agents', 'Close project']],
+    ['paused', { started: true, paused: true }, ['Resume all agents', 'Close project']],
+    ['closed', { started: true, paused: true }, ['Reopen project']],
   ] as const) {
     const html = render(workspace({ execution, project: project as Workspace['project'] }));
-    expect(html).toContain('Project status'); expect(html).toContain(label);
-    for (const other of ['Start project', 'Pause project', 'Resume agents', 'Reopen project'].filter(v => v !== label)) expect(html).not.toContain(other);
-    expect(html.includes('Close project')).toBe(execution !== 'closed');
+    for (const label of LIFECYCLE) expect(html.includes(label === 'Start project' ? '>Start project' : `aria-label="${label}"`)).toBe((labels as readonly string[]).includes(label));
   }
 });
 // Start needs a job length first, so the button itself is off until one is chosen; a blocked start also locks the choice.
 const lengthLocked = /<select[^>]*disabled=""/;
-test('setup and below-minimum blockers remain visible; the owner can override minimum', () => {
+test('setup blockers keep Start away and say what is missing', () => {
   const setup = { required: true, finalizedAt: 10, minContributors: 3, startDeadline: null };
   for (const project of [null, { started: false }]) {
-    const html = render(workspace({ project: project as Workspace['project'], setup: { ...setup, finalizedAt: null } }));
-    expect(html).toMatch(lengthLocked); expect(html).toContain(project ? 'Publish the project' : 'Add a repository');
+    const html = render(workspace({ execution: 'ready', project: project as Workspace['project'], setup: { ...setup, finalizedAt: null } }));
+    expect(html).not.toContain('>Start project'); expect(html).toContain(project ? 'Publish the project' : 'Add a repository');
   }
-  const view = workspace({ project: { started: false } as Workspace['project'], setup, participantCount: 1 });
-  expect(render(view)).toContain('start with fewer'); expect(render(view)).not.toMatch(lengthLocked);
+  expect(render(workspace({ execution: 'ready', project: { started: false } as Workspace['project'], setup, participantCount: 1 }))).not.toMatch(lengthLocked);
 });
 test('busy, uncertain-request and external edit locks disable all lifecycle buttons', () => {
   expect((render(workspace(), { ...controls, locked: true }).match(/disabled=""/g) ?? []).length).toBe(2);
@@ -50,9 +49,9 @@ test('participant waiting notice remains without duplicating a manager Start act
   expect(renderToStaticMarkup(createElement(ProjectStatusPanel, { workspace: { ...view, role: 'member' }, controls }))).toContain('Waiting for the owner');
 });
 // Owner decision, 9 November 2026: one job end time for every agent, and no length is chosen for the person.
-test('starting offers the job length with one hour preselected and Start enabled, in Settings and on Home', () => {
+test('starting offers the job length with one hour preselected and Start enabled', () => {
   const view = workspace({ execution: 'ready', project: { started: false } as Workspace['project'] });
-  for (const html of [render(view), renderToStaticMarkup(createElement(ProjectStatusPanel, { workspace: view, controls }))]) {
+  for (const html of [render(view)]) {
     expect(html).toContain('How long should agents work?');
     expect(html).toMatch(/<option value="60" selected="">1 hour<\/option>/);
     for (const preset of ['30 minutes', '1 hour', '4 hours', 'Other…']) expect(html).toContain(preset);

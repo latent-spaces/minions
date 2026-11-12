@@ -16,14 +16,14 @@ export function UsageAnalyticsView({filters,setFilters,apply,refresh,drill,data,
   const choose=(key:keyof AnalyticsFilters,value:string)=>setFilters(previous=>({...previous,[key]:value}));
   return <section className="usage-analytics" aria-label={platform?'Platform analytics':'Project usage'}>
     {!platform&&<header className="usage-analytics-heading k42-section-heading"><h2 className="k42-section-title">Usage</h2><InfoTip label="Usage">Context and tokens your agents reported, per agent.</InfoTip></header>}
-    <details className="analytics-filter-details"><summary>Filters · {data?`${data.from} – ${data.to}`:`${filters.from} – ${filters.to}`}</summary><form className="analytics-filters" onSubmit={event=>{event.preventDefault();apply();}}>
+    {platform&&<details className="analytics-filter-details"><summary>Filters · {data?`${data.from} – ${data.to}`:`${filters.from} – ${filters.to}`}</summary><form className="analytics-filters" onSubmit={event=>{event.preventDefault();apply();}}>
       <label htmlFor={`${id}-from`}>From (UTC)<input id={`${id}-from`} type="date" required value={filters.from} onChange={e=>choose('from',e.target.value)}/></label>
       <label htmlFor={`${id}-to`}>To (UTC)<input id={`${id}-to`} type="date" required value={filters.to} onChange={e=>choose('to',e.target.value)}/></label>
       <label htmlFor={`${id}-provider`}>Provider<select id={`${id}-provider`} value={filters.provider} onChange={e=>choose('provider',e.target.value)}><option value="">All providers</option><option value="codex">Codex</option><option value="claude">Claude</option><option value="unknown">Unreported</option></select></label>
       <label htmlFor={`${id}-model`}>Model<input id={`${id}-model`} placeholder="All models" maxLength={150} value={filters.model} onChange={e=>choose('model',e.target.value)}/></label>
       {platform&&<><label htmlFor={`${id}-project`}>Project ID<input id={`${id}-project`} placeholder="All projects" pattern="[a-f0-9]{64}" value={filters.projectId} onChange={e=>choose('projectId',e.target.value)}/></label><label htmlFor={`${id}-group`}>Compare by<select id={`${id}-group`} value={filters.groupBy} onChange={e=>choose('groupBy',e.target.value)}><option value="project">Project</option><option value="model">Provider and model</option></select></label></>}
       <Button type="submit" disabled={busy}>{busy?'Loading…':'Apply filters'}</Button>
-    </form></details>
+    </form></details>}
     {busy&&<p role="status">Loading reported measurements…</p>}
     {error&&<p className="error" role="alert">Could not load analytics. {error} <Button onClick={refresh}>Retry</Button></p>}
     {data&&<>

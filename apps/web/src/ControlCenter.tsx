@@ -1,3 +1,4 @@
+import { Users } from 'lucide-react';
 import { AgentCommunication } from './ui/AgentCommunication';
 import { NativeTeamSettings } from './ui/NativeTeamSettings';
 import { NativeTaskSettings } from './ui/NativeTaskSettings';
@@ -8,14 +9,13 @@ import { projects } from './api';
 import './ui/project-setup.css';
 import './ui/settings.css';
 import type { Workspace } from './project-api';
-import type { ProjectControls } from './ui/ProjectControls';
-import { ProjectControlsCard } from './ui/ProjectControls';
 import { Connections } from './ui/Connections';
 import './ui/control-center.css';
 import { MyCharacter } from './ui/MyCharacter';
 
-// Settings is one page (owner decision, 11 November 2026): Project, Agents, Features and Connections, each explained behind a ? note.
-export function ControlCenter({ user, workspace, refresh, active, controls, refreshKey }: { refreshKey: number; user: SessionUser; workspace: Workspace; controls: ProjectControls; refresh: () => void; active: boolean }) {
+// Settings is one page (owner decision, 11 November 2026): Agents, Features and Connections, each explained behind a ? note.
+// Pause, Close and Reopen moved to the project header (owner, 12 November 2026).
+export function ControlCenter({ user, workspace, refresh, active, refreshKey }: { refreshKey: number; user: SessionUser; workspace: Workspace; refresh: () => void; active: boolean }) {
   const catalogRequest = useCallback(<T,>(path: string, body?: object) => projects<T>(user, path, body), [user]);
   const isOwner = workspace.role === 'owner';
   const closed = workspace.execution === 'closed';
@@ -24,14 +24,10 @@ export function ControlCenter({ user, workspace, refresh, active, controls, refr
     <div className="settings-category-pages control-center-stack">
       <MyCharacter key={user.uid} user={user} active={active} onSaved={refresh} />
       {isOwner && <>
-      <section className="settings-card" aria-labelledby="settings-project-title">
-        <h3 id="settings-project-title" className="settings-group-title">Project</h3>
-        <ProjectControlsCard workspace={workspace} controls={controls} />
-      </section>
-      {closed && <p className="muted">This project is closed. Reopen it to edit the settings below.</p>}
+      {closed && <p className="muted">This project is closed. Reopen it from the project header to edit these settings.</p>}
       <fieldset className="control-center-editable control-center-stack" disabled={closed}>
         <section className="settings-card" aria-labelledby="settings-agents-title">
-          <h3 id="settings-agents-title" className="settings-group-title">Agents</h3>
+          <header className="settings-group-title settings-group-head"><span className="settings-group-icon" aria-hidden="true"><Users size={18} /></span><div><h3 id="settings-agents-title">All agents</h3><p>Every agent in this project follows these, yours and other people’s.</p></div></header>
           {/* The owner edits the Card, shared instructions included (server editCard). */}
           <CardSettings mode="guidance" request={catalogRequest} workspace={workspace} definition={workspace.definition} refresh={refresh} active={active} />
           <AgentCommunication key={`${user.uid}:${workspace.id}:communication`} user={user} projectId={workspace.id} active={active} tick={refreshKey} />

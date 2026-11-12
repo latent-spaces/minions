@@ -8,12 +8,6 @@
 .control-center .settings-card > :not(.settings-group-title) { margin: 0; padding: 20px 0 0; border: 0; }
 .control-center .settings-card > :not(.settings-group-title) ~ :not(.settings-group-title) { margin-top: 20px; border-top: var(--card-border); }
 .control-center .settings-card > .settings-group-title + * { padding-top: 12px; }
-.control-center .project-controls-card { border: 0; padding: 0; margin: 0; background: none; border-radius: 0; }
-.control-center .project-controls-heading { display: none; }
-.control-center .project-controls-body { margin: 0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; }
-.control-center .project-controls-close-section { margin-top: 20px; padding-top: 20px; border-top: var(--card-border); }
-.control-center .project-controls-status { flex: 1 1 200px; display: flex; align-items: center; gap: 4px; }
-.control-center .project-controls-status strong { font-size: 14px; font-weight: 600; }
 .control-center .settings-label-row { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
 .control-center .settings-label-row label { margin: 0; }
 .control-center .agent-panel { margin: 0; padding: 0; border: 0; }
@@ -27,3 +21,9 @@
 }
 /* Saves and refreshes must not anchor the page to the chat below the panel. */
 .workspace-content:has(.control-center.is-active) { overflow-anchor: none; }
+/* A card header with an icon and a one-line subtitle, for settings that apply to every agent (owner, 12 November 2026). */
+.control-center .settings-group-head { display: flex; align-items: flex-start; gap: 12px; margin: 0; }
+.control-center .settings-group-head h3 { margin: 0; font-size: 18px; font-weight: 650; }
+.control-center .settings-group-head p { margin: 2px 0 0; font-size: 14px; font-weight: 400; color: var(--text-muted); }
+.control-center .settings-group-icon { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; background: var(--canvas-soft); color: var(--ink); }
+.control-center .settings-card > .settings-group-head + * { padding-top: 20px; }

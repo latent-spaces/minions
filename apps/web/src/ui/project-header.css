@@ -13,6 +13,8 @@
 /* Header buttons are the shared outline button (styles.css) with an icon; only the layout is added here. */
 .k42-ph-thin { display:inline-flex; align-items:center; gap:8px; white-space:nowrap; }
 .k42-ph-thin > svg { flex:none; width:16px; height:16px; }
+/* Project lifecycle icons beside the title; the label shows on hover and focus (owner, 12 November 2026). */
+.k42-ph-icon { display:inline-grid; place-items:center; width:40px; height:40px; min-width:0; padding:0; }
 .k42-ph-more { position:relative; }
 .k42-ph-more summary { list-style:none; }
 .k42-ph-more summary::-webkit-details-marker { display:none; }

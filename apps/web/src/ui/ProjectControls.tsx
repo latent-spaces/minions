@@ -1,5 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
-import { InfoTip } from './InfoTip';
+import { useEffect, useRef, useState } from 'react';
 import { RUN_LENGTH, runLengthLabel } from '@mlswarm/contracts';
 import { RunLengthChoice } from './RunLengthChoice';
 import type { SessionUser } from '../session-identity';
@@ -9,7 +8,7 @@ import { hold } from '../route';
 import { Button } from './Button';
 import { confirmAction } from './Confirm';
 import { notify } from './Toast';
-import { Pause, Play, Plus, RotateCcw, Archive } from 'lucide-react';
+import { Play, Plus } from 'lucide-react';
 import './project-controls.css';
 import './agent-run-controls.css';
 import { useMyWorkerControls } from './MyWorkerControls';
@@ -79,30 +78,6 @@ export function useProjectControls(user: SessionUser, workspace: Workspace | nul
   return { workers, pending, busy, error, locked: busy || pending !== null, act, setTokens, retry: () => pending && execute(pending), discard: () => { if (!lock.current) { setPending(null); setError(''); refresh(); } } };
 }
 export type ProjectControls = ReturnType<typeof useProjectControls>;
-
-export function ProjectControlsCard({ workspace, controls }: { workspace: Workspace; controls: ProjectControls }) {
-  const titleId = useId();
-  if (workspace.role !== 'owner') return null;
-  const closed = workspace.execution === 'closed', started = !!workspace.project?.started, paused = !!workspace.project?.paused;
-  const primary: Action = closed ? 'reopen' : !started ? 'start' : paused ? 'resume' : 'pause';
-  const missingSetup = !workspace.project || !!workspace.setup?.required && !workspace.setup.finalizedAt;
-  const belowMinimum = !started && !!workspace.setup?.required && (workspace.participantCount ?? 0) < (workspace.setup.minContributors ?? 1);
-  const primaryDisabled = controls.locked || primary === 'start' && (missingSetup || belowMinimum && workspace.role !== 'owner');
-  const status = closed ? 'Closed' : started ? paused ? 'Paused · agents are waiting' : 'Running' : missingSetup ? 'Setup needed' : belowMinimum ? 'Recruiting' : 'Ready to start';
-  const help = closed ? keepsSchedule(workspace) ? `History is kept. Reopen to bring back chat and editing. ${reopenScheduleNotice}` : 'History is kept. Reopen to bring back chat and editing.' : started ? paused ? 'Pause requested. Check agent confirmations on Home. Chat stays open.' : 'Pause lets each agent finish its current turn, then waits for confirmation. Discussion stays open.' : !workspace.project ? 'Chat is available. Add a repository through Claude before starting agent work.' : missingSetup ? 'Publish the project from Control center → Discoverability before starting work.' : workspace.setup?.startDeadline && workspace.listed ? 'Starts by itself on its date. You can start earlier.' : belowMinimum ? workspace.role === 'owner' ? 'You can wait for more people or start with fewer.' : 'Waiting for the minimum number of people. Only the owner can start with fewer.' : 'Start enables approved work when your team is ready.';
-  const PrimaryIcon = primary === 'pause' ? Pause : primary === 'reopen' ? RotateCcw : Play;
-  return <section className="project-controls-card" aria-labelledby={titleId}>
-    <div className="project-controls-heading"><h2 id={titleId}>Project status</h2><span className="project-controls-role">Owner</span></div>
-    <div className="project-controls-body">
-      <div className="project-controls-status"><strong>{status}</strong><InfoTip label="project status">{help}</InfoTip></div>
-      <div className="project-controls-actions">
-        {primary === 'start' ? <StartProject id={`${titleId}-length`} disabled={primaryDisabled} controls={controls} className="primary" />
-          : <Button className={primary === 'pause' || primary === 'reopen' ? 'outline' : 'primary'} disabled={primaryDisabled} onClick={() => void controls.act(primary)}><PrimaryIcon size={16} aria-hidden="true" />{labels[primary]}</Button>}
-      </div>
-    </div>
-    {!closed && <div className="project-controls-body project-controls-close-section"><div className="project-controls-status"><strong>Close project</strong><InfoTip label="closing the project">Stops every agent in this project and makes it read-only. History is kept, and you can reopen it later.</InfoTip></div><div className="project-controls-actions"><Button className="outline" disabled={controls.locked} onClick={() => void controls.act('close')}><Archive size={16} aria-hidden="true" />Close project</Button></div></div>}
-  </section>;
-}
 
 /** Start takes the job's length, preset to the default hour; the person can change it before starting. */
 export function StartProject({ id, controls, disabled, className }: { id: string; controls: ProjectControls; disabled: boolean; className: string }) {
