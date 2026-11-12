@@ -13,7 +13,16 @@ test('rare effects are independently delayed and globally spaced, and interrupti
   assert.equal(a.sample(60_800, false, false, () => false).kind, 'none');
   assert.equal(a.sample(60_900, true, false, () => true).kind, 'none');
   assert.notDeepEqual(ambientTiming('agent-a'), ambientTiming('agent-b'));
-  assert.ok(ambientTiming('a').rareInterval >= 180_000);
+  for (const id of ['a','b','person-01','small-avatar']) {
+    const timing=ambientTiming(id);
+    assert.ok(timing.rareInterval>=90_000&&timing.rareInterval<=210_000);
+    assert.ok(timing.gazeInterval>=14_000&&timing.gazeInterval<=24_000);
+    assert.ok(timing.gazeDuration>=10_000&&timing.gazeDuration<=15_000);
+  }
+  const cooldown=new RareEffectGate();
+  assert.equal(cooldown.claim(1000),true);
+  assert.equal(cooldown.claim(30_999),false);
+  assert.equal(cooldown.claim(31_000),true);
 });
 
 test('pointer input publishes reactively, supports mouse fallback and cleans up shared subscribers', () => {
@@ -60,4 +69,13 @@ test('rare, gaze and state acting are mutually exclusive', () => {
   assert.equal(motion.sample(5900,true,true,()=>false).kind,'none');
   assert.equal(motion.sample(10900,true,true,()=>false).kind,'gaze');
   assert.equal(motion.sample(11000,false,true,()=>false).kind,'none');
+});
+
+test('long glances finish and retain a neutral gap rather than renewing while active', () => {
+  const motion=new CharacterAmbient(0,{rareDelay:100000,rareInterval:180000,gazeDelay:0,gazeInterval:14000,gazeDuration:15000});
+  assert.equal(motion.sample(0,true,true,()=>false).kind,'gaze');
+  assert.equal(motion.sample(14000,true,true,()=>false).kind,'gaze');
+  assert.equal(motion.sample(15000,true,true,()=>false).kind,'none');
+  assert.equal(motion.sample(16999,true,true,()=>false).kind,'none');
+  assert.equal(motion.sample(17000,true,true,()=>false).kind,'gaze');
 });

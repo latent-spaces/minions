@@ -54,16 +54,16 @@ originals, exact prompts/requests, usage and `export-app.py` remain outside the
 bundle in character-exploration/offbeat-animals-v1/animations/rare-effects-v1/.
 
 The app crossfades briefly at the entrance/exit and schedules independent rare
-one-shots: 1–4 minute initial delay, then 3–7 minute intervals, with a shared
-one-minute start cooldown across visible avatars. Work/message/attention acting
+one-shots: 30–120 second initial delay, then 90–210 second intervals, with a shared
+30-second start cooldown across visible avatars. Work/message/attention acting
 takes priority; reduced motion, hidden/offscreen and stale/offline states cancel
 ambient effects. Native face distortions remain intentional. Hats remain separate.
 
 The `gaze/` images contain original pupil pixels and their neutral eye base,
 extracted without new generation. Their zero-offset composition, with the original alpha mask, is verified
 against the canonical image. Each pupil sprite must contain visible pixels;
-near-opaque source pixels are accepted rather than requiring alpha exactly 255. Fine-pointer gaze runs for 3–4.5 seconds every
-28–48 seconds with independent initial delays, a shared passive pointer listener,
+near-opaque source pixels are accepted rather than requiring alpha exactly 255. Fine-pointer gaze runs for 10–15 seconds, starting every
+14–24 seconds with independent initial delays, at least two seconds neutral between glances, a shared passive pointer listener,
 bounded 8/192-unit pupil offsets and a smooth neutral return. No head or hat movement.
 The pointer-relative approach was informed by
 [nilbuild/page-mascot](https://github.com/nilbuild/page-mascot/blob/76a44ed9180063bf4852b9dd724b656f4a828ac7/src/mascot.tsx)

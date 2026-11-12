@@ -3,15 +3,15 @@ import { stableHash } from './avatar-tone.js';
 export const RARE_DURATION = 1920;
 export function ambientTiming(id: string) {
   const hash = stableHash(`character-ambient:${id}`);
-  return { rareInterval: 180_000 + hash % 240_001, rareDelay: 60_000 + (hash >>> 2) % 180_001,
-    gazeInterval: 28_000 + (hash >>> 3) % 20_001, gazeDelay: 5_000 + (hash >>> 5) % 28_001,
-    gazeDuration: 3000 + (hash >>> 8) % 1501 };
+  return { rareInterval: (180_000 + hash % 240_001) / 2, rareDelay: (60_000 + (hash >>> 2) % 180_001) / 2,
+    gazeInterval: (28_000 + (hash >>> 3) % 20_001) / 2, gazeDelay: (5_000 + (hash >>> 5) % 28_001) / 2,
+    gazeDuration: 10_000 + (hash >>> 8) % 5001 };
 }
 
-/** One rare flourish on screen at a time, with a minute of quiet between starts. */
+/** One rare flourish on screen at a time, at least thirty seconds between starts. */
 export class RareEffectGate {
   private next = 0;
-  claim(now: number) { if (now < this.next) return false; this.next = now + 60_000; return true; }
+  claim(now: number) { if (now < this.next) return false; this.next = now + 30_000; return true; }
 }
 export const rareEffectGate = new RareEffectGate();
 
@@ -51,7 +51,10 @@ export class CharacterAmbient {
       // First cursor activity must not make every overdue avatar glance at once.
       this.nextGaze = Math.max(this.nextGaze, now + this.timing.gazeDelay);
     }
-    if (canStart && now >= this.nextGaze) { this.gazeBegan = now; this.nextGaze = now + this.timing.gazeInterval; }
+    if (canStart && now >= this.nextGaze) {
+      this.gazeBegan = now;
+      this.nextGaze = now + Math.max(this.timing.gazeInterval, this.timing.gazeDuration + 2000);
+    }
     const elapsed = now - this.gazeBegan;
     if (elapsed < this.timing.gazeDuration) return { kind: 'gaze' as const,
       amount: Math.max(0, Math.min(1, elapsed / 240, (this.timing.gazeDuration - elapsed) / 400)) };
