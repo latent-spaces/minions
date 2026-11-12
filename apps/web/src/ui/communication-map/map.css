@@ -40,3 +40,9 @@
 .communication-map>[data-map-layer="connectors"] { z-index:1; }
 .communication-map>[data-map-layer="avatars"] { z-index:2; }
 .communication-map-controls,.communication-map-outside,.communication-map-orbit-note,.communication-map-error { z-index:3; }
+.k42-connection-popover { position:fixed; z-index:1000; width:min(300px,calc(100vw - 24px)); display:grid; gap:6px; padding:14px; border:1px solid var(--hairline,#e0e0e0); border-radius:12px; background:var(--canvas,#fff); color:var(--ink,#141414); font-size:14px; line-height:1.45; }
+.k42-connection-popover > strong { font-weight:650; overflow-wrap:anywhere; }
+.k42-connection-popover > small { color:var(--text-muted,#6b6b6b); font-size:12px; }
+.k42-connection-excerpt { margin:0; overflow-wrap:anywhere; white-space:normal; }
+.k42-connection-popover > a { display:block; padding:8px 0 2px; color:inherit; text-underline-offset:3px; }
+.k42-connection-popover > a:focus-visible { outline:2px solid var(--ink,#141414); outline-offset:3px; border-radius:3px; }

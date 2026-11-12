@@ -1,22 +1,26 @@
 # Communication connector lab
 
-Run `npm run communication:lab` from the repository root and open the printed
-loopback URL. `MLSWARM_LAB_PORT` optionally selects a port; the default is a free
-port. Ctrl-C stops it.
+Run `npm run communication:lab` from the repository root. `MLSWARM_LAB_PORT`
+optionally selects a port; otherwise it prints a free loopback URL. Ctrl-C stops it.
 
-A small HTML/React comparison with four synthetic characters and seven straight
-connector styles: Current ink, Soft lavender, Small dot trail, Tiny envelope, Soft tube, Round bulge, Rubber tube.
-The envelope is drawn in canvas code, with no raster asset or image generation. Every panel imports
-the actual production CommunicationMap and receives the same synthetic messages.
-Pause/Play controls the clock; Send sample message previews a packet. Synthetic
-messages also arrive every four seconds. Reduced motion suppresses moving packets.
+The lab imports the production CommunicationMap with four synthetic characters.
+Rubber tube is selected by default. Other straight connector styles remain in
+View for comparison. No API proxy, login, participant writes or model invocation.
 
-No app API proxy, login, saved participant data or model invocation. This replaces
-the larger communication lab retired in the November cleanup, at the owner's
-request for a much simpler synthetic-data comparison. The owner selected Rubber tube for the real app on 12 November 2026. The other
-options remain lab comparisons; routing and message semantics are shared.
+Initial messages are already one minute old. New sample messages are off by
+default: the retained pipes replay visual pulses even without new sends. Toggle
+New sample messages to add synthetic events every four seconds, or press Send
+sample message once. Pause stops visual motion and the local clock.
 
-Tube styles draw a compact rounded cosine swelling around the actual packet phase,
-with a tiny warm bead. Endpoints and centerline stay straight. The tube relaxes
-to its thin resting shape after the packet; reduced motion leaves it still.
-The View selector opens on Compare tubes. Compare all shows every option.
+Selected tubes are thin (1.6px resting radius, 0.9px outline), with round ends,
+a compact 3.2px traveling swell and a small warm bead. Visible connections last
+three minutes; physical attraction retains the original 45-second lifetime.
+Visual replay repeats every 3.6 seconds per pair and never creates an avatar
+message acknowledgment. Reduced motion removes traveling passes.
+
+Hover or keyboard-focus a pipe to see its latest message: whitespace collapsed,
+160 Unicode characters plus ellipsis. The hover card stays usable when moving
+onto its Open conversation link. In this synthetic lab that link reports the
+selected sample ID; in the app it opens the real conversation at that message.
+The app loads preview text on demand through its existing authorized reader,
+without putting message bodies into metadata or layout workers.

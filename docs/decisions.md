@@ -10,6 +10,18 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Communication pipes stay longer and preview their latest message — owner request, 12 November 2026
+
+The owner requested longer-lived, thinner pipes on the agent communication map,
+repeated message movement after messages have been sent, and a compact preview
+of the latest message with a link to Conversations. Retain visible connections
+for three minutes and replay their traffic visually. Repetition is presentation,
+not message delivery or a new agent acknowledgment. Keep physical attraction,
+straight routing and avatar occlusion separate from visual retention. The preview
+shows up to 160 characters of the latest directional message, using the existing
+authorized message read, and links to that message in its conversation.
+
+
 ## Rare avatar effects stay wild; occasional cursor gaze uses code — owner selection, 12 November 2026
 
 The owner approved the four exaggerated human concepts, requested distinct

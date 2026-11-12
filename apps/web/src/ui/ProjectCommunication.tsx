@@ -1,7 +1,8 @@
 import { subscribeRealtime } from '../realtime';
 import { PersonProfilePopup } from './PersonProfilePopup';
 import type { DirectoryMember } from '../community-directory';
-import { projectRoute } from '../route';
+import { projectRoute,formatRoute } from '../route';
+import {ConnectionMessagePreview} from './communication-map/ConnectionMessagePreview';
 import {ApiError} from '../authorized-request';
 import {refreshOnReturn} from '../refresh-on-return';
 import {walkDue} from '../all-pages';
@@ -37,6 +38,14 @@ function ProjectCommunicationView({user,projectId,projectName,active,agents,go,a
  const [pulse,setPulse]=useState(0),[loading,setLoading]=useState(false),[readNotice,setReadNotice]=useState(false);
  const [traffic,setTraffic]=useState<Traffic[]>([]),[trafficError,setTrafficError]=useState<string|null>(null),[trafficRetry,setTrafficRetry]=useState(0);
  const lastTraffic=useRef<TrafficRead|null>(null);
+ const previewReads=useRef(new Map<string,Promise<string>>());
+ const loadEdgeMessage=useCallback((messageId:string)=>{
+  const cache=previewReads.current;
+  const previous=cache.get(messageId);if(previous)return previous;
+  if(cache.size>=32)cache.delete(cache.keys().next().value!);
+  const pending=read<{message:MessageRow}>(user,'/messages/'+encodeURIComponent(messageId),projectId).then(value=>value.message.body).catch(error=>{cache.delete(messageId);throw error;});
+  cache.set(messageId,pending);return pending;
+ },[user,projectId]);
  const [observations,setObservations]=useState<CommunicationAgents|null>(null),[statusError,setStatusError]=useState(false),[observedPauseRevision,setObservedPauseRevision]=useState<number|null>(null),[statusRounds,setStatusRounds]=useState('');
  const fastPauseFeedback=!!pauseRequest&&Date.now()-pauseRequest.requestedAt<60000;
  const [wall,setWall]=useState(0),clock=useRef({at:0,received:0}),observationReceived=useRef(0),blockedUntil=useRef(0),refresh=useRef<(()=>void)|null>(null);
@@ -148,6 +157,8 @@ function ProjectCommunicationView({user,projectId,projectName,active,agents,go,a
   {!!crowd.length&&<span className="k42-map-counts">{people.length} {people.length===1?'person':'people'} · {liveNodes.length} {liveNodes.length===1?'agent':'agents'} shown</span>}
   {onCopyLink&&<Tooltip label="Copy project link" side="bottom"><button type="button" className="k42-map-share" aria-label="Copy project link" onClick={onCopyLink}><Link size={18} aria-hidden="true"/></button></Tooltip>}
  </>;
+ const conversationRoute=(messageId:string|null):Route=>({view:'project',projectId,section:'conversations',thread:messageId,message:messageId??undefined,agent:null,q:null});
+ const openConversation=(messageId:string|null)=>{dismissTooltip();if(document.fullscreenElement===panel.current)void document.exitFullscreen().catch(()=>undefined);setExpanded(false);go(conversationRoute(messageId));};
  const content=<section ref={panel} className={`k42-swarm-panel k42-communication${expanded?' is-expanded':''}`} aria-labelledby={`${id}-title`} role={expanded?'dialog':undefined} aria-modal={expanded||undefined}>
   <div className="k42-activity-heading"><h2 id={`${id}-title`} className="visually-hidden">Communication</h2>
    <div ref={setControlsSlot} className="k42-communication-controls-slot"/>
@@ -160,7 +171,8 @@ function ProjectCommunicationView({user,projectId,projectName,active,agents,go,a
    <div className="k42-communication-map-stage" data-status-rounds={statusRounds||undefined}><CommunicationMap key={projectId} crowding="focus-active" controlsSlot={controlsSlot} toolbarStart={toolbarStart} nodes={[...liveNodes.map(n=>({...n,ownerId:ownersById.get(n.id)??null,ownerName:ownerNames.get(ownersById.get(n.id)??'')??null})),...people.map(person=>({id:`person:${person.id}`,personId:person.id,name:person.name,photo:person.photo,character:person.character,ownerId:person.id,ownerName:person.name}))]} traffic={liveTraffic} at={at} running={active&&!closed} speed={1} active={active&&!!snapshot} replay={false} now={now} observations={statusById} selected={selected} inspected={inspected?.id??null} tooltipId={`${id}-agent-tooltip`}
     onInspect={(agentId,anchor,pin)=>{if(pinned.current&&!pin)return;keepTooltip();pinned.current=pin;setInspected({id:agentId,anchor});}} onLeave={leaveTooltip} onDismiss={dismissTooltip}
     onSelect={nodeId=>{if(!nodeId){setSelected(null);return;}const member=people.find(person=>`person:${person.id}`===nodeId);if(member){dismissTooltip();setPerson(member);return;}dismissTooltip();if(document.fullscreenElement===panel.current)void document.exitFullscreen().catch(()=>undefined);setExpanded(false);if(onOpenAgent)onOpenAgent(nodeId);else go(projectRoute(projectId,'agents',nodeId,null));}}
-    onEdge={(from,to)=>go({view:'project',projectId,section:'conversations',thread:connectionMessageId(traffic,from,to),agent:null,q:null})}/>
+    onEdge={(from,to)=>openConversation(connectionMessageId(traffic,from,to,at))}
+    renderEdgePreview={messageId=><ConnectionMessagePreview messageId={messageId} loadMessage={loadEdgeMessage} href={formatRoute(conversationRoute(messageId))} onOpen={()=>openConversation(messageId)}/>}/>
    </div>
    {invite&&<div className="k42-communication-invite"><span className="k42-notice-icon" aria-hidden="true"><CircleAlert size={20}/></span><div><AddAgentPrompt prompt={invite}/></div></div>}
    {(loading||!invite)&&!nodes.length&&!people.length&&<div className="k42-communication-empty"><strong>{loading?'Loading communication…':'No agents yet'}</strong><p>Agents appear here as soon as someone adds one.</p></div>}

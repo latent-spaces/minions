@@ -27,8 +27,8 @@ export async function readTrafficFrame(at:number,read:(query:string)=>Promise<Tr
 
 /** The existing /threads/:id reader accepts any shared message ID and resolves
  * its thread. Reuse that for people and agents, without adding bodies to traffic. */
-export function connectionMessageId(rows:Traffic[],from:string,to:string):string|null {
+export function connectionMessageId(rows:Traffic[],from:string,to:string,at=Infinity):string|null {
  let latest:Traffic|undefined;
- for(const row of rows)if(row.id&&row.audience==='direct'&&row.agentId===from&&row.to.includes(to)&&(!latest||row.createdAt>latest.createdAt))latest=row;
+ for(const row of rows)if(row.id&&row.createdAt<=at&&row.audience==='direct'&&row.agentId===from&&row.to.includes(to)&&(!latest||row.createdAt>latest.createdAt))latest=row;
  return latest?.id??null;
 }

@@ -3,7 +3,7 @@ export type TubeShape='soft'|'round'|'rubber';
 const shapes={
  soft:{radius:1.6,swell:4.2,spread:9,fill:'#f4eff7',ink:1,bead:1.9},
  round:{radius:2.2,swell:5,spread:9,fill:'#eee6f5',ink:1.1,bead:2.5},
- rubber:{radius:3,swell:6,spread:12,fill:'#e4d9ee',ink:1.25,bead:2.8},
+ rubber:{radius:1.6,swell:3.2,spread:11,fill:'#e4d9ee',ink:.9,bead:1.8},
 };
 export function drawTubeConnector(context:CanvasRenderingContext2D,sx:number,sy:number,tx:number,ty:number,phases:number[],color:string,shape:TubeShape='soft'){
  const dx=tx-sx,dy=ty-sy,length=Math.hypot(dx,dy);if(length<1)return;

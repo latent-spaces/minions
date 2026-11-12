@@ -1,5 +1,8 @@
 import {occludeAvatars} from './avatar-occlusion';
 import {drawTubeConnector} from './tube-connector';
+import {connectionWeights,repeatingConnectionFlights} from './connection-presentation';
+import {connectionMessageId} from './read-traffic';
+import {ConnectionPopover} from './ConnectionPopover';
 import { PersonMapNode } from './PersonMapNode';
 import {EdgeAppearance} from './edge-appearance';
 import {ownerColor} from './owner-colors';
@@ -8,10 +11,10 @@ import type {CSSProperties,ReactNode} from 'react';
 import {MessageFlights} from './message-flights';
 import {projectPoints,fitReadableCamera,expandReadableCamera,screenPoint} from './projection';
 import {initialPositions3D} from './layout3d';
-import {useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
+import {useCallback,useEffect,useId,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import type {CommunicationAgent} from '@mlswarm/contracts';
 import {CommunicationAgentNode} from '../CommunicationAgentNode';
-import {communicationWeights,initialPositions,EDGE_MIN_WEIGHT,type Traffic} from './layout';
+import {initialPositions,EDGE_MIN_WEIGHT,type Traffic} from './layout';
 import {metadataTraffic,type MapNode,type MapReply,type MapRequest} from './protocol';
 import {createPortal} from 'react-dom';
 import './map.css';
@@ -34,7 +37,8 @@ const focusMode=(mode:Crowding)=>mode==='focus-active'||mode==='focus-ring';
 type Props={connectorStyle?:ConnectorStyle;crowding?:Crowding;simulatedStates?:boolean;initialDimensions?:2|3;controlsSlot?:HTMLElement|null;toolbarStart?:ReactNode;nodes:MapNode[];traffic:Traffic[];at:number;running:boolean;speed:number;active:boolean;replay:boolean;now:number;
  observations:Map<string,CommunicationAgent>;selected:string|null;inspected:string|null;tooltipId:string;
  onInspect:(id:string,anchor:SVGGElement,pin:boolean)=>void;onLeave:()=>void;onDismiss:()=>void;
- onSelect:(id:string|null)=>void;onEdge:(from:string,to:string)=>void};
+ onSelect:(id:string|null)=>void;onEdge:(from:string,to:string)=>void;
+ renderEdgePreview?:(messageId:string,from:string,to:string)=>ReactNode};
 /** Share of points with another point closer than one portrait (44px). */
 function overlapShare(screen:{x:number;y:number}[]){
  const cells=new Map<string,number[]>(),cell=44;let overlapping=0;
@@ -44,6 +48,14 @@ function overlapShare(screen:{x:number;y:number}[]){
 }
 /** Presentation has no auth, polling, model control, data fetching or lab settings. */
 export function CommunicationMap(props:Props){
+ const edgeTooltipId=useId(),[edgeHover,setEdgeHover]=useState<{from:string;to:string;anchor:SVGGElement}|null>(null),edgeTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const keepEdge=useCallback(()=>{if(edgeTimer.current)clearTimeout(edgeTimer.current);},[]);
+ const closeEdge=useCallback(()=>{keepEdge();setEdgeHover(null);},[keepEdge]);
+ const leaveEdge=useCallback(()=>{keepEdge();edgeTimer.current=setTimeout(()=>setEdgeHover(current=>current?.anchor.contains(document.activeElement)?current:null),180);},[keepEdge]);
+ const inspectEdge=(edge:{from:string;to:string},anchor:SVGGElement)=>{keepEdge();props.onDismiss();setEdgeHover({...edge,anchor});};
+ useEffect(()=>()=>keepEdge(),[keepEdge]);
+ useEffect(()=>{if(!props.active)closeEdge();},[props.active,closeEdge]);
+ const hoveredMessage=edgeHover?connectionMessageId(props.traffic,edgeHover.from,edgeHover.to,props.at):null;
  const controlsRef=useRef<HTMLDivElement>(null);
  const root=useRef<HTMLDivElement>(null),svg=useRef<SVGSVGElement>(null),canvas=useRef<HTMLCanvasElement>(null),gridCanvas=useRef<HTMLCanvasElement>(null);
  const dimensions=props.initialDimensions??2,[zoom,setZoom]=useState(1),[failure,setFailure]=useState(''),[retry,setRetry]=useState(0);
@@ -111,7 +123,7 @@ export function CommunicationMap(props:Props){
    const projected=projectPoints(display,dimensions,orbit.current.yaw,orbit.current.pitch);
    if(viewportDirty){const rect=element.getBoundingClientRect();box={width:rect.width,height:rect.height};const inside=controlsRef.current&&element.contains(controlsRef.current);topInset=inside?controlsRef.current!.getBoundingClientRect().bottom-rect.top+12:0;viewportDirty=false;}
    if(box.width<=0||box.height<=0)return;
-   const weights=new Map(communicationWeights(c.traffic,at).map(e=>[JSON.stringify([e.from,e.to]),e]));
+   const weights=new Map(connectionWeights(c.traffic,at).map(e=>[JSON.stringify([e.from,e.to]),e]));
    const mode=c.crowding??'portraits',featured=new Uint8Array(positions.length);
    if(mode!=='portraits'){
     // Talking agents stay featured for four seconds after their connection
@@ -191,12 +203,15 @@ export function CommunicationMap(props:Props){
       ?.dispatchEvent(new CustomEvent('character-message',{detail:{id:sent.id}}));
    }
    const byPair=new Map<string,number[]>();for(const flight of passes){const key=JSON.stringify([flight.from,flight.to]),values=byPair.get(key)??[];values.push(flight.phase);byPair.set(key,values);}
+   if(c.running&&!reduced.matches)for(const flight of repeatingConnectionFlights([...weights.values()],animationClock)){
+    const key=JSON.stringify([flight.from,flight.to]);if(!byPair.has(key))byPair.set(key,[flight.phase]);
+   }
    edgeAppearance.begin(at,time,c.replay,c.running);
    for(const group of element.querySelectorAll<SVGGElement>('[data-map-edge]')){
     const from=group.dataset.from!,to=group.dataset.to!,a=index.get(from),b=index.get(to),link=weights.get(JSON.stringify([from,to]));
     if(a===undefined||b===undefined){group.style.display='none';continue;}
     const eligible=!!link&&link.weight>=EDGE_MIN_WEIGHT,dimmed=c.highlightedOwner&&positions[a].ownerId!==c.highlightedOwner&&positions[b].ownerId!==c.highlightedOwner;
-    const appearance=edgeAppearance.sample(JSON.stringify([from,to]),eligible?(1-Math.exp(-link.weight))*.75*(dimmed ? .2 : 1):0,eligible?Math.min(4,1+Math.log2(1+link.weight)):1,time,reduced.matches||!c.running);
+    const appearance=edgeAppearance.sample(JSON.stringify([from,to]),eligible?Math.max(.24,(1-Math.exp(-link.weight))*.75)*(dimmed ? .2 : 1):0,eligible?Math.min(4,1+Math.log2(1+link.weight)):1,time,reduced.matches||!c.running);
     // Inactive connections can finish their visual fade, but cannot be clicked.
     group.style.display=eligible?'':'none';if(appearance.opacity===0)continue;
     const x=screen[a].x,y=screen[a].y,dx=screen[b].x-x,dy=screen[b].y-y,length=Math.max(1,Math.hypot(dx,dy)),ra=24*scales[a],rb=26*scales[b],sx=x+dx/length*ra,sy=y+dy/length*ra,tx=x+dx-dx/length*rb,ty=y+dy-dy/length*rb;
@@ -240,13 +255,22 @@ export function CommunicationMap(props:Props){
    <span className="communication-map-zoom"><button type="button" aria-label="Zoom out" onClick={()=>zoomBy(1/1.4)}>−</button><button type="button" onClick={home}>Fit map</button><button type="button" aria-label="Zoom in" onClick={()=>zoomBy(1.4)}>+</button></span>
   </div>
  </>;
- return <div className="communication-map" ref={root} tabIndex={0} onClick={event=>{if((event.target as Element).closest('button,select,.communication-map-controls,.k42-communication-agent,[data-map-edge]'))return;props.onSelect(null);props.onDismiss();}} data-map-connector={props.connectorStyle??'rubber-tube'} data-map-dimensions={dimensions} data-state-motion={props.running&&props.active} data-owner-highlight={highlightedOwner} data-crowded={crowded} aria-label={dimensions===3?"3D communication map. Drag or use arrow keys to orbit; Shift plus drag or arrow keys to pan; plus and minus to zoom.":"Communication map. Drag to pan; arrow keys to move; plus and minus to zoom."}>
+ return <div className="communication-map" ref={root} tabIndex={0} onClick={event=>{if((event.target as Element).closest('button,select,.communication-map-controls,.k42-communication-agent,[data-map-edge],.k42-connection-popover'))return;props.onSelect(null);props.onDismiss();}} data-map-connector={props.connectorStyle??'rubber-tube'} data-map-dimensions={dimensions} data-state-motion={props.running&&props.active} data-owner-highlight={highlightedOwner} data-crowded={crowded} aria-label={dimensions===3?"3D communication map. Drag or use arrow keys to orbit; Shift plus drag or arrow keys to pan; plus and minus to zoom.":"Communication map. Drag to pan; arrow keys to move; plus and minus to zoom."}>
   <canvas ref={gridCanvas} data-map-layer="grid" aria-hidden="true"/>
   <canvas ref={canvas} data-map-layer="connectors" aria-hidden="true"/>
   <svg ref={svg} data-map-layer="avatars" width="100%" height="100%" role="group" aria-label="Agent communication graph">
-   {edgePool.map(e=><g key={JSON.stringify([e.from,e.to])} data-map-edge="" style={{display:'none'}} data-from={e.from} data-to={e.to} role="button" tabIndex={0} aria-label={`Show messages from ${props.nodes.find(n=>n.id===e.from)?.name??e.from} to ${props.nodes.find(n=>n.id===e.to)?.name??e.to}`} onClick={()=>props.onEdge(e.from,e.to)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();props.onEdge(e.from,e.to);}}}><path fill="none" stroke="transparent" strokeWidth="16"/></g>)}
-   {visibleNodes.map(node=><g key={node.id} data-map-id={node.id} data-owner-id={node.ownerId??''} className={highlightedOwner&&node.ownerId!==highlightedOwner?'is-owner-dimmed':undefined} style={{'--owner-color':ownerColor(node.ownerId)} as CSSProperties}>{node.personId ? <PersonMapNode node={node} crowded={crowded} onInspect={anchor=>props.onInspect(node.id,anchor,false)} onLeave={props.onLeave} onDismiss={props.onDismiss} onSelect={()=>props.onSelect(node.id)} /> : <CommunicationAgentNode node={node} agent={props.observations.get(node.id)} now={props.now} selected={props.selected===node.id} replay={props.replay} simulated={props.simulatedStates} compact crowded={crowded} ownerLabel={node.ownerId?ownerLabels.get(node.ownerId):'Owner unknown'} tooltipId={props.tooltipId} inspecting={props.inspected===node.id} onInspect={anchor=>props.onInspect(node.id,anchor,false)} onLeave={props.onLeave} onDismiss={props.onDismiss} onSelect={()=>props.onSelect(node.id)}/>}</g>)}
+   {edgePool.map(e=><g key={JSON.stringify([e.from,e.to])} data-map-edge="" style={{display:'none'}} data-from={e.from} data-to={e.to} role="button" tabIndex={0}
+    aria-label={`Show messages from ${props.nodes.find(n=>n.id===e.from)?.name??e.from} to ${props.nodes.find(n=>n.id===e.to)?.name??e.to}`}
+    aria-haspopup="dialog" aria-expanded={edgeHover?.from===e.from&&edgeHover?.to===e.to} aria-controls={edgeHover?.from===e.from&&edgeHover?.to===e.to?edgeTooltipId:undefined}
+    onMouseEnter={event=>inspectEdge(e,event.currentTarget)} onMouseLeave={leaveEdge} onFocus={event=>inspectEdge(e,event.currentTarget)} onBlur={leaveEdge}
+    onClick={()=>props.onEdge(e.from,e.to)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();props.onEdge(e.from,e.to);}}}><path fill="none" stroke="transparent" strokeWidth="16"/></g>)}
+   {visibleNodes.map(node=><g key={node.id} data-map-id={node.id} data-owner-id={node.ownerId??''} className={highlightedOwner&&node.ownerId!==highlightedOwner?'is-owner-dimmed':undefined} style={{'--owner-color':ownerColor(node.ownerId)} as CSSProperties}>{node.personId ? <PersonMapNode node={node} crowded={crowded} onInspect={anchor=>{closeEdge();props.onInspect(node.id,anchor,false);}} onLeave={props.onLeave} onDismiss={props.onDismiss} onSelect={()=>props.onSelect(node.id)} /> : <CommunicationAgentNode node={node} agent={props.observations.get(node.id)} now={props.now} selected={props.selected===node.id} replay={props.replay} simulated={props.simulatedStates} compact crowded={crowded} ownerLabel={node.ownerId?ownerLabels.get(node.ownerId):'Owner unknown'} tooltipId={props.tooltipId} inspecting={props.inspected===node.id} onInspect={anchor=>{closeEdge();props.onInspect(node.id,anchor,false);}} onLeave={props.onLeave} onDismiss={props.onDismiss} onSelect={()=>props.onSelect(node.id)}/>}</g>)}
   </svg>
+  {edgeHover&&hoveredMessage&&<ConnectionPopover id={edgeTooltipId} anchor={edgeHover.anchor}
+   title={`${props.nodes.find(n=>n.id===edgeHover.from)?.name??edgeHover.from} → ${props.nodes.find(n=>n.id===edgeHover.to)?.name??edgeHover.to}`}
+   onKeep={keepEdge} onLeave={leaveEdge} onDismiss={closeEdge}>
+   {props.renderEdgePreview?.(hoveredMessage,edgeHover.from,edgeHover.to)??<button type="button" onClick={()=>props.onEdge(edgeHover.from,edgeHover.to)}>Open conversation</button>}
+  </ConnectionPopover>}
   {props.controlsSlot?createPortal(controlsBlock,props.controlsSlot):controlsBlock}
   <p className="communication-map-outside" ref={outsideRef} hidden><span/> · <button type="button" onClick={()=>{showAll.current=true;fitting.current=true;setZoom(1);root.current?.dispatchEvent(new Event('map-fit'));}}>Show all</button></p>
   {dimensions===3&&<p className="communication-map-orbit-note">3D · Drag to orbit. Shift-drag to pan.</p>}

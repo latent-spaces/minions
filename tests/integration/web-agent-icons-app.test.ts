@@ -11,7 +11,8 @@ import { PERSONA_OPTIONS } from '@mlswarm/contracts';
 import { startRun, reportPhase } from '../../apps/server/src/v2/runs.js';
 import { randomUUID } from 'node:crypto';
 import { db, profiles, inProject } from '../../apps/server/src/firestore.js';
-import { resetEmulator, seed, TEST_PROJECT, idTokenFor } from '../../apps/server/test/helpers.js';
+import { resetEmulator, seed, TEST_PROJECT, idTokenFor, loadAgent } from '../../apps/server/test/helpers.js';
+import { sendMessageV2 } from '../../apps/server/src/v2/messages.js';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const require = createRequire(new URL('../../apps/web/package.json', import.meta.url));
 async function port() {
@@ -27,6 +28,9 @@ test('actual app keeps coding-tool identity separate from model names across sid
     {person:0,name:'Alpha worker'}, {person:0,name:'Beta worker'}, {person:0,name:'Gamma unknown'},
   ] });
   await profiles.doc(fixture.personIds[0]).update({onboardingCompletedAt:100});
+  const pipeBody='A recent handoff is ready for review. '+ 'Additional detail stays in the conversation. '.repeat(8);
+  const pipeMessage=await inProject(TEST_PROJECT,async()=>sendMessageV2(await loadAgent(fixture.agents[0].agentId),
+    {to:[fixture.agents[1].agentId],body:pipeBody,clientId:'pipe-preview'},()=>Date.now()-60_000));
   for (const [index, provider, model] of [[0,'claude','gpt-synthetic-reroute'],[1,'codex','claude-synthetic-reroute'],[2,'unknown','claude-no-tool-report']] as const) {
     await db.doc(`projects/${TEST_PROJECT}/runnerUsage/${fixture.agents[index].agentId}`).set({
       runId:'synthetic-no-model',provider,model,firstReportedAt:Date.now(),lastReportedAt:Date.now(),turns:0,seconds:0,
@@ -158,6 +162,18 @@ test('actual app keeps coding-tool identity separate from model names across sid
     await page.screenshot({path:join(directory,'settings.png'),fullPage:true,animations:'disabled'});
     await page.setViewportSize({width:1440,height:1000});
     await page.screenshot({path:join(directory,'settings-desktop.png'),fullPage:true,animations:'disabled'});
+    // A minute-old real message still has a pipe; its preview uses the existing authorized message reader.
+    await page.goto(url);
+    await page.getByRole('button',{name:'Map',exact:true}).click();
+    const pipe=page.getByRole('button',{name:'Show messages from Alpha worker to Beta worker',exact:true});
+    await pipe.waitFor();await pipe.focus();
+    const pipePreview=page.getByRole('dialog',{name:'Alpha worker → Beta worker',exact:true});await pipePreview.waitFor();
+    await pipePreview.getByText('A recent handoff is ready for review.',{exact:false}).waitFor();
+    expect(Array.from((await pipePreview.locator('.k42-connection-excerpt').textContent())!).length).toBeLessThanOrEqual(161);
+    await page.screenshot({path:join(directory,'real-message-pipe-preview.png')});
+    await pipePreview.getByRole('link',{name:'Open conversation →'}).click();
+    await page.waitForFunction((id:string)=>new URL(location.href).searchParams.get('message')===id,pipeMessage.message.id);
+    expect(new URL(page.url()).searchParams.get('thread')).toBe(pipeMessage.message.id);
     // Failed strips keep the consent-free bundled still visible as a fallback.
     await page.emulateMedia({reducedMotion:'no-preference'});
     await context.route('**/sprites/*.webp*',(route:any)=>route.request().resourceType()==='image'?route.abort():route.continue());

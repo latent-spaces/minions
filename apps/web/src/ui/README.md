@@ -417,8 +417,10 @@ using the service's `humanRequests` equality index.
 Hovering or focusing an avatar opens a tooltip with its current status, its latest focus
 with when it was reported, and its last contact. Clicking it, or pressing Enter or
 Space, also highlights it; clicking again removes the highlight. Clicking a
-connection opens Agent conversations, at the thread of a recent message from one agent
-to the other when the card has one. Escape, a click outside, the mouse wheel or another
+connection opens Conversations at its latest message. Hovering or focusing a pipe
+shows the first 160 characters of that message and an Open conversation link. The
+preview uses the existing authorized message reader; bodies stay out of traffic
+metadata and layout workers. Escape, a click outside, the mouse wheel or another
 key press closes the tooltip. Drag the map to pan, or focus it and use the arrow keys
 to pan. Use + or - to zoom and Home to refit; the Zoom out (−), Fit map and Zoom in (+)
 buttons do the same. There is no agent switcher or automatic camera follow: inspect an
@@ -426,9 +428,13 @@ agent by hovering, clicking or focusing its portrait.
 
 On the live map each avatar shows its state label and marker, and a working agent shows
 its latest focus. The tooltip for one of your own
-agents also offers its Start, Pause or Resume control. Each direct message makes one
-1.4-second pass along its connection; connections fade with a 15-second half-life and
-disappear after 45 seconds. Under reduced motion no passes are drawn, agents move
+agents also offers its Start, Pause or Resume control. Thin rubber pipes retain
+three minutes of direct-message history. A 1.4-second visual pass repeats every
+3.6 seconds with independent pair phases, including traffic already sent. New
+message IDs alone trigger avatar acknowledgments; visual replay never sends a
+message. Physical attraction still decays with its 15-second half-life and ends
+after 45 seconds, independently of pipe visibility. Under reduced motion no
+passes are drawn, agents move
 without easing and the working dot stops.
 
 Full screen
