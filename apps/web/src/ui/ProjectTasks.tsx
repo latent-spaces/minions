@@ -6,14 +6,14 @@ import { ArrowLeft, Check, ChevronDown, ChevronRight, Columns3, Filter, List, Li
 export type TaskAgent = { id: string; name: string; operatorId: string | null; operatorName: string | null; revokedAt: number | null;
   operatorPhoto?: import('@mlswarm/contracts').PublicProfilePhoto | null; personaChoice?: import('@mlswarm/contracts').PersonaChoice | null; assignable?: boolean;
   /** Live state and coding tool, known only for agents on the first full agents page. */
-  state?: import('@mlswarm/contracts').CommunicationAgentState; provider?: string | null };
+  state?: import('@mlswarm/contracts').CommunicationAgentState; provider?: string | null; focus?: import('@mlswarm/contracts').AgentFocus | null };
 import { hold, projectRoute, taskRoute, type Route } from '../route';
 import { NavLink } from '../navigation-link';
 import type { PublicPhoto } from '../profile-photo-api';
 import { TASK_STATUSES, isAccessLoss, isConflict, isTasksDisabled, isSettledRefusal, taskReferenceView, newestTaskSnapshot, taskSourceHref, taskReferenceFromUrl, statusLabel, statusChangeBlock, taskMutation, singleFlight, readTasksView, writeTasksView, nestTasks, taskFromPrompt, type TasksApi, type TasksView } from '../task-model';
 import type { NativeTaskMutation } from '@mlswarm/contracts';
 import { TaskAgentAvatar } from './TaskAgentAvatar';
-import { TaskContributorAvatars } from './TaskContributorAvatars';
+import { TaskAgentHover, TaskContributorAvatars } from './TaskContributorAvatars';
 import { PersonAvatar } from './PersonAvatar';
 import { Button } from './Button';
 import { CloseButton } from './CloseButton';
@@ -285,7 +285,7 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
           {task.proposed && <Proposed />}
           {task.priority === 'high' && <span className="k42-task-priority">High</span>}
           {task.subtaskProgress && <SubtaskRing {...task.subtaskProgress} />}</div></th>
-        <td data-label="Assigned">{task.assignedAgentId ? <AgentChip id={task.assignedAgentId} directory={directory} /> : <Unassigned />}</td>
+        <td data-label="Assigned">{task.assignedAgentId ? <TaskAgentHover id={task.assignedAgentId} agents={directory.agent} /> : <Unassigned />}</td>
         <td data-label="Agents"><TaskContributorAvatars contributors={task.contributors} agents={directory.agent} /></td>
         <td data-label="Status"><span className={`k42-task-status is-${task.status}`}>{statusLabel(task.status)}</span></td>
         <td data-label="Updated" className="muted">{when(task.updatedAt)}</td>
@@ -401,7 +401,7 @@ function TasksBoard({ api, tasks, directory, readOnly, more, canMove, onOpen, on
               {task.proposed && <Proposed />}
               {task.priority === 'high' && <span className="k42-task-priority">High</span>}
               <div className="k42-tasks-card-meta">
-                {task.assignedAgentId ? <AgentChip id={task.assignedAgentId} directory={directory} size={24} /> : <Unassigned />}
+                {task.assignedAgentId ? <TaskAgentHover id={task.assignedAgentId} agents={directory.agent} size={24} /> : <Unassigned />}
                 <span className={`k42-task-status is-${task.status}`}>{statusLabel(task.status)}</span>
               </div>
             </li>)}

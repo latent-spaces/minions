@@ -8,15 +8,30 @@ export function TaskContributorAvatars({ contributors, agents }: {
   contributors: NativeTaskContributor[];
   agents: Map<string, TaskAgent>;
 }) {
-  const name = (actor: NativeTaskContributor) => agents.get(actor.id)?.name ?? 'Former agent';
-  const avatar = (actor: NativeTaskContributor) => <TaskAgentAvatar id={actor.id} name={name(actor)} agent={agents.get(actor.id)} size={28} />;
-  const information = (actor: NativeTaskContributor) => <span className="k42-task-contributor-info" key={`${actor.kind}:${actor.id}`}>
-    {avatar(actor)}<span><strong>{name(actor)}</strong><small>{agents.get(actor.id)?.operatorName ? `Agent of ${agents.get(actor.id)!.operatorName}` : 'Agent · owner unavailable'}</small></span>
-  </span>;
   if (!contributors.length) return <span className="muted">None yet</span>;
   return <span className="k42-task-contributors">
-    {contributors.slice(0, 3).map(actor => <ContributorPopover key={`${actor.kind}:${actor.id}`} label={name(actor)} content={information(actor)}>{avatar(actor)}</ContributorPopover>)}
-    {contributors.length > 3 && <ContributorPopover label={`${contributors.length - 3} more contributors`} content={contributors.slice(3).map(information)}>+{contributors.length - 3}</ContributorPopover>}
+    {contributors.slice(0, 3).map(actor => <TaskAgentHover key={actor.id} id={actor.id} agents={agents} />)}
+    {contributors.length > 3 && <ContributorPopover label={`${contributors.length - 3} more contributors`} content={contributors.slice(3).map(actor => <AgentInformation key={actor.id} id={actor.id} agents={agents} />)}>+{contributors.length - 3}</ContributorPopover>}
+  </span>;
+}
+
+const agentName = (id: string, agents: Map<string, TaskAgent>) => {
+  const agent = agents.get(id);
+  return agent ? `${agent.name}${agent.revokedAt != null ? ' (removed)' : ''}` : 'Former agent';
+};
+
+/** Task agents show only their face; the name and current focus open on hover or focus (owner, 12 November 2026). */
+export function TaskAgentHover({ id, agents, size = 28 }: { id: string; agents: Map<string, TaskAgent>; size?: number }) {
+  return <ContributorPopover label={agentName(id, agents)} content={<AgentInformation id={id} agents={agents} />}>
+    <TaskAgentAvatar id={id} name={agentName(id, agents)} agent={agents.get(id)} size={size} />
+  </ContributorPopover>;
+}
+
+function AgentInformation({ id, agents }: { id: string; agents: Map<string, TaskAgent> }) {
+  const focus = agents.get(id)?.focus;
+  return <span className="k42-task-contributor-info">
+    <TaskAgentAvatar id={id} name={agentName(id, agents)} agent={agents.get(id)} size={28} />
+    <span><strong>{agentName(id, agents)}</strong><small>{focus ? focus.text : 'No focus reported'}</small></span>
   </span>;
 }
 

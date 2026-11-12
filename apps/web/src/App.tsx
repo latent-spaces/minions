@@ -439,10 +439,10 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   const taskLabelRows = useAllPages<TaskAgent>(user, allAgentsPath, 'agents', agentRows.page?.items ?? NO_AGENTS, tick, tasksShown && !!project, REFRESH_MS);
   // Labels carry no live status; agents on the first full page add their state and coding tool to task avatars.
   const firstAgents = agentRows.page?.items ?? NO_AGENTS;
-  const liveAgents = useMemo(() => { const at = Date.now(); return firstAgents.map((row): TaskAgent => ({ ...row, state: communicationAgentState(row, at), provider: row.usage?.provider ?? null })); }, [firstAgents, tick]);
+  const liveAgents = useMemo(() => { const at = Date.now(); return firstAgents.map((row): TaskAgent => ({ ...row, state: communicationAgentState(row, at), provider: row.usage?.provider ?? null, focus: row.focus ?? null })); }, [firstAgents, tick]);
   const taskAgents = useMemo(() => {
     const live = new Map(liveAgents.map(row => [row.id, row]));
-    return taskLabelRows.map(agent => { const row = live.get(agent.id); return row ? { ...agent, state: row.state, provider: row.provider } : agent; });
+    return taskLabelRows.map(agent => { const row = live.get(agent.id); return row ? { ...agent, state: row.state, provider: row.provider, focus: row.focus } : agent; });
   }, [taskLabelRows, liveAgents]);
   const taskPeople = useAllPages(user, allMembersPath, 'members', members.page?.items ?? NO_PEOPLE, tick, tasksShown, REFRESH_MS);
   // One read labels up to 60 shown actors the paced walks have not reached; it counts once against the viewer budget.

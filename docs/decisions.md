@@ -10,6 +10,13 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Task agents show only their face — owner request, 12 November 2026
+
+"agetns should be only the avatar with hover on name and current focus": in the task
+list's Assigned agent and Agents columns and on board cards, agents show as their avatar
+alone. Hovering or focusing one shows its name and its last reported focus ("No focus
+reported" when none is known). This replaces the "Agent of …" line in that card.
+
 ## Task times read as relative — owner request, 12 November 2026
 
 "use for times before x minutes days etc (the standard way of that)": task times in the
