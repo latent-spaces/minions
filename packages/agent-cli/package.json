@@ -12,7 +12,7 @@
     "mlswarm-agent": "./src/cli.mjs"
   },
   "scripts": {
-    "test": "node --test --test-concurrency=1 \"test/*.test.mjs\"",
+    "test": "node --test --experimental-test-module-mocks --test-concurrency=1 \"test/*.test.mjs\"",
     "build": "node scripts/build.mjs"
   },
   "repository": {
