@@ -3,7 +3,7 @@ export type TubeShape='soft'|'round'|'rubber';
 const shapes={
  soft:{radius:1.6,swell:4.2,spread:9,fill:'#f4eff7',ink:1,bead:1.9},
  round:{radius:2.2,swell:5,spread:9,fill:'#eee6f5',ink:1.1,bead:2.5},
- rubber:{radius:1.6,swell:3.2,spread:11,fill:'#e4d9ee',ink:.9,bead:1.8},
+ rubber:{radius:1.6,swell:3.2,spread:11,fill:'#352b3d',ink:.9,bead:1.8},
 };
 export function drawTubeConnector(context:CanvasRenderingContext2D,sx:number,sy:number,tx:number,ty:number,phases:number[],color:string,shape:TubeShape='soft'){
  const dx=tx-sx,dy=ty-sy,length=Math.hypot(dx,dy);if(length<1)return;
@@ -23,7 +23,7 @@ export function drawTubeConnector(context:CanvasRenderingContext2D,sx:number,sy:
  for(let i=steps-1;i>=0;i--){const x=length*i/steps;context.lineTo(x,radius(x));}
  context.arc(0,0,art.radius,Math.PI/2,Math.PI*1.5);context.closePath();context.fill();context.stroke();
  // A restrained inner glint gives the flat tube a soft rubbery character.
- context.save();context.globalAlpha*=.55;context.strokeStyle='#fff';context.lineWidth=.8;
+ context.save();context.globalAlpha*=shape==='rubber'?.08:.55;context.strokeStyle='#fff';context.lineWidth=.8;
  context.beginPath();for(let i=0;i<=steps;i++){const x=length*i/steps,y=-radius(x)+art.radius*.65;if(i===0)context.moveTo(x,y);else context.lineTo(x,y);}context.stroke();context.restore();
  context.fillStyle='#ce975e';
  for(const phase of phases){context.beginPath();context.arc(phase*length,0,art.bead,0,Math.PI*2);context.fill();}
