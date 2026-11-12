@@ -77,3 +77,10 @@ test('same project names and IDs on independent sites receive separate default w
   assert.notEqual(folder(first), folder(other));
   assert.match(defaultSiteStateHome('service', enrolled, userHome), /instances[/\\][a-f0-9]{24}[/\\]service$/);
 });
+
+test('a project folder never reuses a folder another project already holds, also after the ID suffix', () => {
+  const projects = join('/r', 'projects'), id = 'abc123' + 'f'.repeat(58);
+  const placed = [{ projectId: 'b'.repeat(64), folder: join(projects, 'tools') }, { projectId: 'c'.repeat(64), folder: join(projects, 'tools-abc123') }];
+  const folder = projectFolder('/r', id, 'Tools', placed);
+  assert.equal(placed.some(p => p.folder === folder), false, folder);
+});
