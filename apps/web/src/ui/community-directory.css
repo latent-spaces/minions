@@ -22,7 +22,6 @@
 .k42-directory-text small { font-size:13px; margin-top:2px; }
 .k42-directory-meta { grid-column:1 / -1; padding-top:12px; border-top:1px solid var(--line); font-size:12px; color:var(--text-muted); }
 
-.k42-directory-scope { margin:0; font-size:12px; }
 
 .k42-directory-list > li { position:relative; min-width:0; }
 .k42-participant-actions { position:absolute; top:8px; right:8px; }

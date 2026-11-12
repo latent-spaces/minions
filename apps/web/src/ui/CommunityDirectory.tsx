@@ -37,7 +37,6 @@ export function CommunityDirectory({ projectId, members, agents, loading, now, g
       <label className="k42-directory-search" htmlFor={searchId}><Search size={16} aria-hidden="true" /><span className="visually-hidden">{serverSearch ? 'Find agent names starting with' : 'Search this page'}</span>
         <input id={searchId} type="search" value={query} maxLength={serverSearch ? 40 : 80} placeholder={serverSearch ? 'Agent name starts with' : 'Search this page'} onChange={event => serverSearch ? onAgentQuery?.(event.target.value) : setSearch(event.target.value)} /></label>
     </div>
-    <p className="muted k42-directory-scope">Counts and cards cover the loaded pages. {serverSearch ? 'Agent search matches name prefixes across the directory.' : 'Search matches names and agent owners on these pages.'}</p>
     {(['people', 'agents'] as const).filter(lane => kind === 'all' || kind === lane).map(lane => paging?.[lane].error && <p key={lane} className="error" role="alert">Could not refresh {lane}: {paging[lane].error}</p>)}
     {loading && !shown.length && !(['people', 'agents'] as const).some(lane => (kind === 'all' || kind === lane) && paging?.[lane].error) ? <p className="muted" role="status">Loading people and agents…</p>
       : !shown.length ? <EmptyState icon={query ? Search : Users} size="compact" title={query ? 'No matches on this page.' : 'No entries on this page.'}
