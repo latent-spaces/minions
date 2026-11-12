@@ -29,9 +29,15 @@
 .control-center .settings-card > .settings-group-head + * { padding-top: 20px; }
 /* Updates settings (owner, 12 November 2026): rows of choices, then the owner's own note. */
 .control-center .update-settings { display: grid; gap: 16px; }
+/* Same hairline between setting rows as the Features card; the save row sits right under the note. */
+.control-center .update-settings > :is(.setting-toggle, .update-settings-note) + :is(.setting-toggle, .update-settings-note) { padding-top: 16px; border-top: var(--card-border); }
 .control-center .update-settings-topics { display: flex; flex-wrap: wrap; gap: 6px; }
-.control-center .update-settings-topics > button { min-height: 44px; padding: 0 14px; border: var(--card-border); border-radius: var(--pill-radius); background: var(--canvas); color: var(--text-muted); font-size: 13px; font-weight: 600; }
-.control-center .update-settings-topics > button[aria-pressed="true"], .control-center .update-settings-topics > button[aria-pressed="true"]:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+/* Topics are a pick-several set: outline chips, a chosen one gets a grey fill and a check, never an ink fill. */
+.control-center .update-settings-topics > button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 1px solid var(--hairline); border-radius: var(--pill-radius); background: var(--canvas); color: var(--text-muted); font: inherit; font-size: 14px; cursor: pointer; }
+.control-center .update-settings-topics > button:hover:not(:disabled):not([aria-pressed="true"]) { background: var(--canvas-soft); color: var(--ink); }
+.control-center .update-settings-topics > button[aria-pressed="true"], .control-center .update-settings-topics > button[aria-pressed="true"]:hover:not(:disabled) { background: var(--canvas-soft); border-color: transparent; color: var(--ink); font-weight: 600; }
+.control-center .update-settings-topics > button:disabled { cursor: not-allowed; }
+.control-center .update-settings-topics > button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .control-center .update-settings-note { display: grid; gap: 8px; }
 .control-center .update-settings-note label { font-weight: 600; }
 .control-center .update-settings-note textarea { width: 100%; box-sizing: border-box; }
