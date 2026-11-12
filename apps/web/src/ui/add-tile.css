@@ -12,8 +12,11 @@
 .k42-add-tile-actions .k42-add-tile-text:hover { color:var(--ink); }
 .k42-add-tile-actions .k42-add-tile-text:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
 .k42-add-tile.is-editing { justify-content:flex-start; background:var(--canvas); border-color:var(--hairline-strong); }
-.k42-prompt-editor { display:flex; flex-direction:column; align-items:stretch; gap:10px; width:100%; margin-bottom:4px; text-align:left; }
+.k42-prompt-editor { display:flex; flex-direction:column; align-items:stretch; gap:10px; width:100%; max-width:400px; margin-bottom:4px; text-align:left; }
 .k42-prompt-editor .k42-task-segments { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); width:100%; }
 .k42-prompt-editor .k42-task-segment { font-size:13px; padding:5px 12px; }
 .k42-prompt-editor label { display:flex; flex-direction:column; gap:4px; font-size:13px; font-weight:600; }
 .k42-prompt-editor :is(input, textarea) { box-sizing:border-box; width:100%; min-height:0; padding:6px 10px; border:var(--field-border, 1px solid var(--hairline-shell)); border-radius:var(--radius-button); background:var(--canvas); color:var(--ink); font:inherit; font-weight:450; resize:vertical; }
+/* In the large empty state the editor sits under the prompt, centred, above Copy and Edit. */
+.k42-empty-large .k42-prompt-editor { margin:16px auto 0; font-size:14px; }
+.k42-empty-large .k42-add-tile-actions { gap:8px; }

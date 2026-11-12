@@ -11,9 +11,8 @@ import { ExploreLayout } from './ui/ExploreLayout';
 import type { PersonalFilter } from './ui/group-personal-projects';
 import { PersonalFilterChips, PersonalProjectGroups } from './ui/PersonalProjectGroups';
 import { useProjectCovers } from './project-covers';
-import { MessageSquare, Archive } from 'lucide-react';
-import { CLAUDE_EXAMPLE_PROMPT, useCopyPrompt } from './ui/ClaudePromptTile';
-import { EmptyState } from './ui/EmptyState';
+import { Archive } from 'lucide-react';
+import { ClaudePromptTile } from './ui/ClaudePromptTile';
 
 type ArchiveInput = { archived: boolean; expected_revision: number; client_request_id: string };
 type ListAction = { kind: 'archive'; project: PersonalProjectEntry; input: ArchiveInput } | { kind: 'star'; project: PersonalProjectEntry; input: { starred: boolean } };
@@ -99,7 +98,6 @@ export function MyProjects({ user, active, refreshKey, go, retry, view = 'curren
   const covers = useProjectCovers(user, page?.projects ?? []);
   const first = cursors.length === 1;
   const showGroups = !!page && !!matches?.length;
-  const copyPrompt = useCopyPrompt();
   const otherProjects = other?.view === otherView ? other.projects : [];
   const choose = (next: PersonalFilter) => {
     if (next === 'archived') { if (view !== 'archived') go({ view: 'projects', projectList: 'archived' }); }
@@ -117,7 +115,7 @@ export function MyProjects({ user, active, refreshKey, go, retry, view = 'curren
       {showGroups && <PersonalProjectGroups covers={covers} onLeave={id => void leave.act(id)} projects={matches ?? []} go={go} searching={!!query} archived={view === 'archived'} onArchive={project => void changeArchive(project)} onStar={project => void changeStar(project)} disabled={busy || !!pending || leave.busy || !!leave.pending || !identity.ready || !!shown?.error} />}
     </div>
     {page && !showGroups && <div className="project-directory-empty"><p>{query ? 'No projects on this page match your search.' : first && !page.next ? view === 'archived' ? '' : 'No current projects.' : `No ${view} projects on this page.`}</p>{!query && (view === 'archived' ? first && !page.next ? <div className="k42-empty-row"><span className="k42-empty-row-icon" aria-hidden="true"><Archive size={18} /></span><div><strong>Nothing archived.</strong><span>Archive a project from its ··· menu. Restore it any time.</span></div></div> : null : first && !page.next
-      ? <EmptyState icon={MessageSquare} size="large" title="Start your first project from Claude" action={<Button className="primary" type="button" onClick={copyPrompt.copy}>{copyPrompt.copied ? 'Copied' : 'Copy the prompt'}</Button>}>Ask Claude, for example: “{CLAUDE_EXAMPLE_PROMPT}”</EmptyState>
+      ? <ClaudePromptTile large />
       : null)}</div>}
     <Pager first={first} hasNext={!!page?.next} onBack={() => { setSearch(''); setPaging({ view, cursors: cursors.slice(0, -1) }); }} onNext={() => { if (page?.next) { setSearch(''); setPaging({ view, cursors: [...cursors, page.next] }); } }} nextLabel="More projects" />
   </ExploreLayout>;

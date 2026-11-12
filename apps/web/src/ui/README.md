@@ -35,7 +35,8 @@ project link and Archive for me. A proposal's menu holds Open proposal and Archi
 me. Archived cards drop Archive for me and show a Restore button instead.
 
 In the Current view, Projects I own starts with the dashed `ClaudePromptTile`: the example
-prompt for starting a project from Claude, copied on click (the website has no create
+prompt for starting a project from a coding agent, with Copy and Edit. With no projects it
+is the only thing on the page (the website has no create
 screen). The component never fetches or saves
 project data; archiving and starring arrive as callbacks.
 

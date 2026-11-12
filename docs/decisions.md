@@ -10,6 +10,15 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## The first-project prompt can be edited, and does not say Claude — owner request, 12 November 2026
+
+"why don't we have here the thing with the edit", then "yes and it should be the same prompt,
+and we don't have to say claude" and "it should be nice like before with the purple and nice
+font": with no projects, My projects keeps its large lilac empty state and now has Edit the
+prompt beside Copy the prompt, with the same choices and the same prompt as the dashed tile
+in the project grid. Both read "from your coding agent" instead of "from Claude". The prompt
+itself still names Claude Sonnet as the agents' model.
+
 ## The task page is simpler and has no editing — owner request, 12 November 2026
 
 "let's simplify the entire task card", then "yes, and no editing" and "i meant the dropdown
