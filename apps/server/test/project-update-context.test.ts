@@ -50,19 +50,19 @@ async function connect(token: string) {
 const fixture = () => seed({ profiles: [{ name: 'Dana', email: 'dana@example.test', role: 'owner' }, { name: 'Noam', email: 'noam@example.test' }],
   agents: [{ person: 0, name: 'amber' }, { person: 1, name: 'basil' }] });
 
-test('agents receive task-aware guidance, writing style and one shared five-minute reminder', async () => {
+test('agents receive the owner\'s update settings and one shared reminder at the chosen pace', async () => {
   const f = await fixture();
   await seedRuntime(TEST_PROJECT, { started: true, paused: false, completedAt: undefined });
   const amber = await connect(f.agents[0].token), basil = await connect(f.agents[1].token);
   const project = (await amber('get_project')).value;
   expect(project.tasks.enabled).toBe(true);
-  expect(project.projectUpdates).toMatchObject({ writingStyle: 'brief', guide: 'get_mlswarm_guide updates-and-help',
-    everyMinutes: 5, lastPublishedAt: null, due: true });
+  expect(project.projectUpdates).toMatchObject({ guide: 'get_mlswarm_guide updates-and-help',
+    everyMinutes: 5, topics: ['results', 'blockers', 'decisions', 'summaries'], slides: true, maxSlides: 5, lastPublishedAt: null, due: true });
   expect(project.projectUpdates.writingGuidance).toBeTruthy();
   expect(project.projectUpdates).not.toHaveProperty('responsibility');
   const guide = readFileSync(new URL('../../../packages/agent-cli/skills/mlswarm/references/updates-and-help.md', import.meta.url), 'utf8').replace(/\s+/g, ' ');
-  for (const phrase of ['When get_project.tasks.enabled is true', 'Tasks is off', 'a feed post does not update or complete a task', 'about every five minutes']) expect(guide).toContain(phrase);
-  const input = { screenshot: await seedProgressImage('agent:' + f.agents[0].agentId), clientRequestId: 'first', body: 'The park paths now load. Local checks passed; there is no deployed preview. Camera controls are next.', links: [] };
+  for (const phrase of ['With Tasks on, base updates on task results', 'A post does not update or complete a task', 'at most 60 characters', 'at most 140 characters', 'about every `everyMinutes` minutes']) expect(guide).toContain(phrase);
+  const input = { screenshot: await seedProgressImage('agent:' + f.agents[0].agentId), clientRequestId: 'first', title: 'Park paths load', body: 'Local checks passed; there is no deployed preview yet.', links: [] };
   expect((await amber('publish_project_update', input)).error).toBe(false);
   // One update covers the team: a teammate's post resets the reminder for everyone.
   at += 299_999;
@@ -97,9 +97,10 @@ test('saved project instructions reach agents at their next context read and cle
   const f = await fixture(), amber = await connect(f.agents[0].token);
   const before = (await amber('get_project')).value.projectUpdates;
   const text = 'Use Hebrew captions and emphasize participant demos.';
-  await inProject(TEST_PROJECT, () => saveProjectUpdateSettings(f.personIds[0], { expectedRevision: 0, clientRequestId: 'custom', writingStyle: 'brief', additionalInstructions: text }, () => T));
+  await inProject(TEST_PROJECT, () => saveProjectUpdateSettings(f.personIds[0], { expectedRevision: 0, clientRequestId: 'custom', everyMinutes: 15, slides: false, additionalInstructions: text }, () => T));
   const after = (await amber('get_project')).value.projectUpdates;
-  expect(after).toMatchObject({ writingStyle: before.writingStyle, writingGuidance: before.writingGuidance, guide: before.guide, additionalInstructions: text });
-  await inProject(TEST_PROJECT, () => saveProjectUpdateSettings(f.personIds[0], { expectedRevision: 1, clientRequestId: 'clear', writingStyle: 'brief', additionalInstructions: '' }, () => T));
-  expect((await amber('get_project')).value.projectUpdates).toMatchObject({ writingStyle: before.writingStyle, writingGuidance: before.writingGuidance, guide: before.guide, additionalInstructions: '', revision: 2 });
+  expect(after).toMatchObject({ everyMinutes: 15, slides: false, maxSlides: 1, guide: before.guide, additionalInstructions: text });
+  expect(after.writingGuidance).not.toBe(before.writingGuidance);
+  await inProject(TEST_PROJECT, () => saveProjectUpdateSettings(f.personIds[0], { expectedRevision: 1, clientRequestId: 'clear', additionalInstructions: '' }, () => T));
+  expect((await amber('get_project')).value.projectUpdates).toMatchObject({ everyMinutes: 15, writingGuidance: after.writingGuidance, guide: before.guide, additionalInstructions: '', revision: 2 });
 });

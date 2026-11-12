@@ -27,3 +27,13 @@
 .control-center .settings-group-head p { margin: 2px 0 0; font-size: 14px; font-weight: 400; color: var(--text-muted); }
 .control-center .settings-group-icon { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; background: var(--canvas-soft); color: var(--ink); }
 .control-center .settings-card > .settings-group-head + * { padding-top: 20px; }
+/* Updates settings (owner, 12 November 2026): rows of choices, then the owner's own note. */
+.control-center .update-settings { display: grid; gap: 16px; }
+.control-center .update-settings-topics { display: flex; flex-wrap: wrap; gap: 6px; }
+.control-center .update-settings-topics > button { min-height: 44px; padding: 0 14px; border: var(--card-border); border-radius: var(--pill-radius); background: var(--canvas); color: var(--text-muted); font-size: 13px; font-weight: 600; }
+.control-center .update-settings-topics > button[aria-pressed="true"], .control-center .update-settings-topics > button[aria-pressed="true"]:hover:not(:disabled) { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+.control-center .update-settings-note { display: grid; gap: 8px; }
+.control-center .update-settings-note label { font-weight: 600; }
+.control-center .update-settings-note textarea { width: 100%; box-sizing: border-box; }
+.control-center .update-settings-note p { margin: 0; font-size: 13px; }
+.control-center .update-settings .settings-save-row { margin-top: 0; }

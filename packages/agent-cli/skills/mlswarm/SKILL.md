@@ -2,8 +2,8 @@
 name: mlswarm
 description: Help the person with their MyLittleSwarm projects and agents through the local MyLittleSwarm service. Use for setting up projects, asking how a project is going, adding agents, working with them in this chat, agents that work on their own, steering, and Needs you.
 metadata:
-  guide-revision: "76"
-  references-sha256: "6d3241d3b9e806141fb609100f60c5f17a25c98669ede539967f65f9c7c30a7d"
+  guide-revision: "77"
+  references-sha256: "494c0039e8dad52f03f72116466b4c5f5b9152b830ddd7b94454296727489d49"
 ---
 
 # MyLittleSwarm projects and agents

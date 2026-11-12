@@ -14,8 +14,9 @@ beforeAll(async()=>{
   const projectId='demo-project',at=Date.now();
   const update=n=>({id:String(n),kind:'authored_update',projectId,publishedAt:at-(10-n)*60000,
     title:'Map update '+n,body:new URLSearchParams(location.search).has('previews')?'🌱'.repeat(n===3?151:150):'Synthetic preview: neighbors can find shared resources on the map. This is illustrative progress for testing the scrolling feed.',
-    author:{agent:{id:'demo-fox',name:'Demo Fox'},profile:{id:'demo-human',name:'Demo participant'}},links:[],screenshot:n===3?{id:'visual',contentPath:'/synthetic',mimeType:'image/png',width:480,height:600,alt:'Synthetic garden progress',caption:'Synthetic example, not deployed',representation:'concept_image'}:null});
-  const initial={bodyMaxLength:300,items:[update(3),update(2)],next:'earlier',observedAt:at,source:'authored_updates',audience:'member',coverage:'published_updates'};
+    author:{agent:{id:'demo-fox',name:'Demo Fox'},profile:{id:'demo-human',name:'Demo participant'}},links:[],screenshot:n===3?{id:'visual',contentPath:'/synthetic',mimeType:'image/png',width:480,height:600,alt:'Synthetic garden progress',caption:'Synthetic example, not deployed',representation:'concept_image'}:null,
+    slides:n===3?['visual','second','third'].map((id,i)=>({id,contentPath:'/synthetic',mimeType:'image/png',width:480,height:600,alt:'Synthetic slide '+(i+1),caption:i?'Slide caption '+(i+1):'Synthetic example, not deployed',representation:'concept_image'})):[]});
+  const initial={items:[update(3),update(2)],next:'earlier',observedAt:at,source:'authored_updates',audience:'member',coverage:'published_updates'};
   function Harness(){
     const [page,setPage]=useState(initial);
     const [pending,setPending]=useState(0),[mounted,setMounted]=useState(true);
@@ -79,16 +80,39 @@ test('150-character previews expand independently with keyboard controls on desk
       const toggle = long.locator('.k42-progress-body-toggle');
       expect(await long.locator('.k42-progress-body').textContent()).toBe('🌱'.repeat(150) + '…');
       expect(await short.locator('.k42-progress-body').textContent()).toBe('🌱'.repeat(150));
-      expect(await short.getByRole('button', { name: 'Show more', exact: true }).count()).toBe(0);
+      expect(await short.getByRole('button', { name: 'more', exact: true }).count()).toBe(0);
       expect(await toggle.getAttribute('aria-expanded')).toBe('false');
       expect(await long.locator('.k42-progress-body').getAttribute('id')).toBe(await toggle.getAttribute('aria-controls'));
       await toggle.focus();
       await p.keyboard.press('Enter');
       expect(await long.locator('.k42-progress-body').textContent()).toBe('🌱'.repeat(151));
       expect(await toggle.getAttribute('aria-expanded')).toBe('true');
-      await p.getByRole('button', { name: 'Show less', exact: true }).press('Space');
+      await long.getByRole('button', { name: 'less', exact: true }).press('Space');
       expect(await long.locator('.k42-progress-body').textContent()).toBe('🌱'.repeat(150) + '…');
       expect(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     } finally { await closePage(p); }
   }
 });
+
+test('slides swipe sideways with arrows, a counter and dots on desktop and phone', async () => {
+  for (const width of [1440, 390]) {
+    const p = await openPage({ width, height: 844 });
+    try {
+      await p.goto(origin);
+      const post = p.getByRole('article', { name: 'Map update 3', exact: true });
+      await post.getByRole('group', { name: 'Slide 1 of 3' }).waitFor();
+      expect(await post.locator('.k42-progress-count').textContent()).toBe('1/3');
+      expect(await post.getByRole('button', { name: 'Previous slide' }).count()).toBe(0);
+      expect(await post.locator('.k42-progress-badge').first().textContent()).toBe('Concept');
+      await post.getByRole('button', { name: 'Next slide' }).click();
+      await p.waitForFunction(() => document.querySelector('.k42-progress-count')?.textContent === '2/3');
+      expect(await post.locator('.k42-progress-image-caption').textContent()).toBe('Slide caption 2');
+      expect(await post.locator('.k42-progress-dots .is-current').count()).toBe(1);
+      await post.getByRole('button', { name: 'Next slide' }).click();
+      await p.waitForFunction(() => document.querySelector('.k42-progress-count')?.textContent === '3/3');
+      expect(await post.getByRole('button', { name: 'Next slide' }).count()).toBe(0);
+      expect(await p.getByRole('article', { name: 'Map update 2', exact: true }).locator('.k42-progress-preview').count()).toBe(0);
+      expect(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    } finally { await closePage(p); }
+  }
+}, 30000);

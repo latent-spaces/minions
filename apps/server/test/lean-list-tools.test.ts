@@ -86,15 +86,15 @@ test('find_agents, list_human_requests and list_project_updates return short row
   expect(JSON.stringify(requests.value)).not.toContain('license check');
   expect(JSON.stringify((await fox('list_human_requests', { detail: true })).value)).toContain('license check');
 
-  const long = 'The park paths now load and the camera works. '.repeat(4).trim();
-  const published = await fox('publish_project_update', { screenshot: await seedProgressImage('agent:' + f.agents[0].agentId), clientRequestId: 'u1', body: long.slice(0, 290), links: [] });
+  const long = 'The park paths now load and the camera works. '.repeat(4).trim().slice(0, 140);
+  const published = await fox('publish_project_update', { screenshot: await seedProgressImage('agent:' + f.agents[0].agentId), clientRequestId: 'u1', title: 'Park paths load', body: long, links: [] });
   expect(published.error, published.value).toBe(false);
   const updates = await fox('list_project_updates');
   const row = updates.value.items[0];
   expect(row).toMatchObject({ trust: 'untrusted', source: { type: 'agent', agentId: f.agents[0].agentId }, content: { author: 'Fox' } });
   expect(Object.keys(row.content).sort()).toEqual(['author', 'id', 'publishedAt', 'title']);
   expect([...row.content.title].length).toBeLessThanOrEqual(80);
-  expect((await fox('list_project_updates', { detail: true })).value.items[0].content.body).toBe(long.slice(0, 290));
+  expect((await fox('list_project_updates', { detail: true })).value.items[0].content.body).toBe(long);
 });
 
 test('list_work_intents short rows carry the next step; detail: true adds the blocker and recordedRunId', async () => {

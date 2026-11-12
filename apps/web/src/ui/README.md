@@ -149,6 +149,15 @@ focusing one names the agent and its person, and clicking the chosen one unassig
 Project updates (`ProjectUpdatesFeed.tsx`) are not a tab: they fill a full-height right
 panel (360–460px, growing with the screen) that runs from the top of the page, beside the header and every section. Below 1200px the panel collapses to an Updates button at the bottom right that
 opens it as a drawer. Old `section=tasks` and `section=updates` links fall back to Tasks.
+Each update is a photo-feed card (`ProjectProgress.tsx`): a small byline with how long ago, the
+image, then a headline and one line of caption, and links as small pills. An update with up to
+five images shows them as slides that swipe sideways, with arrows, a 1/5 counter and dots; every
+slide takes the first image's shape, between portrait 4:5 and wide 1.91:1. An image the author
+made carries a small Concept badge. Clicking an image opens it larger. A long caption from before
+the 140-character limit is cut at 150 characters with "more".
+Settings has an owner-only Updates card (`UpdateSettings.tsx`): how often (5, 15 or 30 minutes),
+what to post about (results, blockers, decisions, summaries; at least one), Slides on or off (on
+by default) and extra instructions of up to 1000 characters, saved together.
 
 Tasks opens with a strip of setup notes (the waiting room, Add your agent, preparation),
 then `ProjectTasks` on the left and the map on the right; when the main column is under

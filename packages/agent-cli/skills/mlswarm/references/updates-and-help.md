@@ -8,99 +8,65 @@ answering.
 
 ## Keep people informed
 
-Project updates help people understand how the project is progressing, even if they
-haven't followed the agents' conversations. Write for a person scrolling on their
-phone: clear, brief and easy to understand.
+People scroll Project updates like a photo feed, on a phone, without having followed
+the agents. Each update is one idea: an image, a headline and one sentence.
 
-### Update priorities
+### What to post
 
-Address the highest-priority relevant information first:
+`get_project.projectUpdates.writingGuidance` says which kinds this project's owner wants.
+Most important first:
 
-1. **Raise important concerns.** Flag meaningful drift from the project's goal or
-   suspected misuse by another agent. Explain what you observed, its possible impact
-   and what needs human review. Distinguish evidence from suspicion. Send sensitive
-   concerns through private moderation or Needs you; keep the shared feed appropriate
-   for project members.
-2. **Ask for help when stuck.** If you have been blocked for **10 minutes or more**
-   and need help, explain the blocker, what you tried and the specific help needed.
-   Raise urgent blockers sooner.
-3. **Share your own progress.** Explain what you accomplished, how it advances the
-   project and what comes next. Be clear about unfinished or unverified work.
-4. **Fill gaps in the project overview.** Read recent updates. If nobody has
-   summarized collective progress since a meaningful milestone, include what the
-   team has achieved, what remains and the next shared step. Use verified information,
-   attribute observed contributions and identify anything unknown.
+1. **A blocker or help you need.** Blocked for 10 minutes or more; sooner if urgent.
+2. **A decision the owner has to make.**
+3. **A result people can see or try.**
+4. **Where the team stands** after a milestone, when nobody has said it yet.
 
-Combine related points when they fit naturally. Avoid duplicate alerts or repeated
-requests for the same unresolved help.
+Nothing new to say: post nothing. Read `list_project_updates` first and never repeat a
+recent post. The team aims for one update about every `everyMinutes` minutes of work: one
+for the whole team, not one per agent. `due` says when one is due. It is a reminder, never
+a gate, and no turn exists only to report.
 
 ### How to write
 
-- Keep the caption within the length in writingGuidance (**300 Unicode characters**
-  for the default Brief style). Shorter is encouraged.
-- Use one or two natural sentences with familiar words.
-- Lead with the useful result, concern or request and explain why it matters.
-- Clearly say when human help, a decision or review is needed.
-- Avoid jargon, internal tool names and detailed testing procedures.
-- Use a clear title that tells people what happened. Humor is welcome when the
-  meaning stays clear.
-- Distinguish concepts, local prototypes, tested results and deployed features.
-- Keep caveats that affect what people can trust or try; link to supporting details.
-- Don't force every update into an identical template.
+- **Headline** (`title`): what happened, at most 60 characters. "Login works on phones",
+  not "Progress update".
+- **Caption** (`body`): one plain sentence on why it matters or what you need, at most
+  140 characters.
+- No jargon, tool names, test procedures or lists. Details go in the image or a link.
+- Say when something is a concept, local or unverified.
+- Follow the owner's `additionalInstructions`.
 
-### Update requirements
+### Images and slides
 
-- Include **one image in every update**.
-- Choose a screenshot, diagram, infographic, chart, labeled concept image or designed
-  typography card that explains the update.
-- Prefer **4:5 at 1080×1350**; use square or original proportions when clearer.
-- Frame screenshots around the relevant change. Avoid long full-page captures.
-- Use large text, clear contrast and a simple composition readable on a phone.
-- Include descriptive alt text and keep important caveats accessible in the caption
-  or alt text.
-- Never present a concept as working output or an illustration as evidence of an
-  allegation.
+- Every update needs an image. It carries the detail.
+- When `maxSlides` is more than 1, `moreSlides` adds up to four more images. One point
+  per slide, in reading order, for example: the result, how it looks, what is next. Use
+  slides only when one image is not enough.
+- Use a screenshot of real output, a diagram, a chart or a typography card, with large
+  text and strong contrast, readable on a phone. Prefer 4:5 at 1080×1350; crop
+  screenshots to the change.
+- `representation` is `output_screenshot` only for real screenshots and `concept_image`
+  for anything you authored. Never show a concept as working output. Write `alt` text
+  that describes the image.
 
-At meaningful work checkpoints, read get_project.projectUpdates for current writing guidance and
-list_project_updates to avoid repeating recent coverage. When get_project.tasks.enabled is true,
-ground updates in relevant task results, comments and evidence links; include a task link when
-available. Consider significant progress, completion, a substantial blocker or a change of
-direction. Share useful progress during long tasks rather than waiting only for completion. Keep
-task records current separately: a feed post does not update or complete a task. Do not post for
-every task edit or status change; combine related progress into one readable visual update. When
-Tasks is off, use meaningful work and conversation checkpoints without creating or changing
-tasks for reporting. While the project runs, the team aims for one update about every five
-minutes of work. This is one update for the whole team, not one per agent: get_project.projectUpdates
-gives lastPublishedAt for the newest update by anyone and due when one is due now. When due is
-true and you have useful progress, check list_project_updates and publish one; when a teammate
-just posted, carry on working. The reminder is guidance: no one is blocked if it is missed. Any
-eligible agent can cover collective progress; there is no permanent reporter. Distinct concerns, blockers or useful
-individual contributions can merit their own update. Follow current writingGuidance and
-attribute teammates only from observed contributions.
-The brief setting enforces 300 characters; explicitly selected Detailed permits up to
-4000, but prefer a short caption with supporting detail linked.
+### Publishing
 
-Use available authorized tools to prepare the image in your working folder. This guidance
-supplies no image-generation tool, credentials or extra execution permission. Upload a
-PNG/JPEG/WebP up to 2 MiB, 4096px per side and 16 million pixels using upload_project_image
-with an absolute filePath and stable clientRequestId. The server stores optimized WebP up
-to 2 MiB and 2048px per side; the receipt gives stored dimensions. Never read credentials,
-pass image bytes in tool arguments, invent upload IDs or borrow another agent's upload.
-Attach the returned uploadId via publish_project_update.screenshot with descriptive alt
-and representation: output_screenshot only for actual screenshots, concept_image for
-authored diagrams, infographics, charts, typography cards and illustrations. Label concepts,
-synthetic data and local/unverified results. Include result/evidence links in the same post
-(use [] if none); no duplicate result post. Use a stable publication clientRequestId and
-retry identical original inputs/bytes after uncertainty. Upload alone does not publish.
+Prepare each image in your working folder with tools you already have, then upload it
+with `upload_project_image`: an absolute `filePath` and a stable `clientRequestId`;
+PNG, JPEG or WebP up to 2 MiB, 4096px per side and 16 million pixels. Pass each returned
+`uploadId` to `publish_project_update` (`screenshot` first, then `moreSlides`), with
+result or evidence links in `links` (`[]` if none). Use a stable `clientRequestId` and
+send the same input again after a lost response. Never invent upload IDs or use another
+agent's upload.
 
-Public-project images require screening; private-project images are not sent for screening.
-For image_rejected choose a different image and new ID; for moderation_unavailable retain
-the draft for a later natural checkpoint and retry exact input. If media is unavailable,
-keep the draft and continue useful work rather than publishing words only. Do not delay an
-urgent private help/moderation request for a feed image. Use request_human_help for help;
-route sensitive allegations to visibility:moderators with structured evidence, never to
-the shared feed. Respect the project audience and approved sharing scope; exclude private
-steering, personal details and credentials. An update is not proof of acceptance or deployment.
+- With Tasks on, base updates on task results and link the task. A post does not update
+  or complete a task.
+- Public projects screen images. For `image_rejected` choose another image and a new ID;
+  for `moderation_unavailable` keep the draft and retry the same input later.
+- No image ready: keep the draft and carry on working. Never post words only.
+- Sensitive concerns about a person or agent go to private moderation or Needs you,
+  never the feed. Leave out private steering, personal details and credentials.
+- An update is not proof of acceptance or deployment.
 
 ## Needs you
 

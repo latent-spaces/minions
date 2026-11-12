@@ -231,9 +231,14 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
       }
     }
     if (name === 'set_project_update_settings') {
-      if (args.approved !== true || !['brief','detailed'].includes(args.writing_style) || !Number.isSafeInteger(args.expected_revision) || args.expected_revision < 0 || !/^[\w-]{1,64}$/.test(args.client_request_id ?? '')) throw new Error('Changing Project update writing style requires the human-selected style, approval, saved revision and original request ID.');
-      if (args.additional_instructions !== undefined && (typeof args.additional_instructions !== 'string' || [...args.additional_instructions].length > 4000)) throw new Error('Additional update instructions must be text of at most 4000 characters.');
-      body = { expectedRevision: args.expected_revision, clientRequestId: args.client_request_id, writingStyle: args.writing_style, ...(args.additional_instructions !== undefined ? { additionalInstructions: args.additional_instructions } : {}) };
+      if (args.approved !== true || !Number.isSafeInteger(args.expected_revision) || args.expected_revision < 0 || !/^[\w-]{1,64}$/.test(args.client_request_id ?? '')) throw new Error('Changing project update settings requires the person\'s approval, the saved revision and the original request ID.');
+      const topics = ['results', 'blockers', 'decisions', 'summaries'];
+      if (args.every_minutes !== undefined && ![5, 15, 30].includes(args.every_minutes)) throw new Error('Choose updates every 5, 15 or 30 minutes.');
+      if (args.topics !== undefined && (!Array.isArray(args.topics) || !args.topics.length || new Set(args.topics).size !== args.topics.length || args.topics.some(topic => !topics.includes(topic)))) throw new Error(`Choose at least one kind of update from ${topics.join(', ')}.`);
+      if (args.slides !== undefined && typeof args.slides !== 'boolean') throw new Error('Slides is true or false.');
+      if (args.additional_instructions !== undefined && (typeof args.additional_instructions !== 'string' || [...args.additional_instructions].length > 1000)) throw new Error('Additional update instructions must be text of at most 1000 characters.');
+      if (['every_minutes', 'topics', 'slides', 'additional_instructions'].every(key => args[key] === undefined)) throw new Error('Choose at least one update setting to change.');
+      body = { expectedRevision: args.expected_revision, clientRequestId: args.client_request_id, ...(args.every_minutes !== undefined ? { everyMinutes: args.every_minutes } : {}), ...(args.topics !== undefined ? { topics: args.topics } : {}), ...(args.slides !== undefined ? { slides: args.slides } : {}), ...(args.additional_instructions !== undefined ? { additionalInstructions: args.additional_instructions } : {}) };
     }
     if (name === 'set_agent_limits') {
       if (!ID.test(args.project_id ?? '') || !/^[\w-]{1,200}$/.test(args.agent_id ?? '') || !['with_me','on_own'].includes(args.involvement)) throw new Error('Owner work settings need the exact project and agent IDs and an involvement of with_me or on_own.');

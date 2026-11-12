@@ -1,4 +1,5 @@
-import { Users } from 'lucide-react';
+import { Megaphone, Users } from 'lucide-react';
+import { UpdateSettings } from './ui/UpdateSettings';
 import { AgentCommunication } from './ui/AgentCommunication';
 import { NativeTeamSettings } from './ui/NativeTeamSettings';
 import { NativeTaskSettings } from './ui/NativeTaskSettings';
@@ -13,7 +14,7 @@ import { Connections } from './ui/Connections';
 import './ui/control-center.css';
 import { MyCharacter } from './ui/MyCharacter';
 
-// Settings is one page (owner decision, 11 November 2026): Agents, Features and Connections, each explained behind a ? note.
+// Settings is one page (owner decision, 11 November 2026): Agents, Updates, Features and Connections, each explained behind a ? note.
 // Pause, Close and Reopen moved to the project header (owner, 12 November 2026).
 export function ControlCenter({ user, workspace, refresh, active, refreshKey }: { refreshKey: number; user: SessionUser; workspace: Workspace; refresh: () => void; active: boolean }) {
   const catalogRequest = useCallback(<T,>(path: string, body?: object) => projects<T>(user, path, body), [user]);
@@ -31,6 +32,10 @@ export function ControlCenter({ user, workspace, refresh, active, refreshKey }: 
           {/* The owner edits the Card, shared instructions included (server editCard). */}
           <CardSettings mode="guidance" request={catalogRequest} workspace={workspace} definition={workspace.definition} refresh={refresh} active={active} />
           <AgentCommunication key={`${user.uid}:${workspace.id}:communication`} user={user} projectId={workspace.id} active={active} tick={refreshKey} />
+        </section>
+        <section className="settings-card" aria-labelledby="settings-updates-title">
+          <header className="settings-group-title settings-group-head"><span className="settings-group-icon" aria-hidden="true"><Megaphone size={18} /></span><div><h3 id="settings-updates-title">Updates</h3><p>What agents post to the Updates feed: an image, a headline and one line.</p></div></header>
+          <UpdateSettings key={`${user.uid}:${workspace.id}:updates`} request={catalogRequest} projectId={workspace.id} active={active} />
         </section>
         <section className="settings-card" aria-labelledby="settings-features-title">
           <h3 id="settings-features-title" className="settings-group-title">Features</h3>

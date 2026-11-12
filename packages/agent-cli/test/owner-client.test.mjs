@@ -233,18 +233,22 @@ test('list tools return short rows by default and the server rows with detail: t
  }finally{f.close();}
 });
 
-test('project update settings accept a style-only save and expose no interval control', async () => {
+test('project update settings send only the fields the person changed', async () => {
  const f=fixture();try{
   await f.client.connect();f.approve();await f.client.finish();
-  const args={project_id:P,expected_revision:4,client_request_id:'style-save',writing_style:'detailed',approved:true};
+  const args={project_id:P,expected_revision:4,client_request_id:'pace-save',every_minutes:15,approved:true};
   await f.client.operation('set_project_update_settings',args);
-  assert.deepEqual(JSON.parse(f.requests.at(-1).body),{expectedRevision:4,clientRequestId:'style-save',writingStyle:'detailed'});
-  await assert.rejects(f.client.operation('set_project_update_settings',{...args,writing_style:'verbose'}),/writing style/);
+  assert.deepEqual(JSON.parse(f.requests.at(-1).body),{expectedRevision:4,clientRequestId:'pace-save',everyMinutes:15});
+  await assert.rejects(f.client.operation('set_project_update_settings',{...args,every_minutes:10}),/5, 15 or 30/);
+  await assert.rejects(f.client.operation('set_project_update_settings',{...args,topics:[]}),/at least one kind/);
+  await assert.rejects(f.client.operation('set_project_update_settings',{...args,every_minutes:undefined}),/at least one update setting/);
+  await f.client.operation('set_project_update_settings',{...args,every_minutes:undefined,client_request_id:'topics-save',topics:['blockers'],slides:false});
+  assert.deepEqual(JSON.parse(f.requests.at(-1).body),{expectedRevision:4,clientRequestId:'topics-save',topics:['blockers'],slides:false});
   await f.client.operation('set_project_update_settings',{...args,client_request_id:'custom-save',additional_instructions:'Write in Hebrew.'});
   assert.equal(JSON.parse(f.requests.at(-1).body).additionalInstructions,'Write in Hebrew.');
   await f.client.operation('set_project_update_settings',{...args,client_request_id:'clear-save',additional_instructions:''});
   assert.equal(JSON.parse(f.requests.at(-1).body).additionalInstructions,'');
-  await assert.rejects(f.client.operation('set_project_update_settings',{...args,additional_instructions:'🌱'.repeat(4001)}),/4000/);
+  await assert.rejects(f.client.operation('set_project_update_settings',{...args,additional_instructions:'🌱'.repeat(1001)}),/1000/);
   await assert.rejects(f.client.operation('set_project_update_settings',{...args,approved:false}),/approval/);
   const tool=OWNER_TOOLS.find(tool=>tool.name==='set_project_update_settings');
   assert.equal('interval_minutes' in tool.inputSchema.properties,false);

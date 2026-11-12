@@ -1,7 +1,7 @@
 export type * from './project-lifecycle.js';
 export { deriveProjectLifecycle, projectExecution } from './lifecycle-observation.js';
 export type * from './project-progress.js';
-export { PROGRESS_LIMITS } from './project-progress.js';
+export { PROGRESS_LIMITS, UPDATE_EVERY_MINUTES, UPDATE_TOPICS } from './project-progress.js';
 export type * from './profiles-messaging.js';
 export type * from './agent-participation.js';
 export type * from './agent-focus.js';

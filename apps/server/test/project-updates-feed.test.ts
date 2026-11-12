@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import sharp from 'sharp';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { imageModeration } from '../src/projects/image-moderation.js';
-import { inProject, profiles, collection } from '../src/firestore.js';
+import { inProject, profiles, collection, projectDocument } from '../src/firestore.js';
 import { membershipDoc } from '../src/projects/access.js';
 import { latestUpdateScreenshotId, publishProgressUpdate, readProgressUpdates } from '../src/projects/progress.js';
 import { uploadProgressScreenshot, readProgressScreenshot } from '../src/projects/progress-media.js';
@@ -33,12 +33,12 @@ test('one feed preserves text, outputs and images once across pages, while retai
     // Text-only records represent immutable history from before the visual cutover.
     const input = { clientRequestId: 'post-' + n, body: 'Progress ' + n,
       links: n === 2 ? [{ url: 'https://example.com/demo', label: 'Try the demo', purpose: 'result' as const }] : [] };
-    const receipt = n === 3 ? await publishProgressUpdate(TEST_PROJECT, actor, { ...input,
+    const receipt = n === 3 ? await publishProgressUpdate(TEST_PROJECT, actor, { ...input, title: 'Progress 3',
       screenshot: { uploadId: upload.uploadId, alt: 'A small test image', representation: 'concept_image' } }, () => 2000 + Math.floor(n / 2))
       : { update: { kind: 'authored_update' as const, id: n.toString(16).padStart(64, '0'), projectId: TEST_PROJECT,
           author: { profile: { id: person.id, name: person.name!, photo: null }, agent: null }, title: null,
           body: input.body, links: input.links.map(link => ({ ...link, availability: 'unknown' as const })),
-          screenshot: null, publishedAt: 2000 + Math.floor(n / 2) } };
+          screenshot: null, slides: [], publishedAt: 2000 + Math.floor(n / 2) } };
     if (n !== 3) await collection(`projects/${TEST_PROJECT}/updates`).doc(receipt.update.id).set({
       ...receipt.update, hasResult: input.links.length > 0 });
     published.push(receipt.update);
@@ -96,7 +96,7 @@ test('a project cover is the screenshot on its newest update that has one', asyn
   const bytes = await sharp({ create: { width: 8, height: 8, channels: 3, background: '#ffce32' } }).png().toBuffer();
   for (const [n, at] of [[1, 1000], [2, 2000]] as const) {
     const upload = await uploadProgressScreenshot(TEST_PROJECT, actor, `image-${n}`, 'image/png', Buffer.concat([bytes, Buffer.alloc(n)]), () => at);
-    await publishProgressUpdate(TEST_PROJECT, actor, { clientRequestId: `post-${n}`, body: `Progress ${n}`, links: [],
+    await publishProgressUpdate(TEST_PROJECT, actor, { clientRequestId: `post-${n}`, title: `Progress ${n}`, body: `Progress ${n}`, links: [],
       screenshot: { uploadId: upload.uploadId, alt: 'A small test image', representation: 'output_screenshot' } }, () => at);
     expect(await latestUpdateScreenshotId(TEST_PROJECT)).toBe(upload.uploadId);
   }
@@ -105,4 +105,28 @@ test('a project cover is the screenshot on its newest update that has one', asyn
   await collection(`projects/${TEST_PROJECT}/updates`).doc('f'.repeat(64)).set({ kind: 'authored_update', id: 'f'.repeat(64), projectId: TEST_PROJECT,
     author: { profile: { id: person.id, name: person.name!, photo: null }, agent: null }, title: null, body: 'Text only', links: [], screenshot: null, publishedAt: 3000, hasResult: false });
   expect(await latestUpdateScreenshotId(TEST_PROJECT)).toBe(newest);
+});
+
+// One update carries one to five slides; the first is the cover (owner, 12 November 2026).
+test('an update carries up to five slides in order, each readable, unless the owner turned slides off', async () => {
+  const f = await seed({ profiles: [{ name: 'Participant', email: 'participant@example.test' }] });
+  const person = { id: f.personIds[0], ...(await profiles.doc(f.personIds[0]).get()).data()! };
+  const actor = { kind: 'person' as const, person };
+  const bytes = await sharp({ create: { width: 8, height: 10, channels: 3, background: '#ffce32' } }).png().toBuffer();
+  const images = [];
+  for (let n = 0; n < 6; n++) images.push({ uploadId: (await uploadProgressScreenshot(TEST_PROJECT, actor, `slide-${n}`, 'image/png', Buffer.concat([bytes, Buffer.alloc(n + 1)]), () => 1000)).uploadId, alt: `Slide ${n}`, representation: 'concept_image' as const });
+  const base = { title: 'Map works on phones', body: 'People can find shared tools near them.', links: [] };
+  await expect(publishProgressUpdate(TEST_PROJECT, actor, { ...base, clientRequestId: 'six', screenshot: images[0], moreSlides: images.slice(1, 6) }, () => 2000)).rejects.toThrow();
+  await expect(publishProgressUpdate(TEST_PROJECT, actor, { ...base, clientRequestId: 'twice', screenshot: images[0], moreSlides: [images[0]] }, () => 2000)).rejects.toThrow(/its own image/);
+  await expect(publishProgressUpdate(TEST_PROJECT, actor, { ...base, clientRequestId: 'untitled', title: '', screenshot: images[0] } as never, () => 2000)).rejects.toThrow();
+  await expect(publishProgressUpdate(TEST_PROJECT, actor, { ...base, clientRequestId: 'long', body: 'x'.repeat(141), screenshot: images[0] }, () => 2000)).rejects.toThrow();
+  const five = await publishProgressUpdate(TEST_PROJECT, actor, { ...base, clientRequestId: 'five', screenshot: images[0], moreSlides: images.slice(1, 5) }, () => 2000);
+  const item = (await readProgressUpdates(TEST_PROJECT, actor, {}, () => 3000)).items.find(entry => entry.id === five.update.id)!;
+  expect(item.slides.map(slide => slide.alt)).toEqual(['Slide 0', 'Slide 1', 'Slide 2', 'Slide 3', 'Slide 4']);
+  expect(item.screenshot?.id).toBe(item.slides[0].id);
+  for (const slide of item.slides) expect((await readProgressScreenshot(TEST_PROJECT, actor, slide.id)).mimeType).toBeTruthy();
+  await inProject(TEST_PROJECT, () => projectDocument('settings/projectUpdates').set({ everyMinutes: 5, topics: ['results'], slides: false, additionalInstructions: '', revision: 1, updatedAt: 1, updatedByProfileId: person.id }));
+  await expect(publishProgressUpdate(TEST_PROJECT, actor, { ...base, clientRequestId: 'off', screenshot: images[5], moreSlides: [images[4]] }, () => 4000)).rejects.toThrow(/one image per update/);
+  const single = await publishProgressUpdate(TEST_PROJECT, actor, { ...base, clientRequestId: 'single', screenshot: images[5] }, () => 4000);
+  expect(single.update.slides).toHaveLength(1);
 });

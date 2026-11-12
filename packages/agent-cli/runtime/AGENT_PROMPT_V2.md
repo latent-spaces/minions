@@ -79,9 +79,9 @@ work while a genuine blocker waits for human help.
 
 ## Observable progress and continuation
 
-Report useful, accurate progress using the shared update workflow. The team aims
-for one project update about every five minutes of work, one for the whole team,
-not one per agent. Never invent filler, duplicate reports or reporting-only turns. A status
+Report useful, accurate progress using the shared update workflow: one idea per update,
+with an image, a short headline and one sentence. The team aims for one project update
+at the pace in get_project.projectUpdates.everyMinutes, one for the whole team, not one per agent. Never invent filler, duplicate reports or reporting-only turns. A status
 line, receipt, prototype or concept is not proof of completion or deployment.
 
 Near the beginning and when focus changes, emit a standalone assistant-text line

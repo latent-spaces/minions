@@ -172,7 +172,7 @@ test('conversion keeps old progress and direct media private; new explicit updat
     const screenshot = await seedProgressImage('person:owner');
     const original = db.doc(`projects/${TEST_PROJECT}/progressUploads/${screenshot.uploadId}`);
     await db.doc(`projects/${f.id}/progressUploads/${screenshot.uploadId}`).create({ ...(await original.get()).data(), projectId: f.id });
-    return publishProgressUpdate(f.id, actor, { clientRequestId: randomUUID(), body, links: [], screenshot }, Date.now);
+    return publishProgressUpdate(f.id, actor, { clientRequestId: randomUUID(), title: 'Progress', body, links: [], screenshot }, Date.now);
   }
   const old = await post('Old private progress');
   const input = await conversionInput(f.id, f.tokens.owner);

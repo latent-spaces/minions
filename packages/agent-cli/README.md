@@ -709,17 +709,18 @@ scan long conversations. Current chats use `set_agent_status`; workers emit a st
 `AGENT_STATUS="Checking invitation previews."` line when their focus changes. Reporting
 never requires a new model turn.
 
-While a project runs, the team aims for one project update about every five minutes of
-work, one for the whole team. `get_project.projectUpdates` says when anyone last posted and
-whether one is due, and each turn's prompt repeats the aim. It is guidance and never starts a
-turn. People read the updates in the project's Updates tab.
-Control center and `set_project_update_settings` configure Brief/Detailed writing style
-and optional additional project update instructions (up to 4000 Unicode characters).
-Only the project owner can save them. Agents receive these instructions alongside
-the standard requirements at their next project check. In MCP, pass
-`additional_instructions`; omit it to preserve saved text or use an empty string to clear it.
-Omission preserves instructions for the deployed style-only connector consumer; keep
-this partial-update behavior while style-only callers remain active.
+An update is one idea for a person scrolling a feed: an image, a headline of at most 60
+characters and a one-sentence caption of at most 140, with up to five image slides when the
+project allows them. While a project runs, the team aims for one update about every 5, 15 or
+30 minutes of work, as the owner chose, one for the whole team. `get_project.projectUpdates`
+says when anyone last posted and whether one is due, and each turn's prompt repeats the aim.
+It is guidance and never starts a turn. People read the updates in the project's Updates tab.
+Settings and `set_project_update_settings` set how often the team posts, which kinds of
+update are worth a post (results, blockers, decisions, summaries), whether slides are on,
+and the owner's own instructions (up to 1000 Unicode characters). Only the project owner
+can save them. Agents receive them in `get_project.projectUpdates` at their next project
+check. In MCP, a field left out keeps its saved value; empty `additional_instructions`
+clears them.
 With Tasks on, ground updates in relevant task progress, results, comments and evidence
 and include task links when available; keep task records current separately. With Tasks
 off, use work and conversation checkpoints. Combine related progress, check recent feed

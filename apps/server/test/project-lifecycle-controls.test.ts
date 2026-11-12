@@ -45,7 +45,7 @@ test('start, pause, close, reopen and resume preserve history, discussion and au
   await expect(db.runTransaction(tx=>assertChatWrite(tx,TEST_PROJECT,owner,now))).rejects.toMatchObject({code:'forbidden'});
   await expect(sendMessageV2(agent,{to:['project'],body:'Blocked',clientId:'closed-discussion'},now)).rejects.toMatchObject({code:'forbidden'});
   await expect(db.runTransaction(tx=>assertNewProgressAction(tx,{kind:'person',person:owner}))).rejects.toMatchObject({code:'forbidden'});
-  await expect(saveProjectUpdateSettings(owner.id,{expectedRevision:0,clientRequestId:'closed-setting',writingStyle: 'brief'},now)).rejects.toMatchObject({code:'forbidden'});
+  await expect(saveProjectUpdateSettings(owner.id,{expectedRevision:0,clientRequestId:'closed-setting',everyMinutes: 15},now)).rejects.toMatchObject({code:'forbidden'});
   // Reading retained messages and recovering an accepted receipt do not create a new contribution.
   expect(await sendMessageV2(agent,{to:['project'],body:'Discussion while paused',clientId:'paused-discussion'},now)).toMatchObject({duplicate:true});
  });

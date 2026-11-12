@@ -10,6 +10,30 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Project updates are a photo feed with slides and short text — owner request, 12 November 2026
+
+"let's work on the updates feed i need to get the settings better and the instructions it should be
+shorter on text much shorter and the instructions should be more clear so that humans can see filtered
+and summarized information just exactly what they need and imprtant in a modern way of instagram like
+feed, maybe we should also add slide (like up to 5 slides)". The owner then chose, in the question
+dialog:
+
+- Slides: "Yes, up to 5". An update carries one to five images (`screenshot`, then `moreSlides`),
+  shown as a carousel that swipes sideways with dots. Updates from before keep their one image.
+- Text: "Headline + 1 line". The headline (`title`) is required, at most 60 characters; the caption
+  (`body`) is one sentence, at most 140. The server enforces both. Brief and Detailed are removed;
+  this supersedes the 300 and 4000 character limits recorded earlier.
+- Settings: "slides should be on by default, How often, What to post about, Extra instructions".
+  The owner's Updates card in Settings, and `set_project_update_settings`, set how often the team
+  aims to post (5, 15 or 30 minutes; 5 by default), which kinds of update are worth a post
+  (results, blockers, decisions, summaries; all by default), Slides on or off (on by default) and
+  extra instructions of up to 1000 characters. A field left out keeps its saved value.
+- Design: "Build directly". The card was built in the real app without concept mockups first.
+
+The agent guide's "Keep people informed" section is rewritten to about a third of its length: what
+to post in order of importance, how to write the headline and caption, how to use slides, and how
+to publish.
+
 ## Project lifecycle controls are header icons; Settings names All agents — owner request, 12 November 2026
 
 "this could be removed from settings and have good enogh icon + hover info next to the top top

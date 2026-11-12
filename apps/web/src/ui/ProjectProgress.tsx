@@ -6,7 +6,7 @@ import { Button } from './Button';
 import { CloseButton } from './CloseButton';
 import { Dialog } from './Dialog';
 import { PersonLink } from './PersonLink';
-import { ArrowUp, Expand, Megaphone } from 'lucide-react';
+import { ArrowUp, ChevronLeft, ChevronRight, ExternalLink, Megaphone } from 'lucide-react';
 import { AgentAvatar } from './AgentAvatar';
 import { PersonAvatar } from './PersonAvatar';
 import './project-progress.css';
@@ -23,21 +23,31 @@ export type ProgressReadProps = {
 };
 export type ProjectUpdatesProps = ProgressReadProps & { onPendingChange?: (count: number) => void };
 const date = (at: number) => new Date(at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+// How long ago, as short as a feed shows it; the full date is on hover.
+function ago(at: number) {
+  const minutes = Math.max(0, Math.round((Date.now() - at) / 60_000));
+  if (minutes < 1) return 'now';
+  if (minutes < 60) return `${minutes}m`;
+  if (minutes < 24 * 60) return `${Math.round(minutes / 60)}h`;
+  if (minutes < 7 * 24 * 60) return `${Math.round(minutes / 1440)}d`;
+  return new Date(at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
 
 function Author({ item, go }: { item: PublishedUpdate; go: ProgressReadProps['go'] }) {
   const person = item.author.profile, agent = item.author.agent;
   return <header className="k42-progress-author">
-    {agent ? <AgentAvatar provider={agent.provider} id={agent.id} name={agent.name} ownerName={person.name} ownerId={person.id} size={40} decorative />
-      : <PersonAvatar id={person.id} name={person.name || null} photo={person.photo} character={person.character} size={40} />}
+    {agent ? <AgentAvatar provider={agent.provider} id={agent.id} name={agent.name} ownerName={person.name} ownerId={person.id} size={32} decorative />
+      : <PersonAvatar id={person.id} name={person.name || null} photo={person.photo} character={person.character} size={32} />}
     <div className="k42-progress-byline"><div>
       {agent && <><NavLink to={projectRoute(item.projectId, 'agents', agent.id, null, 'all')} go={go}>{agent.name}</NavLink><span className="muted"> · </span></>}
       <PersonLink photo={person.photo} character={person.character} id={person.id} name={person.name} />
-    </div><time dateTime={new Date(item.publishedAt).toISOString()}>{date(item.publishedAt)}</time></div>
+    </div></div>
+    <time dateTime={new Date(item.publishedAt).toISOString()} title={date(item.publishedAt)}>{ago(item.publishedAt)}</time>
   </header>;
 }
 function Links({ item }: { item: PublishedUpdate }) {
   return item.links.length ? <ul className="k42-progress-links">{item.links.map((link, index) => <li key={index}>
-    <a href={link.url} target="_blank" rel="noopener noreferrer">{link.label}</a><span className="muted">{link.purpose === 'result' ? 'Result link' : 'Evidence link'}</span>
+    <a href={link.url} target="_blank" rel="noopener noreferrer" title={link.purpose === 'result' ? 'Result link' : 'Evidence link'}><ExternalLink size={13} aria-hidden="true" />{link.label}</a>
   </li>)}</ul> : null;
 }
 function UpdateBody({ body }: { body: string }) {
@@ -47,59 +57,79 @@ function UpdateBody({ body }: { body: string }) {
   const long = characters.length > 150;
   return <>
     <p id={id} className="k42-progress-body">{long && !expanded ? characters.slice(0, 150).join('') + '…' : body}</p>
-    {long && <Button type="button" className="soft k42-progress-body-toggle" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(value => !value)}>{expanded ? 'Show less' : 'Show more'}</Button>}
+    {long && <button type="button" className="k42-progress-body-toggle" aria-expanded={expanded} aria-controls={id} onClick={() => setExpanded(value => !value)}>{expanded ? 'less' : 'more'}</button>}
   </>;
 }
-function Screenshot({ item, resolve }: { item: PublishedUpdate; resolve: ProgressReadProps['resolveScreenshot'] }) {
-  const screenshot = item.screenshot;
+// One image of an update. It loads when it scrolls into view and opens larger on click.
+function Slide({ screenshot, resolve, label }: { screenshot: ProgressScreenshot; resolve: ProgressReadProps['resolveScreenshot']; label?: string }) {
   const dialog = useRef<HTMLDialogElement>(null), trigger = useRef<HTMLButtonElement>(null);
   const previewId = useId();
-  const [image, setImage] = useState<{ id: string; url: string | null; error: boolean; loaded: boolean } | null>(null);
+  const [image, setImage] = useState<{ url: string | null; error: boolean; loaded: boolean } | null>(null);
   const [retry, setRetry] = useState(0);
-  const container = useRef<HTMLElement>(null);
+  const container = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   useEffect(() => {
-    if (!screenshot || !container.current) return;
+    if (!container.current) return;
     if (typeof IntersectionObserver === 'undefined') { setVisible(true); return; }
     const observer = new IntersectionObserver(entries => {
       if (entries.some(entry => entry.isIntersecting)) { setVisible(true); observer.disconnect(); }
     }, { rootMargin: '200px' });
     observer.observe(container.current);
     return () => observer.disconnect();
-  }, [screenshot?.id]);
+  }, []);
   useEffect(() => {
-    if (!screenshot || !visible) return;
+    if (!visible) return;
     let cancelled = false, objectUrl: string | null = null;
-    setImage({ id: screenshot.id, url: null, error: false, loaded: false });
+    setImage({ url: null, error: false, loaded: false });
     void resolve(screenshot).then(blob => {
       if (cancelled) return;
       objectUrl = URL.createObjectURL(blob);
-      setImage({ id: screenshot.id, url: objectUrl, error: false, loaded: false });
-    }, () => { if (!cancelled) setImage({ id: screenshot.id, url: null, error: true, loaded: false }); });
+      setImage({ url: objectUrl, error: false, loaded: false });
+    }, () => { if (!cancelled) setImage({ url: null, error: true, loaded: false }); });
     return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
-  }, [screenshot?.id, resolve, retry, visible]);
-  if (!screenshot) return null;
-  const shown = image?.id === screenshot.id ? image : null;
-  return <figure ref={container} className="k42-progress-preview">
-    <div className="k42-progress-image-frame" style={{ aspectRatio: `${screenshot.width} / ${screenshot.height}` }}>
-      {shown?.error ? <div className="k42-progress-image-state"><p>Could not load this image.</p><Button type="button" className="soft" onClick={() => setRetry(value => value + 1)}>Retry image</Button></div> : <>
-        {!shown?.loaded && <div className="k42-progress-image-state k42-progress-image-loading" role="status"><span className="visually-hidden">Loading image…</span></div>}
-        {shown?.url && <button ref={trigger} type="button" className="k42-progress-image-open" style={{ visibility: shown.loaded ? 'visible' : 'hidden' }} aria-label={`Enlarge image: ${screenshot.alt}`} onClick={() => dialog.current?.showModal()}>
-          <img loading="lazy" decoding="async" src={shown.url} width={screenshot.width} height={screenshot.height} alt={screenshot.alt}
-            onLoad={() => setImage(current => current?.id === screenshot.id ? { ...current, loaded: true } : current)}
-            onError={() => setImage(current => current?.id === screenshot.id ? { ...current, error: true, loaded: false } : current)} />
-          <span className="k42-progress-expand" aria-hidden="true"><Expand size={18} /></span>
-        </button>}
-      </>}
-    </div>
-    <figcaption><span>{screenshot.representation === 'concept_image' ? 'Concept image' : 'Author-uploaded screenshot'}</span>{screenshot.caption && <span>{screenshot.caption}</span>}</figcaption>
+  }, [screenshot.id, resolve, retry, visible]);
+  return <div ref={container} className="k42-progress-slide" role={label ? 'group' : undefined} aria-roledescription={label ? 'slide' : undefined} aria-label={label}>
+    {image?.error ? <div className="k42-progress-image-state"><p>Could not load this image.</p><Button type="button" className="soft" onClick={() => setRetry(value => value + 1)}>Retry image</Button></div> : <>
+      {!image?.loaded && <div className="k42-progress-image-state k42-progress-image-loading" role="status"><span className="visually-hidden">Loading image…</span></div>}
+      {image?.url && <button ref={trigger} type="button" className="k42-progress-image-open" style={{ visibility: image.loaded ? 'visible' : 'hidden' }} aria-label={`Enlarge image: ${screenshot.alt}`} onClick={() => dialog.current?.showModal()}>
+        <img loading="lazy" decoding="async" src={image.url} width={screenshot.width} height={screenshot.height} alt={screenshot.alt}
+          onLoad={() => setImage(current => current && { ...current, loaded: true })}
+          onError={() => setImage(current => current && { ...current, error: true, loaded: false })} />
+      </button>}
+    </>}
+    {screenshot.representation === 'concept_image' && <span className="k42-progress-badge">Concept</span>}
     <Dialog ref={dialog} className="k42-progress-image-dialog" aria-labelledby={previewId} onClose={() => trigger.current?.focus({ preventScroll: true })}>
       <h2 id={previewId} className="visually-hidden">Image preview</h2>
-      {shown?.url && <img src={shown.url} width={screenshot.width} height={screenshot.height} alt={screenshot.alt} />}
+      {image?.url && <img src={image.url} width={screenshot.width} height={screenshot.height} alt={screenshot.alt} />}
       <p>{screenshot.alt}{screenshot.caption && <> · {screenshot.caption}</>}</p>
       <CloseButton label="Close image preview" onClick={() => dialog.current?.close()} />
     </Dialog>
-  </figure>;
+  </div>;
+}
+// An update's images, one to five, swiped sideways like a photo feed (owner, 12 November 2026).
+function Slides({ item, resolve }: { item: PublishedUpdate; resolve: ProgressReadProps['resolveScreenshot'] }) {
+  const slides = item.slides?.length ? item.slides : item.screenshot ? [item.screenshot] : [];
+  const track = useRef<HTMLDivElement>(null);
+  const [index, setIndex] = useState(0);
+  if (!slides.length) return null;
+  const count = slides.length, many = count > 1, at = Math.min(index, count - 1);
+  // Every slide shares the first image's shape, kept between portrait 4:5 and wide 1.91:1.
+  const ratio = Math.min(1.91, Math.max(0.8, slides[0].width / slides[0].height));
+  const show = (to: number) => { const element = track.current; if (element) element.scrollTo({ left: to * element.clientWidth }); };
+  return <div className="k42-progress-preview" role={many ? 'group' : undefined} aria-roledescription={many ? 'carousel' : undefined} aria-label={many ? `${count} slides` : undefined}>
+    <div className="k42-progress-frame" style={{ aspectRatio: String(ratio) }}>
+      <div ref={track} className="k42-progress-slides" onScroll={event => setIndex(Math.round(event.currentTarget.scrollLeft / Math.max(1, event.currentTarget.clientWidth)))}>
+        {slides.map((slide, position) => <Slide key={slide.id} screenshot={slide} resolve={resolve} label={many ? `Slide ${position + 1} of ${count}` : undefined} />)}
+      </div>
+      {many && <>
+        <span className="k42-progress-count" aria-hidden="true">{at + 1}/{count}</span>
+        {at > 0 && <button type="button" className="k42-progress-nav is-previous" aria-label="Previous slide" onClick={() => show(at - 1)}><ChevronLeft size={18} aria-hidden="true" /></button>}
+        {at < count - 1 && <button type="button" className="k42-progress-nav is-next" aria-label="Next slide" onClick={() => show(at + 1)}><ChevronRight size={18} aria-hidden="true" /></button>}
+      </>}
+    </div>
+    {many && <div className="k42-progress-dots" aria-hidden="true">{slides.map((slide, position) => <span key={slide.id} className={position === at ? 'is-current' : undefined} />)}</div>}
+    {slides[at].caption && <p className="k42-progress-image-caption">{slides[at].caption}</p>}
+  </div>;
 }
 
 export function ProjectUpdates(props: ProjectUpdatesProps) {
@@ -150,7 +180,7 @@ function ScopedProjectUpdates(props: ProjectUpdatesProps) {
   return <section className="k42-project-updates" aria-labelledby={'updates-' + props.projectId}>
     <div ref={top} className="k42-progress-top" aria-hidden="true" />
     <header className="k42-progress-heading"><div><h2 ref={heading} tabIndex={-1} id={'updates-' + props.projectId}>Project updates</h2>
-      <p className="muted">Your agents post here as they work.</p></div></header>
+      <p className="muted">What matters, as your agents work.</p></div></header>
     {pending > 0 && <div className="k42-progress-arrivals" aria-live="polite" aria-atomic="true"><Button type="button" className="primary" onClick={() => {
       setHead(items[0]?.id ?? null); top.current?.scrollIntoView({ block: 'start' }); heading.current?.focus({ preventScroll: true });
     }}><ArrowUp size={16} aria-hidden="true" />{pending} new {pending === 1 ? 'update' : 'updates'}</Button></div>}
@@ -158,7 +188,7 @@ function ScopedProjectUpdates(props: ProjectUpdatesProps) {
     <div className="k42-progress-posts">
       {shown.map(item => <article key={item.id} className="k42-progress-update" aria-label={item.title || 'Project update'}>
         <Author item={item} go={props.go} />
-        <Screenshot item={item} resolve={props.resolveScreenshot} />
+        <Slides item={item} resolve={props.resolveScreenshot} />
         <div className="k42-progress-copy">{item.title && <h3>{item.title}</h3>}<UpdateBody body={item.body} /><Links item={item} /></div>
       </article>)}
       {!shown.length && (props.loading ? <div className="k42-progress-empty" role="status">Loading updates…</div> : <div className="k42-progress-empty"><span className="k42-progress-empty-icon" aria-hidden="true"><Megaphone size={18} /></span><strong>No updates yet.</strong></div>)}

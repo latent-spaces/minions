@@ -29,12 +29,13 @@ test('team guidance defaults OFF independently of tasks and states self membersh
   assert.match(nativeTeamGuidance(true), /only for yourself/);
 });
 
-test('each turn carries the shared five-minute update aim and says when an update is due', () => {
+test('each turn carries the shared update aim at the owner\'s pace and says when an update is due', () => {
   const card = { name: 'p', mission: 'm', rules: 'r', repoUrl: 'https://github.com/o/r', mergeApproval: 'humans' };
   const quiet = projectGuidanceForTurn({ project: card });
-  assert.match(quiet, /one update about every five minutes of work, one for the whole team, not one per agent/);
+  assert.match(quiet, /one update about every 5 minutes of work, one for the whole team, not one per agent/);
+  assert.match(projectGuidanceForTurn({ project: card, updateEveryMinutes: 30 }), /about every 30 minutes of work/);
   assert.doesNotMatch(quiet, /due now/);
   const due = projectGuidanceForTurn({ project: card, updateDue: true });
   assert.match(due, /An update is due now/);
-  assert.match(due, /publish_project_update \(an image is required\)/);
+  assert.match(due, /publish_project_update: an image, a short headline and one sentence/);
 });

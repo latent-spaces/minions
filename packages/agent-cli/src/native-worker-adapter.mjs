@@ -34,13 +34,13 @@ export function projectGuidanceForTurn(participation) {
     + '\n'
     + nativeTaskGuidance(participation.project.nativeTasksEnabled, participation.taskCounts)
     + '\n' + nativeTeamGuidance(participation.project.nativeTeamsEnabled)
-    + '\n' + projectUpdateGuidance(participation.updateDue);
+    + '\n' + projectUpdateGuidance(participation.updateDue, participation.updateEveryMinutes);
 }
 
-// The team aims for one shared update about every five minutes of work (owner, 10 November 2026).
-export function projectUpdateGuidance(due) {
-  return 'Project updates: the team aims for one update about every five minutes of work, one for the whole team, not one per agent. '
-    + (due === true ? 'An update is due now: if you have useful progress, check list_project_updates, then publish one with publish_project_update (an image is required). ' : '')
+// The team aims for one shared update at the pace the owner chose (owner, 10 and 12 November 2026).
+export function projectUpdateGuidance(due, everyMinutes = 5) {
+  return `Project updates: the team aims for one update about every ${everyMinutes} minutes of work, one for the whole team, not one per agent. `
+    + (due === true ? 'An update is due now: if you have something new, check list_project_updates, then post one idea with publish_project_update: an image, a short headline and one sentence. ' : '')
     + 'See get_mlswarm_guide updates-and-help.';
 }
 

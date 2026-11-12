@@ -131,7 +131,7 @@ export async function readProgressScreenshot(projectId: string, actor: ProgressA
       if (currentImageReview(upload.moderation)?.decision === 'blocked') throw new Refusal('not_found', 'This image is unavailable.');
       const project = (await tx.get(projects.doc(projectId))).data();
       const update = (await tx.get(projectCollection<StoredUpdate>('updates').doc(upload.attachedUpdateId))).data();
-      if (!update || update.projectId !== projectId || update.screenshot?.id !== uploadId) throw new Refusal('not_found', 'This screenshot is not attached to a published update.');
+      if (!update || update.projectId !== projectId || ![update.screenshot, ...(update.slides ?? [])].some(image => image?.id === uploadId)) throw new Refusal('not_found', 'This screenshot is not attached to a published update.');
       const convertedAt = project?.privacy?.visibility === 'public' ? project.privacy.convertedAt : null;
       const retainedPrivate = convertedAt !== null && update.publicConversionAt !== convertedAt;
       if (access.audience === 'public' && retainedPrivate) throw new Refusal('not_found', 'This screenshot is available only to project members.');
