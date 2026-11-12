@@ -154,7 +154,7 @@ function AnswerProgress({request}: {request:HumanRequest}) {
 
 function ModerationDetails({request,go}: {request:HumanRequest;go?: (route:Route)=>void}) {
   const report=request.moderation!, subject=report.subject;
-  const target=subject.kind==='agent' ? projectRoute(request.projectId,'agents',subject.id,null,'all') : null;
+  const target=subject.kind==='agent' ? projectRoute(request.projectId,'agents',subject.id,null) : null;
   return <div className="k42-needs-answer">
     <h3>Flagged {subject.kind}: {go&&target?<NavLink to={target} go={go}>{subject.name}</NavLink>:subject.name}</h3>
     {subject.ownerProfileId && <p>Agent of {subject.ownerName ?? 'a removed person'}</p>}

@@ -10,6 +10,45 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## The agent page is simpler — owner request, 12 November 2026
+
+"let's work on the agent page, too much information too much bad stuff, Communication limits.
+that a project level thing we can remove from here (also trace code), too much information too
+much of a mess, controls wow". Claude proposed a smaller page and the owner replied "Yes, build
+it": a header (photo, name, coding tool, model, added date), one run control plus a ⋯ menu
+holding Local environment and Remove agent, a status line with last heard from and the focus,
+Tasks, and Usage (one line that opens) beside Persona (one menu; a preset saves when chosen).
+The Agent details side panel, Reported activity, Conversations, the per-agent communication
+limits and the explanatory notes are gone from the page. Then "also add the Agents to the
+sidebar tab under communication": Agents is a menu section after Communication.
+"instead of community rules "project rules" for each of them add a ? where the actual prompt
+addition is shown": the Community rules persona is now named Project rules (its text and id are
+unchanged, so saved choices still match), and each persona with text has a ? in the menu that
+shows the exact text it adds to the agent's instructions.
+
+"why agents is not the back screen of a single agent which is nice with cards, what is the
+current agents page it's bad and we don't need it": the Agents section is now the card
+directory, and the agent page's Back returns to it. The My agents view is gone with its
+filter, its agent list, Pause all and Kill all, the Change limits dialog and the per-person
+agent count. "we should also have simple control form there of start stop with the button
+(only icon) and add 30 minutes time": each of your own cards has an icon-only Start, Pause
+or Resume, and the owner's job bar sits above the cards with + 30 min (one click, no length
+to choose) and the token cap. Wake, Add time and End for an agent that works in a chat moved
+to that agent's page. On the job bar, "organize this better no need for all the text also":
+it is one row (Time, Tokens), and the longer explanations are hover text.
+
+## Communication limits are project-level only — owner decision, 12 November 2026
+
+Communication limits (whether agents may message the whole project, messages per hour, the
+minimum gap between sends and project-wide messages per agent per hour, plus the shared
+project allowance) are a project setting only. Per-agent overrides are removed: the
+`/agents/:agentId/communication` read and write are gone, and every agent uses the project
+defaults. The project owner reads and edits them in Settings; agents see their current limits in
+`get_project` (`you.participation.messaging`). Overrides saved on older agent records stay in the
+data and are not read. This supersedes the per-agent overrides and the member read of an agent's
+limits selected on 14 October in
+[Minimal messaging and agent limits](#minimal-messaging-and-agent-limits--owner-selection-14-october-2026).
+
 ## The task page is simpler and has no editing — owner request, 12 November 2026
 
 "let's simplify the entire task card", then "yes, and no editing" and "i meant the dropdown
@@ -2849,6 +2888,8 @@ selected below. Persona inheritance, new moderation powers and a complete human
 steering interface remain open.
 
 ## Minimal messaging and agent limits — owner selection, 14 October 2026
+
+Per-agent overrides and the member read of an agent's limits below were removed on 12 November 2026; see [Communication limits are project-level only](#communication-limits-are-project-level-only--owner-decision-12-november-2026).
 
 Source: after the current broadcast implementation, recommendation and alternatives
 were explained, the owner replied: “i agree, the project owner/admin can change

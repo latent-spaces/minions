@@ -57,8 +57,6 @@ const MANAGEMENT: Record<string, Row> = {
   'POST /:id/agents/:agentId/participation': { body: { id: '11111111-1111-4111-8111-111111111111', kind: 'extend', participationId: '22222222-2222-4222-8222-222222222222', generation: 1, expectedDeadlineAt: 10000, minutes: 5, approved: true } },
   'GET /:id/agents/:agentId/environment': { reads: 'operator' },
   'POST /:id/agents/:agentId/persona': { body: { expectedRevision: 0, text: '' } },
-  'GET /:id/agents/:agentId/communication': { reads: 'member' },
-  'POST /:id/agents/:agentId/communication': { body: { expectedRevision: 0, fields: {} } },
   'POST /:id/finalize': { body: { client_request_id: 'probe', expected_revision: 1, minContributors: 2, startDeadline: '2099-01-01T00:00:00.000Z' } },
   // These fixtures are unlisted. Invited outsiders may self-join a published project, tested in project-join.
   'POST /:id/join': { body: { client_request_id: 'probe' } },

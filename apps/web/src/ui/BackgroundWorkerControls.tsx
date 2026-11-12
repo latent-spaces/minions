@@ -33,7 +33,6 @@ export function useBackgroundWorkerControls(user: SessionUser, projectId: string
 export type BackgroundWorkerControls = ReturnType<typeof useBackgroundWorkerControls>;
 
 // Between turns the agent is idle: it wakes when a new message or a steer arrives (owner feedback, 20 October 2026).
-export const IDLE_HINT = 'Between turns. It wakes on new messages or a steer.';
 
 // Kept with the pure status code so it is tested without a browser.
 export { CONTROL_LABEL, controlLabel, backgroundControlStatus } from './agent-running-state';

@@ -8,7 +8,6 @@ import type { ProjectWorkersView } from '@mlswarm/contracts';
 import type { Workspace } from '../../apps/web/src/project-api';
 import type { ProjectControls } from '../../apps/web/src/ui/ProjectControls';
 import { JobLimitsBar, TokenCapEditor } from '../../apps/web/src/ui/JobLimitsBar';
-import { MyWorkerControls } from '../../apps/web/src/ui/MyWorkerControls';
 
 // Synthetic rows only: no server, computer or model.
 const at = 1_000_000;
@@ -26,31 +25,31 @@ test('only the owner sees the job bar, once the job has started and while the pr
   expect(render({ execution: 'closed' })).toBe('');
 });
 
-test('the time part says how long is left and offers Add time; once the end passes it says time is up', () => {
+test('the time part says how long is left and offers +30 min; once the end passes it says time is up', () => {
   const html = render();
   expect(html).toContain('1 h 53 min left');
-  expect(html).toContain('Add time');
+  expect(html).toContain('aria-label="Add 30 minutes"');
   const late = render({ endsAt: at - 1 });
   expect(late).toContain('Time is up');
   expect(late).toContain('Agents finish their turn, then wait for more time.');
-  expect(late).toContain('Add time');
+  expect(late).toContain('aria-label="Add 30 minutes"');
 });
 
 test('without a cap the bar says so and offers Set cap', () => {
   const html = render({}, agents(500));
-  expect(html).toContain('No token cap');
+  expect(html).toContain('No cap');
   expect(html).toContain('Set cap');
   expect(html).not.toContain('k42-job-meter');
 });
 
 test('with a cap the bar shows the pool used of the cap; at the cap it says the agents wait', () => {
   const under = render({ tokenLimit: { tokens: 2_000_000 } }, agents(200_000, 1_000_000));
-  expect(under).toContain('Used 1,200,000 of 2,000,000 tokens for this job');
+  expect(under).toContain('1,200,000 of 2,000,000');
   expect(under).toContain('width:60%');
   expect(under).toContain('Change cap');
-  expect(under).not.toContain('Cap reached');
+  expect(under).not.toContain('is-alert');
   const full = render({ tokenLimit: { tokens: 1000 } }, agents(400, 700));
-  expect(full).toContain('Used 1,100 of 1,000 tokens for this job');
+  expect(full).toContain('1,100 of 1,000');
   expect(full).toContain('width:100%');
   expect(full).toContain('Cap reached. Agents wait after their current turn until you raise or remove it.');
 });
@@ -78,15 +77,4 @@ test('the cap editor names an invalid number plainly and warns before a cap at o
   const below = editor('1,000', null, 1500);
   expect(below).toContain('Your agents have used 1,500 tokens. With this cap they wait after their current turn until you raise or remove it.');
   expect(editor('2,000', null, 1500)).not.toContain('With this cap they wait');
-});
-
-test('My agents renders the job bar above its agent rows and keeps each row as it was', () => {
-  const rows = agents(200, 300), data = { agents: rows } as unknown as ProjectWorkersView;
-  const workers = { data, now: at, error: '', loading: false, participation: null, refresh: () => {}, background: { pending: {}, busy: {}, errors: {}, act: async () => {}, retry: async () => {} } };
-  const html = renderToStaticMarkup(createElement(MyWorkerControls, { projectId: 'p', controls: workers, disabled: false, inline: true,
-    jobBar: createElement(JobLimitsBar, { workspace: workspace({ tokenLimit: { tokens: 1000 } }), controls: controls(rows) }) }));
-  expect(html.indexOf('This job')).toBeGreaterThan(html.indexOf('My agents'));
-  expect(html.indexOf('This job')).toBeLessThan(html.indexOf('my-worker-list'));
-  // The row keeps its own note, from what the cap told that agent.
-  expect(html).toContain('Used 500 of 1,000 tokens for this job.');
 });

@@ -11,7 +11,6 @@ import type {
 import { readProjectRecord, type ProjectRecord } from './projects/schema.js';
 import { deploymentKind } from './deployment.js';
 import type { AgentPersona } from '@mlswarm/contracts';
-import type { CommunicationOverride } from './projects/communication.js';
 
 // The only module that imports firebase-admin/firestore: server code takes the database API from here. The engine
 // stores documents in SQLite (storage/sqlite-firestore.ts), which implements this API; firebase-admin supplies the
@@ -110,7 +109,6 @@ export type Agent = {
   workSettings?: WorkSettings;
   persona?: AgentPersona;
   focus?: import('@mlswarm/contracts').AgentFocus & { runId: string; sequence?: number };
-  communicationOverride?: CommunicationOverride;
 };
 
 export type WorkSettings = { involvement: 'with_me' | 'on_own' };

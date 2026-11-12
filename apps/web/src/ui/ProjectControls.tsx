@@ -9,7 +9,7 @@ import { hold } from '../route';
 import { Button } from './Button';
 import { confirmAction } from './Confirm';
 import { notify } from './Toast';
-import { Pause, Play, Plus, RotateCcw, Archive } from 'lucide-react';
+import { Pause, Play, RotateCcw, Archive } from 'lucide-react';
 import './project-controls.css';
 import './agent-run-controls.css';
 import { useMyWorkerControls } from './MyWorkerControls';
@@ -110,17 +110,6 @@ export function StartProject({ id, controls, disabled, className }: { id: string
   return <span className="k42-play-agent">
     <RunLengthChoice id={id} label="How long should agents work?" value={minutes} onChange={setMinutes} disabled={disabled} />
     <Button type="button" className={className} disabled={disabled || minutes === null} title={minutes === null ? 'Choose how long agents should work first' : undefined} onClick={() => void controls.act('start', minutes!)}><Play size={16} aria-hidden="true" />Start project</Button>
-  </span>;
-}
-
-/** Add time to the job, for every agent at once. Nothing is preselected. */
-export function AddProjectTime({ id, controls, disabled, className }: { id: string; controls: ProjectControls; disabled: boolean; className: string }) {
-  const [open, setOpen] = useState(false), [minutes, setMinutes] = useState<number | null>(null);
-  if (!open) return <Button type="button" className={className} disabled={disabled} title="Moves the end time for every agent in this project. Only the owner can do this." onClick={() => setOpen(true)}><Plus size={16} aria-hidden="true" />Add time</Button>;
-  return <span className="k42-play-agent">
-    <RunLengthChoice id={id} label="Add" value={minutes} onChange={setMinutes} disabled={disabled} />
-    <Button type="button" className={className} disabled={disabled || minutes === null} onClick={() => { void controls.act('add_time', minutes!); setOpen(false); setMinutes(null); }}>Add</Button>
-    <Button type="button" className={className} onClick={() => { setOpen(false); setMinutes(null); }}>Cancel</Button>
   </span>;
 }
 

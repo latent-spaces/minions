@@ -6,16 +6,15 @@ export const GLOBAL_VIEWS = ['projects', 'needs-you'] as const;
 export type GlobalView = typeof GLOBAL_VIEWS[number];
 export type Route =
   | { view: GlobalView; projectList?: 'archived' }
-  | { view: 'project'; projectId: string; section: Section; thread: string | null; agent: string | null; q: string | null; agentFilter?: 'all'; message?: string;
+  | { view: 'project'; projectId: string; section: Section; thread: string | null; agent: string | null; q: string | null; message?: string;
     /** Tasks section: the open task page (owner decision, 11 November 2026). */
     task?: string };
 
 export const validProjectId = (id: string) => /^[a-f0-9]{64}$/.test(id);
-// Agents owns the directory and agent details. Its default filter is My agents;
-// All agents keeps its name search and filter in links, reloads and Back/Forward.
-export const projectRoute = (projectId: string, section: Section = 'overview', agent: string | null = null, q: string | null = null, agentFilter: 'mine' | 'all' = 'mine'): Route =>
-  ({ view: 'project', projectId, section, thread: null, agent: section === 'agents' ? agent : null, q: section === 'agents' && q ? q : null,
-    ...(section === 'agents' && (agentFilter === 'all' || q) ? { agentFilter: 'all' as const } : {}) });
+// Agents is the card directory and agent details (owner, 12 November 2026); its name search stays in links,
+// reloads and Back/Forward.
+export const projectRoute = (projectId: string, section: Section = 'overview', agent: string | null = null, q: string | null = null): Route =>
+  ({ view: 'project', projectId, section, thread: null, agent: section === 'agents' ? agent : null, q: section === 'agents' && q ? q : null });
 export const taskRoute = (projectId: string, taskId: string): Route =>
   ({ view: 'project', projectId, section: 'overview', thread: null, agent: null, q: null, task: taskId });
 // Settings is one page; old links with a tab open it at the top.
@@ -43,7 +42,6 @@ export function parseRoute(search: string): Route {
     return { view: 'project', projectId, section, thread: section === 'conversations' && thread && validId(thread) ? thread : null,
       agent: section === 'agents' && agent && validId(agent) ? agent : null, q: section === 'agents' && q && validSearch(q) ? q : null,
       ...(section === 'conversations' && validId(query.get('message') ?? '') ? { message: query.get('message')! } : {}),
-      ...(section === 'agents' && (query.get('filter') === 'all' || q && validSearch(q)) ? { agentFilter: 'all' as const } : {}),
       ...(section === 'overview' && validId(query.get('task') ?? '') ? { task: query.get('task')! } : {}) };
   }
   const view = query.get('view') as GlobalView | null;
@@ -63,7 +61,6 @@ export function formatRoute(route: Route): string {
   if (route.message && route.section === 'conversations' && validId(route.message)) query.set('message', route.message);
   if (route.agent) query.set('agent', route.agent);
   if (route.q) query.set('q', route.q);
-  if (route.section === 'agents' && route.agentFilter === 'all') query.set('filter', 'all');
   if (route.section === 'overview' && route.task && validId(route.task)) query.set('task', route.task);
   return `?${query}`;
 }

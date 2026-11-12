@@ -1,4 +1,3 @@
-import { AgentStatusIcon } from './AgentStatusIcon';
 import { useEffect, useRef, useState } from 'react';
 import type { SessionUser } from '../session-identity';
 import type { ProjectWorkersView } from '@mlswarm/contracts';
@@ -14,7 +13,6 @@ import './agent-run-controls.css';
 
 type Worker = ProjectWorkersView['agents'][number];
 
-import { timeLeft } from '../observation-time';
 export { timeLeft } from '../observation-time';
 
 // Play for a stopped agent: queues a new run for this same agent on the computer it last ran on. It works toward
@@ -68,15 +66,11 @@ export function AgentRunActions({ user, projectId, agent, controls, now, disable
   return <BackgroundWorkerActions agentId={agent.agentId} agentName={agent.agentName} view={background} controls={controls.background} now={now} disabled={disabled} />;
 }
 
-// The agent's own page: status, time left and Play/Pause.
-export function AgentRunPanel({ user, projectId, agentId }: { user: SessionUser; projectId: string; agentId: string }) {
-  const controls = useMyWorkers();
-  const agent = controls?.data?.agents.find(a => a.agentId === agentId);
-  if (!controls || !agent) return null;
-  const status = workerAgentStatus(agent, controls.now);
-  return <div className="k42-agent-run" title={status.title}>
-    <strong className="k42-agent-status-text"><AgentStatusIcon label={status.label} decorative />{status.label}</strong>{status.timeLeft !== null && <span className="muted"> · {timeLeft(status.timeLeft)}</span>}
-    {(status.pastEnd || ['Waiting', 'Idle'].includes(status.label)) && <span className="muted"> · {status.title}</span>}
-    <AgentRunActions user={user} projectId={projectId} agent={agent} controls={controls} now={controls.now} disabled={false} />
-  </div>;
+// The icon-only Start, Pause or Resume on the person's own agent card (owner, 12 November 2026); nothing for others' agents.
+export function AgentCardRun({ user, projectId, agentId }: { user: SessionUser; projectId: string; agentId: string }) {
+  const workers = useMyWorkers(), agent = workers?.data?.agents.find(row => row.agentId === agentId);
+  if (!workers || !agent) return null;
+  return <span className="k42-card-run"><AgentRunActions user={user} projectId={projectId} agent={agent} controls={workers} now={workers.now} disabled={false} compact /></span>;
 }
+
+// The agent's own page: status, time left and Play/Pause.

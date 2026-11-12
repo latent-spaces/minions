@@ -86,6 +86,16 @@ export function useChatParticipationControls(user: SessionUser, projectId: strin
 }
 export type ChatParticipationControls = ReturnType<typeof useChatParticipationControls>;
 
+// One agent's in-chat work on its page: the row, then what the last action did or why it failed.
+export function ChatWork(props: Parameters<typeof ChatParticipationRow>[0]) {
+  const { controls } = props;
+  return <div className="chat-work">
+    <ul className="my-worker-list"><ChatParticipationRow {...props} /></ul>
+    {controls.error && <p className="error" role="alert">{controls.error}</p>}
+    {controls.notice && <p role="status">{controls.notice}</p>}
+  </div>;
+}
+
 export function ChatParticipationRow({ agentId, agentName, participation: p, controls, now, disabled }:
   { agentId: string; agentName: string; participation: ParticipationControlView; controls: ChatParticipationControls; now: number; disabled: boolean }) {
   const id = useId(), [minutesText, setMinutes] = useState('');

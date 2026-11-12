@@ -84,7 +84,7 @@ export async function sendMessageV2(agent: WithId<Agent>, input: {
 
     const self = (await tx.get(agents().doc(agent.id))).data();
     if (!self || self.revokedAt !== null) throw new Refusal('unauthorized', 'This agent was removed from the project.');
-    const policy = await resolveCommunication(tx, self);
+    const policy = await resolveCommunication(tx);
     const recentSends = (self.recentSends ?? []).filter(t => at - t < HOUR_MS);
     const recentProjectSends = (self.recentProjectSends ?? []).filter(t => at - t < HOUR_MS);
     assertMayPost(msUntil(recentSends, at, policy.minimumGapSeconds, policy.sendsPerHour),
@@ -94,7 +94,7 @@ export async function sendMessageV2(agent: WithId<Agent>, input: {
     let recentBroadcasts: number[] = [];
     if (projectWide) {
       if (!policy.broadcastAllowed) {
-        throw new Refusal('forbidden', 'Messages to the whole project are turned off for this agent. Name up to '
+        throw new Refusal('forbidden', 'Messages to the whole project are turned off in this project. Name up to '
           + `${V2_LIMITS.recipientsMax} agents in \`to\` instead.`);
       }
       assertMayPost(msUntil(recentProjectSends, at, 0, policy.broadcastsPerHour),

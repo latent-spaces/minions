@@ -27,7 +27,7 @@ export function AgentRequestsPopup({ user, projectId, agentId, name, requests, r
   const navigate = (route: Route) => { if (mayLeaveProject()) { onClose(); go(route); } };
   if (session.currentUid() !== user.uid) return null;
   return <ParticipantPopup title={`${name} · Needs you`} onClose={onClose}>
-    <p><NavLink to={projectRoute(projectId, 'agents', agentId, null, 'all')} go={navigate}>Open agent</NavLink></p>
+    <p><NavLink to={projectRoute(projectId, 'agents', agentId, null)} go={navigate}>Open agent</NavLink></p>
     {loadError && <div role="alert"><p>Could not refresh requests: {loadError}</p><Button onClick={retry}>Try again</Button></div>}
     {loading && !loadError && <p role="status">Loading requests…</p>}
     {error && <p role="alert">{error}</p>}

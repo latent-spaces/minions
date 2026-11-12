@@ -19,7 +19,7 @@ export function MessageDirection({ message, projectId, go, deliveryDetails=true 
     const ownerLabel = agent.operatorId ? `Agent of ${agent.operatorName ?? 'a removed person'}` : null;
     const compact = multiple && !sender;
     const content = <><span className="conversation-portrait" title={`${name(agent)}${ownerLabel ? ` · ${ownerLabel}` : ''}`}><AgentAvatar provider={agent.provider} id={agent.id} name={name(agent)} ownerId={agent.operatorId} ownerName={agent.operatorId ? agent.operatorName : undefined} persona={agent.personaChoice} size={compact ? 32 : 40} decorative /></span><span className={compact ? 'visually-hidden' : undefined}>{name(agent)}{ownerLabel && <span className="visually-hidden">, {ownerLabel}</span>}</span></>;
-    return projectId && go ? <NavLink className="conversation-agent" to={projectRoute(projectId, 'agents', agent.id, null, 'all')} go={go}>{content}</NavLink>
+    return projectId && go ? <NavLink className="conversation-agent" to={projectRoute(projectId, 'agents', agent.id, null)} go={go}>{content}</NavLink>
       : <span className="conversation-agent">{content}</span>;
   };
   return <><span className={`conversation-direction${multiple ? ' has-multiple' : ''}`}>

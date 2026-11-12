@@ -258,11 +258,11 @@ project read permissions. Public projections expose only text, version and updat
 time. These edits do not change agent mission text, execution, chat permissions or
 moderation authority.
 
-`settings/communication` holds the default per-agent limits (`broadcastAllowed`,
-on by default, sends per hour, minimum gap and project-wide sends per hour) and
-the shared project-wide allowance, saved per agent and multiplied by the number of
-agents in the team. A per-agent `communicationOverride` lives on
-`agents/{agentId}`.
+`settings/communication` holds the project's communication limits, which apply
+to every agent (`broadcastAllowed`, on by default, sends per hour, minimum gap and
+project-wide sends per hour) and the shared project-wide allowance, saved per agent
+and multiplied by the number of agents in the team. Older agent records may still
+carry a `communicationOverride` field; nothing reads it.
 
 Membership role and state are distinct. Every stored membership reads as member;
 older `admin` and `moderator` values are kept but grant nothing, and owner is

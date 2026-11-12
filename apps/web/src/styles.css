@@ -113,15 +113,29 @@ progress, input[type="radio"], input[type="range"] { accent-color: var(--ink); }
 .agent-directory-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
 .agent-directory-footer .pager { margin-top: 0; }
 .agent-page-toolbar { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
-.agent-detail-columns { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(260px, 1fr); gap: 16px; align-items: start; }
-.agent-main, .agent-side { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.agent-detail-page { display: flex; flex-direction: column; gap: 16px; max-width: 880px; }
+.agent-head { display: flex; align-items: center; gap: 16px; }
+.agent-head-text { flex: 1; min-width: 0; }
+.agent-meta { margin: 4px 0 0; color: var(--text-muted); display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; }
+.agent-head-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px; max-width: min(360px, 50%); }
+/* A start or remove message drops below the buttons instead of squeezing the name. */
+.agent-head-controls .k42-play-agent { display: contents; }
+.agent-head-controls :is(.error, [role="alert"]) { order: 1; flex-basis: 100%; margin: 4px 0 0; text-align: right; font-size: 13px; }
+.agent-head-controls .k42-task-picker-trigger { margin: 0; padding: 8px; min-height: 40px; }
+.agent-now { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
+.agent-now-state { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--text-muted); font-size: 14px; }
+.agent-now-focus { margin: 6px 0 0; font-size: 18px; line-height: 1.45; font-weight: 500; overflow-wrap: anywhere; }
+.agent-tasks { list-style: none; margin: 8px 0 0; padding: 0; }
+.agent-tasks li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.agent-tasks li > a { min-width: 0; overflow-wrap: anywhere; }
+.agent-tasks .k42-task-status { flex: none; }
+.agent-detail-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.agent-detail-pair .agent-panel h3 { margin: 0 0 8px; }
 .agent-panel { border: var(--card-border); border-radius: var(--surface-radius); background: var(--canvas); padding: 20px; min-width: 0; }
 .agent-panel h3 { font-size: 14px; margin: 0 0 12px; }
 .agent-panel p { margin: 4px 0; }
 .agent-name-line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
 .agent-name-line h2 { font-size: 24px; margin: 0; overflow-wrap: anywhere; }
-.agent-profile-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
-.agent-profile-stats > div + div { border-left: 1px solid var(--line); padding-left: 12px; }
 .agent-details-list { grid-template-columns: minmax(0, 1fr); gap: 10px; }
 .agent-details-list > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 12px; }
 .agent-section-line { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
@@ -129,8 +143,8 @@ progress, input[type="radio"], input[type="range"] { accent-color: var(--ink); }
 .agent-usage dd:first-of-type { font-size: 17px; font-weight: 600; }
 .agent-usage.extra { grid-template-columns: repeat(3, minmax(0, 1fr)); padding-top: 12px; border-top: 1px solid var(--line); }
 .agent-usage.extra dd { font-size: 13px; font-weight: normal; }
-@media (max-width: 1150px) { .agent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .agent-detail-columns { grid-template-columns: minmax(0, 1fr); } }
-@media (max-width: 760px) { .agent-grid { grid-template-columns: minmax(0, 1fr); } .agent-profile-stats { grid-template-columns: 1fr 1fr; } .agent-profile-stats > div + div { border-left: 0; padding-left: 0; } .agent-panel { padding: 16px; } }
+@media (max-width: 1150px) { .agent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .agent-grid { grid-template-columns: minmax(0, 1fr); } .agent-head { flex-wrap: wrap; } .agent-panel { padding: 16px; } }
 
 /* Project Card: the approved definition as a read-only document beside a compact details column (owner
    choice D3, concept 2), in the overview grid and panels. */

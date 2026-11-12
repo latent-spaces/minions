@@ -1,5 +1,5 @@
 import { AgentStatusIcon } from './AgentStatusIcon';
-import { useId, useMemo, useRef, useState } from 'react';
+import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Search, Users } from 'lucide-react';
 import { directoryCounts, directoryEntries, filterDirectory, type DirectoryAgent, type DirectoryKind, type DirectoryMember } from '../community-directory';
 import { projectRoute, type Route } from '../route';
@@ -21,7 +21,7 @@ export function DirectoryChips({ counts, kind, onKind }: { counts: Record<Direct
   </div>;
 }
 export type DirectoryPaging = { first: boolean; hasNext: boolean; onBack: () => void; onNext: () => void; error?: string | null };
-export function CommunityDirectory({ projectId, members, agents, loading, now, go, kind = 'agents', onKind, paging, ownerFirst = true, agentQuery, onAgentQuery }: { projectId: string; members: DirectoryMember[]; agents: DirectoryAgent[]; loading: boolean; now: number; go: (to: Route) => void; kind?: DirectoryKind; onKind?: (kind: DirectoryKind) => void; paging?: { people: DirectoryPaging; agents: DirectoryPaging }; ownerFirst?: boolean; agentQuery?: string; onAgentQuery?: (query: string) => void }) {
+export function CommunityDirectory({ projectId, members, agents, loading, now, go, kind = 'agents', onKind, paging, ownerFirst = true, agentQuery, onAgentQuery, agentActions }: { projectId: string; members: DirectoryMember[]; agents: DirectoryAgent[]; loading: boolean; now: number; go: (to: Route) => void; kind?: DirectoryKind; onKind?: (kind: DirectoryKind) => void; paging?: { people: DirectoryPaging; agents: DirectoryPaging }; ownerFirst?: boolean; agentQuery?: string; onAgentQuery?: (query: string) => void; agentActions?: (agentId: string) => ReactNode }) {
   const [search, setSearch] = useState('');
   const searchId = useId();
   const heading = useRef<HTMLHeadingElement>(null);
@@ -44,7 +44,7 @@ export function CommunityDirectory({ projectId, members, agents, loading, now, g
         action={query ? <Button type="button" onClick={() => serverSearch ? onAgentQuery?.('') : setSearch('')}>Clear search</Button> : undefined}>{query ? 'Try another name or page.' : 'Change the filter or continue with the page controls when available.'}</EmptyState>
       : <ul className="k42-directory-list">{shown.map(entry => <li key={`${entry.kind}:${entry.id}`}>
         {/* One card for people and agents alike (owner, 19 October 2026): photo, name, what they are, then a details line. */}
-        <NavLink to={entry.kind === 'person' ? projectRoute(projectId, 'agents', null, null, 'all') : projectRoute(projectId, 'agents', entry.id, agentQuery || null, 'all')} go={go} className="k42-directory-card">
+        <NavLink to={entry.kind === 'person' ? projectRoute(projectId, 'agents', null, null) : projectRoute(projectId, 'agents', entry.id, agentQuery || null)} go={go} className="k42-directory-card">
           <span className="k42-directory-photo">{entry.kind === 'person' ? <PersonAvatar id={entry.id} photo={entry.photo} character={entry.character} name={entry.name} /> : <CodingAgentAvatar state={entry.state} provider={entry.provider} name={entry.name} id={entry.id} persona={entry.personaChoice} ownerName={entry.ownerName} ownerId={entry.ownerId} size={56} decorative />}
             {entry.kind === 'agent' && <AgentStatusIcon state={entry.state} overlay />}</span>
           <span className="k42-directory-text"><strong>{entry.name}</strong>
@@ -54,6 +54,7 @@ export function CommunityDirectory({ projectId, members, agents, loading, now, g
             <AgentFocus focus={agents.find(a => a.id === entry.id)?.focus} now={now} />
           </>}</div>
         </NavLink>
+        {entry.kind === 'agent' && agentActions?.(entry.id)}
       </li>)}</ul>}
     {(['people', 'agents'] as const).filter(lane => kind === 'all' || kind === lane).map(lane => {
       const page = paging?.[lane];

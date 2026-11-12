@@ -54,7 +54,7 @@ test('actual app keeps coding-tool identity separate from model names across sid
     const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
     await context.route('**/*',(route:any)=>['127.0.0.1','localhost','[::1]'].includes(new URL(route.request().url()).hostname)?route.continue():route.abort());
     page=await context.newPage();page.on('pageerror',(error:Error)=>errors.push(error.message));page.on('console',(msg:any)=>{if(msg.type()==='error')diagnostics.push(msg.text());});page.on('requestfailed',(req:any)=>diagnostics.push(req.url()+': '+req.failure()?.errorText));
-    const url=`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=agents&filter=all`;
+    const url=`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=agents`;
     await page.goto(url);
     await signInBrowser(page, await idTokenFor('icons@example.test'));
     const directoryView=page.locator('.k42-directory:visible'),sidebar=page.locator('.k42-my-agents');
@@ -87,8 +87,8 @@ test('actual app keeps coding-tool identity separate from model names across sid
     await page.screenshot({path:join(directory,'writing.png')});
     await directoryView.locator('.k42-directory-card').filter({hasText:'Alpha worker'}).click();
     const detail=page.locator('.agent-detail:visible');await detail.getByRole('heading',{name:'Alpha worker',exact:true}).waitFor();
-    await detail.locator('.agent-side .k42-tool-label').getByText('Claude Code',{exact:true}).waitFor();
-    expect(await detail.locator('.agent-profile-stats .k42-model-name').textContent()).toContain('gpt-synthetic-reroute');
+    await detail.locator('.agent-meta .k42-tool-label').getByText('Claude Code',{exact:true}).waitFor();
+    expect(await detail.locator('.agent-meta .k42-model-name').textContent()).toContain('gpt-synthetic-reroute');
     expect(await detail.locator('.agent-profile-photo .k42-tool-badge').getAttribute('aria-label')).toBe('Coding agent: Claude Code');
     expect(await detail.locator('.agent-profile-photo .k42-agent-status-icon').count()).toBe(1);
     for(const width of [1440,390]) {

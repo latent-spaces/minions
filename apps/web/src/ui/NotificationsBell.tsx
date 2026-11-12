@@ -70,7 +70,7 @@ export function NotificationsBell({ user, active, go, collapsed = false }: { use
     if (!profileId || busy || noticeScope.mutating || !same()) return; setBusy(notice.id); noticeScope.revision++; noticeScope.mutating++;
     try {
       await ownOwner(user, profileId, `/notifications/${notice.id}/read`, {}); if (!same()) return; drop(notice.id);
-      if (navigate) { close(); go(projectRoute(notice.projectId, 'agents', notice.agentId, null, 'all')); }
+      if (navigate) { close(); go(projectRoute(notice.projectId, 'agents', notice.agentId, null)); }
     } catch (failure) { if (same()) setError((failure as Error).message); } finally { noticeScope.revision++; noticeScope.mutating--; if (same()) { setBusy(null); setAsked(n => n + 1); } }
   }
   async function markAll() {

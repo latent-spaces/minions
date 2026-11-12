@@ -5,30 +5,27 @@ import { ApiError, session, projects } from '../api';
 import { hold } from '../route';
 import { Button } from './Button';
 import { InfoTip } from './InfoTip';
-import { communicationDraft, communicationEdit, validateCommunicationSettings, type CommunicationDraft, type CommunicationMode } from './communication-settings';
-import './agent-communication.css';
+import { communicationDraft, communicationEdit, validateCommunicationSettings, type CommunicationDraft } from './communication-settings';
+import './communication-limits.css';
 
-/** Communication limits, edited in place: each value is its own field, and Save appears once one changes.
- *  On an agent page the fields are that agent's overrides (blank uses the project default); in Settings they are the
- *  project defaults. Whoever cannot edit sees the values read-only. */
-export function AgentCommunication({ user, projectId, agentId = null, active, tick }: {
-  user: SessionUser | null; projectId: string; agentId?: string | null; active: boolean; tick: number;
+/** The project's communication limits, edited in place in Settings: each value is its own field, and Save appears once
+ *  one changes. They apply to every agent; there are no per-agent limits (owner, 12 November 2026). */
+export function CommunicationLimits({ user, projectId, active, tick }: {
+  user: SessionUser | null; projectId: string; active: boolean; tick: number;
 }) {
   const [saved, setSaved] = useState<CommunicationSettings | null>(null), [draft, setDraft] = useState<CommunicationDraft | null>(null);
   const [busy, setBusy] = useState(false), [uncertain, setUncertain] = useState(false), [denied, setDenied] = useState(false);
   const [error, setError] = useState(''), [notice, setNotice] = useState('');
-  const mode: CommunicationMode | null = !saved ? null : agentId ? saved.canEditAgent ? 'agent' : null : saved.canEditDefaults ? 'project' : null;
-  const dirty = !!saved && !!mode && !!draft && JSON.stringify(draft) !== JSON.stringify(communicationDraft(saved, mode));
+  const editing = !!saved?.canEditDefaults;
+  const dirty = !!saved && editing && !!draft && JSON.stringify(draft) !== JSON.stringify(communicationDraft(saved));
   const live = useRef(true), sending = useRef(false), reads = useRef(0), state = useRef({ dirty, busy, uncertain });
   state.current = { dirty, busy, uncertain };
-  const id = useId(), path = agentId ? `/${projectId}/agents/${agentId}/communication` : `/${projectId}/communication`;
+  const id = useId(), path = `/${projectId}/communication`;
   const current = () => live.current && !!user && session.currentUid() === user.uid;
   useEffect(() => { live.current = true; return () => { live.current = false; }; }, []);
   useEffect(() => !denied && (dirty || busy || uncertain) ? hold() : undefined, [denied, dirty, busy, uncertain]);
-  const editable = (value: CommunicationSettings): CommunicationMode | null => agentId ? value.canEditAgent ? 'agent' : null : value.canEditDefaults ? 'project' : null;
   function show(next: CommunicationSettings) {
-    const editing = editable(next);
-    setSaved(next); setDraft(editing ? communicationDraft(next, editing) : null); setUncertain(false);
+    setSaved(next); setDraft(next.canEditDefaults ? communicationDraft(next) : null); setUncertain(false);
   }
   function failure(reason: unknown) {
     if (!current()) return;
@@ -41,9 +38,9 @@ export function AgentCommunication({ user, projectId, agentId = null, active, ti
     let cancelled = false;
     projects<CommunicationSettings>(user, path).then(value => {
       if (cancelled || !current() || request !== reads.current) return;
-      const next = validateCommunicationSettings(value, agentId); setDenied(false);
+      const next = validateCommunicationSettings(value); setDenied(false);
       // A refresh never overwrites an unsaved or unconfirmed edit, unless editing access is gone.
-      if ((state.current.dirty || state.current.busy || state.current.uncertain) && editable(next)) return;
+      if ((state.current.dirty || state.current.busy || state.current.uncertain) && next.canEditDefaults) return;
       show(next); setError('');
     }).catch(reason => { if (!cancelled && request === reads.current) failure(reason); });
     return () => { cancelled = true; };
@@ -52,21 +49,21 @@ export function AgentCommunication({ user, projectId, agentId = null, active, ti
     if (!user || sending.current || !current()) return;
     sending.current = true; setBusy(true); ++reads.current;
     try {
-      const next = validateCommunicationSettings(await projects<CommunicationSettings>(user, path), agentId);
+      const next = validateCommunicationSettings(await projects<CommunicationSettings>(user, path));
       if (current()) { show(next); setError(''); setDenied(false); }
     } catch (reason) { failure(reason); }
     finally { sending.current = false; if (current()) setBusy(false); }
   }
-  async function save(reset = false) {
-    if (!user || !saved || !mode || !draft || sending.current || !current() || uncertain) return;
+  async function save() {
+    if (!user || !saved || !editing || !draft || sending.current || !current() || uncertain) return;
     let input;
-    try { input = reset ? { expectedRevision: saved.configuration!.overrideRevision, fields: {} } : communicationEdit(saved, mode, draft); }
+    try { input = communicationEdit(saved, draft); }
     catch (reason) { failure(reason); return; }
     sending.current = true; setBusy(true); setError(''); setNotice(''); ++reads.current;
     try {
       const result = await projects<{ revision: number }>(user, path, input);
       if (!Number.isSafeInteger(result?.revision) || result.revision !== input.expectedRevision + 1) throw new Error('Save was not confirmed. Load saved settings before editing again.');
-      const next = validateCommunicationSettings(await projects<CommunicationSettings>(user, path), agentId);
+      const next = validateCommunicationSettings(await projects<CommunicationSettings>(user, path));
       if (current()) { show(next); setNotice('Limits saved. Recent usage still counts.'); }
     } catch (reason) { if (current()) { setUncertain(true); failure(reason); } }
     finally { sending.current = false; if (current()) setBusy(false); }
@@ -79,43 +76,39 @@ export function AgentCommunication({ user, projectId, agentId = null, active, ti
     ['minimumGapSeconds', 'Minimum send gap (seconds)', B.minimumGapSeconds, B.maximumGapSeconds],
     ['broadcastsPerHour', 'Agent broadcasts per hour', 1, B.broadcastsPerHour],
   ] as const;
-  const help = 'Broadcasts count as messages. The shared allowance grows with the team. These are limits, not remaining messages.'
-    + (mode === 'agent' ? ' Leave a field blank to use the project default.' : '');
+  const help = 'Broadcasts count as messages. The shared allowance grows with the team. These are limits, not remaining messages.';
   return <section className="agent-panel" aria-labelledby={id + '-title'}>
     <h3 id={id + '-title'} className="agent-panel-title">Communication limits<InfoTip label="communication limits">{help}</InfoTip></h3>
     {error && <p className="error" role="alert">{error}</p>}
     {!saved && !error && <p role="status" className="agent-help">Loading limits…</p>}
-    {effective && !mode && <dl className="agent-details-list">
+    {effective && !editing && <dl className="agent-details-list">
       <div><dt>Broadcasting</dt><dd>{effective.broadcastAllowed ? 'Allowed' : 'Disabled'}</dd></div>
       <div><dt>Messages</dt><dd>{effective.sendsPerHour} / hour</dd></div>
       <div><dt>Send gap</dt><dd>{effective.minimumGapSeconds} seconds</dd></div>
       <div><dt>Agent broadcasts</dt><dd>{effective.broadcastsPerHour} / hour</dd></div>
       <div><dt>Shared project broadcasts</dt><dd>{effective.sharedBroadcastsPerHour} / hour per agent in the team</dd></div>
     </dl>}
-    {mode && draft && defaults && <form className="agent-limits" onSubmit={event => { event.preventDefault(); void save(); }}>
+    {editing && draft && defaults && <form className="agent-limits" onSubmit={event => { event.preventDefault(); void save(); }}>
       <fieldset disabled={busy || uncertain}>
         <div className="agent-limits-row">
           <label htmlFor={id + '-broadcast'}>Broadcasting</label>
           <select id={id + '-broadcast'} value={draft.broadcastAllowed} onChange={event => set('broadcastAllowed', event.target.value)}>
-            {mode === 'agent' && <option value="inherit">Project default ({defaults.broadcastAllowed ? 'allowed' : 'disabled'})</option>}
             <option value="allow">Allowed</option><option value="deny">Disabled</option>
           </select>
         </div>
         {numberFields.map(([key, label, min, max]) => <div key={key} className="agent-limits-row">
           <label htmlFor={id + key}>{label}</label>
-          <input id={id + key} type="number" inputMode="numeric" min={min} max={max} step="1" required={mode === 'project'} value={draft[key]}
-            placeholder={mode === 'agent' ? `Default ${defaults[key]}` : undefined} onChange={event => set(key, event.target.value)} />
+          <input id={id + key} type="number" inputMode="numeric" min={min} max={max} step="1" required value={draft[key]} onChange={event => set(key, event.target.value)} />
         </div>)}
-        {mode === 'project' && <div className="agent-limits-row">
+        <div className="agent-limits-row">
           <label htmlFor={id + '-shared'}>Shared broadcasts per hour, per agent in the team</label>
           <input id={id + '-shared'} type="number" inputMode="numeric" min="1" max={B.broadcastsPerHour} step="1" required value={draft.sharedBroadcastsPerHour}
             onChange={event => set('sharedBroadcastsPerHour', event.target.value)} />
-        </div>}
+        </div>
       </fieldset>
-      {(dirty || mode === 'agent' && !!saved?.overriddenFields.length) && !uncertain && <div className="settings-save-row">
-        {dirty && <Button disabled={busy}>{busy ? 'Saving…' : 'Save limits'}</Button>}
-        {dirty && <Button type="button" className="soft" disabled={busy} onClick={() => { setDraft(communicationDraft(saved!, mode)); setError(''); }}>Discard changes</Button>}
-        {!dirty && mode === 'agent' && <Button type="button" className="soft" disabled={busy} onClick={() => void save(true)}>Use project defaults</Button>}
+      {dirty && !uncertain && <div className="settings-save-row">
+        <Button disabled={busy}>{busy ? 'Saving…' : 'Save limits'}</Button>
+        <Button type="button" className="soft" disabled={busy} onClick={() => { setDraft(communicationDraft(saved!)); setError(''); }}>Discard changes</Button>
       </div>}
     </form>}
     {notice && <p role="status" className="agent-help">{notice}</p>}

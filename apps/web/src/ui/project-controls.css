@@ -11,21 +11,13 @@
 .project-controls-retry { margin-top: 16px; }
 @media (max-width: 600px) { .project-controls-card { padding: 20px; } }
 
-.my-worker-controls { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
-.my-worker-controls summary { cursor: pointer; font-weight: 600; padding: 8px 0; }
-.my-worker-controls > p { font-size: 12px; line-height: 1.5; margin: 8px 0; }
 .my-worker-list { list-style: none; padding: 0; margin: 12px 0 0; }
 .my-worker-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
 .my-worker-identity { display: flex; flex-direction: column; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
 .my-worker-identity span, .my-worker-identity small { font-size: 12px; font-variant-numeric: tabular-nums; }
-.my-worker-list button, .my-worker-setup { flex-shrink: 0; min-height: 44px; }
-.my-worker-setup { display: inline-flex; align-items: center; font-size: 12px; }
-.my-worker-list .background-worker-row { align-items: flex-start; flex-wrap: wrap; }
+.my-worker-list button { flex-shrink: 0; min-height: 44px; }
 .background-worker-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
-.my-worker-all, .k42-participant-all { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
-/* Pause all / Kill all match the row buttons. */
-.my-worker-controls > .my-worker-all { font-size: inherit; }
-.my-worker-all button { min-height: 44px; }
+.k42-participant-all { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
 .background-worker-confirm { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 
 .my-worker-list .chat-participation-row { align-items: flex-start; flex-direction: column; }

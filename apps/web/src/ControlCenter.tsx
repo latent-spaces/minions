@@ -1,4 +1,4 @@
-import { AgentCommunication } from './ui/AgentCommunication';
+import { CommunicationLimits } from './ui/CommunicationLimits';
 import { NativeTeamSettings } from './ui/NativeTeamSettings';
 import { NativeTaskSettings } from './ui/NativeTaskSettings';
 import type { SessionUser } from './session-identity';
@@ -34,7 +34,7 @@ export function ControlCenter({ user, workspace, refresh, active, controls, refr
           <h3 id="settings-agents-title" className="settings-group-title">Agents</h3>
           {/* The owner edits the Card, shared instructions included (server editCard). */}
           <CardSettings mode="guidance" request={catalogRequest} workspace={workspace} definition={workspace.definition} refresh={refresh} active={active} />
-          <AgentCommunication key={`${user.uid}:${workspace.id}:communication`} user={user} projectId={workspace.id} active={active} tick={refreshKey} />
+          <CommunicationLimits key={`${user.uid}:${workspace.id}:communication`} user={user} projectId={workspace.id} active={active} tick={refreshKey} />
         </section>
         <section className="settings-card" aria-labelledby="settings-features-title">
           <h3 id="settings-features-title" className="settings-group-title">Features</h3>

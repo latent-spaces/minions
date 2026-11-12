@@ -7,7 +7,7 @@ import { useMyWorkers } from './MyWorkerControls';
 import { notify } from './Toast';
 
 // Retirement uses the existing owner-only revocation fence, preserving attribution.
-export function RemoveAgent({ user, projectId, agentId, agentName, onRemoved }: {
+export function useRemoveAgent({ user, projectId, agentId, agentName, onRemoved }: {
   user: SessionUser; projectId: string; agentId: string; agentName: string; onRemoved: () => void;
 }) {
   const workers = useMyWorkers(), lock = useRef(false);
@@ -29,9 +29,14 @@ export function RemoveAgent({ user, projectId, agentId, agentName, onRemoved }: 
       setError(failure instanceof Error ? failure.message : 'Could not remove this agent. Try again.');
     } finally { lock.current = false; setBusy(false); }
   }
-  if (workers?.data?.projectClosed) return null;
+  return { remove, busy, error, available: !workers?.data?.projectClosed };
+}
+
+export function RemoveAgent(props: { user: SessionUser; projectId: string; agentId: string; agentName: string; onRemoved: () => void }) {
+  const { remove, busy, error, available } = useRemoveAgent(props);
+  if (!available) return null;
   return <div>
-    <Button className="danger" disabled={busy} onClick={() => void remove()} aria-label={`Remove ${agentName}`}>{busy ? 'Removing…' : 'Remove'}</Button>
+    <Button className="danger" disabled={busy} onClick={() => void remove()} aria-label={`Remove ${props.agentName}`}>{busy ? 'Removing…' : 'Remove'}</Button>
     {error && <p className="error" role="alert">{error}</p>}
   </div>;
 }

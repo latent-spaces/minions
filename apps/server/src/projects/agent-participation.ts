@@ -60,12 +60,12 @@ export async function readParticipationContext(agentId: string, runId: string | 
   return db.runTransaction(async tx => {
     if (runId) await assertRunInTransaction(tx, agentId, runId); else await assertAgentMembership(tx, agentId);
     const a = (await tx.get(agents().doc(agentId))).data()!;
-    const policy = await resolveCommunication(tx, a);
+    const policy = await resolveCommunication(tx);
     return { identity: { projectId: currentProjectId(), agentId, profileId: a.ownerProfileId },
       persona: personaOf(a), messaging: { directRecipientsMax: V2_LIMITS.recipientsMax, sendsPerHour: policy.sendsPerHour,
         minimumGapSeconds: policy.minimumGapSeconds, broadcastAllowed: policy.broadcastAllowed,
         broadcastsPerAgentPerHour: policy.broadcastsPerHour, sharedBroadcastLimit: await sharedBroadcastLimit(tx, policy.sharedBroadcastsPerHour),
-        projectRevision: policy.projectRevision, overrideRevision: policy.overrideRevision },
+        projectRevision: policy.projectRevision },
       workDefaults: { ...workSettings(a), appliesTo: 'next_start' }, personaApplication: 'next_natural_turn_boundary', observedAt: now() };
   });
 }
