@@ -19,7 +19,7 @@ import { SessionLoading, SessionUnavailable } from './ui/SessionLoading';
 import { WorkspaceNavigation, type ProjectMenu, type WorkspaceNavItem } from './ui/WorkspaceNavigation';
 import { COMPACT_SHELL } from './ui/shell-breakpoint';
 import { useMenuCollapsed } from './ui/menu-collapse';
-import { ListTodo, Folder, Settings, Menu, Users, Activity, MonitorPlay, LogOut, MessageSquare, Megaphone, Network } from 'lucide-react';
+import { ListTodo, Folder, Settings, Menu, Users, Activity, MonitorPlay, LogOut, MessageSquare, Megaphone, Network, Bot } from 'lucide-react';
 import { ProjectUpdatesFeed } from './ProjectUpdatesFeed';
 import { NotificationsBell } from './ui/NotificationsBell';
 import { sidebarAgentRoute, menuMode } from './ui/shell-nav';
@@ -32,7 +32,6 @@ import { communicationAgentState } from './ui/communication-agent-state';
 import { session, read, community, projects, ProjectScope, ApiError, type AgentRow, type Overview } from './api';
 
 import { MyProjects } from './MyProjects';
-import { YourAgent } from './ui/YourAgent';
 import { WaitingAddAgent, WaitingRoomCallout } from './ui/AddAgentPrompt';
 import { PathHeading } from './ui/PathHeading';
 import { notify } from './ui/Toast';
@@ -44,7 +43,7 @@ import { ProjectTeams } from './ui/ProjectTeams';
 import { nativeTasksEnabled, nativeTeamsEnabled } from '@mlswarm/contracts';
 import './ui/project-home.css';
 import { ControlCenter } from './ControlCenter';
-import { MyWorkerControls } from './ui/MyWorkerControls';
+import { AgentCardRun } from './ui/AgentRunControls';
 import { useLeaveProject, LeaveProjectFeedback } from './LeaveProject';
 import { Agents } from './Agents';
 import { Conversations } from './Conversations';
@@ -344,7 +343,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
         <main id="content" ref={content} tabIndex={-1} className="workspace-content">
           <div hidden={route.view !== 'projects'}><MyProjects user={user} view={route.view !== 'project' ? route.projectList ?? 'current' : 'current'} onArchiveChange={archiveChanged} active={route.view === 'projects' && visible} refreshKey={directoryTick} go={go} retry={refreshAll} /></div>
           {route.view === 'needs-you' && <NeedsYou key={user.uid} user={user} go={go} />}
-          {selected && <div hidden={!projectShown}><ProjectScope.Provider value={selected.id}><ProjectContent key={selected.id} suppliedProfileId={account.person.id} user={user} projectId={selected.id} section={section} chooseSection={chooseSection} agent={agent} search={agentSearch} agentFilter={route.view === 'project' ? route.agentFilter ?? 'mine' : 'mine'} onAgent={reportAgent} go={go} thread={route.view === 'project' ? route.thread : null} messageId={route.view === 'project' ? route.message : undefined} taskId={route.view === 'project' ? route.task ?? null : null} tick={tick} refresh={refresh} refreshAll={refreshAll} active={projectShown && visible} onDenied={denied} onFacts={setFacts} /></ProjectScope.Provider></div>}
+          {selected && <div hidden={!projectShown}><ProjectScope.Provider value={selected.id}><ProjectContent key={selected.id} suppliedProfileId={account.person.id} user={user} projectId={selected.id} section={section} chooseSection={chooseSection} agent={agent} search={agentSearch} onAgent={reportAgent} go={go} thread={route.view === 'project' ? route.thread : null} messageId={route.view === 'project' ? route.message : undefined} taskId={route.view === 'project' ? route.task ?? null : null} tick={tick} refresh={refresh} refreshAll={refreshAll} active={projectShown && visible} onDenied={denied} onFacts={setFacts} /></ProjectScope.Provider></div>}
           {route.view === 'project' && !projectShown && !failure && <p className="muted" role="status">Loading project…</p>}
           {failure && <section className="project-readme" aria-labelledby="project-unavailable">
             <PathHeading id="project-unavailable" headingRef={failureHeading} tabIndex={-1} go={go} title={failed ? failure.removed ? 'You no longer have access to this project' : 'Project not available' : 'Could not open this project'} />
@@ -358,9 +357,9 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   </div>;
 }
 
-// The project's sections, listed in the menu above My agents (owner, 11 November 2026).
+// The project's sections, listed in the menu above My agents (owner, 11 November 2026; Agents added under Communication 12 November).
 type ProjectTab = { id: Section; label: string; icon: typeof Activity };
-const PROJECT_TABS: ProjectTab[] = [{ id:'overview', label:'Tasks', icon:ListTodo }, { id:'preview', label:'Preview', icon:MonitorPlay }, { id:'teams', label:'Teams', icon:Users }, { id:'conversations', label:'Communication', icon:MessageSquare }, { id:'usage', label:'Usage', icon:Activity },
+const PROJECT_TABS: ProjectTab[] = [{ id:'overview', label:'Tasks', icon:ListTodo }, { id:'preview', label:'Preview', icon:MonitorPlay }, { id:'teams', label:'Teams', icon:Users }, { id:'conversations', label:'Communication', icon:MessageSquare }, { id:'agents', label:'Agents', icon:Bot }, { id:'usage', label:'Usage', icon:Activity },
   { id:'control-center', label:'Settings', icon:Settings }];
 // Sharing a link preserves the server's existing admission and project-access rules.
 async function shareProjectLink(projectId: string) {
@@ -377,7 +376,7 @@ const membersPath = () => '/members';
 const allAgentsPath = (cursor: string | null) => `/agents?view=labels${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
 const allMembersPath = (cursor: string | null) => `/members${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`;
 const agentRowsPath = () => '/agents';
-function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSection, agent, search, agentFilter, onAgent, go, thread, messageId, taskId, tick, refresh, refreshAll, active, onDenied, onFacts }: { suppliedProfileId: string; user: SessionUser; projectId: string; section: Section; chooseSection: (section: Section) => void; agent: string | null; search: string | null; agentFilter: 'mine' | 'all'; onAgent: (projectId: string, id: string, name: string) => void; go: (to: Route, replace?: boolean) => void; thread: string | null; messageId?: string; taskId: string | null; tick: number; refresh: () => void; refreshAll: () => void; active: boolean; onDenied: (projectId: string, error: Error) => void; onFacts: (facts: ProjectFacts) => void }) {
+function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSection, agent, search, onAgent, go, thread, messageId, taskId, tick, refresh, refreshAll, active, onDenied, onFacts }: { suppliedProfileId: string; user: SessionUser; projectId: string; section: Section; chooseSection: (section: Section) => void; agent: string | null; search: string | null; onAgent: (projectId: string, id: string, name: string) => void; go: (to: Route, replace?: boolean) => void; thread: string | null; messageId?: string; taskId: string | null; tick: number; refresh: () => void; refreshAll: () => void; active: boolean; onDenied: (projectId: string, error: Error) => void; onFacts: (facts: ProjectFacts) => void }) {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadedAt, setLoadedAt] = useState<number | null>(null);
@@ -425,7 +424,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   useEffect(() => { if (restricted && section !== 'overview') chooseSection('overview'); }, [restricted, section, chooseSection]);
   const status = workspace ? workspaceProjectStatus(workspace).label : 'Loading project…';
   // The people chat stays docked beside every section.
-  const communityAgents = currentSection === 'agents' && agentFilter === 'all';
+  const communityAgents = currentSection === 'agents';
   const allAgents = communityAgents && !agent;
   const members = usePages<{ id: string; owner?: boolean; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null }>(user, membersPath, tick, visible && !!workspace);
   const agentStatusTick = useRealtimeTick(user, projectId, 'agents', visible && !!project);
@@ -466,7 +465,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
     people: { first: directoryPeople.first, hasNext: !!directoryPeople.page?.next, onBack: directoryPeople.newer, onNext: directoryPeople.older, error: directoryPeople.error },
     agents: { first: directoryBots.first, hasNext: !!directoryBots.page?.next, onBack: directoryBots.newer, onNext: directoryBots.older, error: directoryBots.error },
   };
-  const searchAgents = (query: string) => go(projectRoute(projectId, 'agents', null, query || null, 'all'), true);
+  const searchAgents = (query: string) => go(projectRoute(projectId, 'agents', null, query || null), true);
   // Both entry paths supply the authenticated participant's immutable profile identity.
   const ownProfileId = suppliedProfileId;
   // One explicit visit observation after this signed-in person actually opens the project.
@@ -481,12 +480,12 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   const agentNavigation = useRef(go); agentNavigation.current = go;
   const activateAgent = useCallback((id: string) => {
     if (openRequests.agentIds.includes(id) || !openRequests.ready || openRequests.error) setRequestAgent({ id, checking: !openRequests.ready || (!!openRequests.error && !openRequests.agentIds.includes(id)) });
-    else agentNavigation.current(projectRoute(projectId, 'agents', id, null, 'all'));
+    else agentNavigation.current(projectRoute(projectId, 'agents', id, null));
   }, [openRequests.agentIds, openRequests.ready, openRequests.error, projectId]);
   useEffect(() => {
     if (requestAgent?.checking && openRequests.ready && !openRequests.error) {
       if (openRequests.agentIds.includes(requestAgent.id)) setRequestAgent({ ...requestAgent, checking: false });
-      else { setRequestAgent(null); agentNavigation.current(projectRoute(projectId, 'agents', requestAgent.id, null, 'all')); }
+      else { setRequestAgent(null); agentNavigation.current(projectRoute(projectId, 'agents', requestAgent.id, null)); }
     }
   }, [requestAgent, openRequests.ready, openRequests.error, openRequests.agentIds, projectId]);
   const teams = useMemo(() => teamsApi(user, projectId, ownProfileId ?? undefined, () => session.currentUid()), [user, projectId, ownProfileId]);
@@ -549,7 +548,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
           {workspace && detail && !agent && <div className="project-heading">
             <PathHeading trail={false} title={SECTION_NAMES[currentSection]}
               parents={[{label:'My projects',to:{view:'projects'}}, {label:project?.name ?? workspace?.definition.title ?? '',to:projectRoute(projectId)},
-                ...(agent ? [{label:SECTION_NAMES[currentSection],to:projectRoute(projectId,currentSection,null,search,agentFilter)}] : [])]} go={go} />
+                ...(agent ? [{label:SECTION_NAMES[currentSection],to:projectRoute(projectId,currentSection,null,search)}] : [])]} go={go} />
           </div>}
 
           {workspace && <div hidden={currentSection !== 'overview'} className="k42-overview">
@@ -569,17 +568,11 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
             {workspace && <ControlCenter refreshKey={tick} user={user} workspace={workspace} refresh={refreshAll} active={visible && currentSection === 'control-center'} />}
           </div>
           <div hidden={currentSection !== 'agents'}>
-            {workspace && allAgents && <CommunityDirectory projectId={projectId} members={directoryMembers} agents={directoryAgents} loading={!!project && !directoryBots.page} now={clock} go={go} paging={directoryPaging} ownerFirst={directoryPeople.first} agentQuery={search ?? ''} onAgentQuery={searchAgents} />}
-            {workspace && !agent && !allAgents && <nav className="k42-agent-filters" aria-label="Agent filter">
-              <NavLink to={projectRoute(projectId,'agents')} go={go} current={agentFilter === 'mine'}>My agents</NavLink>
-              <NavLink to={projectRoute(projectId,'agents',null,null,'all')} go={go} current={agentFilter === 'all'}>All agents</NavLink>
-            </nav>}
-            <div hidden={agent !== null || agentFilter !== 'mine'}>
-              {workspace && <MyWorkerControls inline projectId={projectId} controls={controls.workers} disabled={workspace.execution === 'closed'} jobBar={<JobLimitsBar workspace={workspace} controls={controls} />} />}
-              {workspace?.execution === 'closed' && <p>This project is closed. History is kept.</p>}
-              {project ? <YourAgent projectName={project.name} user={user} tick={tick + agentTick} refresh={refresh} active={visible && currentSection === 'agents' && agentFilter === 'mine' && !agent} readOnly={workspace?.execution === 'closed'} go={go} /> : <p>The owner needs to set up this project before you can add an agent.</p>}
-            </div>
-            <div hidden={allAgents}><Agents user={user} agent={agent} search={search} filter={agentFilter} onAgent={onAgent} tick={tick + agentTick} active={visible && currentSection === 'agents' && !allAgents} go={go} waiting={openRequests.waiting} /></div>
+            {/* The cards, with the owner's time and token cap above them and a run icon on the person's own cards (owner, 12 November 2026). */}
+            {workspace && allAgents && <JobLimitsBar workspace={workspace} controls={controls} />}
+            {workspace && allAgents && <CommunityDirectory projectId={projectId} members={directoryMembers} agents={directoryAgents} loading={!!project && !directoryBots.page} now={clock} go={go} paging={directoryPaging} ownerFirst={directoryPeople.first} agentQuery={search ?? ''} onAgentQuery={searchAgents}
+              agentActions={workspace.execution === 'closed' ? undefined : agentId => <AgentCardRun user={user} projectId={projectId} agentId={agentId} />} />}
+            <div hidden={allAgents}><Agents user={user} agent={agent} search={search} onAgent={onAgent} tick={tick + agentTick} active={visible && currentSection === 'agents' && !allAgents} go={go} waiting={openRequests.waiting} /></div>
           </div>
           {/* Native tasks replace GitHub Issues as the work record; repositories and pull requests stay where they are. */}
           {workspace && <div hidden={currentSection !== 'teams'}><ProjectTeams key={`${user.uid}:${projectId}`} api={teams} active={visible && currentSection === 'teams'} refreshToken={tick + teamsTick} disabledNotice={!nativeTeamsEnabled(workspace.nativeTeams)} agents={liveAgents} lookup={project ? taskLabels : undefined} scope={`${user.uid}:${projectId}`} /></div>}

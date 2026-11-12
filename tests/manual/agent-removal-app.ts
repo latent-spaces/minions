@@ -66,7 +66,7 @@ try {
   await dialog.getByRole('button', { name: 'Remove agent', exact: true }).click();
   await remove.waitFor({ state: 'detached' });
   assert.equal(await owner.locator('.toast-confetti').count(), 0);
-  await navigate(url('agents', '&filter=all'));
+  await navigate(url('agents'));
   await owner.locator('a.k42-directory-card:visible').filter({ hasText: 'Healthy-synthetic' }).waitFor();
   assert.equal(await owner.getByText('Misconfigured-synthetic', { exact: true }).filter({ visible: true }).count(), 0);
   await navigate(url('agents', `&agent=${peer}`));

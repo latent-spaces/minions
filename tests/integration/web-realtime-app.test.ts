@@ -116,7 +116,7 @@ test.each(['live','blockers','map'] as const)('actual app realtime acceptance: %
     await writeMessage('b'.repeat(64),'Arrived while the tab was hidden');
     await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'});document.dispatchEvent(new Event('visibilitychange'));});
     await page.getByText('Arrived while the tab was hidden',{exact:true}).first().waitFor({timeout:10000});
-    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=agents&filter=all`);
+    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=agents`);
     const cards=page.locator('.k42-directory:visible');await cards.getByText('Live worker',{exact:true}).waitFor();
     await db.doc(`humanRequests/${requestId}`).set(requestRecord);
     await page.getByRole('button',{name:/Notifications.*1/}).waitFor({timeout:10000});

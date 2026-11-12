@@ -1,6 +1,6 @@
 import { Megaphone, Users } from 'lucide-react';
 import { UpdateSettings } from './ui/UpdateSettings';
-import { AgentCommunication } from './ui/AgentCommunication';
+import { CommunicationLimits } from './ui/CommunicationLimits';
 import { NativeTeamSettings } from './ui/NativeTeamSettings';
 import { NativeTaskSettings } from './ui/NativeTaskSettings';
 import type { SessionUser } from './session-identity';
@@ -31,7 +31,7 @@ export function ControlCenter({ user, workspace, refresh, active, refreshKey }: 
           <header className="settings-group-title settings-group-head"><span className="settings-group-icon" aria-hidden="true"><Users size={18} /></span><div><h3 id="settings-agents-title">All agents</h3><p>Every agent in this project follows these, yours and other people’s.</p></div></header>
           {/* The owner edits the Card, shared instructions included (server editCard). */}
           <CardSettings mode="guidance" request={catalogRequest} workspace={workspace} definition={workspace.definition} refresh={refresh} active={active} />
-          <AgentCommunication key={`${user.uid}:${workspace.id}:communication`} user={user} projectId={workspace.id} active={active} tick={refreshKey} />
+          <CommunicationLimits key={`${user.uid}:${workspace.id}:communication`} user={user} projectId={workspace.id} active={active} tick={refreshKey} />
         </section>
         <section className="settings-card" aria-labelledby="settings-updates-title">
           <header className="settings-group-title settings-group-head"><span className="settings-group-icon" aria-hidden="true"><Megaphone size={18} /></span><div><h3 id="settings-updates-title">Updates</h3><p>What agents post to the Updates feed: an image, a headline and one line.</p></div></header>

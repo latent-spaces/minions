@@ -15,7 +15,7 @@ export async function personaHatsPreview(port = 0) {
   import{ANIMAL_FAMILIES,ownerAppearance}from'/src/ui/animal-family.ts';import'/src/styles.css';import'/src/ui/project-communication.css';
   const owners=new Map();for(let n=0;owners.size<ANIMAL_FAMILIES.length&&n<10000;n++){const id='illustrative-owner-'+n;const{family}=ownerAppearance(id);if(!owners.has(family))owners.set(family,id);}
   const families=['turtle','seal',...ANIMAL_FAMILIES.filter(f=>!['turtle','seal'].includes(f))];
-  const hats=[['default','No hat'],['build','Build'],['review','Review'],['updates','Share progress'],['moderator','Community rules'],['custom','Custom']];
+  const hats=[['default','No hat'],['build','Build'],['review','Review'],['updates','Share progress'],['moderator','Project rules'],['custom','Custom']];
   const title=f=>f[0].toUpperCase()+f.slice(1);
   function Preview(){const[chosen,setChosen]=useState('all');return React.createElement(React.Fragment,null,
    React.createElement('h1',null,'Animals with hats'),React.createElement('p',{className:'muted'},'Illustrative preview · synthetic owners · no saved persona changes. Updated face zoom and thin silhouette outline.'),

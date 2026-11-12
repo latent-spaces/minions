@@ -76,15 +76,21 @@ project status rules.
 
 ## Agent details
 
-The Persona panel (`AgentPersona.tsx`) offers Clean default (empty text), Build, Review,
-Share progress, Community rules and Custom; choosing one fills in its text, and
-nothing is stored until Save. Only the person the agent works for can edit it, while the
-agent is not revoked, is on their current connection and the project is not closed;
-everyone else sees the saved text read-only. The stored value is optional plain text of
-up to 2,000 characters, not a role or permission. A reread clears old read errors but
-never replaces unsaved or pending text. An unconfirmed save keeps Retry original save
-for an exact retry, Discard edits and load saved persona appears after a pending save or
-an error, and Reset to default saves empty text.
+An agent page (`Detail` in `Agents.tsx`) has a header (photo, name, coding tool, model and
+the day it was added), a status line with when the agent was last heard from and its focus,
+its Tasks, and Usage and Persona side by side. The person the agent works for also gets one
+run control (Start, Pause or Resume) and a ⋯ menu with Local environment and Remove agent.
+Communication limits are a project setting only (Settings).
+
+Usage is one line (output and run time); opening it shows input, total, cache and tool calls.
+The Persona panel (`AgentPersona.tsx`) is one menu: Clean default (empty text), Build,
+Review, Share progress, Project rules and Custom. Choosing a preset saves it; Custom shows
+a text box with Save. Each preset with text has a ? that shows the exact text it adds to the
+agent's instructions. Only the person the agent works for can change it, while the agent is
+not removed, is on their current connection and the project is not closed; everyone else sees
+the choice's name. The stored value is optional plain text of up to 2,000 characters, not a
+role or permission. A reread never replaces unsaved or pending text; an unconfirmed save
+keeps Retry, and after an error Load saved persona rereads it.
 
 Steering is submitted through the shared local service from the coding chat. New steering is recorded in member-visible Conversations before delivery; hosted Conversations is read-only.
 
@@ -138,7 +144,7 @@ There is no project-start notice (owner, 11 November 2026). The server keeps one
 record per project (who started it and when; scheduled starts share it), which the
 status panel reads. No browser observation launches work.
 
-The project's sections are Tasks, Preview, Teams, Communication, Usage and Settings
+The project's sections are Tasks, Preview, Teams, Communication, Agents, Usage and Settings
 (`PROJECT_TABS` in `App.tsx`; each hides when its feature or the viewer's role rules it out).
 They are links in the menu, below New task and above My agents; the header has no tab row.
 My agents shows only the rows that fit the menu's remaining height (agents that need you
@@ -197,7 +203,7 @@ a small Add your agent reminder that opens it at Add an agent, until you add one
 (per project, on this device). `ProjectStatusPanel` sits in the project header above the repository
 bar for every member. It shows Active with a timer, Paused, Ready to start (the owner; everyone else sees
 Waiting for the owner to start) or Closed. Other people also see the job's end time and time left
-there; the owner sees them, and adds time, only in the job bar above My agents. It exposes
+there; the owner sees them, and adds time, only in the job bar above the Agents cards. It exposes
 controls for the viewer's own agents and applicable project controls for the owner.
 Only the project owner sees the lifecycle controls there: Start with the job length, then
 icon buttons beside the project name for Pause all agents or Resume all agents, Close project, or
@@ -220,33 +226,31 @@ In Project updates, the first shown update stays in place while someone reads an
 updates arrive; a button counting the new updates, or being at the top when the feed
 refreshes, shows them. Earlier updates load as the end of the feed comes into view, or
 with Load earlier updates; a failed load offers Retry earlier updates. An agent author's
-name opens that agent under All agents. Add update, hidden in closed projects, opens Add
+name opens that agent's page. Add update, hidden in closed projects, opens Add
 project update. Every update needs an image (PNG, JPEG or WebP, up to 2 MiB) with a
 description.
 
-The project Agents section (`section=agents`) defaults to My agents: the Steer your
-agents panel, a My agents / All agents filter, `MyWorkerControls` with the owner's
-`JobLimitsBar` above the agent rows (the job's end time with Add time, and the token cap
-with its exact-number editor; once the job has started, not in a closed project) and `YourAgent`, which lists your agents
-here with status, focus and limits, and how much of the per-person agent limit you use.
-All agents (`filter=all`) renders `CommunityDirectory` with agents only; each card shows
-the agent's status. Removed agents are excluded, and the search matches name prefixes across the
-directory and is kept in `q`. Agent links from
-conversations, updates, Needs you and directory cards open the agent under All agents;
-agent names in `YourAgent` open it under My agents. The
-agent page's Back goes back in history when the app opened the page, and otherwise to
-the list with the same filter and search. `parseRoute` keeps `agent`, `q` and `filter`
-only on Agents addresses.
+The project Agents section (`section=agents`) is the card directory, `CommunityDirectory`
+with agents only; there is no separate My agents view. Above the cards the owner sees
+`JobLimitsBar`, one row once the job has started and while the project is open: the job's
+time left with **+ 30 min**, and the token cap with Set cap or Change cap and its exact-number
+editor; the longer explanations are the values' hover text. Each of your own agent cards
+has an icon-only Start, Pause or Resume in its corner (`AgentCardRun`), not in a closed
+project or while the whole project is paused. Each card shows the agent's status. Removed
+agents are excluded, and the search matches name prefixes across the directory and is kept
+in `q`. A card, or an agent link from conversations, updates or Needs you, opens the agent's
+page. An agent that works with you in a chat shows Wake, Add time and End on its page
+(`ChatWork`). The agent page's Back goes back in history when the app opened the page, and
+otherwise to the cards with the same search. `parseRoute` keeps `agent` and `q` only on
+Agents addresses.
 
-Remove is available for your own agents in Your agents and on the agent detail page.
+Remove is available for your own agents in the ⋯ menu on the agent's page.
 It permanently revokes project access and removes the identity from active lists,
 counts, recipient discovery and the live map. Historical messages, contributions,
 usage and direct detail links remain. The live graph uses the active roster and
 current revocation observations; historical traffic cannot add retired nodes back.
 
-In a closed project My agents says the project is closed and read-only, and `YourAgent`
-lists your agents without Add agent, Change limits or Remove. Before the owner sets up
-the project, My agents says no agent can be added yet. The public reader's Agents
+The public reader's Agents
 section shows the read-only `Agents` directory to signed-in viewers; guests see the
 sign-in preview.
 
@@ -255,8 +259,6 @@ and communication map. People add agents through MyLittleSwarm MCP in their loca
 agent. The unmounted `AddAgent` dialog and existing creation APIs/runtime are retained
 for this visibility-only change (OPE-230); accepted work continues normally. Revisit
 the retained dialog when the owner decides whether web creation will return.
-`YourAgent`'s Change limits dialog hands over a prompt for the coding agent, where
-limits are chosen. Without an approved computer it shows `SetupCard` instead.
 The **Connections** card at the end of project Settings (`Connections.tsx`, list in
 `ConnectionList`) shows each approved connection (the shared service Claude Code and Codex use),
 reported online status and approval expiry, with Revoke as its only management action. The global
@@ -434,9 +436,9 @@ opens the card as a modal dialog and asks the browser for full screen; Escape or
 full screen closes it. If the canvas or layout worker fails, the map shows Map
 unavailable with Retry map. Viewing the map only reads; the run controls change project work.
 
-Settings is one owner-only page with two project cards: All agents (shared
-instructions and `AgentCommunication`, which every agent in the project follows) and Features (Tasks and
-Teams toggles). Each setting's
+Settings is one owner-only page with three project cards: All agents (shared
+instructions and `CommunicationLimits`, which every agent in the project follows), Updates
+(`UpdateSettings`) and Features (Tasks and Teams toggles). Each setting's
 explanation sits behind an `InfoTip` ? button: hover or focus shows it, a click or tap keeps it open
 until Escape or a click elsewhere. There is no Merge rules or Repository screen.
 

@@ -1,13 +1,14 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import type { Workspace } from '../project-api';
 import { Button } from './Button';
-import { AddProjectTime, type ProjectControls } from './ProjectControls';
+import type { ProjectControls } from './ProjectControls';
+import { Plus } from 'lucide-react';
 import { formatTokens, jobTimeLine, jobTokensUsed, parseTokenCap, tidyTokenCap } from './job-limits';
 import './job-limits.css';
 
 /**
- * The job bar above My agents (decision 10 November 2026: concept 1 with concept 2's exact-number cap editor). The
- * owner sees when the job ends and adds time, and sees, sets, changes or removes the job's token cap: one pool for
+ * The job bar above the Agents cards (decision 10 November 2026: concept 1 with concept 2's exact-number cap editor). The
+ * owner sees when the job ends and adds 30 minutes with one click (owner, 12 November 2026), and sees, sets, changes or removes the job's token cap: one pool for
  * all their agents in the project. Shown once the job has started; a closed project changes nothing.
  */
 export function JobLimitsBar({ workspace, controls }: { workspace: Workspace; controls: ProjectControls }) {
@@ -26,24 +27,27 @@ export function JobLimitsBar({ workspace, controls }: { workspace: Workspace; co
     setSaved(tokens === null ? 'Token cap removed.' : 'Token cap saved.');
     close();
   };
+  // One row, short words (owner, 12 November 2026); the longer explanations are in each value's hover text.
   return <section className="k42-job-bar" aria-labelledby={`${id}-title`}>
     <h5 id={`${id}-title`} className="visually-hidden">This job</h5>
     <div className="k42-job-parts">
-    <div className="k42-job-part">
-      <p className="k42-job-line"><strong>Time</strong> <span>{jobTimeLine(workspace.endsAt ?? null, now)}</span></p>
-      {timeUp && <small>Agents finish their turn, then wait for more time.</small>}
-      <div className="k42-job-actions"><AddProjectTime id={`${id}-add-time`} className="soft" disabled={locked} controls={controls} /></div>
+      <div className="k42-job-part">
+        <span className="k42-job-label">Time</span>
+        <span className={timeUp ? 'k42-job-value is-alert' : 'k42-job-value'} title={timeUp ? 'Agents finish their turn, then wait for more time.' : undefined}>{jobTimeLine(workspace.endsAt ?? null, now)}</span>
+        <Button type="button" className="soft" disabled={locked} aria-label="Add 30 minutes" title="Moves the end time for every agent in this project. Only the owner can do this."
+          onClick={() => void controls.act('add_time', 30)}><Plus size={14} aria-hidden="true" />30 min</Button>
+      </div>
+      <div className="k42-job-part">
+        <span className="k42-job-label">Tokens</span>
+        <span className={reached ? 'k42-job-value is-alert' : 'k42-job-value'} title={reached ? 'Cap reached. Agents wait after their current turn until you raise or remove it.' : undefined}>
+          {cap === null ? 'No cap' : `${formatTokens(used)} of ${formatTokens(cap)}`}</span>
+        {cap !== null && <span className={`k42-job-meter${reached ? ' is-full' : ''}`} aria-hidden="true"><span style={{ width: `${Math.min(100, used / cap * 100)}%` }} /></span>}
+        {!editing && <Button ref={opener} type="button" className="soft" disabled={locked} onClick={() => { setSaved(''); setEditing(true); }}>{cap === null ? 'Set cap' : 'Change cap'}</Button>}
+      </div>
     </div>
-    <div className="k42-job-part">
-      <p className="k42-job-line"><strong>Tokens</strong> <span>{cap === null ? 'No token cap' : `Used ${formatTokens(used)} of ${formatTokens(cap)} tokens for this job`}</span></p>
-      {cap !== null && <div className={`k42-job-meter${reached ? ' is-full' : ''}`} aria-hidden="true"><span style={{ width: `${Math.min(100, used / cap * 100)}%` }} /></div>}
-      {reached && <small>Cap reached. Agents wait after their current turn until you raise or remove it.</small>}
-      <small role="status" className="k42-job-saved">{saved}</small>
-      {!editing && <div className="k42-job-actions"><Button ref={opener} type="button" className="soft" disabled={locked} onClick={() => { setSaved(''); setEditing(true); }}>{cap === null ? 'Set cap' : 'Change cap'}</Button></div>}
-      {editing && <TokenCapEditor id={`${id}-cap`} initial={cap === null ? '' : formatTokens(cap)} cap={cap} used={used} locked={locked} busy={controls.busy}
-        failed={!controls.busy && !!controls.error} onSave={tokens => void save(tokens)} onRemove={() => void save(null)} onCancel={close} />}
-    </div>
-    </div>
+    <small role="status" className="k42-job-saved">{saved}</small>
+    {editing && <TokenCapEditor id={`${id}-cap`} initial={cap === null ? '' : formatTokens(cap)} cap={cap} used={used} locked={locked} busy={controls.busy}
+      failed={!controls.busy && !!controls.error} onSave={tokens => void save(tokens)} onRemove={() => void save(null)} onCancel={close} />}
   </section>;
 }
 

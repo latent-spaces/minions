@@ -12,6 +12,7 @@ import { NavLink } from '../navigation-link';
 import type { PublicPhoto } from '../profile-photo-api';
 import { TASK_STATUSES, isAccessLoss, isConflict, isTasksDisabled, isSettledRefusal, taskReferenceView, newestTaskSnapshot, taskSourceHref, taskReferenceFromUrl, statusLabel, statusChangeBlock, taskMutation, singleFlight, readTasksView, writeTasksView, nestTasks, taskFromPrompt, type TasksApi, type TasksView } from '../task-model';
 import type { NativeTaskMutation } from '@mlswarm/contracts';
+import { PickerMenu } from './PickerMenu';
 import { TaskAgentAvatar } from './TaskAgentAvatar';
 import { TaskAgentHover, TaskContributorAvatars } from './TaskContributorAvatars';
 import { PersonAvatar } from './PersonAvatar';
@@ -652,34 +653,6 @@ function Subtasks({ api, parent, subtasks, directory, readOnly, onOpen, onCreate
         onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } }} onBlur={() => { if (!title.trim()) close(); }} /></form>}
     {error && <p role="alert" className="error">{error}</p>}
   </section>;
-}
-
-type PickerItem = { key: string; label: ReactNode; checked?: boolean; disabled?: boolean; title?: string; onSelect: () => void };
-/** The summary (a chip or a face) is the control: it opens a small menu, like the selected simple-tasks design. */
-function PickerMenu({ label, summary, items, disabled }: { label: string; summary: ReactNode; items: PickerItem[]; disabled?: boolean }) {
-  const [open, setOpen] = useState(false), trigger = useRef<HTMLButtonElement>(null), menu = useRef<HTMLDivElement>(null), menuId = useId();
-  useEffect(() => {
-    if (!open) return;
-    menu.current?.querySelector<HTMLButtonElement>('button')?.focus();
-    const outside = (event: PointerEvent) => { if (!menu.current?.contains(event.target as Node) && !trigger.current?.contains(event.target as Node)) setOpen(false); };
-    const key = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') { event.stopPropagation(); setOpen(false); trigger.current?.focus(); }
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-        const buttons = [...(menu.current?.querySelectorAll<HTMLButtonElement>('button') ?? [])], at = buttons.indexOf(document.activeElement as HTMLButtonElement);
-        buttons[(at + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length]?.focus(); event.preventDefault();
-      }
-    };
-    document.addEventListener('pointerdown', outside); document.addEventListener('keydown', key, true);
-    return () => { document.removeEventListener('pointerdown', outside); document.removeEventListener('keydown', key, true); };
-  }, [open]);
-  return <div className="k42-task-picker">
-    <button ref={trigger} type="button" className="k42-task-picker-trigger" aria-haspopup="menu" aria-expanded={open} aria-controls={menuId} aria-label={`${label}: change`} disabled={disabled} onClick={() => setOpen(v => !v)}>{summary}</button>
-    {open && <div ref={menu} id={menuId} role="menu" aria-label={label} className="k42-task-picker-menu">
-      {items.map(item => <button key={item.key} type="button" role={item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked={item.checked}
-        className="k42-task-picker-item" disabled={item.disabled} title={item.title} onClick={() => { item.onSelect(); setOpen(false); trigger.current?.focus(); }}>
-        {item.label}{item.checked && <Check size={16} aria-hidden="true" />}</button>)}
-    </div>}
-  </div>;
 }
 
 function historyLabel(event: NativeTaskActivity) {

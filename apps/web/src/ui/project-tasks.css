@@ -150,12 +150,6 @@
   .k42-tasks .k42-tasks-head-actions { margin-left: 0; flex-wrap: wrap; }
 }
 .k42-task-notice p { margin: 0; }
-.k42-task-picker { position: relative; width: fit-content; max-width: 100%; }
-.k42-task-picker-trigger { font: inherit; font-size: 16px; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 4px 10px 4px 4px; margin-left: -4px; border: 1px solid transparent; border-radius: var(--radius-button); background: none; cursor: pointer; color: var(--ink); max-width: 100%; }
-.k42-task-picker-trigger:hover, .k42-task-picker-trigger[aria-expanded="true"] { background: var(--canvas-soft); border-color: var(--hairline-shell); }
-.k42-task-picker-menu { position: absolute; z-index: 2; top: calc(100% + 4px); left: 0; min-width: 240px; max-width: min(320px, 80vw); max-height: 320px; overflow-y: auto; background: var(--canvas); border: 1px solid var(--hairline-lifted); border-radius: var(--surface-radius); box-shadow: var(--shadow-lifted); padding: 6px; display: grid; }
-.k42-task-picker-item { font: inherit; font-size: 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; border: 0; border-radius: var(--radius-button); background: none; text-align: left; cursor: pointer; color: var(--ink); }
-.k42-task-picker-item:hover, .k42-task-picker-item:focus-visible { background: var(--canvas-soft); }
 .k42-visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .k42-task-picker-trigger .k42-task-actor > span:last-child, .k42-task-picker-item .k42-task-actor > span:last-child { overflow: visible; text-overflow: clip; }
 .k42-task-picker-trigger > .muted { white-space: nowrap; }

@@ -17,9 +17,9 @@ test('real website hook retains exact retries, never auto-resends, and End bypas
   const html = `<!doctype html><html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body>
   <p>Synthetic current-chat verification · no model runs</p><main id="root" style="max-width:380px;margin:auto;padding:16px"></main>
   <script type="module">
-  import React from 'react';import{createRoot}from'react-dom/client';import{MyWorkerControls,useMyWorkerControls}from'/src/ui/MyWorkerControls.tsx';
+  import React from 'react';import{createRoot}from'react-dom/client';import{useMyWorkerControls}from'/src/ui/MyWorkerControls.tsx';import{ChatWork}from'/src/ui/ChatParticipationControls.tsx';
   import '/src/styles.css';import '/src/ui/project-controls.css';import{session}from'/src/api.ts';
-  function Harness(){const controls=useMyWorkerControls(session.currentUser(),${JSON.stringify(pid)},true);return React.createElement(MyWorkerControls,{projectId:${JSON.stringify(pid)},controls,disabled:false});}
+  function Harness(){const controls=useMyWorkerControls(session.currentUser(),${JSON.stringify(pid)},true);const a=controls.data?.agents[0];return a?React.createElement(ChatWork,{agentId:a.agentId,agentName:a.agentName,participation:a.participation,controls:controls.participation,now:controls.now,disabled:false}):null;}
   createRoot(document.getElementById('root')).render(React.createElement(Harness));
   </script></body></html>`;
   const mock = `export class ApiError extends Error{constructor(status,message){super(message);this.status=status}}
@@ -49,7 +49,6 @@ test('real website hook retains exact retries, never auto-resends, and End bypas
       { agents: [{ agentId: 'synthetic-chat', agentName: 'Synthetic chat', participation: active, worker: { agentId: 'synthetic-chat', session: null, available: false, serverTime: Date.now(), next: null } }], serverTime: Date.now() });
     const errors: string[] = []; page.on('pageerror', (e: Error) => errors.push(e.message));
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as {port: number}).port}/__participation.html`);
-    await page.getByText('My agents · 1', {exact: true}).click();
     const duration = page.getByRole('spinbutton', {name: 'Time to add for Synthetic chat, in minutes'});
     await duration.waitFor({state:'visible'});
     expect(await page.getByRole('button', {name:'Add time to Synthetic chat in this chat', exact: true}).isDisabled()).toBe(true);
@@ -62,12 +61,12 @@ test('real website hook retains exact retries, never auto-resends, and End bypas
     expect(await page.getByText('Ended. Your computer will finish up shortly.', {exact:true}).count()).toBe(1);
     await page.setViewportSize({width:390,height:844});
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-    await page.reload(); await page.getByText('My agents · 1', {exact:true}).click();
+    await page.reload();
     await duration.waitFor(); await page.evaluate(() => (window as any).mode = 'fail');
     await duration.fill('15'); await page.getByRole('button', {name:'Add time to Synthetic chat in this chat', exact:true}).click();
     await page.getByRole('button', {name:'Retry adding time', exact:true}).waitFor();
     const original = await page.evaluate(() => (window as any).calls[0]);
-    await page.reload(); await page.getByText('My agents · 1', {exact:true}).click();
+    await page.reload();
     await page.getByRole('button', {name:'Retry adding time', exact:true}).waitFor();
     expect(await page.evaluate(() => (window as any).calls.length)).toBe(0);
     await page.evaluate(() => (window as any).mode = 'normal');

@@ -18,9 +18,3 @@ export const computerSetupInstructions = (origin: string) => `Set up MyLittleSwa
 // For a computer that is set up but whose gh is not signed in: the Connect GitHub step of the Karma bar.
 export const GITHUB_COMMANDS = ['gh auth login --web --git-protocol https --insecure-storage', 'gh auth setup-git'];
 export const githubSetupInstructions = () => `Connect GitHub for MyLittleSwarm on this computer: run ${GITHUB_COMMANDS[0]}, then ${GITHUB_COMMANDS[1]}, and guide me through it.`;
-
-function named(agentName: string, projectName: string) {
-  if (!/^[\w-]{1,64}$/.test(agentName) || !projectName.trim() || projectName.length > 500 || /[\x00-\x1f\x7f]/.test(projectName)) throw new Error('Choose a valid project and agent name.');
-  return `my MyLittleSwarm project ${JSON.stringify(projectName)}`;
-}
-export const changeLimitsInstructions = (agentName: string, projectName: string) => `Change the limits of my agent ${agentName} in ${named(agentName, projectName)}.`;

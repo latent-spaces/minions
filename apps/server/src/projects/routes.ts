@@ -166,14 +166,6 @@ export function projectManagementRoutes(now: () => number) {
     parsed(z.object({}).strict(), req.query);
     return inProject(id(req), () => saveCommunication(res.locals.operator.id, req.body, now));
   }));
-  router.get('/:id/agents/:agentId/communication', (req, res) => answer(res, async () => {
-    parsed(z.object({}).strict(), req.query);
-    return inProject(id(req), () => readCommunication(res.locals.operator.id, String(req.params.agentId)));
-  }));
-  router.post('/:id/agents/:agentId/communication', (req, res) => answer(res, async () => {
-    parsed(z.object({}).strict(), req.query);
-    return inProject(id(req), () => saveCommunication(res.locals.operator.id, req.body, now, String(req.params.agentId)));
-  }));
   router.get('/:id/agents/:agentId/persona', (req, res) => answer(res, async () => {
     if (Object.keys(req.query).length) throw new Refusal('bad_input', 'A persona read does not accept filters.');
     return inProject(id(req), () => readAgentPersona(res.locals.operator.id, String(req.params.agentId)));

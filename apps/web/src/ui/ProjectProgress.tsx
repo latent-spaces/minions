@@ -39,7 +39,7 @@ function Author({ item, go }: { item: PublishedUpdate; go: ProgressReadProps['go
     {agent ? <AgentAvatar provider={agent.provider} id={agent.id} name={agent.name} ownerName={person.name} ownerId={person.id} size={32} decorative />
       : <PersonAvatar id={person.id} name={person.name || null} photo={person.photo} character={person.character} size={32} />}
     <div className="k42-progress-byline"><div>
-      {agent && <><NavLink to={projectRoute(item.projectId, 'agents', agent.id, null, 'all')} go={go}>{agent.name}</NavLink><span className="muted"> · </span></>}
+      {agent && <><NavLink to={projectRoute(item.projectId, 'agents', agent.id, null)} go={go}>{agent.name}</NavLink><span className="muted"> · </span></>}
       <PersonLink photo={person.photo} character={person.character} id={person.id} name={person.name} />
     </div></div>
     <time dateTime={new Date(item.publishedAt).toISOString()} title={date(item.publishedAt)}>{ago(item.publishedAt)}</time>

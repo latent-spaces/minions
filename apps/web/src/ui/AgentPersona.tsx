@@ -5,7 +5,8 @@ import type { AgentPersona as Persona } from '@mlswarm/contracts';
 import { ApiError, session, projects } from '../api';
 import { hold } from '../route';
 import { Button } from './Button';
-import { Check } from 'lucide-react';
+import { ChevronDown, CircleHelp } from 'lucide-react';
+import { PickerMenu } from './PickerMenu';
 import './agent-persona.css';
 import { PERSONA_OPTIONS, personaChoice, type PersonaChoice } from '@mlswarm/contracts';
 
@@ -14,7 +15,7 @@ const PERSONA_CARDS = [
   { id: 'build', label: 'Build', description: 'Make progress and verify changes.' },
   { id: 'review', label: 'Review', description: 'Find bugs and test assumptions.' },
   { id: 'updates', label: 'Share progress', description: 'Share clear updates with evidence.' },
-  { id: 'moderator', label: 'Community rules', description: 'Flag concerns for human review.' },
+  { id: 'moderator', label: 'Project rules', description: 'Flag concerns for human review.' },
   { id: 'custom', label: 'Custom', description: 'Write your own perspective.' },
 ] as const;
 
@@ -87,34 +88,37 @@ export function AgentPersona({ user, projectId, agentId, active, tick, agentName
     finally { if (current()) setBusy(false); }
   }
   if (!user || session.currentUid() !== user.uid || !active || denied || !saved && !error) return null;
-  return <section className="agent-panel" aria-labelledby={inputId + '-title'}>
+  const chosen = PERSONA_CARDS.find(card => card.id === choice) ?? PERSONA_CARDS[0];
+  const pick = (id: PersonaChoice) => {
+    if (!saved) return;
+    setChoice(id); setNotice('');
+    if (id === 'custom') { setText(customDraft.current || saved.persona.text); return; }
+    void save({ text: PERSONA_OPTIONS.find(option => option.id === id)!.text, expectedRevision: saved.persona.revision });
+  };
+  // One menu (owner, 12 November 2026): a preset saves when chosen; only Custom asks for text and a Save.
+  return <section className="agent-panel agent-persona" aria-labelledby={inputId + '-title'}>
     <h3 id={inputId + '-title'}>Persona</h3>
-    <p className="agent-help">Optional · visible to project members. Leaving it blank uses the clean default.</p>
-    {error && <p role="alert" className="error">{error}</p>}
-    {notice && <p role="status">{notice}</p>}
-    {saved?.canEditPersona ? <form className="settings-form card-form" onSubmit={event => { event.preventDefault(); void save(pending ?? {text,expectedRevision:saved.persona.revision}); }}>
-      <fieldset className="persona-choices" disabled={busy || !!pending}>
-        <legend>Perspective or focus (optional)</legend>
-        <div className="persona-card-grid">
-          {PERSONA_CARDS.map(({ id, label, description }) => <label className="persona-choice" key={id}>
-            <input type="radio" name={inputId + '-choice'} value={id} checked={choice === id}
-              aria-label={label} aria-describedby={inputId + '-' + id + '-description'} onChange={() => {
-                setChoice(id); setText(id === 'custom' ? customDraft.current : PERSONA_OPTIONS.find(option => option.id === id)!.text); setNotice('');
-              }} />
-            <span className="persona-choice-content"><AgentAvatar provider={provider} name={agentName} id={agentId} ownerId={ownerId} persona={id} size={40} decorative />
-              <strong>{label}</strong><span id={inputId + '-' + id + '-description'}>{description}</span></span>
-          </label>)}
-        </div>
-      </fieldset>
-      {choice === 'custom' ? <><label htmlFor={inputId + '-custom'}>Your perspective</label>
-        <textarea id={inputId + '-custom'} rows={3} maxLength={4000} value={text} disabled={busy || !!pending}
-          onChange={event => {setText(event.target.value);customDraft.current = event.target.value;setNotice('');}} /></>
-        : text ? <details className="persona-instructions"><summary>View instructions</summary><p className="agent-help">{text}</p></details> : null}
-      <div className="actions">
-        <Button className="primary" disabled={busy || [...text.trim()].length > 2000 || !dirty && !pending}><Check size={18} aria-hidden="true" />{busy ? 'Saving…' : pending ? 'Retry original save' : 'Save'}</Button>
-        <Button type="button" disabled={busy || !!pending || !saved.persona.text} onClick={() => void save({text:'',expectedRevision:saved.persona.revision})}>Reset to default</Button>
-        {(pending || error) && <Button className="soft" type="button" disabled={busy} onClick={() => void reload()}>Discard edits and load saved persona</Button>}
-      </div>
-    </form> : saved ? <p>{saved.persona.text || 'Clean default — no custom perspective.'}</p> : null}
+    {saved?.canEditPersona ? <PickerMenu label="Persona" disabled={busy || !!pending} summary={<span className="agent-persona-summary">{chosen.label}<ChevronDown size={14} aria-hidden="true" /></span>}
+      items={PERSONA_CARDS.map(({ id, label, description }) => ({ key: id, checked: choice === id, title: description, onSelect: () => pick(id),
+        aside: promptOf(id) ? <PersonaPrompt label={label} text={promptOf(id)} /> : undefined,
+        label: <span className="agent-persona-item"><AgentAvatar provider={provider} name={agentName} id={agentId} ownerId={ownerId} persona={id} size={28} decorative /><span><strong>{label}</strong><small>{description}</small></span></span> }))} />
+      : saved ? <p>{PERSONA_CARDS.find(card => card.id === personaChoice(saved.persona.text))?.label ?? 'Custom'}</p> : null}
+    {saved?.canEditPersona && choice === 'custom' && <form className="agent-persona-custom" onSubmit={event => { event.preventDefault(); void save(pending ?? { text, expectedRevision: saved.persona.revision }); }}>
+      <textarea aria-label="Your perspective" rows={3} maxLength={4000} value={text} disabled={busy || !!pending}
+        onChange={event => { setText(event.target.value); customDraft.current = event.target.value; setNotice(''); }} />
+      {(dirty || pending) && <Button className="primary" disabled={busy || !text.trim() || [...text.trim()].length > 2000}>{busy ? 'Saving…' : pending ? 'Retry' : 'Save'}</Button>}
+    </form>}
+    {error && <p role="alert" className="error">{error} {pending && <Button className="soft" type="button" disabled={busy} onClick={() => void reload()}>Load saved persona</Button>}</p>}
+    {notice && <p role="status" className="agent-help">{notice}</p>}
   </section>;
+}
+
+const promptOf = (id: PersonaChoice) => PERSONA_OPTIONS.find(option => option.id === id)?.text ?? '';
+// The ? shows the exact text the persona adds to the agent's instructions (owner, 12 November 2026).
+function PersonaPrompt({ label, text }: { label: string; text: string }) {
+  const [open, setOpen] = useState(false);
+  return <>
+    <button type="button" className="agent-persona-prompt-button" aria-label={`What ${label} adds`} aria-expanded={open} onClick={() => setOpen(value => !value)}><CircleHelp size={16} aria-hidden="true" /></button>
+    {open && <p className="agent-persona-prompt">{text}</p>}
+  </>;
 }

@@ -6,6 +6,7 @@
     "node": ">=22"
   },
   "scripts": {
+    "communication:lab": "node tools/communication-lab/start.mjs",
     "setup": "node tools/setup/engine-setup.mjs",
     "build:web": "npm --prefix apps/web run build --",
     "build:backend": "npm --prefix apps/server run build:backend --",
