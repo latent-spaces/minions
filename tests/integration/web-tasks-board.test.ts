@@ -177,11 +177,11 @@ test('actual Tasks tab offers the list and a status board, remembers the choice 
     await kitCard.dragTo(memberColumn('In progress'));
     await memberColumn('In progress').locator('.k42-tasks-card', { hasText: 'Kit checks the sign-in copy' }).waitFor();
     expect((await stored(kitTask.id)).status).toBe('in_progress');
-    // A card the member cannot move still opens its task page, whose status buttons are disabled too.
+    // A card the member cannot move still opens its task page, whose status is a plain chip, not a menu.
     await foxCard.getByRole('button', { name: 'Store native tasks with atomic claims', exact: true }).click();
     const memberPage = member.getByRole('article', { name: 'Store native tasks with atomic claims', exact: true });
-    await memberPage.getByRole('button', { name: 'Done', exact: true }).waitFor();
-    expect(await memberPage.getByRole('button', { name: 'Done', exact: true }).isDisabled()).toBe(true);
+    await memberPage.locator('.k42-task-chips .k42-task-status').waitFor();
+    expect(await memberPage.getByRole('button', { name: 'Status: change', exact: true }).count()).toBe(0);
 
     expect(errors).toEqual([]);
     console.info(`Verified actual Tasks list/board views, remembered choice, drag status changes and phone width: ${directory}`);

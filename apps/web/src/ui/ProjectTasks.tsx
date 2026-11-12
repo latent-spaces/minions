@@ -1,8 +1,8 @@
 import { nativeTaskTitleMatches } from '@mlswarm/contracts';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import type { NativeTask, NativeTaskContributor, NativeTaskActor, NativeTaskDetail, NativeTaskStatus, NativeTaskActivity, NativeTaskSummary } from '@mlswarm/contracts';
+import type { NativeTask, NativeTaskActor, NativeTaskDetail, NativeTaskStatus, NativeTaskActivity, NativeTaskSummary } from '@mlswarm/contracts';
 import { closedTask } from '@mlswarm/contracts';
-import { ArrowLeft, Check, ChevronDown, ChevronRight, Columns3, Filter, List, ListTodo, Plus, RefreshCw, Search, X } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, GitPullRequest, ChevronRight, Columns3, Filter, List, ListTodo, Plus, RefreshCw, Search, X } from 'lucide-react';
 export type TaskAgent = { id: string; name: string; operatorId: string | null; operatorName: string | null; revokedAt: number | null;
   operatorPhoto?: import('@mlswarm/contracts').PublicProfilePhoto | null; personaChoice?: import('@mlswarm/contracts').PersonaChoice | null; assignable?: boolean;
   /** Live state and coding tool, known only for agents on the first full agents page. */
@@ -414,23 +414,23 @@ function TasksBoard({ api, tasks, directory, readOnly, more, canMove, onOpen, on
 }
 
 
-/** One task's page: Back and breadcrumbs (Tasks › parents › task), its fields, subtasks, comments and history. */
+/**
+ * One task, read top to bottom (owner decision, 12 November 2026): title, one row of chips (status, owner, agents,
+ * priority, links), the description, subtasks and one activity feed. Title, description and comments are not edited here.
+ */
 function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onActors, onChange, onAccessLost, onOpen, selfId, projectId, go, viewerUrl }: {
   api: TasksApi; taskId: string; directory: Directory; agents: TaskAgent[]; readOnly: boolean; onActors: (actors: NativeTaskActor[]) => void; onChange: (task: NativeTask) => void; onAccessLost: () => void; onOpen: (id: string | null) => void;
   selfId: string | null; projectId?: string; go?: (to: Route) => void; viewerUrl?: string;
 }) {
   const [detail, setDetail] = useState<NativeTaskDetail | null>(null);
   const [error, setError] = useState<string | null>(null), [notice, setNotice] = useState<string | null>(null), [busy, setBusy] = useState(false);
-  const [titleDraft, setTitleDraft] = useState<string | null>(null), [commentEdit, setCommentEdit] = useState<{ id: string; body: string } | null>(null);
-  const [editing, setEditing] = useState<string | null>(null), [comment, setComment] = useState(''), [link, setLink] = useState(''), [linkLabel, setLinkLabel] = useState('');
+  const [comment, setComment] = useState(''), [link, setLink] = useState(''), [linkLabel, setLinkLabel] = useState(''), [linkOpen, setLinkOpen] = useState(false);
   // A write whose outcome is unknown (lost reply, network, 5xx) is kept and resent byte-for-byte until it settles.
   const [uncertain, setUncertain] = useState<NativeTaskMutation | null>(null);
   const [turnedOff, setTurnedOff] = useState(false);
   const readOnly = readOnlyProp || turnedOff || detail?.permissions.edit === false;
-  const [reconcile, setReconcile] = useState(false);
-  const [versions,setVersions] = useState<Record<string,NativeTaskActivity>>({});
-  const draftState=useRef({dirty:false,busy:false});draftState.current={dirty:titleDraft!==null || editing!==null || commentEdit!==null || !!comment.trim() || !!link.trim() || !!linkLabel.trim(),busy:busy || !!uncertain};
-  // Like other editors, typed drafts and a change awaiting its exact retry hold the page and survive an accidental close.
+  const draftState=useRef({dirty:false,busy:false});draftState.current={dirty:!!comment.trim() || !!link.trim() || !!linkLabel.trim(),busy:busy || !!uncertain};
+  // A typed comment or link and a change awaiting its exact retry hold the page and survive an accidental close.
   const unsaved=draftState.current.dirty || draftState.current.busy;
   useEffect(()=>unsaved ? hold() : undefined,[unsaved]);
   const leave=(to:string|null)=>{ if(!draftState.current.dirty && !draftState.current.busy || window.confirm('Discard your unsaved changes to this task?')) onOpen(to); };
@@ -442,7 +442,6 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
   useEffect(() => { live.current = api; return () => { live.current = null as unknown as TasksApi; }; }, [api]);
   const current = (from: TasksApi) => live.current === from;
   const reload = useCallback(() => { const from = api; return api.get(taskId,{activityOrder:'desc'}).then(d => { if (!current(from)) return; if (d.task.revision < revision.current) return;
-      if (revision.current && d.task.revision > revision.current && draftState.current.dirty) setReconcile(true);
       setDetail(current => current && current.task.revision > d.task.revision ? current : {...d,activity:[...d.activity].sort((a,b)=>a.revision-b.revision)}); onChange(d.task); setError(null); }, e => {
     if (!current(from)) return;
     if (isAccessLoss(e)) { setDetail(null); onAccessLost(); }
@@ -468,7 +467,7 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
     const timer=setInterval(refresh,10_000);window.addEventListener('focus',refresh);
     return()=>{clearInterval(timer);window.removeEventListener('focus',refresh);};
   }, [reload]);
-  /** Older comments/history pages append (deduplicated) and keep the current task record. */
+  /** Older comments and history append (deduplicated) and keep the current task record. */
   const more = (which: 'comments' | 'activity') => {
     if (!detail) return;
     const cursors = which === 'comments' ? { commentCursor: detail.nextCommentCursor } : { activityCursor: detail.nextActivityCursor };
@@ -482,21 +481,15 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
   useEffect(() => { panel.current?.focus(); }, []);
   const task = detail?.task;
   type Op = Parameters<typeof taskMutation>[0];
-  /** Each write sends the revision it saw; a 409 reloads the latest task and keeps any typed draft. */
+  /** Each write sends the revision it saw; a 409 reloads the latest task and keeps any typed comment or link. */
   const send = (mutation: NativeTaskMutation) => {
     setBusy(true); setNotice(null);
     const from = api;
     return api.mutate(mutation).then(result => {
       if (!current(from)) return false;
       setUncertain(null);
-      // All confirmed writes (including an identical Retry replay) settle only their own draft.
-      // Functional updates preserve newer text typed while the original reply was in flight.
+      // A confirmed write (including an identical Retry replay) settles only its own draft; newer typing is kept.
       if (mutation.operation === 'comment') setComment(draft => draft.trim() === mutation.body ? '' : draft);
-      if (mutation.operation === 'edit_comment') setCommentEdit(draft => draft?.id === mutation.commentId && draft.body.trim() === mutation.body ? null : draft);
-      if (mutation.operation === 'update') {
-        if (mutation.title !== undefined) setTitleDraft(draft => draft?.trim() === mutation.title ? null : draft);
-        if (mutation.description !== undefined) setEditing(draft => draft === mutation.description ? null : draft);
-      }
       if (mutation.operation === 'add_reference') {
         const draft = linkDraft.current;
         try {
@@ -504,7 +497,7 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
           const same = reference.kind === mutation.reference.kind && reference.label === mutation.reference.label
             && ('url' in reference && 'url' in mutation.reference ? reference.url === mutation.reference.url
               : 'sourceId' in reference && 'sourceId' in mutation.reference && reference.sourceId === mutation.reference.sourceId);
-          if (same) { setLink(value => value === draft.link ? '' : value); setLinkLabel(value => value === draft.label ? '' : value); }
+          if (same) { setLink(value => value === draft.link ? '' : value); setLinkLabel(value => value === draft.label ? '' : value); setLinkOpen(false); }
         } catch { /* A newer incomplete draft is unrelated to this successful write. */ }
       }
       setDetail(d => d && { ...d, task: newestTaskSnapshot(d.task, result.task), comments: result.comment ? [...d.comments.filter(c => c.id !== result.comment!.id), d.comments.find(c => c.id === result.comment!.id && c.updatedAt > result.comment!.updatedAt) ?? result.comment].sort((a,b)=>a.createdAt-b.createdAt || a.id.localeCompare(b.id)) : d.comments });
@@ -514,20 +507,14 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
       if (!isSettledRefusal(e)) { setUncertain(mutation); setNotice('Could not confirm this change. Retry sends the same change again; it will not be applied twice.'); return false; }
       setUncertain(null);
       if (isTasksDisabled(e)) { setTurnedOff(true); setNotice('Tasks were turned off for this project. Nothing was changed; existing tasks stay readable.'); }
-      else if (isConflict(e)) { setReconcile(true); setNotice('Someone else changed this task. Review the saved version before replacing it.'); void reload(); }
+      else if (isConflict(e)) { setNotice('Someone else changed this task. This is the latest version; try again if you still want the change.'); void reload(); }
       else if (isAccessLoss(e)) { setDetail(null); setError(errorText(e)); onAccessLost(); }
       else setNotice(errorText(e));
       return false;
     }).finally(() => { if (current(from)) setBusy(false); });
   };
-  const act = (op: Op) => !task || busy || uncertain || readOnly || reconcile ? Promise.resolve(false) : send(taskMutation(op));
+  const act = (op: Op) => !task || busy || uncertain || readOnly ? Promise.resolve(false) : send(taskMutation(op));
   const base = task ? { taskId: task.id, expectedRevision: task.revision } : null;
-  const setStatus = (status: NativeTaskStatus) => base && act({ operation: 'update', ...base, status });
-  const assign = (agentId: string) => base && agentId && act({ operation: 'assign', ...base, assignedAgentId: agentId });
-  const release = () => base && act({ operation: 'release', ...base });
-  const saveTitle = () => base && titleDraft !== null && titleDraft.trim() && act({ operation: 'update', ...base, title: titleDraft.trim() });
-  const saveComment = () => base && commentEdit && commentEdit.body.trim() && act({ operation: 'edit_comment', ...base, commentId: commentEdit.id, body: commentEdit.body.trim() });
-  const saveDescription = () => base && editing !== null && act({ operation: 'update', ...base, description: editing });
   const sendComment = (event: FormEvent) => {
     event.preventDefault();
     if (!base || !comment.trim()) return;
@@ -540,33 +527,15 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
       void act({operation:'add_reference',...base,reference});
     } catch(e){setNotice(errorText(e));}
   };
-  const unassigned = !task?.assignedAgentId;
-  const canControl=detail?.permissions.control === true;
-  const canDescribe=detail?.permissions.editDescription === true;
+  const waiting = busy || !!uncertain;
+  const canControl = detail?.permissions.control === true;
   const assignmentChoices=task?.status === 'canceled' ? [] : detail?.permissions.assign === 'any' ? agents : detail?.permissions.assign === 'own' ? agents.filter(a=>a.operatorId===selfId) : [];
-  const resolveLatest=()=>{setTitleDraft(null);setEditing(null);setCommentEdit(null);setReconcile(false);setNotice(null);};
-  const viewVersion=(id:string)=>{const from=api;void api.get(taskId,{activityId:id}).then(d=>{if(current(from))setVersions(v=>({...v,[id]:d.activity[0]}));},e=>{if(current(from))setNotice(errorText(e));});};
-
-  const ancestors = detail?.ancestors ?? [], subtasks = detail?.subtasks ?? [];
-  const parent = ancestors.at(-1) ?? null;
+  const parent = detail?.ancestors?.at(-1) ?? null, subtasks = detail?.subtasks ?? [];
+  const face = (id: string) => <TaskAgentAvatar agent={directory.agent.get(id)} id={id} name={directory.name({ kind: 'agent', id })} size={28} />;
+  const noOwner = <span className="muted">No owner</span>;
   return <article ref={panel} tabIndex={-1} className="k42-task-page" aria-labelledby={titleId}>
-      <div className="k42-task-page-nav">
-        <Button className="k42-task-back" onClick={() => leave(parent?.id ?? null)}><ArrowLeft size={16} aria-hidden="true" />{parent ? 'Back to parent task' : 'Back to Tasks'}</Button>
-        <nav aria-label="Task location"><ol className="k42-task-crumbs">
-          <li><button type="button" className="k42-task-text-action" onClick={() => leave(null)}>Tasks</button></li>
-          {ancestors.map(row => <li key={row.id}><button type="button" className="k42-task-text-action" onClick={() => leave(row.id)}>{row.title}</button></li>)}
-          <li aria-current="page">{task?.title ?? 'Task'}</li>
-        </ol></nav>
-      </div>
-      <div className="k42-task-page-head">
-        {titleDraft === null || readOnly
-          ? <h2 id={titleId}>{task?.title ?? 'Task'}</h2>
-          : <form className="k42-task-title-edit" onSubmit={e => { e.preventDefault(); void saveTitle(); }}>
-              <input id={titleId} aria-label="Title" value={titleDraft} maxLength={300} onChange={e => setTitleDraft(e.target.value)} autoFocus />
-              <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || reconcile || !!uncertain || !titleDraft.trim()}>Save</Button><Button type="button" onClick={() => setTitleDraft(null)}>Cancel</Button></div>
-            </form>}
-        {task && !readOnly && titleDraft === null && <Button className="k42-task-text-action" onClick={() => setTitleDraft(task.title)} aria-label="Edit title">Edit</Button>}
-      </div>
+      <button type="button" className="k42-task-back" onClick={() => leave(parent?.id ?? null)}><ArrowLeft size={16} aria-hidden="true" />{parent ? parent.title : 'Back to Tasks'}</button>
+      <h2 id={titleId}>{task?.title ?? 'Task'}</h2>
       {error && <div role="alert"><p className="error">Could not load this task: {error}</p><Button onClick={() => void reload()}>Try again</Button></div>}
       {!detail && !error && <p className="muted" role="status">Loading…</p>}
       {task && <>
@@ -574,113 +543,80 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
         {task.proposed && <div className="k42-task-proposal" role="status">
           <p><Proposed /> An agent proposed this subtask. Nobody can take or start it until a project owner accepts it.</p>
           {detail.permissions.review && !readOnly && <div className="k42-task-actions">
-            <Button className="primary" disabled={busy || reconcile || !!uncertain} onClick={() => base && void act({ operation: 'review_proposal', ...base, accept: true })}>Accept</Button>
-            <Button disabled={busy || reconcile || !!uncertain} onClick={() => base && void act({ operation: 'review_proposal', ...base, accept: false })}>Decline</Button></div>}
+            <Button className="primary" disabled={waiting} onClick={() => base && void act({ operation: 'review_proposal', ...base, accept: true })}>Accept</Button>
+            <Button disabled={waiting} onClick={() => base && void act({ operation: 'review_proposal', ...base, accept: false })}>Decline</Button></div>}
         </div>}
-        {reconcile && <section className="k42-task-conflict" role="alert">
-          <h3>Task changed</h3><p>Your draft is kept. Review the current saved text:</p>
-          {titleDraft!==null && <p>{task.title}</p>}{editing!==null && <p className="k42-task-description">{task.description || 'No description'}</p>}
-          {commentEdit && <p>{detail.comments.find(c=>c.id===commentEdit.id)?.body}</p>}
-          <div className="k42-task-actions"><Button onClick={resolveLatest}>Use saved version</Button><Button onClick={()=>{setReconcile(false);setNotice(null);}}>Keep my draft</Button></div>
-        </section>}
-        <div className="k42-task-props">
-          <span className="k42-task-prop-label" id={`${titleId}-status`}>Status</span>
-          <div className="k42-task-segments" role="group" aria-labelledby={`${titleId}-status`}>
-            {TASK_STATUSES.map(s => {
-              const blocked = statusChangeBlock(task, s.id);
-              return <button key={s.id} type="button" aria-pressed={task.status === s.id} className={`k42-task-segment is-${s.id}`}
-                disabled={readOnly || !canControl || reconcile || busy || !!uncertain || !!blocked || task.status === s.id} title={blocked ?? undefined}
-                onClick={() => void setStatus(s.id)}>{s.label}</button>;
-            })}
-          </div>
-          {!readOnly && (task.status === 'canceled' ? <p className="muted k42-task-hint">Reopen to Backlog to work on it. Canceling doesn’t stop an agent.</p> : unassigned && <p className="muted k42-task-hint">Assign an agent before starting or completing this task.</p>)}
-
-          <span className="k42-task-prop-label" id={`${titleId}-assignee`}>Assigned agent</span>
-          <div className="k42-task-assignee">
-            {readOnly || !assignmentChoices.length ? task.assignedAgentId ? <AgentChip id={task.assignedAgentId} directory={directory} size={32} /> : <Unassigned />
-              : <PickerMenu label="Assigned agent" disabled={busy || reconcile || !!uncertain} summary={task.assignedAgentId ? <AgentChip id={task.assignedAgentId} directory={directory} size={32} /> : <Unassigned />}
-                  items={[...assignmentChoices.map(a => ({ key: a.id, label: <AgentChip id={a.id} directory={directory} size={24} />, checked: a.id === task.assignedAgentId, onSelect: () => { if (a.id !== task.assignedAgentId) void assign(a.id); } })),
-                    ...(task.assignedAgentId && canControl ? [{ key: 'release', label: <span>Release to Backlog</span>, onSelect: () => void release() }] : [])]} />}
-            {task.assignedAgentId && directory.gone(task.assignedAgentId) && <p className="muted k42-task-hint">This agent left the project. The assignment stays until released.</p>}
-          </div>
-
-          <span className="k42-task-prop-label">Contributors</span>
-          <div>
-            {readOnly ? <ContributorSummary contributors={task.contributors} directory={directory} />
-              : <PickerMenu label="Contributors" disabled={busy || reconcile || !!uncertain} summary={<ContributorSummary contributors={task.contributors} directory={directory} />}
-                  items={agents.map(a => ({ kind: 'agent' as const, id: a.id })).map(actor => {
-                    const on = task.contributors.some(c => c.kind === actor.kind && c.id === actor.id);
-                    return { key: `${actor.kind}:${actor.id}`, label: <ActorChip actor={actor} directory={directory} />, checked: on,
-                      onSelect: () => base && void act({ operation: 'update', ...base, contributors: on ? task.contributors.filter(c => !(c.kind === actor.kind && c.id === actor.id)) : [...task.contributors, actor] }) };
-                  })} />}
-          </div>
-
+        <div className="k42-task-chips">
+          {readOnly || !canControl ? <span className={`k42-task-status is-${task.status}`}>{statusLabel(task.status)}</span>
+            : <PickerMenu label="Status" disabled={waiting} summary={<span className={`k42-task-status is-${task.status}`}>{statusLabel(task.status)}<ChevronDown size={14} aria-hidden="true" /></span>}
+                items={TASK_STATUSES.map(s => { const blocked = task.status === s.id ? null : statusChangeBlock(task, s.id);
+                  return { key: s.id, label: <span>{s.label}</span>, checked: task.status === s.id, disabled: !!blocked, title: blocked ?? undefined,
+                    onSelect: () => { if (task.status !== s.id && base) void act({ operation: 'update', ...base, status: s.id }); } }; })} />}
+          {readOnly || !assignmentChoices.length ? task.assignedAgentId ? <TaskAgentHover id={task.assignedAgentId} agents={directory.agent} /> : noOwner
+            : <PickerMenu label="Owner" disabled={waiting} summary={task.assignedAgentId ? face(task.assignedAgentId) : noOwner}
+                items={[...assignmentChoices.map(a => ({ key: a.id, label: <AgentChip id={a.id} directory={directory} size={24} />, checked: a.id === task.assignedAgentId, onSelect: () => { if (a.id !== task.assignedAgentId && base) void act({ operation: 'assign', ...base, assignedAgentId: a.id }); } })),
+                  ...(task.assignedAgentId && canControl ? [{ key: 'release', label: <span>Release to Backlog</span>, onSelect: () => base && void act({ operation: 'release', ...base }) }] : [])]} />}
+          {task.contributors.length > 0 && <TaskContributorAvatars contributors={task.contributors} agents={directory.agent} />}
+          {readOnly ? task.priority !== 'normal' && <span className="k42-task-chip">{priorityLabel(task.priority)}</span>
+            : <PickerMenu label="Priority" disabled={waiting} summary={<span className="k42-task-chip">{priorityLabel(task.priority)}</span>}
+                items={(['low', 'normal', 'high'] as const).map(p => ({ key: p, label: <span>{priorityLabel(p)}</span>, checked: task.priority === p, onSelect: () => { if (task.priority !== p && base) void act({ operation: 'update', ...base, priority: p }); } }))} />}
+          {task.references.map(r => { const v = taskReferenceView(r), href = v.href ?? taskSourceHref(r, projectId, viewerUrl);
+            // A pull request reads as its repository and number; a label the agent gave it shows on hover.
+            const text = <>{r.kind === 'pull_request' && <GitPullRequest size={14} aria-hidden="true" />}{v.destination ?? v.text}</>;
+            return <span key={r.id} className="k42-task-chip k42-task-link-chip" title={v.destination ? `${v.label}: ${v.text}` : v.label}>
+              {v.href || !('sourceId' in r && go && projectId) ? href ? <a href={href} title={href} target="_blank" rel="noreferrer noopener">{text}</a> : <span>{text}</span>
+                : <NavLink go={go} to={r.kind === 'conversation'
+                  ? { view: 'project', projectId, section: 'conversations', thread: r.sourceId, agent: null, q: null }
+                  : { view: 'project', projectId, section: 'conversations', thread: null, agent: null, q: null, message: r.sourceId }}>{v.text}</NavLink>}
+              {!readOnly && base && <button type="button" className="k42-task-chip-remove" aria-label={`Remove ${v.label.toLowerCase()}: ${v.text}`} disabled={waiting} onClick={() => void act({ operation: 'remove_reference', ...base, referenceId: r.id })}><X size={14} aria-hidden="true" /></button>}
+            </span>; })}
+          {!readOnly && <button type="button" className="k42-task-add" aria-label="Add link" title="Add link" aria-expanded={linkOpen} onClick={() => setLinkOpen(true)}><Plus size={18} aria-hidden="true" /></button>}
         </div>
+        {!readOnly && (task.status === 'canceled' ? <p className="muted k42-task-hint">Reopen to Backlog to work on it. Canceling doesn’t stop an agent.</p> : !task.assignedAgentId && <p className="muted k42-task-hint">Assign an agent before starting or completing this task.</p>)}
+        {task.assignedAgentId && directory.gone(task.assignedAgentId) && <p className="muted k42-task-hint">This agent left the project. The assignment stays until released.</p>}
+        {!readOnly && linkOpen && <form className="k42-task-inline" onSubmit={addLink} onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); setLinkOpen(false); setLink(''); setLinkLabel(''); } }}>
+          <input aria-label="Link URL" type="url" value={link} readOnly={waiting} onChange={e => setLink(e.target.value)} placeholder="Paste a PR, result or conversation link, then Enter" autoFocus />
+          <input aria-label="Link label (optional)" value={linkLabel} readOnly={waiting} onChange={e => setLinkLabel(e.target.value)} maxLength={120} placeholder="Label (optional)" />
+          <button type="submit" hidden /></form>}
 
-        <section className="k42-task-section" aria-label="Description">
-          <div className="k42-task-section-head"><h3>Description</h3>{!readOnly && canDescribe && editing === null && <Button className="k42-task-text-action" onClick={() => setEditing(task.description)}>Edit</Button>}</div>
-          {editing === null || readOnly
-            ? task.description ? <p className="k42-task-description">{task.description}</p> : <p className="muted">No description. Describe the work and what done looks like.</p>
-            : <><textarea aria-label="Description" className="k42-task-textarea" value={editing} rows={8} onChange={e => setEditing(e.target.value)} placeholder="What needs doing, and what does done look like?" />
-              <div className="k42-task-actions"><Button className="primary" disabled={busy || reconcile || !!uncertain} onClick={() => void saveDescription()}>{task.status==='done' && editing!==task.description ? 'Save and reopen' : 'Save'}</Button><Button onClick={() => setEditing(null)}>Cancel</Button></div></>}
-        </section>
+        {task.description ? <p className="k42-task-description">{task.description}</p> : <p className="muted">No description.</p>}
 
         <Subtasks api={api} parent={task} subtasks={subtasks} directory={directory} readOnly={readOnly || !!task.proposed} onOpen={leave} onCreated={() => void reload()} />
 
-        <details className="k42-task-section"><summary>Details{task.priority!=='normal' ? ` · ${task.priority} priority` : ''}</summary><div className="k42-task-props">          <label className="k42-task-prop-label" htmlFor={`${titleId}-priority`}>Priority</label>
-          <div>{readOnly ? <span>{task.priority[0].toUpperCase() + task.priority.slice(1)}</span>
-            : <select id={`${titleId}-priority`} className="k42-task-priority-select" value={task.priority} disabled={busy || reconcile || !!uncertain} onChange={e => base && void act({ operation: 'update', ...base, priority: e.target.value as NativeTask['priority'] })}>
-                <option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option>
-              </select>}</div></div></details>
-
-        <details className="k42-task-section k42-task-links">
-          <summary><h3>Links</h3><span className="k42-tasks-count">{task.references.length}</span></summary>
-          <ul>{task.references.map(r => { const v = taskReferenceView(r); return <li key={r.id}><span className="k42-task-ref-kind">{v.label}</span>
-            {v.href ? <a href={v.href} title={v.href} target="_blank" rel="noreferrer noopener">{v.text}{v.destination && <span className="k42-task-ref-destination">{v.destination}</span>}</a>
-              : 'sourceId' in r && go && projectId ? <NavLink go={go} to={r.kind === 'conversation'
-                ? { view: 'project', projectId, section: 'conversations', thread: r.sourceId, agent: null, q: null }
-                : { view: 'project', projectId, section: 'conversations', thread: null, agent: null, q: null, message: r.sourceId }}>{v.text}</NavLink>
-              : taskSourceHref(r,projectId,viewerUrl) ? <a href={taskSourceHref(r,projectId,viewerUrl)!} target="_blank" rel="noreferrer noopener">{v.text}{v.destination && <span className="k42-task-ref-destination">{v.destination}</span>}</a> : <span>{v.text}</span>}
-            {!readOnly && base && <button type="button" className="k42-task-text-action" aria-label={`Remove ${v.label.toLowerCase()}: ${v.text}`} disabled={busy || reconcile || !!uncertain} onClick={() => void act({ operation: 'remove_reference', ...base, referenceId: r.id })}>Remove</button>}</li>; })}</ul>
-          {!readOnly && <form className="k42-task-link-form" onSubmit={addLink}>
-            <label htmlFor={`${titleId}-link`}>Link</label>
-            <input id={`${titleId}-link`} aria-label="Link URL" type="url" value={link} readOnly={busy || !!uncertain} onChange={e => setLink(e.target.value)} placeholder="Paste a PR, result or conversation link" />
-            <label htmlFor={`${titleId}-link-label`}>Label <span className="muted">(optional)</span></label>
-            <div className="k42-task-inline"><input id={`${titleId}-link-label`} value={linkLabel} readOnly={busy || !!uncertain} onChange={e => setLinkLabel(e.target.value)} maxLength={120} placeholder="e.g. Implementation reference" /><Button type="submit" disabled={busy || reconcile || !!uncertain || !link.trim()}>Add link</Button></div></form>}
-        </details>
-
-        <section className="k42-task-section" aria-label="Comments">
-          <h3>Comments</h3>
-          <ol className="k42-task-comments">{detail.comments.map(c => {
-            const own = !readOnly && !!selfId && c.author.kind === 'person' && c.author.id === selfId;
-            return <li key={c.id}><div className="k42-task-comment-meta"><ActorChip actor={c.author} directory={directory} /><span className="muted">{when(c.createdAt)}{c.updatedAt > c.createdAt ? ' · edited' : ''}</span>
-              {own && commentEdit?.id !== c.id && <button type="button" className="k42-task-text-action" onClick={() => setCommentEdit({ id: c.id, body: c.body })}>Edit</button>}</div>
-              {commentEdit?.id === c.id && !readOnly
-                ? <><textarea aria-label="Edit comment" className="k42-task-textarea" rows={3} value={commentEdit.body} onChange={e => setCommentEdit({ id: c.id, body: e.target.value })} />
-                  <div className="k42-task-actions"><Button className="primary" disabled={busy || reconcile || !!uncertain || !commentEdit.body.trim()} onClick={() => void saveComment()}>Save</Button><Button onClick={() => setCommentEdit(null)}>Cancel</Button></div></>
-                : <p>{c.body}</p>}</li>;
-          })}</ol>
-          {detail.nextCommentCursor && <Button onClick={() => more('comments')}>Show older comments</Button>}
-          {!detail.comments.length && <p className="muted">No comments yet.</p>}
-          {!readOnly && <form onSubmit={sendComment}><textarea aria-label="Comment" className="k42-task-textarea" rows={3} value={comment} onChange={e => setComment(e.target.value)} placeholder="Add an update, a question or a result" />
-            <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || reconcile || !!uncertain || !comment.trim()}>Comment</Button></div></form>}
+        <section className="k42-task-section" aria-label="Activity">
+          <h3>Activity</h3>
+          {(detail.nextCommentCursor || detail.nextActivityCursor) && <Button onClick={() => { if (detail.nextCommentCursor) more('comments'); if (detail.nextActivityCursor) more('activity'); }}>Show older activity</Button>}
+          <ol className="k42-task-feed">{activityFeed(detail).map(item => item.kind === 'comment'
+            ? <li key={item.id} className="k42-task-feed-comment"><div className="k42-task-comment-meta"><ActorChip actor={item.comment.author} directory={directory} /><span className="muted">{when(item.comment.createdAt)}</span></div><p>{item.comment.body}</p></li>
+            : <li key={item.id} className="k42-task-feed-event"><ActorChip actor={item.actor} directory={directory} /> <span>{item.labels.join(', ')}</span> <span className="muted">{when(item.at)}</span></li>)}</ol>
+          {!readOnly && <form onSubmit={sendComment}><textarea aria-label="Comment" className="k42-task-textarea" rows={2} value={comment} onChange={e => setComment(e.target.value)} placeholder="Add an update, a question or a result" />
+            {comment.trim() && <div className="k42-task-actions"><Button type="submit" className="primary" disabled={waiting}>Comment</Button></div>}</form>}
         </section>
-
-        <details className="k42-task-section">
-          <summary><h3>History</h3><span className="k42-tasks-count">{detail.activity.length}</span></summary>
-          <ol className="k42-task-history">{detail.activity.map(a => <li key={a.id}><ActorChip actor={a.actor} directory={directory} /> <span>{historyLabel(a)}</span> <span className="muted">{when(a.at)}</span>
-            <Button onClick={()=>viewVersion(a.id)}>View saved version</Button>{versions[a.id]?.task && <div className="k42-task-saved-version"><strong>{versions[a.id].task!.title}</strong><p>{versions[a.id].task!.status}</p>{versions[a.id].comment && <p>{versions[a.id].comment!.body}</p>}<p className="k42-task-description">{versions[a.id].task!.description}</p></div>}</li>)}</ol>
-          {detail.nextActivityCursor && <Button onClick={() => more('activity')}>Show more history</Button>}
-        </details>
       </>}
   </article>;
+}
+
+const priorityLabel = (priority: NativeTask['priority']) => `${priority[0].toUpperCase()}${priority.slice(1)} priority`;
+type FeedItem = { kind: 'comment'; id: string; at: number; comment: NativeTaskDetail['comments'][number] } | { kind: 'event'; id: string; at: number; actor: NativeTaskActor; labels: string[] };
+/** Comments and history in one feed, oldest first; back-to-back events by the same actor share one line. */
+function activityFeed(detail: NativeTaskDetail): FeedItem[] {
+  const items: FeedItem[] = [...detail.comments.map(c => ({ kind: 'comment' as const, id: c.id, at: c.createdAt, comment: c })),
+    ...detail.activity.filter(a => a.action !== 'comment').map(a => ({ kind: 'event' as const, id: a.id, at: a.at, actor: a.actor, labels: [historyLabel(a)] }))].sort((a, b) => a.at - b.at);
+  const feed: FeedItem[] = [];
+  for (const item of items) {
+    const last = feed.at(-1);
+    if (item.kind === 'event' && last?.kind === 'event' && last.actor.kind === item.actor.kind && last.actor.id === item.actor.id) {
+      feed[feed.length - 1] = { ...last, at: item.at, labels: last.labels.includes(item.labels[0]) ? last.labels : [...last.labels, item.labels[0]] };
+    } else feed.push(item);
+  }
+  return feed;
 }
 
 /** The page's subtasks: full tasks with one parent. A quick title adds one, unassigned in Backlog. */
 function Subtasks({ api, parent, subtasks, directory, readOnly, onOpen, onCreated }: {
   api: TasksApi; parent: NativeTask; subtasks: NativeTaskSummary[]; directory: Directory; readOnly: boolean; onOpen: (id: string) => void; onCreated: () => void;
 }) {
-  const [title, setTitle] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null);
+  const [title, setTitle] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null), [adding, setAdding] = useState(false);
   // One request ID per draft, so a retry after an unknown outcome cannot add the subtask twice.
   const requestId = useRef(crypto.randomUUID()), inputId = useId();
   const add = (event: FormEvent) => {
@@ -697,32 +633,28 @@ function Subtasks({ api, parent, subtasks, directory, readOnly, onOpen, onCreate
     }).finally(() => setBusy(false));
   };
   const progress = parent.subtaskProgress;
+  const close = () => { if (!busy) { setAdding(false); setTitle(''); setError(null); } };
+  if (readOnly && !subtasks.length) return null;
   return <section className="k42-task-section" aria-labelledby={`${inputId}-heading`}>
-    <div className="k42-task-section-head"><h3 id={`${inputId}-heading`}>Subtasks</h3>{progress && <SubtaskRing {...progress} />}</div>
+    <div className="k42-task-section-head"><h3 id={`${inputId}-heading`}>Subtasks</h3>{progress && <SubtaskRing {...progress} />}
+      {!readOnly && <button type="button" className="k42-task-add" aria-label="Add subtask" title="Add subtask" aria-expanded={adding} onClick={() => setAdding(true)}><Plus size={18} aria-hidden="true" /></button>}</div>
     {subtasks.length ? <ul className="k42-task-subtasks">{subtasks.map(row => <li key={row.id}>
       <button type="button" className="k42-task-open" onClick={() => onOpen(row.id)}>{row.title}</button>
       {row.proposed && <Proposed />}
-      <span className="k42-task-subtask-meta">{row.assignedAgentId ? <AgentChip id={row.assignedAgentId} directory={directory} size={24} /> : <Unassigned />}
+      <span className="k42-task-subtask-meta">{row.assignedAgentId ? <TaskAgentHover id={row.assignedAgentId} agents={directory.agent} size={24} /> : <Unassigned />}
         <span className={`k42-task-status is-${row.status}`}>{statusLabel(row.status)}</span></span>
-    </li>)}</ul> : <p className="muted">No subtasks. Split the work into smaller tasks here.</p>}
+    </li>)}</ul> : null}
     {progress && progress.total > 0 && progress.done === progress.total && !closedTask(parent) && <p className="muted k42-task-hint-inline">All subtasks are done or canceled. This task’s own status is still {statusLabel(parent.status)}.</p>}
-    {!readOnly && <form className="k42-task-inline" onSubmit={add}>
-      <label htmlFor={inputId} className="k42-visually-hidden">New subtask title</label>
-      <input id={inputId} value={title} maxLength={300} readOnly={busy} onChange={e => setTitle(e.target.value)} placeholder="Add a subtask" />
-      <Button type="submit" disabled={busy || !title.trim()}>{busy ? 'Adding…' : 'Add'}</Button></form>}
+    {/* Enter adds; Escape, or leaving the empty field, closes it. */}
+    {!readOnly && adding && <form className="k42-task-inline" onSubmit={add}>
+      <input id={inputId} aria-label="New subtask title" value={title} maxLength={300} readOnly={busy} onChange={e => setTitle(e.target.value)} placeholder="Subtask title, then Enter" autoFocus
+        onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } }} onBlur={() => { if (!title.trim()) close(); }} /></form>}
     {error && <p role="alert" className="error">{error}</p>}
   </section>;
 }
 
-function ContributorSummary({ contributors, directory }: { contributors: NativeTaskContributor[]; directory: Directory }) {
-  if (!contributors.length) return <span className="muted" title="No agents yet">–</span>;
-  return <span className="k42-task-avatars">{contributors.map(c => <span key={`${c.kind}:${c.id}`} title={directory.name(c)}>
-    <TaskAgentAvatar agent={directory.agent.get(c.id)} id={c.id} name={directory.name(c)} size={28} /></span>)}
-    <span className="k42-visually-hidden">{contributors.map(c => directory.name(c)).join(', ')}</span></span>;
-}
-
-type PickerItem = { key: string; label: ReactNode; checked?: boolean; onSelect: () => void };
-/** The summary (avatar and name) is the control: it opens a small menu, like the selected simple-tasks design. */
+type PickerItem = { key: string; label: ReactNode; checked?: boolean; disabled?: boolean; title?: string; onSelect: () => void };
+/** The summary (a chip or a face) is the control: it opens a small menu, like the selected simple-tasks design. */
 function PickerMenu({ label, summary, items, disabled }: { label: string; summary: ReactNode; items: PickerItem[]; disabled?: boolean }) {
   const [open, setOpen] = useState(false), trigger = useRef<HTMLButtonElement>(null), menu = useRef<HTMLDivElement>(null), menuId = useId();
   useEffect(() => {
@@ -743,7 +675,7 @@ function PickerMenu({ label, summary, items, disabled }: { label: string; summar
     <button ref={trigger} type="button" className="k42-task-picker-trigger" aria-haspopup="menu" aria-expanded={open} aria-controls={menuId} aria-label={`${label}: change`} disabled={disabled} onClick={() => setOpen(v => !v)}>{summary}</button>
     {open && <div ref={menu} id={menuId} role="menu" aria-label={label} className="k42-task-picker-menu">
       {items.map(item => <button key={item.key} type="button" role={item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'} aria-checked={item.checked}
-        className="k42-task-picker-item" onClick={() => { item.onSelect(); setOpen(false); trigger.current?.focus(); }}>
+        className="k42-task-picker-item" disabled={item.disabled} title={item.title} onClick={() => { item.onSelect(); setOpen(false); trigger.current?.focus(); }}>
         {item.label}{item.checked && <Check size={16} aria-hidden="true" />}</button>)}
     </div>}
   </div>;

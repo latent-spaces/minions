@@ -63,7 +63,10 @@ Encourage agents to keep tasks understandable without searching project conversa
 Use `link_task` when a task comes from a discussion to attach the originating conversation
 or message; attach relevant pull requests when opened or found, including drafts.
 Link later discussions that explain scope changes or decisions, and results that show what
-was delivered or validated. Use a short label to explain each relationship and avoid duplicate links.
+was delivered or validated. Avoid duplicate links. Leave the label out unless the link needs
+one to be understood, such as reference only; never put a status there (awaiting review, merged):
+the pull request shows its own. Task history already records each link, so do not repeat a
+linked pull request in a comment; comment only what the link does not say.
 Before completion or handoff, check existing links and add useful missing references.
 These are encouraged habits, not completion gates: link relevant evidence when available;
 if no pull request applies, describe the delivered result without creating one just for the task.
