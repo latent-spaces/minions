@@ -231,12 +231,12 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
     return header ? headerFilter('Status', statusChoice, statusChoice ? statusLabel(statusChoice) : null, select) : select;
   };
   const assigneeFilter = (header: boolean) => {
-    const select = <select className={header ? 'k42-th-select' : 'k42-tasks-filter'} aria-label="Assigned agent" value={assignee} onChange={event => { generation.current++; setAssignee(event.target.value); }}>
+    const select = <select className={header ? 'k42-th-select' : 'k42-tasks-filter'} aria-label="Owner" value={assignee} onChange={event => { generation.current++; setAssignee(event.target.value); }}>
       <option value="">All assignments</option>
       <option value="unassigned">Unassigned</option>
       {[...filterAgents].map(([id, name]) => <option key={id} value={`agent:${id}`}>{name}</option>)}
     </select>;
-    return header ? headerFilter('Assigned agent', assignee, assignee === 'unassigned' ? 'Unassigned' : assignedAgentId ? filterAgents.get(assignedAgentId) ?? 'Agent' : null, select) : select;
+    return header ? headerFilter('Owner', assignee, assignee === 'unassigned' ? 'Unassigned' : assignedAgentId ? filterAgents.get(assignedAgentId) ?? 'Agent' : null, select) : select;
   };
 
   if (openId) return <section className="k42-tasks">
@@ -715,7 +715,7 @@ function Subtasks({ api, parent, subtasks, directory, readOnly, onOpen, onCreate
 }
 
 function ContributorSummary({ contributors, directory }: { contributors: NativeTaskContributor[]; directory: Directory }) {
-  if (!contributors.length) return <span className="muted">None yet</span>;
+  if (!contributors.length) return <span className="muted" title="No agents yet">–</span>;
   return <span className="k42-task-avatars">{contributors.map(c => <span key={`${c.kind}:${c.id}`} title={directory.name(c)}>
     <TaskAgentAvatar agent={directory.agent.get(c.id)} id={c.id} name={directory.name(c)} size={28} /></span>)}
     <span className="k42-visually-hidden">{contributors.map(c => directory.name(c)).join(', ')}</span></span>;

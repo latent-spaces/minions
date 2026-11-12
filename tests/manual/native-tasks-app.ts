@@ -89,7 +89,7 @@ try {
   await page.getByRole('button', { name: create.title, exact: true }).waitFor();
   await page.setViewportSize({ width: 1440, height: 1000 });
   checks.push('Actual task state filter reads server-filtered In progress, empty Done/Backlog and All states; keyboard focus and mobile layout work');
-  const assignmentFilter = page.getByRole('combobox', { name: 'Assigned agent', exact: true });
+  const assignmentFilter = page.getByRole('combobox', { name: 'Owner', exact: true });
   await assignmentFilter.selectOption('unassigned');
   await page.getByText('No tasks match these filters', { exact: true }).waitFor();
   await stateFilter.selectOption('in_progress');

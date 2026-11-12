@@ -10,6 +10,12 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Task list Owner column and a dash for no agents — owner request, 12 November 2026
+
+"don't write not yet, have a "-" , the assigned agetnt change to owner": the task list's
+Assigned agent column and its filter are named Owner, and a task no agent has worked on
+shows "–" instead of "None yet" in the Agents column. The task page keeps "Assigned agent".
+
 ## Task agents show only their face — owner request, 12 November 2026
 
 "agetns should be only the avatar with hover on name and current focus": in the task

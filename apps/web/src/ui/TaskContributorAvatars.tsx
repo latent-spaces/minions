@@ -8,7 +8,7 @@ export function TaskContributorAvatars({ contributors, agents }: {
   contributors: NativeTaskContributor[];
   agents: Map<string, TaskAgent>;
 }) {
-  if (!contributors.length) return <span className="muted">None yet</span>;
+  if (!contributors.length) return <span className="muted" title="No agents yet">–</span>;
   return <span className="k42-task-contributors">
     {contributors.slice(0, 3).map(actor => <TaskAgentHover key={actor.id} id={actor.id} agents={agents} />)}
     {contributors.length > 3 && <ContributorPopover label={`${contributors.length - 3} more contributors`} content={contributors.slice(3).map(actor => <AgentInformation key={actor.id} id={actor.id} agents={agents} />)}>+{contributors.length - 3}</ContributorPopover>}

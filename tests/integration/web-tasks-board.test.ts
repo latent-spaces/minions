@@ -70,7 +70,7 @@ test('actual Tasks tab offers the list and a status board, remembers the choice 
     expect(await viewSwitch.getByRole('button', { name: 'List', exact: true }).getAttribute('aria-pressed')).toBe('true');
     expect(await tasks.locator('table.k42-tasks-table').count()).toBe(1);
     expect(await tasks.locator('.k42-tasks-board').count()).toBe(0);
-    expect(await tasks.locator('table thead th').evaluateAll((nodes: Element[]) => nodes.map(node => { const copy = node.cloneNode(true) as Element; copy.querySelectorAll('select').forEach(select => select.remove()); return copy.textContent?.trim(); }))).toEqual(['Task', 'Assigned agent', 'Agents', 'Status', 'Updated']);
+    expect(await tasks.locator('table thead th').evaluateAll((nodes: Element[]) => nodes.map(node => { const copy = node.cloneNode(true) as Element; copy.querySelectorAll('select').forEach(select => select.remove()); return copy.textContent?.trim(); }))).toEqual(['Task', 'Owner', 'Agents', 'Status', 'Updated']);
     // A State filter chosen in the list does not apply to the board: its columns are the states.
     await tasks.getByRole('combobox', { name: 'State', exact: true }).selectOption('done');
     await tasks.locator('table tbody tr').filter({ hasText: 'Agree the task completion policy' }).waitFor();
@@ -91,7 +91,7 @@ test('actual Tasks tab offers the list and a status board, remembers the choice 
     expect(await column('Done').locator('.k42-tasks-card-title').allInnerTexts()).toEqual(['Agree the task completion policy']);
     expect(await column('Canceled').locator('.k42-tasks-card-title').allInnerTexts()).toEqual(['Old idea nobody picked up']);
     const startedCard = column('In progress').locator('.k42-tasks-card');
-    expect(await startedCard.locator('.k42-task-actor').innerText()).toContain('Demo Fox');
+    await startedCard.getByRole('button', { name: 'Demo Fox', exact: true }).waitFor();
     expect(await startedCard.locator('.k42-task-status').innerText()).toBe('In progress');
     expect(await startedCard.locator('.k42-task-description, .k42-task-comments, time').count()).toBe(0);
     const openCard = column('Backlog').locator('.k42-tasks-card', { hasText: 'Write the retirement inventory' });

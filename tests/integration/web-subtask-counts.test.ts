@@ -73,7 +73,7 @@ test('the actual task list keeps exact subtask rings across pagination, filters,
     // Both filters remove all accepted child rows; neither changes the parent's exact ring.
     await tasks.getByRole('combobox', { name: 'State', exact: true }).selectOption('backlog');
     await expect.poll(() => ring.getAttribute('title')).toBe(title);
-    await tasks.getByRole('combobox', { name: 'Assigned agent', exact: true }).selectOption('unassigned');
+    await tasks.getByRole('combobox', { name: 'Owner', exact: true }).selectOption('unassigned');
     await expect.poll(() => tasks.locator('table tbody tr').count()).toBe(3);
     expect(await ring.getAttribute('title')).toBe(title);
     await tasks.getByRole('searchbox', { name: 'Search tasks', exact: true }).fill('Synthetic counted parent');
