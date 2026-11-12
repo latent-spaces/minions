@@ -20,3 +20,11 @@ test('symlinks, hard links and oversized instruction files are not read', () => 
   assert.equal(value.report.sources.find(s=>s.path===join(folder,'CLAUDE.local.md')).status,'unreadable');
   assert(!JSON.stringify(value).includes('do not follow this target'));
 }));
+
+test('the managed Claude Code instruction file is listed on Windows too', () => fixture(({inspect}) => {
+  for (const [platform, ending] of [['darwin', 'ClaudeCode/CLAUDE.md'], ['linux', 'claude-code/CLAUDE.md'], ['win32', 'ClaudeCode\\CLAUDE.md']]) {
+    const managed = inspect({platform}).report.sources.filter(s=>s.scope==='managed');
+    assert.equal(managed.length, 1, platform);
+    assert(managed[0].path.endsWith(ending), managed[0].path);
+  }
+}));

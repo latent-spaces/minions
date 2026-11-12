@@ -59,6 +59,7 @@ export function inspectEnvironment({ folder, client = 'unknown', mode = 'current
     add(join(config, 'CLAUDE.md'), 'global', true);
     if (platform === 'darwin') add('/Library/Application Support/ClaudeCode/CLAUDE.md', 'managed', true);
     else if (platform === 'linux') add('/etc/claude-code/CLAUDE.md', 'managed', true);
+    else if (platform === 'win32') add('C:\\Program Files\\ClaudeCode\\CLAUDE.md', 'managed', true);
     walk(join(config, 'rules'), 'rules', true);
   }
   if (client === 'codex' || client === 'unknown') {
