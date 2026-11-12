@@ -20,6 +20,7 @@ import { CloseButton } from './CloseButton';
 import { Dialog } from './Dialog';
 import { EmptyState } from './EmptyState';
 import { useLabelLookup } from '../label-lookup';
+import { relativeTime } from '../observation-time';
 import './segments.css';
 import './project-tasks.css';
 
@@ -52,7 +53,8 @@ export interface ProjectTasksProps {
 }
 
 const errorText = (error: unknown) => error instanceof Error ? error.message : 'Something went wrong.';
-const when = (at: number) => new Date(at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+// Task times read as "5 minutes ago"; the exact time shows on hover (owner, 12 November 2026).
+const when = (at: number) => <time dateTime={new Date(at).toISOString()} title={new Date(at).toLocaleString()}>{relativeTime(at)}</time>;
 const safeStorage = (): Storage | null => { try { return window.localStorage; } catch { return null; } };
 
 // The walked directories label most actors. Actors shown on screen that a bounded walk has not reached are looked up

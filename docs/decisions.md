@@ -10,6 +10,11 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Task times read as relative — owner request, 12 November 2026
+
+"use for times before x minutes days etc (the standard way of that)": task times in the
+list, comments and history read as "5 minutes ago", "yesterday" or "3 weeks ago" in the
+reader's language (Intl.RelativeTimeFormat). The exact date and time show on hover.
 ## Offbeat 2D characters and stable facial animation — owner selection, 12 November 2026
 
 Source: owner requests in the character conversation: four blended human heads,
