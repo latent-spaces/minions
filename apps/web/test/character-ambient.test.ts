@@ -16,7 +16,8 @@ test('rare effects are independently delayed and globally spaced, and interrupti
   for (const id of ['a','b','person-01','small-avatar']) {
     const timing=ambientTiming(id);
     assert.ok(timing.rareInterval>=90_000&&timing.rareInterval<=210_000);
-    assert.ok(timing.gazeInterval>=14_000&&timing.gazeInterval<=24_000);
+    assert.equal(timing.gazeInterval,timing.gazeDuration+2000);
+    assert.ok(timing.gazeDelay>=2000&&timing.gazeDelay<=5000);
     assert.ok(timing.gazeDuration>=10_000&&timing.gazeDuration<=15_000);
   }
   const cooldown=new RareEffectGate();

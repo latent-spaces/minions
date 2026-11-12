@@ -3,9 +3,10 @@ import { stableHash } from './avatar-tone.js';
 export const RARE_DURATION = 1920;
 export function ambientTiming(id: string) {
   const hash = stableHash(`character-ambient:${id}`);
+  const gazeDuration = 10_000 + (hash >>> 8) % 5001;
   return { rareInterval: (180_000 + hash % 240_001) / 2, rareDelay: (60_000 + (hash >>> 2) % 180_001) / 2,
-    gazeInterval: (28_000 + (hash >>> 3) % 20_001) / 2, gazeDelay: (5_000 + (hash >>> 5) % 28_001) / 2,
-    gazeDuration: 10_000 + (hash >>> 8) % 5001 };
+    gazeInterval: gazeDuration + 2000, gazeDelay: 2000 + (hash >>> 5) % 3001,
+    gazeDuration };
 }
 
 /** One rare flourish on screen at a time, at least thirty seconds between starts. */

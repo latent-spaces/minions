@@ -63,7 +63,7 @@ The `gaze/` images contain original pupil pixels and their neutral eye base,
 extracted without new generation. Their zero-offset composition, with the original alpha mask, is verified
 against the canonical image. Each pupil sprite must contain visible pixels;
 near-opaque source pixels are accepted rather than requiring alpha exactly 255. Fine-pointer gaze runs for 10–15 seconds, starting every
-14–24 seconds with independent initial delays, at least two seconds neutral between glances, a shared passive pointer listener,
+12–17 seconds with independent 2–5 second initial delays, a two-second neutral pause between glances, a shared passive pointer listener,
 bounded 8/192-unit pupil offsets and a smooth neutral return. No head or hat movement.
 The pointer-relative approach was informed by
 [nilbuild/page-mascot](https://github.com/nilbuild/page-mascot/blob/76a44ed9180063bf4852b9dd724b656f4a828ac7/src/mascot.tsx)
