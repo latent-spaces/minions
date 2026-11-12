@@ -49,6 +49,21 @@ data and are not read. This supersedes the per-agent overrides and the member re
 limits selected on 14 October in
 [Minimal messaging and agent limits](#minimal-messaging-and-agent-limits--owner-selection-14-october-2026).
 
+## Rounded rubber communication tubes — owner selection, 12 November 2026
+
+Source: owner rejected elaborate map scenery, kept straight connectors, requested
+code-based options in a simplified synthetic communication lab, then selected
+“Rubber tube” after reviewing rounder swallowing animations.
+
+Keep the existing map layout, straight centerlines, hit areas and causal traffic.
+Connections use muted rounded rubber tubes, always behind every avatar, including
+transparent hat/hair margins and overlapping billboards. Each new message produces one small
+traveling bulge and warm bead, like a swallowed mandarin, then the tube relaxes.
+Initial history must not generate new activity. Reduced motion keeps tubes still.
+This adds no execution state, delivery guarantee, background scenery or routing
+optimization. The small lab imports the production renderer and retains the
+alternative art styles for comparison.
+
 ## The task page is simpler and has no editing — owner request, 12 November 2026
 
 "let's simplify the entire task card", then "yes, and no editing" and "i meant the dropdown

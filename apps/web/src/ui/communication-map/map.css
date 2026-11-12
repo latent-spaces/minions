@@ -33,3 +33,10 @@
 .communication-map [data-map-id].is-dot .k42-communication-agent-hit { x:-70; y:-70; width:140px; height:140px; }
 .communication-map-outside { position:absolute; bottom:30px; right:12px; margin:0; font-size:12px; color:var(--muted); }
 .communication-map-outside button { min-height:32px; padding:4px 8px; border:1px solid var(--line); border-radius:var(--radius-button); background:var(--canvas); color:var(--ink); cursor:pointer; }
+
+/* A local stacking context keeps all tube pixels below every SVG/HTML avatar. */
+.communication-map { isolation:isolate; }
+.communication-map>[data-map-layer="grid"] { z-index:0; }
+.communication-map>[data-map-layer="connectors"] { z-index:1; }
+.communication-map>[data-map-layer="avatars"] { z-index:2; }
+.communication-map-controls,.communication-map-outside,.communication-map-orbit-note,.communication-map-error { z-index:3; }
