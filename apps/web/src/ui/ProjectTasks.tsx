@@ -276,7 +276,8 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
         <th scope="col" className={`k42-th-task${toggles ? ' has-toggles' : ''}`}>{searchOpen || searchDraft ? searchField(true)
           : <button type="button" className="k42-th-filter k42-th-search-open" aria-label="Task · search tasks" title="Search tasks (/)" onClick={() => setSearchOpen(true)}>Task<Search size={13} className="k42-th-filter-icon" aria-hidden="true" /></button>}</th>
         <th scope="col">{assigneeFilter(true)}</th><th scope="col">Agents</th><th scope="col">{stateFilter(true)}</th><th scope="col">Updated</th></tr></thead>
-      <tbody>{rows.map(({ task, depth, children }) => <tr key={task.id} className={depth ? 'is-subtask' : undefined}>
+      <tbody>{rows.map(({ task, depth, children }) => <tr key={task.id} className={depth ? 'is-subtask' : undefined}
+        onClick={event => { if (!(event.target as Element).closest('button, a, input, [role="tooltip"]')) setOpenId(task.id); }}>
         <th scope="row"><div className="k42-task-cell" style={{ ['--depth' as string]: depth }}>
           {children.length ? <button type="button" className="k42-task-toggle" aria-expanded={!collapsed.has(task.id)} onClick={() => toggle(task.id)}
             aria-label={`${collapsed.has(task.id) ? 'Show' : 'Hide'} subtasks of ${task.title}`}>{collapsed.has(task.id) ? <ChevronRight size={16} aria-hidden="true" /> : <ChevronDown size={16} aria-hidden="true" />}</button>

@@ -22,6 +22,7 @@
 .k42-tasks-table th, .k42-tasks-table td { padding: 12px 16px; text-align: left; vertical-align: middle; white-space: normal; border-top: 1px solid var(--hairline-shell); }
 .k42-tasks-table thead th { border-top: 0; font-size: 14px; color: var(--text-muted); font-weight: 500; background: var(--canvas-sunken); }
 .k42-tasks-table tbody th { font-weight: 500; }
+.k42-tasks-table tbody tr { cursor: pointer; }
 .k42-tasks-table tbody tr:hover { background: var(--subtle); }
 .k42-task-open { all: unset; cursor: pointer; color: var(--ink); overflow-wrap: anywhere; }
 .k42-task-open:hover { text-decoration: underline; }
