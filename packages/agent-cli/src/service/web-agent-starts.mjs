@@ -97,7 +97,7 @@ export async function syncRepositoryAccess({owned,joined},{signal}={}) {
 // What a start still waits for at the project's repository: null when this computer can reach it and it has a commit
 // to work from, 'github' without access, 'empty_repository' when it is reachable but empty. git ls-remote --exit-code
 // exits 2 for a reachable repository without HEAD and 128 for one it can't reach.
-export async function repositoryWaitOf(record, options = {}) {
+async function repositoryWaitOf(record, options = {}) {
   return inspectRepository(record.repo, options);
 }
 

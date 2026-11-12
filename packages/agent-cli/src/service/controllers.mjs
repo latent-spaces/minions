@@ -13,7 +13,7 @@ import { RuntimeError, validateCommand, commandFingerprint, sameTarget, RUNTIME_
 // immediate, as before C6-S. The spread (tested at 2000 ms) is an owner opt-in, because it delays non-pause
 // confirmations by up to 2 s and two local pairs showed slower pause-window delivery with it on (cause open).
 // A Pause confirmation is never spread.
-export const ON_CHANGE_SPREAD_MS = 0;
+const ON_CHANGE_SPREAD_MS = 0;
 // Tolerated clock difference with the server, as for web starts.
 const CLOCK_SKEW_MS = 30000;
 export function createRuntimeControllers({ store, adapterFactory, cloudFactory, onReportsReady = () => {}, inspectRecoveryCheckout, stopOrphanedMission, now = Date.now, observeIntervalMs = 20000, random = Math.random, onChangeSpreadMs = ON_CHANGE_SPREAD_MS }) {
