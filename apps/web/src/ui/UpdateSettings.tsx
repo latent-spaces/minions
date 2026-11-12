@@ -8,6 +8,10 @@ type Draft = Pick<ProjectUpdateSettings, 'everyMinutes' | 'topics' | 'slides' | 
 const TOPICS: Record<UpdateTopic, string> = { results: 'Results', blockers: 'Blockers', decisions: 'Decisions', summaries: 'Summaries' };
 const pick = (value: ProjectUpdateSettings): Draft => ({ everyMinutes: value.everyMinutes, topics: value.topics, slides: value.slides, additionalInstructions: value.additionalInstructions });
 const same = (a: Draft, b: Draft) => a.everyMinutes === b.everyMinutes && a.slides === b.slides && a.additionalInstructions === b.additionalInstructions && UPDATE_TOPICS.every(topic => a.topics.includes(topic) === b.topics.includes(topic));
+const supported = (value: ProjectUpdateSettings) => value && UPDATE_EVERY_MINUTES.includes(value.everyMinutes)
+  && Array.isArray(value.topics) && value.topics.length > 0 && value.topics.every(topic => UPDATE_TOPICS.includes(topic))
+  && typeof value.slides === 'boolean' && typeof value.additionalInstructions === 'string' && Number.isInteger(value.revision);
+const unsupported = 'The running engine returned an unsupported update-settings format. Update the engine, then try again.';
 
 /** What the project's agents post to Updates: how often, about what, with slides or not, and the owner's own note
  *  (owner, 12 November 2026). Owner only; the service enforces it. */
@@ -21,7 +25,10 @@ export function UpdateSettings({ request, projectId, active }: { request: <T>(pa
   useEffect(() => {
     if (!active) return;
     let cancelled = false;
-    request<ProjectUpdateSettings>(path).then(value => { if (!cancelled) { setSaved(value); setDraft(current => current ?? pick(value)); setError(''); } },
+    request<ProjectUpdateSettings>(path).then(value => { if (!cancelled) {
+      if (!supported(value)) { setError(unsupported); return; }
+      setSaved(value); setDraft(current => current ?? pick(value)); setError('');
+    } },
       reason => { if (!cancelled) setError(reason instanceof Error ? reason.message : 'Could not read the update settings.'); });
     return () => { cancelled = true; };
   }, [active, path, request, reload]);
@@ -32,6 +39,7 @@ export function UpdateSettings({ request, projectId, active }: { request: <T>(pa
     setBusy(true); setError('');
     try {
       const value = await request<ProjectUpdateSettings>(path, { expectedRevision: saved.revision, clientRequestId: requestId.current, ...draft });
+      if (!supported(value)) { setError(unsupported); return; }
       setSaved(value); setDraft(pick(value));
     } catch (reason) {
       setError(isSettledRefusal(reason) ? (reason instanceof Error ? reason.message : 'Could not save the update settings.') : 'Save not confirmed. Save again to confirm it.');

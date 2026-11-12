@@ -23,7 +23,7 @@ async function port() {
 test('actual app keeps coding-tool identity separate from model names across sidebar, cards and details', async () => {
   await resetEmulator();
   const directory = await mkdtemp(join(tmpdir(), 'mlswarm-agent-icons-')), apiPort = await port(), webPort = await port();
-  const fixture = await seed({ profiles: [{name:'Icon reviewer',email:'icons@example.test'}], agents: [
+  const fixture = await seed({ profiles: [{name:'Icon reviewer',email:'icons@example.test',role:'owner'}], agents: [
     {person:0,name:'Alpha worker'}, {person:0,name:'Beta worker'}, {person:0,name:'Gamma unknown'},
   ] });
   await profiles.doc(fixture.personIds[0]).update({onboardingCompletedAt:100});
@@ -52,6 +52,14 @@ test('actual app keeps coding-tool identity separate from model names across sid
     }
     await web.listen();browser=await chromium.launch({headless:true,...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MLSWARM_TEST_BROWSER_EXECUTABLE}:{})});
     const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
+    // Advance presentation time only; server freshness and real model state stay untouched.
+    await context.addInitScript(() => {
+      const testWindow = window as Window & { avatarReviewOffset: number };
+      testWindow.avatarReviewOffset = 0;
+      const now = performance.now.bind(performance), raf = requestAnimationFrame.bind(window);
+      performance.now = () => now() + testWindow.avatarReviewOffset;
+      window.requestAnimationFrame = callback => raf(time => callback(time + testWindow.avatarReviewOffset));
+    });
     await context.route('**/*',(route:any)=>['127.0.0.1','localhost','[::1]'].includes(new URL(route.request().url()).hostname)?route.continue():route.abort());
     page=await context.newPage();page.on('pageerror',(error:Error)=>errors.push(error.message));page.on('console',(msg:any)=>{if(msg.type()==='error')diagnostics.push(msg.text());});page.on('requestfailed',(req:any)=>diagnostics.push(req.url()+': '+req.failure()?.errorText));
     const url=`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=agents`;
@@ -85,6 +93,41 @@ test('actual app keeps coding-tool identity separate from model names across sid
       return neutral&&strip&&getComputedStyle(neutral).visibility==='hidden'&&getComputedStyle(strip).opacity==='1';
     });
     await page.screenshot({path:join(directory,'writing.png')});
+    await page.mouse.move(1400, 500);
+    await page.waitForTimeout(120);
+    await page.evaluate(() => { (window as Window & { avatarReviewOffset: number }).avatarReviewOffset += 300_000; });
+    const rare=page.locator('[data-motion="rare"]');
+    await page.waitForFunction(() => document.querySelector('[data-motion="rare"]')?.getAttribute('data-frame') === '4');
+    expect(await rare.count()).toBe(1);
+    expect(await rare.locator('.k42-character-rare img').evaluate((image:HTMLImageElement)=>image.complete&&image.naturalWidth===2304)).toBe(true);
+    expect(await rare.locator('.k42-character-neutral').evaluate((image:HTMLImageElement)=>getComputedStyle(image).opacity)).toBe('0');
+    await page.screenshot({path:join(directory,'rare-native.png')});
+    const gaze=page.locator('[data-motion="gaze"]').first();
+    await gaze.waitFor();
+    const before=await gaze.boundingBox();
+    const pupils=gaze.locator('.k42-character-gaze img').last();
+    expect(await gaze.locator('.k42-character-neutral').evaluate((image:HTMLImageElement)=>getComputedStyle(image).visibility)).toBe('hidden');
+    expect(await gaze.locator('.k42-character-stage > .k42-character-strip').evaluate((image:HTMLImageElement)=>getComputedStyle(image).opacity)).toBe('0');
+    expect(await gaze.locator('.k42-character-rare').evaluate((layer:HTMLElement)=>getComputedStyle(layer).opacity)).toBe('0');
+    // A moving CSS transform is insufficient if the extracted sprite is empty.
+    expect(await pupils.evaluate((image:HTMLImageElement)=>{
+      const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
+      const context=canvas.getContext('2d')!;context.drawImage(image,0,0);
+      const pixels=context.getImageData(0,0,canvas.width,canvas.height).data;
+      let visible=0;for(let i=3;i<pixels.length;i+=4)if(pixels[i]>0)visible++;
+      return visible;
+    })).toBeGreaterThan(5);
+    const offset=()=>pupils.evaluate((image:HTMLImageElement)=>new DOMMatrix(getComputedStyle(image).transform).m41);
+    await page.waitForTimeout(150);
+    expect(await offset()).toBeGreaterThan(0);
+    await page.mouse.move(1,500);
+    await page.waitForTimeout(200);
+    expect(await offset()).toBeLessThan(0);
+    expect(await gaze.boundingBox()).toEqual(before);
+    await page.screenshot({path:join(directory,'cursor-gaze.png')});
+    await page.emulateMedia({reducedMotion:'reduce'});
+    await page.waitForFunction(()=>!document.querySelector('[data-motion="rare"], [data-motion="gaze"]'));
+    await page.screenshot({path:join(directory,'ambient-reduced-motion.png')});
     await directoryView.locator('.k42-directory-card').filter({hasText:'Alpha worker'}).click();
     const detail=page.locator('.agent-detail:visible');await detail.getByRole('heading',{name:'Alpha worker',exact:true}).waitFor();
     await detail.locator('.agent-meta .k42-tool-label').getByText('Claude Code',{exact:true}).waitFor();
@@ -96,7 +139,14 @@ test('actual app keeps coding-tool identity separate from model names across sid
       expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
       await page.screenshot({animations:'disabled',path:join(directory,`detail-${width}.png`)});
     }
-    await page.goto(`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=control-center`);
+    const settingsUrl=`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=control-center`;
+    const settingsRoute='**/project-update-settings';
+    await context.route(settingsRoute,(route:any)=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({revision:1,additionalInstructions:''})}));
+    await page.goto(settingsUrl);
+    await page.getByRole('alert').filter({hasText:'unsupported update-settings format'}).waitFor();
+    await page.getByRole('group',{name:'Choose my character'}).waitFor();
+    await context.unroute(settingsRoute);
+    await page.reload();
     const choices=page.getByRole('group',{name:'Choose my character'});
     await choices.getByRole('button',{name:'Character 4',exact:true}).click();
     await page.getByRole('button',{name:'Save character',exact:true}).click();
@@ -109,6 +159,7 @@ test('actual app keeps coding-tool identity separate from model names across sid
     await page.setViewportSize({width:1440,height:1000});
     await page.screenshot({path:join(directory,'settings-desktop.png'),fullPage:true,animations:'disabled'});
     // Failed strips keep the consent-free bundled still visible as a fallback.
+    await page.emulateMedia({reducedMotion:'no-preference'});
     await context.route('**/sprites/*.webp*',(route:any)=>route.request().resourceType()==='image'?route.abort():route.continue());
     await page.goto(url);
     await page.waitForFunction(()=>{

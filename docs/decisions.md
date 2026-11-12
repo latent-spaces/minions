@@ -10,6 +10,25 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Rare avatar effects stay wild; occasional cursor gaze uses code — owner selection, 12 November 2026
+
+The owner approved the four exaggerated human concepts, requested distinct
+animal effects in batches of four, and then removed approval stops. After seeing
+the native GIFs, the owner selected them as-is without cleanup. Preserve their
+intentional distortions; normal blink/state assets remain stable. Keep hats
+independent and play wild effects very rarely with independent timing and no
+simultaneous burst across the visible swarm. Reduced motion and work/attention
+state meaning take priority over decorative acting. The owner subsequently
+requested stronger pupil travel for small avatars and confirmed mutually exclusive
+effects: gaze, blinking and rare effects must not play over each other.
+
+The owner also requested occasional few-second cursor-following glances, using
+page-mascot as a reference, with no new generated images. Move extracted original
+pupil pixels in code, then return to neutral; do not move heads, hats or the
+surrounding avatar layout. This is decorative presentation, not provider identity,
+agent execution, connection health or a new state signal.
+
+
 ## Project updates are a photo feed with slides and short text — owner request, 12 November 2026
 
 "let's work on the updates feed i need to get the settings better and the instructions it should be
