@@ -10,6 +10,21 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Rounded rubber communication tubes — owner selection, 12 November 2026
+
+Source: owner rejected elaborate map scenery, kept straight connectors, requested
+code-based options in a simplified synthetic communication lab, then selected
+“Rubber tube” after reviewing rounder swallowing animations.
+
+Keep the existing map layout, straight centerlines, hit areas and causal traffic.
+Connections use muted rounded rubber tubes, always behind every avatar, including
+transparent hat/hair margins and overlapping billboards. Each new message produces one small
+traveling bulge and warm bead, like a swallowed mandarin, then the tube relaxes.
+Initial history must not generate new activity. Reduced motion keeps tubes still.
+This adds no execution state, delivery guarantee, background scenery or routing
+optimization. The small lab imports the production renderer and retains the
+alternative art styles for comparison.
+
 ## My agents is one strip of faces; the map's agent card is reorganized — owner request, 12 November 2026
 
 "my agents we can do the all them in one line map character strip with +N where we are out

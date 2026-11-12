@@ -1,3 +1,5 @@
+import {occludeAvatars} from './avatar-occlusion';
+import {drawTubeConnector} from './tube-connector';
 import { PersonMapNode } from './PersonMapNode';
 import {EdgeAppearance} from './edge-appearance';
 import {ownerColor} from './owner-colors';
@@ -16,8 +18,20 @@ import './map.css';
 
 /** How a crowded overview draws agents. Home uses the default, `portraits`. */
 export type Crowding='portraits'|'shrink'|'dots'|'focus-active'|'focus-ring';
+/** Rubber tube is the selected app style; the lab can compare alternatives. */
+export type ConnectorStyle='current'|'lavender'|'packet-trail'|'envelope'|'tube'|'round-tube'|'rubber-tube';
+const connectorStyles={
+ current:{stroke:null,packet:null,width:1,radius:4,trail:1,glyph:'dot'},
+ lavender:{stroke:'#93869f',packet:'#756183',width:.5,radius:2.7,trail:1,glyph:'dot'},
+ 'packet-trail':{stroke:'#928897',packet:'#756183',width:.5,radius:2.5,trail:3,glyph:'dot'},
+ envelope:{stroke:'#93869f',packet:'#756183',width:.5,radius:0,trail:0,glyph:'envelope'},
+ tube:{stroke:'#93869f',packet:'#756183',width:.5,radius:0,trail:0,glyph:'tube',shape:'soft'},
+ 'round-tube':{stroke:'#887697',packet:'#756183',width:.5,radius:0,trail:0,glyph:'tube',shape:'round'},
+ 'rubber-tube':{stroke:'#7f6b8e',packet:'#756183',width:.5,radius:0,trail:0,glyph:'tube',shape:'rubber'},
+} as const;
+
 const focusMode=(mode:Crowding)=>mode==='focus-active'||mode==='focus-ring';
-type Props={crowding?:Crowding;simulatedStates?:boolean;initialDimensions?:2|3;controlsSlot?:HTMLElement|null;toolbarStart?:ReactNode;nodes:MapNode[];traffic:Traffic[];at:number;running:boolean;speed:number;active:boolean;replay:boolean;now:number;
+type Props={connectorStyle?:ConnectorStyle;crowding?:Crowding;simulatedStates?:boolean;initialDimensions?:2|3;controlsSlot?:HTMLElement|null;toolbarStart?:ReactNode;nodes:MapNode[];traffic:Traffic[];at:number;running:boolean;speed:number;active:boolean;replay:boolean;now:number;
  observations:Map<string,CommunicationAgent>;selected:string|null;inspected:string|null;tooltipId:string;
  onInspect:(id:string,anchor:SVGGElement,pin:boolean)=>void;onLeave:()=>void;onDismiss:()=>void;
  onSelect:(id:string|null)=>void;onEdge:(from:string,to:string)=>void};
@@ -31,7 +45,7 @@ function overlapShare(screen:{x:number;y:number}[]){
 /** Presentation has no auth, polling, model control, data fetching or lab settings. */
 export function CommunicationMap(props:Props){
  const controlsRef=useRef<HTMLDivElement>(null);
- const root=useRef<HTMLDivElement>(null),svg=useRef<SVGSVGElement>(null),canvas=useRef<HTMLCanvasElement>(null);
+ const root=useRef<HTMLDivElement>(null),svg=useRef<SVGSVGElement>(null),canvas=useRef<HTMLCanvasElement>(null),gridCanvas=useRef<HTMLCanvasElement>(null);
  const dimensions=props.initialDimensions??2,[zoom,setZoom]=useState(1),[failure,setFailure]=useState(''),[retry,setRetry]=useState(0);
  useEffect(()=>{
   const element=root.current;if(!element)return;let inView=true;
@@ -61,7 +75,7 @@ export function CommunicationMap(props:Props){
  },[]);
  useEffect(()=>{
   const element=root.current!;element.dataset.mapFrames='0';element.dataset.mapRenderedDimensions='';
-  const drawing=canvas.current!.getContext('2d'),vector=svg.current!;if(!drawing){setFailure('Canvas unavailable');return;}
+  const drawing=canvas.current!.getContext('2d'),gridDrawing=gridCanvas.current!.getContext('2d'),vector=svg.current!;if(!drawing||!gridDrawing){setFailure('Canvas unavailable');return;}
   let worker:Worker;try{worker=new Worker(new URL('./map.worker.ts',import.meta.url),{type:'module'});}catch(error){setFailure(error instanceof Error?error.message:'Layout worker unavailable');return;}
   let display:Float64Array=dimensions===3?initialPositions3D(positions.length):initialPositions(positions.length),target:Float64Array=display.slice(),ready=false,pending=false,sequence=0,accepted=0,raf=0,lastStep=-Infinity,lastDraw=0,dirty=true,needsStep=true;
   const flights=new MessageFlights(),edgeAppearance=new EdgeAppearance();let animationClock=0,floorY=0,gridRadius=1000;
@@ -162,7 +176,13 @@ export function CommunicationMap(props:Props){
     if(dimensions===2&&!c.highlightedOwner)depthOrder=[];
    }
    const raster=canvas.current!,pixelWidth=Math.round(box.width*devicePixelRatio),pixelHeight=Math.round(height*devicePixelRatio);if(raster.width!==pixelWidth)raster.width=pixelWidth;if(raster.height!==pixelHeight)raster.height=pixelHeight;drawing.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);drawing.clearRect(0,0,box.width,height);drawing.strokeStyle=getComputedStyle(element).getPropertyValue('--ink')||'#141414';drawing.fillStyle=drawing.strokeStyle;
-   drawing.save();drawing.lineWidth=1;for(const line of worldGrid(frame,box.width,height,dimensions,orbit.current.yaw,orbit.current.pitch,floorY,gridRadius)){drawing.globalAlpha=line.major ? .12 : .065;drawing.beginPath();drawing.moveTo(line.x1,line.y1);drawing.lineTo(line.x2,line.y2);drawing.stroke();}drawing.restore();
+   const grid=gridCanvas.current!;if(grid.width!==pixelWidth)grid.width=pixelWidth;if(grid.height!==pixelHeight)grid.height=pixelHeight;
+   gridDrawing.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);gridDrawing.clearRect(0,0,box.width,height);gridDrawing.strokeStyle=drawing.strokeStyle;
+   gridDrawing.lineWidth=1;for(const line of worldGrid(frame,box.width,height,dimensions,orbit.current.yaw,orbit.current.pitch,floorY,gridRadius)){gridDrawing.globalAlpha=line.major ? .12 : .065;gridDrawing.beginPath();gridDrawing.moveTo(line.x1,line.y1);gridDrawing.lineTo(line.x2,line.y2);gridDrawing.stroke();}
+   const connectorStyle=c.connectorStyle??'rubber-tube',connector=connectorStyles[connectorStyle];
+   const ink=getComputedStyle(element).getPropertyValue('--ink')||'#141414';
+   drawing.strokeStyle=connector.stroke??ink;drawing.fillStyle=connector.packet??ink;
+   drawing.lineCap=connectorStyle==='current'?'butt':'round';
    const passes=flights.sample(c.traffic,at,animationClock,c.replay,c.running);
    for(const sent of flights.takeStarts()){
     if(c.replay)continue;
@@ -181,9 +201,25 @@ export function CommunicationMap(props:Props){
     group.style.display=eligible?'':'none';if(appearance.opacity===0)continue;
     const x=screen[a].x,y=screen[a].y,dx=screen[b].x-x,dy=screen[b].y-y,length=Math.max(1,Math.hypot(dx,dy)),ra=24*scales[a],rb=26*scales[b],sx=x+dx/length*ra,sy=y+dy/length*ra,tx=x+dx-dx/length*rb,ty=y+dy-dy/length*rb;
     group.querySelector('path')!.setAttribute('d',`M ${sx} ${sy} L ${tx} ${ty}`);
-    drawing.globalAlpha=appearance.opacity;drawing.lineWidth=appearance.width;drawing.beginPath();drawing.moveTo(sx,sy);drawing.lineTo(tx,ty);drawing.stroke();
-    if(!reduced.matches)for(const phase of byPair.get(JSON.stringify([from,to]))??[]){drawing.beginPath();drawing.arc(sx+(tx-sx)*phase,sy+(ty-sy)*phase,4,0,Math.PI*2);drawing.fill();}
+    drawing.globalAlpha=appearance.opacity;
+    if(connector.glyph==='tube'){
+     drawTubeConnector(drawing,sx,sy,tx,ty,reduced.matches?[]:byPair.get(JSON.stringify([from,to]))??[],connector.stroke!,connector.shape);
+    }else{drawing.lineWidth=appearance.width*connector.width;drawing.beginPath();drawing.moveTo(sx,sy);drawing.lineTo(tx,ty);drawing.stroke();}
+    if(!reduced.matches)for(const phase of byPair.get(JSON.stringify([from,to]))??[]){
+     if(connector.glyph==='envelope'){
+      drawing.save();drawing.translate(sx+(tx-sx)*phase,sy+(ty-sy)*phase);drawing.rotate(-.1);
+      drawing.fillStyle='#faf4e7';drawing.strokeStyle=connector.packet!;drawing.lineWidth=1;
+      drawing.fillRect(-5,-3.5,10,7);drawing.strokeRect(-5,-3.5,10,7);
+      drawing.beginPath();drawing.moveTo(-5,-3.5);drawing.lineTo(0,.5);drawing.lineTo(5,-3.5);drawing.stroke();drawing.restore();
+     }
+     for(let dot=0;dot<connector.trail;dot++){
+      const t=phase-dot*.045;if(t<0)continue;
+      drawing.globalAlpha=appearance.opacity*(dot===0?1:dot===1?.55:.28);
+      drawing.beginPath();drawing.arc(sx+(tx-sx)*t,sy+(ty-sy)*t,connector.radius-dot*.5,0,Math.PI*2);drawing.fill();
+     }
+    }
    }
+   occludeAvatars(drawing,screen,scales);
    element.dataset.mapCamera=JSON.stringify(frame);element.dataset.mapRenderedDimensions=String(dimensions);element.dataset.mapFrames=String(Number(element.dataset.mapFrames??0)+1);element.dataset.mapAt=String(at);
    window.dispatchEvent(new Event('communication-map-tick'));
   };raf=requestAnimationFrame(paint);
@@ -204,9 +240,10 @@ export function CommunicationMap(props:Props){
    <span className="communication-map-zoom"><button type="button" aria-label="Zoom out" onClick={()=>zoomBy(1/1.4)}>−</button><button type="button" onClick={home}>Fit map</button><button type="button" aria-label="Zoom in" onClick={()=>zoomBy(1.4)}>+</button></span>
   </div>
  </>;
- return <div className="communication-map" ref={root} tabIndex={0} onClick={event=>{if((event.target as Element).closest('button,select,.communication-map-controls,.k42-communication-agent,[data-map-edge]'))return;props.onSelect(null);props.onDismiss();}} data-map-dimensions={dimensions} data-state-motion={props.running&&props.active} data-owner-highlight={highlightedOwner} data-crowded={crowded} aria-label={dimensions===3?"3D communication map. Drag or use arrow keys to orbit; Shift plus drag or arrow keys to pan; plus and minus to zoom.":"Communication map. Drag to pan; arrow keys to move; plus and minus to zoom."}>
-  <canvas ref={canvas} aria-hidden="true"/>
-  <svg ref={svg} width="100%" height="100%" role="group" aria-label="Agent communication graph">
+ return <div className="communication-map" ref={root} tabIndex={0} onClick={event=>{if((event.target as Element).closest('button,select,.communication-map-controls,.k42-communication-agent,[data-map-edge]'))return;props.onSelect(null);props.onDismiss();}} data-map-connector={props.connectorStyle??'rubber-tube'} data-map-dimensions={dimensions} data-state-motion={props.running&&props.active} data-owner-highlight={highlightedOwner} data-crowded={crowded} aria-label={dimensions===3?"3D communication map. Drag or use arrow keys to orbit; Shift plus drag or arrow keys to pan; plus and minus to zoom.":"Communication map. Drag to pan; arrow keys to move; plus and minus to zoom."}>
+  <canvas ref={gridCanvas} data-map-layer="grid" aria-hidden="true"/>
+  <canvas ref={canvas} data-map-layer="connectors" aria-hidden="true"/>
+  <svg ref={svg} data-map-layer="avatars" width="100%" height="100%" role="group" aria-label="Agent communication graph">
    {edgePool.map(e=><g key={JSON.stringify([e.from,e.to])} data-map-edge="" style={{display:'none'}} data-from={e.from} data-to={e.to} role="button" tabIndex={0} aria-label={`Show messages from ${props.nodes.find(n=>n.id===e.from)?.name??e.from} to ${props.nodes.find(n=>n.id===e.to)?.name??e.to}`} onClick={()=>props.onEdge(e.from,e.to)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();props.onEdge(e.from,e.to);}}}><path fill="none" stroke="transparent" strokeWidth="16"/></g>)}
    {visibleNodes.map(node=><g key={node.id} data-map-id={node.id} data-owner-id={node.ownerId??''} className={highlightedOwner&&node.ownerId!==highlightedOwner?'is-owner-dimmed':undefined} style={{'--owner-color':ownerColor(node.ownerId)} as CSSProperties}>{node.personId ? <PersonMapNode node={node} crowded={crowded} onInspect={anchor=>props.onInspect(node.id,anchor,false)} onLeave={props.onLeave} onDismiss={props.onDismiss} onSelect={()=>props.onSelect(node.id)} /> : <CommunicationAgentNode node={node} agent={props.observations.get(node.id)} now={props.now} selected={props.selected===node.id} replay={props.replay} simulated={props.simulatedStates} compact crowded={crowded} ownerLabel={node.ownerId?ownerLabels.get(node.ownerId):'Owner unknown'} tooltipId={props.tooltipId} inspecting={props.inspected===node.id} onInspect={anchor=>props.onInspect(node.id,anchor,false)} onLeave={props.onLeave} onDismiss={props.onDismiss} onSelect={()=>props.onSelect(node.id)}/>}</g>)}
   </svg>

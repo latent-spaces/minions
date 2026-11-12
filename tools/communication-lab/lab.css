@@ -1,0 +1,27 @@
+body { margin:0; background:var(--canvas-soft,#f6f6f6); }
+.connector-lab { max-width:1600px; margin:auto; padding:24px; }
+.connector-lab h1 { margin:0 0 8px; font-size:24px; }
+.connector-lab p { margin:0; color:var(--text-muted,#666); font-size:13px; line-height:1.5; }
+.connector-controls { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin:24px 0; }
+.connector-controls button { min-height:40px; padding:8px 16px; border:1px solid var(--hairline,#ddd); border-radius:10px; color:var(--ink); background:var(--canvas,#fff); font:inherit; cursor:pointer; }
+.connector-controls button:disabled { opacity:.5; cursor:default; }
+.connector-controls button:focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
+.connector-controls span { font-size:12px; color:var(--text-muted,#666); }
+.connector-options { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; }
+.connector-options section { min-width:0; }
+.connector-options h2 { margin:0 0 6px; font-size:16px; }
+.connector-options section>p { min-height:44px; }
+.connector-options .communication-map { height:380px; min-height:0; border:1px solid var(--hairline,#ddd); border-radius:14px; background:var(--canvas,#fff); }
+@media(max-width:640px) { .connector-options { grid-template-columns:1fr; } .connector-lab { padding:16px; } .connector-options .communication-map { height:480px; } }
+
+.connector-controls label { display:flex; align-items:center; gap:8px; font-size:13px; }
+.connector-controls select { max-width:180px; min-height:40px; padding:8px; border:1px solid var(--hairline,#ddd); border-radius:10px; background:var(--canvas,#fff); color:var(--ink); font:inherit; }
+.connector-options.is-focused { grid-template-columns:minmax(0,1fr); max-width:900px; }
+.connector-options.is-focused .communication-map { height:440px; }
+
+.connector-options.is-tubes { grid-template-columns:repeat(3,minmax(0,1fr)); }
+@media(max-width:1050px) { .connector-options.is-tubes { grid-template-columns:1fr; } }
+
+/* This art lab has no execution observations; omit synthetic Unknown decorations. */
+.connector-lab .agent-state-bubble,
+.connector-lab .k42-communication-agent:not(.k42-communication-person) .k42-communication-state { display:none; }

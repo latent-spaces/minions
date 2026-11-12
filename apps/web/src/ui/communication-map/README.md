@@ -1,7 +1,9 @@
 # Communication map
 
 `CommunicationMap` draws a project's agents as avatars and the direct messages between
-them as straight lines without arrowheads. Agents that are talking to each other move
+them as straight rounded rubber tubes without arrowheads. New messages create a
+small traveling swelling and warm bead; the tube returns to its thin resting
+shape afterward. Reduced motion keeps it still. Agents that are talking to each other move
 closer together. The Home tab shows the map inside the agent communication card
 (`ProjectCommunication.tsx`).
 
@@ -257,3 +259,19 @@ node tests/run.mjs test/communication-replay.test.ts \
   test/communication-agent-status.test.ts test/communication-events.test.ts \
   ../../tests/integration/web-communication-agent-presence.test.tsx
 ```
+
+## Connector comparison lab
+
+`npm run communication:lab` starts a small loopback-only HTML lab with four
+synthetic characters and shared synthetic message events. It imports the actual
+map renderer and compares Current ink, Soft lavender, Small dot trail, Tiny
+envelope, Soft tube, Round bulge and Rubber tube. All seven keep straight lines and the same traffic/layout rules.
+`connectorStyle` lets the lab compare alternatives. Product screens omit it and
+use the owner-selected Rubber tube. The envelope is canvas linework, not a raster image.
+See [the lab instructions](../../../../../tools/communication-lab/README.md).
+
+Grid, tubes and avatar billboards have explicit separate layers. The tube canvas
+subtracts the union of all avatar footprints after drawing, including transparent
+hair/hat margins and scaled crowded-map dots. Thus even a line crossing a third
+avatar, overlapping avatars, or the moving bulge stays behind. The grid remains
+intact on its own canvas. SVG edge hit paths remain below the avatar groups.
