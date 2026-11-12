@@ -10,6 +10,18 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## My agents is one strip of faces; the map's agent card is reorganized — owner request, 12 November 2026
+
+"my agents we can do the all them in one line map character strip with +N where we are out
+of horizontal space": the open menu shows My agents as one line of overlapping faces like
+the map's, with +N for the rest, which opens the full list. This replaces the 11 November
+rows that fit the menu's height. The collapsed rail keeps one face per row.
+
+"here there is a problem with the avatar, and we need to organize this card better": the
+map's agent card shows the name with one line under it (whose agent it is and its state),
+then a Focus section with when it was reported, then last contact beside Start or Pause.
+The card's text styles no longer reach inside the avatar, which had pushed the face down.
+
 ## Task list Owner column and a dash for no agents — owner request, 12 November 2026
 
 "don't write not yet, have a "-" , the assigned agetnt change to owner": the task list's

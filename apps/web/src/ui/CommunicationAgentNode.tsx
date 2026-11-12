@@ -82,15 +82,20 @@ export function CommunicationAgentTooltip({ id, anchor, name, ownerLabel, ownerI
   return createPortal(<div ref={ref} id={id} role={actions ? 'dialog' : 'tooltip'} aria-label={actions ? name : undefined} className="k42-communication-agent-tooltip"
     style={{ ...position, visibility: position ? 'visible' : 'hidden' }} onMouseEnter={onKeep} onMouseLeave={onLeave} onPointerDown={onPin} onFocus={onPin}>
     {actions && <button type="button" className="k42-communication-tooltip-close" aria-label="Close" onClick={onDismiss}>×</button>}
-    <div className="k42-communication-tooltip-identity"><AgentAvatar provider={provider} state={!replay ? state : 'idle'} name={name} id={agentId ?? agent?.id ?? name} ownerId={ownerId} persona={agent?.personaChoice} size={40} decorative /><div><strong>{name}</strong>
-      <span>{agent?.mine ? 'Your agent · ' : ''}{simulated ? 'Simulated status' : 'Current status'}: {agent?.projectPause ? COMMUNICATION_AGENT_LABELS[state] : ownStatus ?? COMMUNICATION_AGENT_LABELS[state]}</span></div></div>
-    {ownerLabel && <p className="k42-communication-tooltip-owner">Agent of: {ownerLabel}</p>}
-    {actions && <div className="k42-communication-tooltip-actions">{actions}</div>}
+    {/* One line under the name says whose agent it is and its state; focus, then last contact beside the controls (owner, 12 November 2026). */}
+    <div className="k42-communication-tooltip-identity"><AgentAvatar provider={provider} state={!replay ? state : 'idle'} name={name} id={agentId ?? agent?.id ?? name} ownerId={ownerId} persona={agent?.personaChoice} size={40} decorative />
+      <div className="k42-communication-tooltip-who"><strong>{name}</strong>
+        <small>{[agent?.mine ? 'Your agent' : ownerLabel ? `Agent of ${ownerLabel}` : null, `${simulated ? 'Simulated: ' : ''}${agent?.projectPause ? COMMUNICATION_AGENT_LABELS[state] : ownStatus ?? COMMUNICATION_AGENT_LABELS[state]}`].filter(Boolean).join(' · ')}</small></div></div>
     {agent?.projectPause && <p className="k42-communication-tooltip-note">Pause requested: {time(agent.projectPause.requestedAt, true, now)}.
       {state === 'paused' ? ' Runtime confirmed that work has paused.' : agent.projectPause.externalChat ? ' This external chat must be paused directly; MyLittleSwarm cannot confirm its execution has stopped.' : ' Waiting for the runtime to confirm that work has paused.'}</p>}
     {replay && <p className="k42-communication-tooltip-note">{simulated ? "Simulated state for this lab. It is not a recorded status or live agent activity." : "Messages are replayed. Persona, status and focus are the latest."}</p>}
-    <p className="k42-communication-tooltip-focus" dir="auto">{simulated ? 'Illustrative activity for comparing state indicators.' : agent?.focus?.text || 'This agent hasn’t reported a focus yet.'}</p>
-    {agent?.focus && <p className="k42-communication-tooltip-note">Agent reported · <time dateTime={new Date(agent.focus.updatedAt).toISOString()} title={time(agent.focus.updatedAt, false)}>Updated {ago(agent.focus.updatedAt, now) || new Date(agent.focus.updatedAt).toLocaleDateString()}</time></p>}
-    {agent?.lastContactAt !== null && agent?.lastContactAt !== undefined && <p className="k42-communication-tooltip-note">Last contact: {time(agent.lastContactAt, true, now)}</p>}
+    <div className="k42-communication-tooltip-section">
+      <p className="k42-communication-tooltip-label">Focus{agent?.focus && <> · <time dateTime={new Date(agent.focus.updatedAt).toISOString()} title={time(agent.focus.updatedAt, false)}>{ago(agent.focus.updatedAt, now) || new Date(agent.focus.updatedAt).toLocaleDateString()}</time></>}</p>
+      <p className={`k42-communication-tooltip-focus${!simulated && !agent?.focus?.text ? ' is-empty' : ''}`} dir="auto">{simulated ? 'Illustrative activity for comparing state indicators.' : agent?.focus?.text || 'No focus reported yet.'}</p>
+    </div>
+    {(actions || (agent?.lastContactAt !== null && agent?.lastContactAt !== undefined)) && <div className="k42-communication-tooltip-footer">
+      {agent?.lastContactAt !== null && agent?.lastContactAt !== undefined && <span title={time(agent.lastContactAt, false)}>Last contact {ago(agent.lastContactAt, now) ?? new Date(agent.lastContactAt).toLocaleDateString()}</span>}
+      {actions && <div className="k42-communication-tooltip-actions">{actions}</div>}
+    </div>}
   </div>, portalContainer ?? document.body);
 }

@@ -97,15 +97,16 @@ export function WorkspaceNavigation({ globals, projectsLink, projects, projectSt
   const label = (value: string) => <p className={`k42-nav-label${collapsed ? ' k42-nav-text' : ''}`}>{value}</p>;
   const agents = groupAgents(project?.myAgents ?? []);
   const fitted = useFittedCount(agents.length, [collapsed, project?.id, !!project?.connect]);
-  // When not even one full row fits, a strip of small avatars takes its place: as many as fit beside +N, each naming itself on hover (owner, 11 November 2026).
-  const strip = !collapsed && fitted.count === 0 && agents.length > 0 ? agents.slice(0, Math.max(0, Math.floor((fitted.width - 76) / 34))) : [];
-  const shownAgents = agents.slice(0, fitted.count), hiddenAgents = agents.slice(fitted.count + strip.length);
+  // The open menu shows My agents as one line of overlapping faces, like the map's, with +N once the line is full (owner, 12 November 2026).
+  // Each face is 32px and overlaps the previous by 8px; +N takes about 40px. The collapsed rail keeps one face per row, as many as fit.
+  const fits = (room: number) => room < 32 ? 0 : 1 + Math.floor((room - 32) / 24);
+  const room = fitted.width - 12, stripCount = fits(room) >= agents.length ? agents.length : fits(room - 44);
+  const strip = !collapsed ? agents.slice(0, Math.max(0, stripCount)) : [];
+  const shownAgents = collapsed ? agents.slice(0, fitted.count) : [], hiddenAgents = agents.slice(collapsed ? fitted.count : strip.length);
   const more = useAnchoredPopover<HTMLDivElement>({ align: 'start', above: true });
   // In the +N popover a row always shows its name and status, even from the collapsed rail.
   const agentRow = ({ agent }: (typeof agents)[number], onNavigate = agent.onNavigate, full = false) => link({ id: agent.id, label: `${agent.name}, ${agent.waiting ? 'waiting for you' : agent.status}`, href: agent.href, onNavigate },
     <><CodingAgentAvatar provider={agent.provider} status={{ state: agent.state, label: agent.waiting ? 'Waiting for you' : agent.status }} name={agent.name} id={agent.id} ownerId={agent.ownerId} persona={agent.personaChoice} size={32} decorative />{(full ? (v: ReactNode) => <span>{v}</span> : text)(<span className="k42-my-agent-text"><strong>{agent.name}</strong><small>{agent.detail}</small></span>)}</>, 'k42-nav-link k42-my-agent');
-  // Group headings only help when the agents are in more than one state.
-  const headed = !collapsed && new Set(agents.map(row => row.group)).size > 1;
   const toggleLabel = collapsed ? 'Expand menu' : 'Collapse menu';
   return <div className={`k42-navigation${collapsed ? ' is-collapsed' : ''}${project ? ' is-project' : ''}`}>
     {(brand || onCollapsedChange) && <div className="k42-nav-brand">{!collapsed && brand}{onCollapsedChange && <Button type="button" className="k42-nav-collapse" aria-expanded={!collapsed} aria-label={toggleLabel} title={toggleLabel} onClick={() => onCollapsedChange(!collapsed)}>{collapsed ? <PanelLeftOpen size={18} aria-hidden="true" /> : <PanelLeftClose size={18} aria-hidden="true" />}</Button>}</div>}
@@ -132,15 +133,15 @@ export function WorkspaceNavigation({ globals, projectsLink, projects, projectSt
       {(project.connect || !!project.myAgents?.length) && <nav className="k42-my-agents" aria-label="My agents">
         {label('My agents')}
         <ul ref={fitted.list}>
-          {shownAgents.map((row, i) => <Fragment key={row.agent.id}>{headed && row.group !== shownAgents[i - 1]?.group && <li className="k42-my-agent-group">{row.group}</li>}<li>{agentRow(row)}</li></Fragment>)}
+          {shownAgents.map(row => <li key={row.agent.id}>{agentRow(row)}</li>)}
           {(strip.length > 0 || hiddenAgents.length > 0) && <li className={strip.length ? 'k42-my-agent-strip' : undefined}>{strip.map(({ agent }) => {
             const name = `${agent.name}, ${agent.waiting ? 'waiting for you' : agent.status}`;
             return <a key={agent.id} href={agent.href} className="k42-my-agent-chip" title={`${agent.name} · ${agent.waiting ? 'Waiting for you' : agent.status}`} aria-label={name}
               onClick={e => { if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; e.preventDefault(); agent.onNavigate(); }}>
-              <CodingAgentAvatar provider={agent.provider} status={{ state: agent.state, label: agent.waiting ? 'Waiting for you' : agent.status }} name={agent.name} id={agent.id} ownerId={agent.ownerId} persona={agent.personaChoice} size={28} decorative /></a>;
+              <CodingAgentAvatar provider={agent.provider} status={{ state: agent.state, label: agent.waiting ? 'Waiting for you' : agent.status }} name={agent.name} id={agent.id} ownerId={agent.ownerId} persona={agent.personaChoice} size={32} decorative /></a>;
           })}{hiddenAgents.length > 0 && <><button type="button" className="k42-nav-more" {...more.triggerProps} title={collapsed ? `${hiddenAgents.length} more agents` : undefined}
             aria-label={`${hiddenAgents.length} more agents${hiddenAgents.some(row => row.agent.waiting) ? ', some waiting for you' : ''}`}>
-            {collapsed ? `+${hiddenAgents.length}` : `+${hiddenAgents.length} more`}{hiddenAgents.some(row => row.agent.waiting) && <span className="k42-nav-more-waiting" aria-hidden="true" />}</button>
+            +{hiddenAgents.length}{hiddenAgents.some(row => row.agent.waiting) && <span className="k42-nav-more-waiting" aria-hidden="true" />}</button>
             <div {...more.panelProps} className={`${more.panelProps.className} k42-my-agents-more`} aria-label="More agents">
               <ul>{hiddenAgents.map((row, i) => <Fragment key={row.agent.id}>{new Set(hiddenAgents.map(r => r.group)).size > 1 && row.group !== hiddenAgents[i - 1]?.group && <li className="k42-my-agent-group">{row.group}</li>}
                 <li>{agentRow(row, () => { more.close(false); row.agent.onNavigate(); }, true)}</li></Fragment>)}</ul>

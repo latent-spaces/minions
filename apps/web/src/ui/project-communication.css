@@ -22,11 +22,16 @@
 .k42-communication-agent .k42-communication-state { font-size:12px; fill:var(--muted); }
 .k42-communication-agent .k42-communication-state:is(.state-working,.state-needs_you) { fill:var(--ink); font-weight:600; }
 .k42-communication-agent-tooltip { position:fixed; z-index:80; width:min(280px,calc(100vw - 24px)); padding:16px; border:1px solid var(--hairline); border-radius:16px; color:var(--ink); background:var(--canvas); font-size:14px; line-height:1.43; overflow-wrap:anywhere; }
-.k42-communication-tooltip-identity { display:flex; align-items:center; gap:12px; }
-.k42-communication-tooltip-identity img { flex:none; border-radius:30%; object-fit:cover; }
-.k42-communication-tooltip-identity strong { display:block; font-size:14px; font-weight:600; }
-.k42-communication-tooltip-identity span { display:block; margin-top:4px; font-size:12px; color:var(--muted); }
-.k42-communication-tooltip-focus { margin:16px 0 0; white-space:pre-wrap; }
+.k42-communication-tooltip-identity { display:flex; align-items:center; gap:12px; padding-right:20px; }
+.k42-communication-tooltip-who { min-width:0; }
+.k42-communication-tooltip-who strong { display:block; font-size:15px; font-weight:600; }
+.k42-communication-tooltip-who small { display:block; margin-top:2px; font-size:12px; color:var(--text-muted); }
+.k42-communication-tooltip-section { margin-top:12px; padding-top:12px; border-top:1px solid var(--hairline); }
+.k42-communication-tooltip-label { margin:0 0 4px; font-size:12px; font-weight:600; color:var(--text-muted); }
+.k42-communication-tooltip-focus { margin:0; white-space:pre-wrap; }
+.k42-communication-tooltip-focus.is-empty { color:var(--text-muted); }
+.k42-communication-tooltip-footer { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--hairline); font-size:12px; color:var(--text-muted); }
+.k42-communication-tooltip-footer .k42-communication-tooltip-actions { margin:0 0 0 auto; }
 .k42-communication-tooltip-note { margin:8px 0 0; font-size:12px; color:var(--muted); }
 .k42-communication-empty { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; }
 .k42-communication-empty p { font-size:12px; color:var(--muted); }
