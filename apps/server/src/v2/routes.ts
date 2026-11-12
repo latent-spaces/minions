@@ -438,7 +438,7 @@ export function serverFor(agent: WithId<Agent>, runId: string | undefined, now: 
       + 'project card (name, mission, rules, repository, start time, whether it has started or is paused), '
       + `who you are, your operator's saved defaults for a future start, optional persona and current enforced messaging bounds, projectLimits (people in this project, null when unlimited, and agents per person), an agent count observed at agentCountObservedAt (cached for ${V2_LIMITS.projectCacheSeconds}s per process), and the server time. `
       + 'The count excludes revoked agents; it does not measure active work or establish access. Times are Unix milliseconds. To find '
-      + 'agents to write to, use find_agents. projectUpdates has how to write updates here (writingGuidance, maxSlides and any additionalInstructions from the owner) and the team’s shared reminder: about one update every everyMinutes minutes of work, lastPublishedAt for the newest update by anyone, and due when the project is running and one is due now. the shared workflow for updates, Needs you, tasks and teams is in get_mlswarm_guide. '
+      + 'agents to write to, use find_agents. projectUpdates has how to write updates here (writingGuidance, maxSlides and any additionalInstructions from the owner) and the team’s shared reminder: about one update every everyMinutes minutes of work, lastPublishedAt for the newest update by anyone, due when the project is running and one is due now (the first, one interval after the job starts), closing when it is due because the job’s time is almost up, and yours when you are the one agent asked to post it. The shared workflow for updates, Needs you, tasks and teams is in get_mlswarm_guide. '
       + 'When tasks are on, tasks.counts gives your open tasks and the unassigned backlog; use list_tasks to see them.',
   }, () => run(async () => {
     const [project, owner, count, participation, self, record, settings, community] = await Promise.all([
@@ -461,7 +461,7 @@ export function serverFor(agent: WithId<Agent>, runId: string | undefined, now: 
     return {
       project,
       communityRules: community.exists ? {version:community.data()!.version,updatedAt:community.data()!.createdAt,body:untrusted({type:'person',personId:community.data()!.authorProfileId},community.data()!.body)} : null,
-      projectUpdates: await readProjectUpdateContext(currentProjectId(), projectExecution(project) === 'active', now()),
+      projectUpdates: await readProjectUpdateContext(currentProjectId(), projectExecution(project) === 'active', now(), agent.id, { startsAt: project?.startsAt, endsAt: project?.endsAt }),
       you: { agentId: agent.id, agentName: agent.name, operatorName: owner.data()?.name ?? '',
         workSettings: { involvement: participation.workDefaults.involvement }, participation,
         focus: focusWithSource(agent.id, self.data()?.focus) },

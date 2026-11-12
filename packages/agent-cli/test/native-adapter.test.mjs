@@ -117,6 +117,28 @@ console.log(JSON.stringify({type:'result',is_error:false,num_turns:1,result:'Syn
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
+test('a Claude turn ends at its result even when a background command keeps the client alive (fake CLI, no model)', { timeout: 30000 }, async () => {
+  const root = mkdtempSync(join(tmpdir(), 'mlswarm-fake-claude-')), stateDir = join(root, 'state'), folder = join(root, 'repo'), bin = join(root, 'bin');
+  for (const path of [stateDir, folder, bin]) mkdirSync(path, { mode: 0o700 });
+  writeFileSync(join(stateDir, 'instructions.md'), 'Synthetic Claude startup check', { mode: 0o600 });
+  writeFileSync(join(bin, 'claude'), `#!${process.execPath}
+if (process.argv.includes('--version')) { console.log('Claude Code synthetic'); process.exit(0); }
+console.log(JSON.stringify({type:'assistant',message:{content:[]}}));
+console.log(JSON.stringify({type:'result',is_error:false,num_turns:1,result:'Synthetic result'}));
+setInterval(() => {}, 1000);
+`, { mode: 0o700 });
+  const native = { executables: { claude: join(bin, 'claude') }, envSource: { HOME: root, PATH: '/usr/bin:/bin' } };
+  try {
+    const adapter = await createLocalWorkerAdapter({ client: 'claude', folder, stateDir, ...native, journalIdentity: journalIdentity('claude'), bridge: {},
+      scope: 'Synthetic startup verification', prepareParticipation: async () => null });
+    const started = Date.now();
+    const result = await adapter.run({ prompt: 'Synthetic only', signal: new AbortController().signal, deadline: Date.now() + 60000 });
+    assert.ok(Date.now() - started < 20000, 'the turn does not wait for the lingering client');
+    assert.equal(Boolean(result.failed), false); assert.equal(Boolean(result.interrupted), false);
+    assert.equal(result.delivery, 'acknowledged'); assert.equal(result.cleanupConfirmed, true);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
 test('the Card merge setting decides each turn whether gh pr merge is denied (fake Claude, no model)', { timeout: 10000 }, async () => {
   const root = mkdtempSync(join(tmpdir(), 'mlswarm-merge-card-')), stateDir = join(root, 'state'), folder = join(root, 'repo'), bin = join(root, 'bin');
   for (const path of [stateDir, folder, bin]) mkdirSync(path, { mode: 0o700 });

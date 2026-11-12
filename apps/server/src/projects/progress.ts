@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { FieldPath } from '../firestore.js';
 import type { PublishUpdateInput, PublishUpdateReceipt, PublishedUpdate, ProgressPage, ProgressScreenshot, ProgressSource, ProjectUpdateSettings, UpdateTopic } from '@mlswarm/contracts';
 import { PROGRESS_LIMITS as L } from '@mlswarm/contracts';
-import { collection, db, inProject, profiles, type Profile } from '../firestore.js';
+import { collection, db, inProject, profiles, projectDocument, type Profile } from '../firestore.js';
 import { hashToken } from '../auth.js';
 import { Refusal } from '../errors.js';
 import { authorizeProgressPublisher, authorizeProgressRead, assertNewProgressAction, progressPublisherKey, type ProgressActor } from './progress-authority.js';
@@ -55,16 +55,37 @@ export async function latestUpdateScreenshotId(projectId: string): Promise<strin
 
 // The project's update settings and the shared reminder: the team aims for one update about every
 // everyMinutes of work, from any agent (owner, 10 November 2026; the owner picks the pace, 12 November 2026).
-// due is guidance, never enforced.
-export async function readProjectUpdateContext(projectId: string, active: boolean, now: number) {
+// due is guidance, never enforced. yours names the one agent asked to post this update, so that
+// two agents don't each leave it to the other (owner, 12 November 2026).
+// The first update is due one interval after the job starts, not at its first second, when there is
+// nothing to show. closing: one more is due in the job's last minutes, so what the team finished
+// reaches the feed before its time ends (owner, 12 November 2026).
+const CLOSING_MS = 120_000;
+export async function readProjectUpdateContext(projectId: string, active: boolean, now: number, agentId: string, job: { startsAt?: number; endsAt?: number } = {}) {
   const [settings, latest] = await Promise.all([
     inProject(projectId, () => effectiveProjectUpdateSettings()),
     progressUpdates(projectId).orderBy('publishedAt', 'desc').select('publishedAt').limit(1).get(),
   ]);
   const lastPublishedAt = (latest.docs[0]?.get('publishedAt') as number | undefined) ?? null;
-  const due = active && (lastPublishedAt === null || now - lastPublishedAt >= settings.everyMinutes * 60_000);
+  const startsAt = job.startsAt ?? 0;
+  const closingFrom = job.endsAt === undefined ? null : job.endsAt - Math.min(CLOSING_MS, (job.endsAt - startsAt) / 2);
+  const closing = active && closingFrom !== null && now >= closingFrom && (lastPublishedAt ?? 0) < closingFrom;
+  const due = active && (now - Math.max(lastPublishedAt ?? 0, startsAt) >= settings.everyMinutes * 60_000 || closing);
   return { ...settings, maxSlides: settings.slides ? L.slides : 1, writingGuidance: writingGuidance(settings), guide: 'get_mlswarm_guide updates-and-help',
-    lastPublishedAt, due };
+    lastPublishedAt, jobStartedAt: job.startsAt ?? null, due, closing, yours: due && await inProject(projectId, () => takeUpdateTurn(agentId, lastPublishedAt, settings.everyMinutes * 60_000, now)) };
+}
+
+// The first agent to read a due update is asked for it. Another agent is asked only when the
+// first has not posted within one interval.
+function takeUpdateTurn(agentId: string, lastPublishedAt: number | null, intervalMs: number, now: number) {
+  const ref = projectDocument<{ agentId: string; at: number }>('settings/projectUpdateTurn');
+  return db.runTransaction(async tx => {
+    const turn = (await tx.get(ref)).data();
+    const current = !!turn && turn.at > (lastPublishedAt ?? 0) && now - turn.at < intervalMs;
+    if (current) return turn.agentId === agentId;
+    tx.set(ref, { agentId, at: now });
+    return true;
+  });
 }
 
 export async function publishProgressUpdate(projectId: string, actor: ProgressActor, body: unknown, now: () => number): Promise<PublishUpdateReceipt> {

@@ -21,7 +21,6 @@ straight routing and avatar occlusion separate from visual retention. The previe
 shows up to 160 characters of the latest directional message, using the existing
 authorized message read, and links to that message in its conversation.
 
-
 ## Rare avatar effects stay wild; occasional cursor gaze uses code — owner selection, 12 November 2026
 
 The owner approved the four exaggerated human concepts, requested distinct
@@ -40,6 +39,64 @@ pupil pixels in code, then return to neutral; do not move heads, hats or the
 surrounding avatar layout. This is decorative presentation, not provider identity,
 agent execution, connection health or a new state signal.
 
+## The first update waits one interval, and one more is due as the job's time ends — owner selection, 12 November 2026
+
+In a 5-minute run with three agents the update was due from the job's first second. The asked
+agent posted 20 seconds in, with nothing to show, and no later update came due, so three merges
+never reached the feed. Asked "Fix the too-early update (first one due after one interval, and at
+the end of the job) and run wave 5?", the owner answered "Yes, fix and run".
+
+- The first update of a job is due one interval after the job starts.
+- One more is due in the job's last two minutes (the second half of a job shorter than four
+  minutes), unless one was posted in that time. `get_project` marks it `projectUpdates.closing`,
+  and the asked agent is told to post it first: what the team finished and what is still open.
+- Two minutes before the job's time ends every agent working on its own is woken for one turn,
+  also an idle one. In the next run no agent had started a turn in the last two minutes, so the
+  closing update was never asked; asked "Add a wake-up two minutes before the job ends so the
+  closing update gets a turn, then run wave 6?", the owner answered "Yes, add and run". Agents not
+  asked for the update spend that turn too.
+- No turn starts after the job's time ends.
+
+## The closing update covers this job's merged result, and a turn ends at its result — owner selections, 12 November 2026
+
+Later runs on the same day, each answered "Yes, fix and run" by the owner:
+
+- The closing update names the whole team's result in this job, not only the poster's part, and
+  not work merged before the job started; the turn gives the job's start time and the pull
+  request search for it. Its screenshot comes from the merged code, copied into a folder with
+  `git archive`, because an agent's own branch may lack teammates' work and agents cannot pull.
+- A Claude turn ends five seconds after the client reports its result, even when a command left
+  in the background keeps the client alive. In one run a preview server held an agent's only
+  turn open for the whole job.
+- Agents working on their own in turns are told not to start a server or leave a command in the
+  background, and to set a preview only for an `https://` page. Who hosts a preview for such
+  agents is not decided.
+- Agents are told to check the time left before a whole test suite or full build and to run the
+  tests for their changed files first, and that an unanswered message is not a blocker while
+  they still have their own work. In a 15-minute run on this repository one agent spent the
+  whole job inside the full agent-cli test suite and another stopped after 90 seconds.
+
+Known and not fixed: a server started with a shell `&` outlived its turn and its job in one
+run, and the sandbox stopped the agent from killing it.
+
+## A due update is asked of one agent, with the steps, and one extra turn — owner selection, 12 November 2026
+
+A 5-minute local run with two Sonnet agents built and merged a game and posted no update, though
+"An update is due now" was in every turn. Asked "Implement fixes 1–3 and rerun the 5-minute
+experiment?", the owner answered "Yes, fix and rerun".
+
+- One agent is asked. `get_project` returns `projectUpdates.yours` next to `due`; the first agent
+  to read a due update is the one asked, and another is asked only after one interval passes
+  without a post. The other agents are told they are not asked.
+- The reminder carries the steps: capture one image, `upload_project_image`, then
+  `publish_project_update`, with the headline and caption limits.
+  The image step is a short Playwright script that starts Chromium with `--single-process`: in
+  the reruns the installed Chrome and `npx playwright screenshot` both failed inside the command
+  sandbox, and that script is what produced the first real screenshot. The steps name the tools'
+  own fields (`clientRequestId`, `title`, `body`), after an agent sent `headline` and `caption`.
+- An asked agent that ends its turn without posting gets one more turn, only to post it. One such
+  turn at most; nothing is refused because an update is missing. This supersedes the earlier rule
+  that no turn exists only to report (the turn before a Pause already was one).
 
 ## Project updates are a photo feed with slides and short text — owner request, 12 November 2026
 

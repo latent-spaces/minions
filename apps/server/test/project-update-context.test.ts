@@ -86,11 +86,45 @@ test('paused, not started and closed projects have no update due; other projects
     expect((await amber('get_project')).value.projectUpdates).toMatchObject({ lastPublishedAt: null, due: false });
   }
   await seedRuntime(TEST_PROJECT, { started: true, paused: false, completedAt: undefined });
-  expect((await amber('get_project')).value.projectUpdates.due).toBe(true);
+  expect((await amber('get_project')).value.projectUpdates).toMatchObject({ due: true, yours: true });
   const other = 'b'.repeat(64);
   await db.collection(`projects/${other}/updates`).doc('u').set({ publishedAt: T });
-  expect(await readProjectUpdateContext(TEST_PROJECT, true, T)).toMatchObject({ lastPublishedAt: null, due: true });
-  expect(await readProjectUpdateContext(other, true, T)).toMatchObject({ lastPublishedAt: T, due: false });
+  expect(await readProjectUpdateContext(TEST_PROJECT, true, T, f.agents[0].agentId)).toMatchObject({ lastPublishedAt: null, due: true });
+  expect(await readProjectUpdateContext(other, true, T, f.agents[0].agentId)).toMatchObject({ lastPublishedAt: T, due: false, yours: false });
+});
+
+// One agent is asked for each due update, so two agents don't each leave it to the other (owner, 12 November 2026).
+test('a due update is asked of one agent; another is asked after an interval without a post, and again after each post', async () => {
+  const f = await fixture(), [a, b] = [f.agents[0].agentId, f.agents[1].agentId], minute = 60_000;
+  const read = (agent: string, at: number) => readProjectUpdateContext(TEST_PROJECT, true, at, agent).then(value => [value.due, value.yours]);
+  expect(await read(a, T)).toEqual([true, true]);
+  expect(await read(b, T + minute)).toEqual([true, false]);
+  expect(await read(a, T + 4 * minute)).toEqual([true, true]);
+  expect(await read(b, T + 5 * minute)).toEqual([true, true]);
+  expect(await read(a, T + 6 * minute)).toEqual([true, false]);
+  await db.collection(`projects/${TEST_PROJECT}/updates`).doc('posted').set({ publishedAt: T + 7 * minute });
+  expect(await read(a, T + 8 * minute)).toEqual([false, false]);
+  expect(await read(a, T + 12 * minute)).toEqual([true, true]);
+  expect(await read(b, T + 13 * minute)).toEqual([true, false]);
+});
+
+// A job's first second has nothing to show, and its last minutes are when the result exists (owner, 12 November 2026).
+test('the first update is due one interval after the job starts, and one more in its last two minutes', async () => {
+  const f = await fixture(), a = f.agents[0].agentId, minute = 60_000, job = { startsAt: T, endsAt: T + 12 * minute };
+  const read = (at: number, times = job) => readProjectUpdateContext(TEST_PROJECT, true, at, a, times).then(value => [value.due, value.closing]);
+  expect(await read(T)).toEqual([false, false]);
+  expect(await read(T + 5 * minute - 1)).toEqual([false, false]);
+  expect(await read(T + 5 * minute)).toEqual([true, false]);
+  await db.collection(`projects/${TEST_PROJECT}/updates`).doc('first').set({ publishedAt: T + 6 * minute });
+  expect(await read(T + 10 * minute - 1)).toEqual([false, false]);
+  expect(await read(T + 10 * minute)).toEqual([true, true]);
+  await db.collection(`projects/${TEST_PROJECT}/updates`).doc('closing').set({ publishedAt: T + 11 * minute });
+  expect(await read(T + 11 * minute + 30_000)).toEqual([false, false]);
+  // A short job closes in its second half, never from its first second.
+  const short = { startsAt: T + 20 * minute, endsAt: T + 22 * minute };
+  expect(await read(T + 20 * minute, short)).toEqual([false, false]);
+  expect(await read(T + 21 * minute, short)).toEqual([true, true]);
+  expect(await readProjectUpdateContext(TEST_PROJECT, false, T + 21 * minute, a, short)).toMatchObject({ due: false, closing: false });
 });
 
 test('saved project instructions reach agents at their next context read and clear', async () => {

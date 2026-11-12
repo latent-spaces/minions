@@ -120,3 +120,14 @@ test('external guard death retains uncertain cleanup and agent exclusivity', asy
   process.kill(-nativePid, 'SIGKILL');
   await until(async () => { try { process.kill(nativePid, 0); return false; } catch (error) { return error.code === 'ESRCH'; } }, Boolean, 'known fixture cleanup');
 });
+
+// So the agent asked for the team's closing update has a turn to post it in (owner, 12 November 2026).
+test('an idle worker is woken for one turn two minutes before the job\'s time ends', async t => {
+  const ctx = await setup(t);
+  const far = (await ctx.controllers.accept(start({ payload: { scope: 'Far from the end', deadlineAt: Date.now() + 600000, execution: { provider: 'claude', model: null } } }))).mission;
+  const near = (await ctx.controllers.accept(start({ target: { ...target, agentId: 'synthetic-agent-2' }, payload: { scope: 'Near the end', deadlineAt: Date.now() + 120300, execution: { provider: 'claude', model: null } } }))).mission;
+  await until(inspect(ctx.controllers, near), value => value.outcomes.length === 2, 'the closing wake starts a second turn');
+  assert.equal((await inspect(ctx.controllers, far)()).outcomes.length, 1);
+  await new Promise(resolve => setTimeout(resolve, 600));
+  assert.equal((await inspect(ctx.controllers, near)()).outcomes.length, 2);
+});

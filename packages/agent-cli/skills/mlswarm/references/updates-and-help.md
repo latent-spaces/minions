@@ -23,8 +23,12 @@ Most important first:
 
 Nothing new to say: post nothing. Read `list_project_updates` first and never repeat a
 recent post. The team aims for one update about every `everyMinutes` minutes of work: one
-for the whole team, not one per agent. `due` says when one is due. It is a reminder, never
-a gate, and no turn exists only to report.
+for the whole team, not one per agent. `due` says when one is due, and `yours` is true for
+the one agent asked to post it. The first is due one interval after the job starts. One
+more is due in the job's last two minutes (`closing`): say what the team finished and what
+is still open. Agents working on their own are woken for one turn at that point. If that is you, post it before you stop, and cover the
+whole team's result in this job (not work merged before it started), with a screenshot of the merged code rather than your own branch. An agent working on its own that stops without it gets one more turn
+only to post it. Nothing is ever refused because an update is missing.
 
 ### How to write
 
