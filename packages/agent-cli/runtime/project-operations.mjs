@@ -147,6 +147,7 @@ export class ProjectOperations {
       updatePostedTitles: Array.isArray(value.projectUpdates?.postedTitles) ? value.projectUpdates.postedTitles.filter(title => typeof title === 'string').slice(-5) : [],
       updateEveryMinutes: [5, 15, 30].includes(value.projectUpdates?.everyMinutes) ? value.projectUpdates.everyMinutes : 5,
       updateSlides: Number.isSafeInteger(value.projectUpdates?.maxSlides) && value.projectUpdates.maxSlides > 1,
+      previewUrl: typeof project.previewUrl === 'string' && project.previewUrl ? project.previewUrl.slice(0, 500) : null,
       updateLastPublishedAt: Number.isFinite(value.projectUpdates?.lastPublishedAt) ? value.projectUpdates.lastPublishedAt : null };
     return structuredClone(this.participationSnapshot);
   }

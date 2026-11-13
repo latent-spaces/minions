@@ -851,3 +851,7 @@ empty string clears it. The newest save wins, and an agent may set it while the
 project is paused. The tab frames the page in a sandbox (scripts, forms, pointer lock
 and fullscreen) and never frames a page on the app's own origin. A localhost preview
 only works for people on the agent's computer. The record is `settings/preview`.
+Each worker turn says what the tab shows (`previewGuidance`): when it is empty and the
+work runs in a browser, one agent starts the server so it keeps running after its turn
+and sets the link; when it is set, the agent that started the server restarts it or
+clears the link if it no longer answers. Nothing stops that server when the job ends.
