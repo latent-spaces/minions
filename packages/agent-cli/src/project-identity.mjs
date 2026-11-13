@@ -13,5 +13,6 @@ export function projectIdentity({ projectUrl, repo = 'https://github.com/placeho
   if (!repository) throw new Error('Use a GitHub repository URL without credentials, query parameters or fragments.');
   clean(folder, 'absolute project folder');
   if (!isAbsolute(folder)) throw new Error('Choose an absolute project folder.');
-  return { projectUrl: url.href.replace(/\/$/, ''), repo: repository, folder };
+  // A bare "?" or "#" leaves search/hash empty but stays in href; build from parts.
+  return { projectUrl: `${url.origin}${url.pathname.replace(/\/$/, '')}`, repo: repository, folder };
 }
