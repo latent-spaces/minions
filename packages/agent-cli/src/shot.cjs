@@ -1,12 +1,15 @@
 // Screenshots for project updates. The update prompt gives agents this file's path:
 //   node shot.cjs <address> <out.png> [<address> <out.png> ...]
-// An address is an http(s) or file URL, or a path to a local page. Each image is 1080x1350.
+// An address is an http(s) URL or a path to a local page. Each image is 1080x1350.
+// A local page is served from its own folder on a short-lived 127.0.0.1 port: Chromium does not
+// run module scripts from file addresses, so a page that imports its code rendered half-empty.
 // It always ends: a stalled lookup or browser is cut off, and the process exits right after the
 // last image without closing the browser, which could hang for minutes.
 const { spawnSync } = require('node:child_process');
-const { existsSync } = require('node:fs');
+const { existsSync, readFile } = require('node:fs');
+const http = require('node:http');
+const { fileURLToPath } = require('node:url');
 const path = require('node:path');
-const { pathToFileURL } = require('node:url');
 
 const LIMIT_MS = 60_000;
 const LOOKUP_MS = 20_000;
@@ -39,6 +42,32 @@ function loadPlaywright() {
   return require(found);
 }
 
+const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css',
+  '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif', '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.wasm': 'application/wasm' };
+
+// Serves one folder, read-only, to this computer only, until the process exits.
+function serveFolder(root) {
+  const server = http.createServer((request, response) => {
+    const name = decodeURIComponent(new URL(request.url, 'http://local').pathname);
+    const file = path.join(root, name.endsWith('/') ? name + 'index.html' : name);
+    if (file !== root && !file.startsWith(root + path.sep)) { response.writeHead(403).end(); return; }
+    readFile(file, (error, body) => {
+      if (error) { response.writeHead(404).end(); return; }
+      response.writeHead(200, { 'content-type': TYPES[path.extname(file).toLowerCase()] ?? 'application/octet-stream' }).end(body);
+    });
+  });
+  return new Promise((resolve, reject) => server.once('error', reject).listen(0, '127.0.0.1', () => resolve(server.address().port)));
+}
+
+async function addressOf(value, servers) {
+  if (/^https?:/i.test(value)) return value;
+  const file = path.resolve(/^file:/i.test(value) ? fileURLToPath(value) : value);
+  const root = path.dirname(file);
+  if (!servers.has(root)) servers.set(root, await serveFolder(root));
+  return `http://127.0.0.1:${servers.get(root)}/${encodeURIComponent(path.basename(file))}`;
+}
+
 async function main() {
   const args = process.argv.slice(2);
   if (!args.length || args.length % 2) fail('Usage: node shot.cjs <address> <out.png> [<address> <out.png> ...]');
@@ -46,9 +75,11 @@ async function main() {
   const { chromium } = loadPlaywright();
   const browser = await chromium.launch({ args: ['--single-process'] });
   const page = await browser.newPage({ viewport: { width: 1080, height: 1350 } });
+  const servers = new Map();
   for (let index = 0; index < args.length; index += 2) {
-    const address = /^(https?|file):/i.test(args[index]) ? args[index] : pathToFileURL(path.resolve(args[index])).href;
-    await page.goto(address, { waitUntil: 'load', timeout: 20_000 });
+    const address = await addressOf(args[index], servers);
+    const response = await page.goto(address, { waitUntil: 'load', timeout: 20_000 });
+    if (response && !response.ok()) fail(`Screenshot failed: ${args[index]} answered ${response.status()}.`);
     await page.screenshot({ path: path.resolve(args[index + 1]) });
     process.stdout.write(`${args[index + 1]}\n`);
   }

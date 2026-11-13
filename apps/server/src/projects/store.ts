@@ -306,7 +306,7 @@ async function mutate(operator: WithId<Profile>, id: string, input: z.infer<type
     });
     if (result.fanout) await deliverProjectWide(result.fanout, now);
     if ('action' in input && input.action === 'close') {
-      try { await endProjectWork(id, now, result.result.revision); } catch (error) { console.error('Closing could not end all agent work.', error); }
+      try { await endProjectWork(id, now, result.result.revision, operator.id); } catch (error) { console.error('Closing could not end all agent work.', error); }
     }
     return result.result;
   });

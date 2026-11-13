@@ -856,5 +856,6 @@ work runs in a browser, one agent starts the server so it keeps running after it
 and sets the link; when it is set, the agent that started the server restarts it or
 clears the link if it no longer answers. The server carries its job's mark like any
 other process the agent starts: it keeps running while the agent waits for more time, and
-ends when the agent is stopped or the project is closed. On Windows a turn's end stops
+ends when the agent is stopped or the project is closed; closing the project also clears a
+`localhost` link, so the tab does not show a dead address. On Windows a turn's end stops
 every process the turn started, so the turn tells the agent not to start a server there.

@@ -124,7 +124,7 @@ test('multi-page project close drains all work with every atomic transaction bel
       return original.apply(this, args);
     } as never);
   });
-  try { await endProjectWork(TEST_PROJECT, () => at, project.revision); }
+  try { await endProjectWork(TEST_PROJECT, () => at, project.revision, 'closer'); }
   finally { for (const spy of spies) spy.mockRestore(); }
   expect([...counts.values()].every(n => n <= 500)).toBe(true);
   expect([...counts.values()].filter(n => n > 0).length).toBeGreaterThan(1);
