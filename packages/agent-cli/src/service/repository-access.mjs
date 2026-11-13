@@ -134,7 +134,7 @@ export function createRepositoryGit({run = execute, envSource = process.env} = {
     ...args,
   ],{signal,encoding:'utf8',timeout,maxBuffer:65536,windowsHide:true,env:repositoryEnvironment(envSource)})).stdout.trim();
 }
-export function repositoryFailure(error) {
+function repositoryFailure(error) {
   const message = String(error?.stderr ?? '');
   if (error?.code === 'ENOENT') return 'git_missing';
   if (error?.code === 2) return 'empty_repository';
