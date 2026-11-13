@@ -4,8 +4,10 @@ export type HumanRequest = {
   id: string; projectId: string; projectTitle: string;
   agentId: string; agentName: string; requesterProfileId: string; assigneeProfileId: string;
   visibility: 'private' | 'project' | 'moderators'; title: string; question: string; context: string;
-  /** Absent on historical requests and moderation reports. */
-  attempted?: string; blockerTitle?: string; attemptedTitle?: string; suggestedOptions?: string[]; selectionMode?: 'single' | 'multiple';
+  /** Only on requests made before 12 November 2026, when "what was tried" was a separate field; new requests put it in context. */
+  attempted?: string;
+  /** Absent on moderation reports. */
+  suggestedOptions?: string[]; selectionMode?: 'single' | 'multiple';
   moderation?: ModerationReport;
   status: HumanRequestStatus; revision: number; createdAt: number; updatedAt: number;
   answer: { profileId: string; body: string; at: number; optionIndex?: number; optionIndices?: number[]; customAnswer?: string; acknowledged?: { agentId: string; runId: string; at: number } } | null;

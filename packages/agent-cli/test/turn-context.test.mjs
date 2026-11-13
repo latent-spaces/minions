@@ -52,3 +52,16 @@ test('the pause update turn asks for one short update and no other work',()=>{
  assert.match(prompt,/If you have nothing new to report, post nothing/);
  assert.match(prompt,/STEERING_JSON: \[\]/);
 });
+
+test('the turn says in plain words how many minutes of the job are left',()=>{
+ const at=2000000000000, base={scope:'Find bugs',steering:[],notices:[]};
+ assert.match(controllerPrompt({...base,deadlineAt:at,now:at-10*60000}).prompt,/About 10 minutes are left\. That is time to work in: .*take the next piece instead of stopping\. If it passes/);
+ assert.match(controllerPrompt({...base,deadlineAt:at,now:at-60000}).prompt,/About 1 minute is left\. If it passes/);
+ assert.doesNotMatch(controllerPrompt({...base,deadlineAt:at}).prompt,/left\./);
+});
+
+test('a turn started because the agent stopped with time left says there is no later run',()=>{
+ const base={scope:'Find bugs',steering:[],notices:[],deadlineAt:2000000000000,now:2000000000000-600000};
+ assert.match(controllerPrompt({...base,keepGoing:true}).prompt,/Your last turn ended with the minutes above still left in the job\. There is no later run to leave work for.*Do not judge the time yourself.*list_tasks/);
+ assert.doesNotMatch(controllerPrompt(base).prompt,/Your last turn ended/);
+});

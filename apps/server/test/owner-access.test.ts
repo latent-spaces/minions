@@ -189,7 +189,7 @@ test('human MCP Needs you uses the approved account and explicit answer contract
  const {addAgent}=await import('./helpers.js');
  const agent=await addAgent(f.personIds[0],'scout',()=>1000);
  const run=await inProject(TEST_PROJECT,()=>startRun(agent.agentId,{clientRunId: randomUUID(), runnerVersion:'test',takeover:false},()=>1000));
- const request=(await inProject(TEST_PROJECT,()=>requestHuman(agent.agentId,run.run_id,{dedupe_key:'help',visibility:'private',title:'Research help',question:'Which source should I use?',context:'The required source is inaccessible.',attempted:'Tried the approved source and it refused access.',suggested_options:['Use the existing approved source.']},()=>1100))).request;
+ const request=(await inProject(TEST_PROJECT,()=>requestHuman(agent.agentId,run.run_id,{dedupe_key:'help',visibility:'private',title:'Research help',question:'Which source should I use?',context:'The required source is inaccessible; the approved source refused access.',suggested_options:['Use the existing approved source.']},()=>1100))).request;
  expect((await http('/needs-you',f.token)).body.items[0].id).toBe(request.id);
  const answer={expected_revision:1,client_request_id:'reply',option_index:0,approved:true};
  expect((await http(`/needs-you/${request.id}/answer`,f.token,answer)).status).toBe(401);

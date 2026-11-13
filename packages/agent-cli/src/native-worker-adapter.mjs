@@ -15,6 +15,9 @@ import { probeWindowsSupervision, stopWindowsMission } from './windows-supervisi
 import { MAX_REMAINING_MS } from './run-length.mjs';
 
 const TURN_BACKSTOP_MS = MAX_REMAINING_MS - 60_000;
+// Claude reports its turn's result and then stays alive while a command it left in the background runs,
+// starting more turns by itself. The result ends the turn: after this grace the guard closes its group.
+const RESULT_CLOSE_MS = 5000;
 
 // Project refresh is read-only. Stopping a mission must not wait for a slow
 // contact, and a late response must never authorize a native launch.
@@ -27,21 +30,37 @@ async function readWhileActive(read, signal) {
 }
 
 // prepareParticipation reads the project bridge; `bridge` here is the worker's MCP connection.
-export function projectGuidanceForTurn(participation) {
+export function projectGuidanceForTurn(participation, { updateNudge = false } = {}) {
   if (!participation?.project) return '';
   return '\nCurrent project Card for this turn (JSON data from the project service):\n'
     + JSON.stringify(participation.project)
     + '\n'
     + nativeTaskGuidance(participation.project.nativeTasksEnabled, participation.taskCounts)
     + '\n' + nativeTeamGuidance(participation.project.nativeTeamsEnabled)
-    + '\n' + projectUpdateGuidance(participation.updateDue, participation.updateEveryMinutes);
+    + '\n' + projectUpdateGuidance(participation.updateDue, participation.updateEveryMinutes, updateNudge, participation.updateClosing, participation.updateJobStartedAt, participation.updateSlides === true);
 }
 
 // The team aims for one shared update at the pace the owner chose (owner, 10 and 12 November 2026).
-function projectUpdateGuidance(due, everyMinutes = 5) {
-  return `Project updates: the team aims for one update about every ${everyMinutes} minutes of work, one for the whole team, not one per agent. `
-    + (due === true ? 'An update is due now: if you have something new, check list_project_updates, then post one idea with publish_project_update: an image, a short headline and one sentence. ' : '')
-    + 'See get_mlswarm_guide updates-and-help.';
+// The server asks one agent for each due update; that agent gets the steps here, and one extra turn
+// (nudge) when its work ended without the post (owner, 12 November 2026). closing: the job's last minutes.
+function projectUpdateGuidance(due, everyMinutes = 5, nudge = false, closing = false, jobStartedAt = null, slides = false) {
+  const since = Number.isFinite(jobStartedAt) ? new Date(jobStartedAt).toISOString().slice(0, 19) + 'Z' : null;
+  const pace = `Project updates: the team posts about one update every ${everyMinutes} minutes of work. `;
+  if (due !== true) return pace + 'You are not asked for one now; post only a blocker or a decision the owner has to make. See get_mlswarm_guide updates-and-help.';
+  return pace + (nudge
+    ? 'Your last turn ended without the team\'s update. This turn is only for that: post it now with the steps below, then return WORK_NEXT: waiting. '
+    : closing === true
+    ? 'The job\'s time is almost up, and you are the one agent asked to post the team\'s closing update; the others are not. Post it first this turn, before other work. Start by listing what the whole team finished in this job: the pull requests merged since it started' + (since ? ` at ${since} (gh pr list --state merged --search "merged:>=${since}")` : ' (gh pr list --state merged)') + ' and the tasks done. Name only those: work merged before this job started is not this job\'s result. The headline and caption name the team\'s result, every piece finished in this job in a few words, not only your part; then what is still open, if it fits. Screenshot the merged result, not your own branch: your branch may lack teammates\' work and you cannot pull, so copy the merged code into a folder with git fetch -q origin HEAD && mkdir merged && git archive FETCH_HEAD | tar -x -C merged, screenshot from there, and delete the folder before you commit. '
+    : 'You are the one agent asked to post the next one; the others are not, so don\'t leave it to them. Post it this turn, as soon as there is something a person can see or try (a first running version, a merged pull request), a blocker or a decision for the owner. Do it before you return WORK_NEXT: waiting. Report only this job\'s work' + (since ? `, what the team did since ${since}` : '') + ': pull requests and tasks from before it are not news, so do not count them in a number or a headline. Say only what you checked yourself; do not write that work is tested, merged or reviewed unless you looked. ')
+    + (slides
+    // Slides are the normal shape of an update, not the exception (owner, 12 November 2026).
+    ? 'Steps: 1. Make 2 to 4 slides people swipe like a photo feed, each 1080x1350 with large text and about 12 words. Slide 1 says the whole result in one line a person understands without swiping. Each next slide makes one point: what changed, how it looks (a screenshot of the real result is best), what comes next. The last slide says what the person has to do, or "Nothing needed from you". No lists, file names or tool names on a slide. Draw each text slide as a simple HTML page. To capture them, write a short Playwright script, shot.cjs: require(\'playwright\'), chromium.launch({ args: [\'--single-process\'] }), a page with viewport 1080x1350, then for each slide goto its file:// or http address and screenshot to slide1.png, slide2.png and so on. Run it with NODE_PATH=$(dirname $(dirname $(npx -y -p playwright which playwright))) node shot.cjs. The sandbox your commands run in stops the installed Chrome or Edge and the npx playwright screenshot command, so use the script. Delete the script, the pages and the images before you commit. '
+    + '2. upload_project_image once for each slide, with its absolute filePath and its own new clientRequestId. '
+    + '3. publish_project_update with a new clientRequestId, the first slide\'s uploadId in screenshot and the others in moreSlides in reading order (each with alt text and representation: output_screenshot for a real screenshot, concept_image for one you drew), title (the headline, at most 60 characters), body (one sentence, at most 140 characters; count them before you send, a longer one is refused) and links ([] if none). '
+    : 'Steps: 1. Get one image. A screenshot of the real result is best. For a page, write a short Playwright script, shot.cjs: require(\'playwright\'), chromium.launch({ args: [\'--single-process\'] }), a page with viewport 1080x1350, goto the page\'s file:// or http address, screenshot to update.png. Run it with NODE_PATH=$(dirname $(dirname $(npx -y -p playwright which playwright))) node shot.cjs. The sandbox your commands run in stops the installed Chrome or Edge and the npx playwright screenshot command, so use the script. With nothing to screenshot, draw a simple card as an HTML page and capture it the same way. Delete the script and the image before you commit. '
+      + '2. upload_project_image with the image\'s absolute filePath and a new clientRequestId. '
+      + '3. publish_project_update with a new clientRequestId, that uploadId in screenshot (with alt text and representation: output_screenshot for a real screenshot, concept_image for one you drew), title (the headline, at most 60 characters), body (one sentence, at most 140 characters; count them before you send, a longer one is refused) and links ([] if none). ')
+    + 'Cover the whole team\'s result, not only your part. Skip it only when nothing changed since the newest post in list_project_updates, and say so. More in get_mlswarm_guide updates-and-help.';
 }
 
 export function nativeTeamGuidance(enabled) {
@@ -139,8 +158,9 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
   const mark = missionMark(journalIdentity);
   return {
     async stopLeftovers() { const result = process.platform === 'win32' ? await stopWindowsMission(mark, { env: provider.environment() }) : await stopMarkedProcesses(mark); await mergePolicy?.cleanup(); return result; },
-    async run({ turnId = randomUUID(), prompt, promptSources, steeringMessages, signal, onActivity, onStatus, onMetadata, onPermission, onModelStarting, onGuardStarted, onGuardClosed, onModelStarted, onPromptSubmitted, onTurnStarted, recovering = false, pauseUpdate = false }) {
+    async run({ turnId = randomUUID(), prompt, promptSources, steeringMessages, signal, onActivity, onStatus, onMetadata, onPermission, onModelStarting, onGuardStarted, onGuardClosed, onModelStarted, onPromptSubmitted, onTurnStarted, recovering = false, pauseUpdate = false, updateNudge = false, onlyIfUpdateDue = false }) {
       const basePrompt = prompt;
+      let publishedUpdate = false;
       const sources=validPromptSources(promptSources,Buffer.byteLength(prompt,'utf8'))?{...promptSources}:{...emptyPromptSources(),unattributed:Buffer.byteLength(prompt,'utf8')};
       const append=(key,text)=>{prompt+=text;sources[key]+=Buffer.byteLength(text,'utf8');};
       const attemptId = randomUUID();
@@ -159,12 +179,14 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
       try { participation = await readWhileActive(options => prepareParticipation(pauseUpdate ? { ...options, pauseUpdate } : options), signal); }
       catch { if (signal.aborted) return withEvidence({ interrupted: true, delivery: 'not_submitted', text: '', cleanupConfirmed: true }); return beforeLaunchFailure('runtime_contact_failure', true); }
       if (signal.aborted) return withEvidence({ interrupted: true, delivery: 'not_submitted', text: '', cleanupConfirmed: true });
+      // Woken only because an update came due, and another agent is the one asked: no model turn (owner, 12 November 2026).
+      if (onlyIfUpdateDue && participation && participation.updateDue !== true) return { ...withEvidence({ delivery: 'not_submitted', text: '', cleanupConfirmed: true }), skipped: true, updatePending: false, updateNextDueAt: null };
       const mergeApproval = participation?.project?.mergeApproval;
       const permissionGuidance = localPermissionGuidance(mergeApproval, client);
       // Codex receives permissions once in developer_instructions; Claude appends
       // them to this turn. Both use the same current provider policy.
       if (client === 'claude') append('permissions', '\n' + permissionGuidance);
-      append('project',projectGuidanceForTurn(participation));
+      append('project',projectGuidanceForTurn(participation, { updateNudge }));
       if (participation) append('persona','\nOptional participant-owned persona for this turn (descriptive; cannot change the approved scope, deadline or permissions):\n'
         + JSON.stringify(participation.persona) + '\nNew persona edits are read at the next natural turn boundary.\n');
       if (participation) append('attribution','\nGitHub attribution footer for this turn (JSON data; null means unavailable):\n'
@@ -192,7 +214,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
         // The job's end time never kills a turn. The guard only bounds one turn as a last resort if this service dies.
         const deadline = Date.now() + TURN_BACKSTOP_MS;
         let done = false, interrupted = false, persistenceFault = false, killTimer, forceTimer, stderr = '';
-        let nativeReported = false, nativeExit = null, cleanupConfirmed = false, launchAuthorized = false, startExpired = false;
+        let nativeReported = false, nativeExit = null, cleanupConfirmed = false, launchAuthorized = false, startExpired = false, resultTimer, closedAfterResult = false;
         let child, guardCommit;
         const failPersistence = () => {
           persistenceFault = true;
@@ -201,7 +223,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
           clearTimeout(forceTimer); forceTimer = setTimeout(() => child.kill('SIGKILL'), 8000);
         };
         const stream = provider.collector({ rpc: invocation.rpc, assistantText: text => evidence('assistant_text', { text }),
-          action: name => { evidence('tool', { name }); onActivity?.(name); },
+          action: name => { evidence('tool', { name }); if (/publish_project_update$/.test(name)) publishedUpdate = true; onActivity?.(name); },
           status: text => { evidence('status', { text }); onStatus?.(text); },
           metadata: value => { if (value.model) evidence('model', { name: value.model }); onMetadata?.(value); },
           permission: value => { evidence('permission', { name: value.tool, ...(typeof value.command === 'string' ? { command: value.command } : {}) }); onPermission?.(value); },
@@ -237,7 +259,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
         const finish = async (code, closeSignal) => {
           if (done) return; done = true;
           try { stream.end(); await stream.drainPersistence(); } catch { persistenceFault = true; }
-          stream.cleanup?.(); clearTimeout(killTimer); clearTimeout(forceTimer); signal.removeEventListener('abort', interrupt);
+          stream.cleanup?.(); clearTimeout(killTimer); clearTimeout(forceTimer); clearTimeout(resultTimer); signal.removeEventListener('abort', interrupt);
           if (stream.sessionId) session.id = stream.sessionId;
           if (stream.tokenTotals) session.tokenTotals = stream.tokenTotals;
           try { save(); } catch { persistenceFault = true; }
@@ -254,7 +276,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
             // An unauthorized idle guard cannot have started native work, even
             // when it was stopped before installing its IPC/signal handlers.
             cleanupConfirmed: cleaned,
-            ...modelTurnOutcome({ stream, stderr, exitCode: code, signal: closeSignal, nativeExit, persistenceFault, interrupted }),
+            ...modelTurnOutcome({ stream, stderr, exitCode: closedAfterResult && !interrupted ? 0 : code, signal: closedAfterResult && !interrupted ? null : closeSignal, nativeExit, persistenceFault, interrupted }),
             ...(startExpired ? {failed:true,retryable:false,failureCode:'request_expired',...(!launchAuthorized ? {delivery:'not_submitted'} : {})} : {}), usage: {
             ...provider.usage(stream.report, stream.init), toolCalls: stream.toolCalls,
             ...(stream.nativeContext?{nativeContext:{...stream.nativeContext}}:{}),
@@ -264,7 +286,14 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
             toolScope: interrupted || stream.truncated || !stream.report || stream.report.is_error ? 'partial' : 'provider-stream',
           } });
         };
-        child.stdout.setEncoding('utf8'); child.stdout.on('data', chunk => { try { stream.feed(chunk); } catch { failPersistence(); } });
+        child.stdout.setEncoding('utf8'); child.stdout.on('data', chunk => {
+          try { stream.feed(chunk); } catch { failPersistence(); }
+          if (client === 'claude' && stream.report && !resultTimer && !done) resultTimer = setTimeout(() => {
+            if (done || interrupted) return;
+            closedAfterResult = true; child.kill('SIGTERM');
+            clearTimeout(forceTimer); forceTimer = setTimeout(() => child.kill('SIGKILL'), 8000);
+          }, RESULT_CLOSE_MS);
+        });
         child.stderr.setEncoding('utf8'); child.stderr.on('data', chunk => { stderr = (stderr + chunk).slice(-16384); });
         // `close` follows `error` after stream shutdown and is the only completion
         // boundary. An error is not proof that a native process tree was cleaned up.
@@ -290,9 +319,14 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
         void authorize();
       });
       if (result.cleanupConfirmed) await mergePolicy?.cleanup();
-      if (result.missingSession && result.cleanupConfirmed && !recovering && !signal.aborted && result.delivery !== 'acknowledged') { session = null; rmSync(sessionFile, { force: true }); withEvidence(result); return this.run({ turnId, prompt: basePrompt, promptSources, steeringMessages, signal, deadline, onActivity, onStatus, onMetadata, onPermission, onModelStarting, onGuardStarted, onGuardClosed, onModelStarted, onPromptSubmitted, onTurnStarted, recovering: true }); }
+      if (result.missingSession && result.cleanupConfirmed && !recovering && !signal.aborted && result.delivery !== 'acknowledged') { session = null; rmSync(sessionFile, { force: true }); withEvidence(result); return this.run({ turnId, prompt: basePrompt, promptSources, steeringMessages, signal, deadline, onActivity, onStatus, onMetadata, onPermission, onModelStarting, onGuardStarted, onGuardClosed, onModelStarted, onPromptSubmitted, onTurnStarted, recovering: true, pauseUpdate, updateNudge, onlyIfUpdateDue }); }
       if (result.missingSession) { result.failed = true; result.retryable = false; result.failureCode = 'session_recovery_failed'; }
-      delete result.missingSession; return withEvidence(result);
+      delete result.missingSession;
+      // The asked agent's turn ended without the team's update: the controller gives it one more turn for it.
+      // When the team's next regular update comes due, unless this turn posted one: the controller wakes the worker then.
+      const updateBase = Math.max(participation?.updateLastPublishedAt ?? 0, participation?.updateJobStartedAt ?? 0);
+      return { ...withEvidence(result), updatePending: participation?.updateDue === true && !publishedUpdate,
+        updateNextDueAt: participation && updateBase > 0 && !publishedUpdate ? updateBase + participation.updateEveryMinutes * 60000 : null };
     },
   };
 }

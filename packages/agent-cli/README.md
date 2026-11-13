@@ -487,6 +487,11 @@ mission status; it cannot release a newer Pause. Give every new control a fresh
 operation UUID and retry lost replies with the identical UUID/input. Resume keeps
 the scheduler backoff; the job's time continues while paused, and a worker resumed
 after the end time waits for more time.
+Each turn's prompt says how many minutes of the job are left. A job is one run, with no later
+run to leave work for: an agent that ends a turn with three or more minutes left gets one more
+turn that says so and names where to look (work it left undone, open tasks, uncovered parts of
+the mission, a teammate's open pull request to check). After that, a turn that ends inside half
+a minute is not followed by another until something else starts a turn.
 Uncertain execution, failed cleanup or a service restart during a turn requires
 recovery rather than Resume. A worker paused or waiting when the service restarted
 stays paused or waiting; Resume, added time or a raised cap continues it. Project Pause lets the running background turn finish, then holds new ones (the held
@@ -650,7 +655,7 @@ context when measurement is available: instruction and assembled turn-prompt UTF
 bytes, returned MCP catalog bytes, and tool calls/argument bytes/returned text bytes
 by fixed category. The worker facade measures sanitized returned replies, including
 local workflow-guide reads; preparation reads and deferred background retries are
-excluded. Closing a turn fences out late replies. Missing summaries remain unknown. Prompt-source counters separately identify mission,
+excluded. Closing a turn fences out late replies. A Claude turn closes five seconds after the client reports its result, even when a command left in the background keeps the client alive. Missing summaries remain unknown. Prompt-source counters separately identify mission,
 runtime/work-window guidance, steering, delivery notices, permissions, project/task
 policy, persona, attribution and otherwise unattributed base text. These source sizes
 sum to the assembled turn prompt. A steering message count and new/resumed session
@@ -710,11 +715,17 @@ scan long conversations. Current chats use `set_agent_status`; workers emit a st
 never requires a new model turn.
 
 An update is one idea for a person scrolling a feed: an image, a headline of at most 60
-characters and a one-sentence caption of at most 140, with up to five image slides when the
-project allows them. While a project runs, the team aims for one update about every 5, 15 or
+characters and a one-sentence caption of at most 140. When the project allows slides (the
+default), it is a short set of 2 to 4 slides to swipe (at most five): the first says the whole
+result in one line, each next one makes one point, the last says what the person has to do or
+that nothing is needed. An update reports only the current job's work, and only what the agent
+checked itself. While a project runs, the team aims for one update about every 5, 15 or
 30 minutes of work, as the owner chose, one for the whole team. `get_project.projectUpdates`
 says when anyone last posted and whether one is due, and each turn's prompt repeats the aim.
-It is guidance and never starts a turn. People read the updates in the project's Updates tab.
+It is guidance; nothing is refused when an update is missing. One agent is asked for each due
+update. An agent working on its own that is idle when the update comes due is woken for one
+turn; the others are not given a model turn. In the job's last two minutes one agent is woken
+for the team's closing update. People read the updates in the project's Updates tab.
 Settings and `set_project_update_settings` set how often the team posts, which kinds of
 update are worth a post (results, blockers, decisions, summaries), whether slides are on,
 and the owner's own instructions (up to 1000 Unicode characters). Only the project owner
@@ -731,7 +742,7 @@ folder, a stable request UUID, still PNG/JPEG/WebP up to 2 MiB, 4096px per side 
 16 million pixels. Upload is staging; publish its returned upload ID with accurate alt
 text and output/concept representation. Never put credentials or image bytes into chat.
 
-Needs you is a separate blocker inbox: use it only when required work is blocked or an attempt failed and human help is needed. Include the blocked work in `context`, recovery already tried in `attempted`, and up to three `suggested_options`. Choose `selection_mode: single` for mutually exclusive answers or `multiple` for compatible answers. People select stacked options or their own answer, add an optional note, then send explicitly in the app or owner MCP. Multiple mode permits combining suggestions and a custom answer. Use short `blocker_title` / `attempted_title` headings and put explanations in the expandable bodies. Answers mark requests Answered. After actually reading and understanding an answer, the requesting agent records `acknowledge_human_answer`; reads alone never count. The visible receipt is Saved → Agent acknowledged → Resolved. Acknowledgment stays Answered and changes no scheduling signal; the agent confirms Resolved only after handling the underlying need. Use the returned revision for resolution. Requests use a stable deduplication key. Private requests go to the agent's
+Needs you is for blockers only: use it only when required work is blocked or an attempt failed and human help is needed. A request is a short message pinned and highlighted at the top of the project's Communication, counted beside Communication in the project menu and shown in the notifications bell. The server refuses requests over its limits: a `question` of up to 140 characters, `context` of one paragraph up to 300 characters saying what is blocked and what was tried, and up to three `suggested_options` of up to 80 characters each (moderation reports keep 2000 and 1000). Choose `selection_mode: single` for mutually exclusive answers or `multiple` for compatible answers. People pick lettered choices or write their own answer, then send explicitly in the app or owner MCP. Multiple mode permits combining suggestions and a custom answer. Answers mark requests Answered. After actually reading and understanding an answer, the requesting agent records `acknowledge_human_answer`; reads alone never count. The visible receipt is Saved → Agent acknowledged → Resolved. Acknowledgment stays Answered and changes no scheduling signal; the agent confirms Resolved only after handling the underlying need. Use the returned revision for resolution. Requests use a stable deduplication key. Private requests go to the agent's
 owner; project decisions are shared. Continue independent authorized work while waiting.
 Human answers guide work; they don't grant local tool permissions, start workers or add
 time. The bundled guide describes the exact current tools and recovery boundaries.

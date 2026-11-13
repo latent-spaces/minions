@@ -19,7 +19,7 @@ import { resetEmulator, seed, TEST_PROJECT, idTokenFor } from './helpers.js';
 
 beforeEach(resetEmulator);
 const scope=<T>(fn:()=>T)=>inProject(TEST_PROJECT,fn);
-const question={dedupe_key:'research-access',visibility:'private',title:'Research repository access',question:'Please check the permitted research access.',context:'The dependent license check is waiting.',attempted:'Checked the repository reader; access was refused.'};
+const question={dedupe_key:'research-access',visibility:'private',title:'Research repository access',question:'Please check the permitted research access.',context:'The dependent license check is waiting. Checked the repository reader; access was refused.'};
 async function fixture() {
   const f=await seed({profiles:[{name:'Alice',email:'alice@example.test'},{name:'Bob',email:'bob@example.test'},{name:'Carol',email:'carol@example.test'}],agents:[{person:0,name:'Fox'},{person:1,name:'Owl'}]});
   const run=await scope(()=>startRun(f.agents[0].agentId,{clientRunId: randomUUID(), runnerVersion:'fake',takeover:false},()=>1000));
@@ -99,10 +99,10 @@ test('real MCP exposes durable questions and provenance-labeled answers without 
   try {
     await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${(server.address() as {port:number}).port}/v2/mcp`),{requestInit:{headers:{Authorization:`Bearer ${f.agents[0].token}`,'X-Pilot-Run':f.run.run_id}}}));
     const call=async(name:string,args:Record<string,unknown>)=>{const r=await client.callTool({name,arguments:args});expect(r.isError).not.toBe(true);return JSON.parse((r.content as {text:string}[])[0].text);};
-    const first=await call('request_human_help',{...question,blocker_title:'Source access blocked',attempted_title:'Checked approved reader',selection_mode:'multiple',suggested_options:['Continue the permitted work']});
+    const first=await call('request_human_help',{...question,selection_mode:'multiple',suggested_options:['Continue the permitted work']});
     expect(first.request.suggestedOptions[0]).toMatchObject({trust:'untrusted',content:'Continue the permitted work'});
-    expect(first.request.blockerTitle).toMatchObject({trust:'untrusted',content:'Source access blocked'});
-    expect(first.request.attemptedTitle).toMatchObject({trust:'untrusted',content:'Checked approved reader'});
+    const retired=await client.callTool({name:'request_human_help',arguments:{...question,dedupe_key:'retired',blocker_title:'Source access blocked'}});
+    expect(retired.isError).toBe(true);
     expect(first.request.question).toMatchObject({trust:'untrusted',source:{type:'agent'},content:question.question});
     await answerHumanRequest(f.personIds[0],first.request.id,{expected_revision:1,client_request_id:'human',option_indices:[0],custom_answer:'Please continue the permitted work.'},()=>1600);
     clock=1700;
@@ -124,20 +124,18 @@ test('real MCP exposes durable questions and provenance-labeled answers without 
 });
 
 
-test('blockers require context and attempted recovery; suggestions are bounded, distinct and part of deduplication',async()=>{
+test('blockers require context; suggestions are bounded, distinct and part of deduplication',async()=>{
   const f=await fixture();
-  await expect(f.create({...question,attempted:''})).rejects.toMatchObject({code:'bad_input'});
   await expect(f.create({...question,context:''})).rejects.toMatchObject({code:'bad_input'});
   const options={...question,suggested_options:['Use approved mirror — quickest','Wait for access','Skip this dependent task']};
   const first=await scope(()=>requestHuman(f.agents[0].agentId,f.run.run_id,options,()=>1100));
   expect(first.request.suggestedOptions).toEqual(options.suggested_options);
   expect(humanRequestWithSource(first.request).suggestedOptions?.[0]).toMatchObject({trust:'untrusted',source:{type:'agent'},content:options.suggested_options[0]});
-  expect(humanRequestWithSource(first.request).attempted).toMatchObject({trust:'untrusted',content:question.attempted});
   expect((await scope(()=>requestHuman(f.agents[0].agentId,f.run.run_id,options,()=>1200))).deduplicated).toBe(true);
-  for(const changed of [{suggested_options:['Different']},{attempted:'Different recovery'}]) {
+  for(const changed of [{suggested_options:['Different']},{context:'Different context'}]) {
     await expect(scope(()=>requestHuman(f.agents[0].agentId,f.run.run_id,{...options,...changed},()=>1200))).rejects.toMatchObject({code:'intent_conflict'});
   }
-  for(const invalid of [['A','B','C','D'],['A',' A '],[''],['x'.repeat(301)]]) {
+  for(const invalid of [['A','B','C','D'],['A',' A '],[''],['x'.repeat(81)]]) {
     await expect(scope(()=>requestHuman(f.agents[0].agentId,f.run.run_id,{...options,dedupe_key:'invalid',suggested_options:invalid},()=>1200))).rejects.toMatchObject({code:'bad_input'});
   }
 });
@@ -185,14 +183,22 @@ test('single selection permits one suggestion or a custom answer and rejects com
 });
 
 
-test('context titles are bounded, durable, untrusted and part of the original request intent',async()=>{
- const f=await fixture(), input={...question,blocker_title:'Reader refused access',attempted_title:'Checked approved reader'};
- const create=(raw:unknown)=>scope(()=>requestHuman(f.agents[0].agentId,f.run.run_id,raw,()=>1100));
- const result=await create(input);
- expect(result.request).toMatchObject({blockerTitle:input.blocker_title,attemptedTitle:input.attempted_title});
- expect((await create(input)).deduplicated).toBe(true);
- for(const changed of [{blocker_title:'Different blocker'},{attempted_title:'Different recovery'}])await expect(create({...input,...changed})).rejects.toMatchObject({code:'intent_conflict'});
- for(const invalid of [{blocker_title:''},{attempted_title:'x'.repeat(101)},{context:''}])await expect(create({...input,dedupe_key:'invalid',...invalid})).rejects.toMatchObject({code:'bad_input'});
+test('a request to a person is short: over-limit requests are refused, never trimmed; retired fields are refused',async()=>{
+ const f=await fixture(), create=(raw:unknown)=>scope(()=>requestHuman(f.agents[0].agentId,f.run.run_id,raw,()=>1100));
+ const atLimit=await create({...question,dedupe_key:'at-limit',question:'q'.repeat(140),context:'c'.repeat(300),suggested_options:['o'.repeat(80)]});
+ expect(atLimit.request).toMatchObject({question:'q'.repeat(140),context:'c'.repeat(300)});
+ await expect(create({...question,dedupe_key:'long-question',question:'q'.repeat(141)})).rejects.toMatchObject({code:'bad_input',message:expect.stringMatching(/140 characters \(this one has 141\)/)});
+ await expect(create({...question,dedupe_key:'long-context',context:'c'.repeat(301)})).rejects.toMatchObject({code:'bad_input',message:expect.stringMatching(/300 characters \(this one has 301\)/)});
+ await expect(create({...question,dedupe_key:'long-option',suggested_options:['o'.repeat(81)]})).rejects.toMatchObject({code:'bad_input'});
+ for(const retired of [{attempted:'Tried the reader.'},{blocker_title:'Blocked'},{attempted_title:'Tried'}])await expect(create({...question,dedupe_key:'retired',...retired})).rejects.toMatchObject({code:'bad_input'});
+});
+
+test('requests stored before the short format keep attempted, untrusted, and never return their retired headings',async()=>{
+ const f=await fixture(), {request}=await scope(()=>requestHuman(f.agents[0].agentId,f.run.run_id,question,()=>1100));
+ const legacy=humanRequestWithSource({...request,attempted:'Checked the approved reader.',blockerTitle:'Reader refused',attemptedTitle:'Checked reader'} as typeof request);
+ expect(legacy.attempted).toMatchObject({trust:'untrusted',source:{type:'agent'},content:'Checked the approved reader.'});
+ expect(legacy).not.toHaveProperty('blockerTitle');
+ expect(legacy).not.toHaveProperty('attemptedTitle');
 });
 
 test('explicit acknowledgment is requesting-agent-only, versioned, replayable, and does not change scheduling or resolution',async()=>{

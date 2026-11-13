@@ -101,3 +101,8 @@
 .k42-nav-create .k42-nav-create-plus { display:grid; place-items:center; width:26px; height:26px; margin-left:auto; border-radius:8px; color:var(--ink); }
 .k42-nav-create:hover .k42-nav-create-plus, .k42-nav-create.is-open .k42-nav-create-plus { background:var(--canvas); box-shadow:0 0 0 1px var(--hairline); }
 @keyframes k42-flyout-in { from { opacity:0; transform:translateX(-4px); } to { opacity:1; transform:none; } }
+
+/* Requests waiting on this person's answer, beside Communication; same badge as the bell's. */
+.k42-navigation .k42-nav-link:has(.k42-nav-count) { position:relative; }
+.k42-nav-count { margin-left:auto; min-width:18px; height:18px; box-sizing:border-box; padding:0 5px; border-radius:var(--pill-radius); background:var(--ink); color:var(--on-ink); font-size:11px; font-weight:650; line-height:18px; text-align:center; }
+.k42-navigation.is-collapsed .k42-nav-count { position:absolute; top:5px; right:3px; box-shadow:0 0 0 2px var(--canvas-sunken); }

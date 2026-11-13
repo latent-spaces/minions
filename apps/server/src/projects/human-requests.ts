@@ -16,14 +16,14 @@ import { MODERATION_INPUT, isModerator, moderationInputOf, validateModeration } 
 const key = z.string().regex(/^[\w-]{1,64}$/);
 const requestId = z.string().regex(/^[a-f0-9]{64}$/);
 const digest = (value: unknown) => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+/** A request to a person is a short message (owner, 12 November 2026): one question, one short paragraph,
+ * up to three short choices. Requests over these limits are refused, not trimmed. Moderation reports keep their longer limits. */
+export const REQUEST_LIMITS = { question: 140, context: 300, option: 80, options: 3 } as const;
 export const REQUEST_HUMAN = z.object({ dedupe_key: key, visibility: z.enum(['private', 'project', 'moderators']),
   title: z.string().trim().min(1).max(120), question: z.string().trim().min(1).max(2000),
   context: z.string().trim().max(1000).default(''),
-  attempted: z.string().trim().min(1).max(1000).optional(),
-  blocker_title: z.string().trim().min(1).max(100).optional(),
-  attempted_title: z.string().trim().min(1).max(100).optional(),
   selection_mode: z.enum(['single','multiple']).default('single'),
-  suggested_options: z.array(z.string().trim().min(1).max(300)).max(3).refine(options => new Set(options).size === options.length, 'Suggested options must be distinct.').default([]), moderation: MODERATION_INPUT.optional() }).strict();
+  suggested_options: z.array(z.string().trim().min(1).max(REQUEST_LIMITS.option, `Keep each suggested option within ${REQUEST_LIMITS.option} characters.`)).max(REQUEST_LIMITS.options).refine(options => new Set(options).size === options.length, 'Suggested options must be distinct.').default([]), moderation: MODERATION_INPUT.optional() }).strict();
 export const ANSWER_HUMAN = z.object({ expected_revision: z.number().int().positive(),
   client_request_id: key, body: z.string().trim().max(2000).default(''), option_index: z.number().int().min(0).max(2).optional(),
   option_indices: z.array(z.number().int().min(0).max(2)).max(3).refine(indices => new Set(indices).size === indices.length, 'Choose each option once.').optional(),
@@ -44,6 +44,11 @@ function parse<T>(schema: z.ZodType<T>, raw: unknown): T {
   if (!parsed.success) throw new Refusal('bad_input', parsed.error.issues[0]?.message ?? 'Some fields in this request are missing or not in the expected form.');
   return parsed.data;
 }
+function blockerWithinLimits(input: { question: string; context: string }) {
+  if (!input.context) throw new Refusal('bad_input', `In context, say in one short paragraph (up to ${REQUEST_LIMITS.context} characters) what is blocked and what you already tried. Ask only when human help is needed.`);
+  if (input.question.length > REQUEST_LIMITS.question) throw new Refusal('bad_input', `Keep the question within ${REQUEST_LIMITS.question} characters (this one has ${input.question.length}). Ask one short question; put the reason in context.`);
+  if (input.context.length > REQUEST_LIMITS.context) throw new Refusal('bad_input', `Keep context within ${REQUEST_LIMITS.context} characters (this one has ${input.context.length}): one short paragraph on what is blocked and what you tried.`);
+}
 function missing(): never { throw new Refusal('not_found', 'This request wasn’t found.'); }
 async function personActive(tx: FirebaseFirestore.Transaction, profileId: string) {
   const p = (await tx.get(profiles.doc(profileId))).data();
@@ -61,14 +66,14 @@ export async function requestHuman(agentId: string, runId: string, raw: unknown,
     if (prior.exists) {
       const stored = prior.data()!;
       if ((input.visibility !== 'project' && stored.requesterProfileId !== agent.ownerProfileId) || stored.visibility !== input.visibility || stored.title !== input.title || stored.question !== input.question || stored.context !== input.context
-        || stored.attempted !== input.attempted || stored.blockerTitle !== input.blocker_title || stored.attemptedTitle !== input.attempted_title || (stored.selectionMode ?? 'single') !== input.selection_mode || digest(stored.suggestedOptions ?? []) !== digest(input.suggested_options)
+        || (stored.selectionMode ?? 'single') !== input.selection_mode || digest(stored.suggestedOptions ?? []) !== digest(input.suggested_options)
         || digest(moderationInputOf(stored.moderation) ?? null) !== digest(input.moderation ?? null)) {
         throw new Refusal('intent_conflict', 'This dedupe_key is already used for a different request. Read that request, or use a new key for a new need.');
       }
       return { request: stored, deduplicated: true, startsWork: false };
     }
-    if (input.visibility !== 'moderators' && (!input.context || !input.attempted)) throw new Refusal('bad_input', 'Explain what required work is blocked in context and what you already tried in attempted. Ask only when human help is needed.');
-    if (input.visibility === 'moderators' && (input.attempted || input.blocker_title || input.attempted_title || input.suggested_options.length || input.selection_mode !== 'single')) throw new Refusal('bad_input', 'Moderation reports use context and question for human review, not blocker options.');
+    if (input.visibility !== 'moderators') blockerWithinLimits(input);
+    if (input.visibility === 'moderators' && (input.suggested_options.length || input.selection_mode !== 'single')) throw new Refusal('bad_input', 'Moderation reports use context and question for human review, not blocker options.');
     await assertProjectWritable(tx);
     const moderation = input.moderation ? await validateModeration(tx,input.moderation) : undefined;
     const at = now();
@@ -76,7 +81,7 @@ export async function requestHuman(agentId: string, runId: string, raw: unknown,
       requesterProfileId: agent.ownerProfileId, assigneeProfileId: input.visibility === 'private' ? agent.ownerProfileId : p.ownerProfileId,
       visibility: input.visibility, title: input.title, question: input.question, context: input.context,
       status: 'open', revision: 1, createdAt: at, updatedAt: at, answer: null, resolution: null,
-      ...(moderation ? { moderation } : { attempted: input.attempted!, suggestedOptions: input.suggested_options, selectionMode: input.selection_mode, ...(input.blocker_title ? {blockerTitle:input.blocker_title} : {}), ...(input.attempted_title ? {attemptedTitle:input.attempted_title} : {}) }) };
+      ...(moderation ? { moderation } : { suggestedOptions: input.suggested_options, selectionMode: input.selection_mode }) };
     tx.create(humanRequests.doc(id), request);
     return { request, deduplicated: false, startsWork: false };
   });
@@ -123,7 +128,7 @@ async function listRequests(actor: { profileId: string } | { agentId: string; ru
         }
         catch (error) { if (error instanceof Refusal && error.code === 'unauthorized') continue; throw error; }
       }
-      items.push(request);
+      items.push(withoutRetiredHeadings(request));
     }
     const last = page.at(-1)?.data();
     return { items, next: docs.length > size && last ? encodeCursor([...scope,last.createdAt,last.id]) : null };
@@ -236,12 +241,16 @@ export async function resolveHumanRequest(agentId: string, runId: string, raw: u
   });
 }
 
-export function humanRequestWithSource(request: HumanRequest) {
+// Requests stored before 12 November 2026 may still hold the retired blockerTitle/attemptedTitle headings; lists never return them.
+function withoutRetiredHeadings(stored: HumanRequest): HumanRequest {
+  const { blockerTitle: _blocker, attemptedTitle: _attempted, ...request } = stored as HumanRequest & { blockerTitle?: string; attemptedTitle?: string };
+  return request;
+}
+export function humanRequestWithSource(stored: HumanRequest) {
+  const request = withoutRetiredHeadings(stored);
   const agent={type:'agent' as const,agentId:request.agentId,agentName:request.agentName};
   return {...request,
     ...(request.attempted ? {attempted:untrusted(agent,request.attempted)} : {}),
-    ...(request.blockerTitle ? {blockerTitle:untrusted(agent,request.blockerTitle)} : {}),
-    ...(request.attemptedTitle ? {attemptedTitle:untrusted(agent,request.attemptedTitle)} : {}),
     ...(request.suggestedOptions ? {suggestedOptions:request.suggestedOptions.map(option=>untrusted(agent,option))} : {}),
     title:untrusted(agent,request.title),question:untrusted(agent,request.question),context:untrusted(agent,request.context),
     answer:request.answer ? {...request.answer,...(request.answer.customAnswer !== undefined ? {customAnswer:untrusted({type:'person',personId:request.answer.profileId},request.answer.customAnswer)} : {}),body:untrusted({type:'person',personId:request.answer.profileId},request.answer.body)}:null,

@@ -77,11 +77,19 @@ not permission or extra time. Acknowledge a new human answer only after understa
 it, and resolve it only when its underlying need is handled. Continue independent
 work while a genuine blocker waits for human help.
 
+Before a command that can run for minutes, such as a whole test suite or a full build,
+check the time left: run the tests for the files you changed
+first, and the whole suite once before the pull request only if it fits. Say in the pull
+request which checks you ran.
+
 ## Observable progress and continuation
 
-Report useful, accurate progress using the shared update workflow: one idea per update,
-with an image, a short headline and one sentence. The team aims for one project update
-at the pace in get_project.projectUpdates.everyMinutes, one for the whole team, not one per agent. Never invent filler, duplicate reports or reporting-only turns. A status
+People follow the project through its updates feed: one idea per update, with an image,
+a short headline and one sentence. The team posts about one at the pace in
+get_project.projectUpdates.everyMinutes, and each one is asked of a single agent. When
+your turn says you are that agent, posting it is part of finishing your work: do it
+before you return `WORK_NEXT: waiting`, with the steps the turn gives. If you stop
+without it, you get one more turn only to post it. Never repeat a recent post. A status
 line, receipt, prototype or concept is not proof of completion or deployment.
 
 Near the beginning and when focus changes, emit a standalone assistant-text line
@@ -90,6 +98,10 @@ at most 180 characters, excluding private instructions, credentials and local pa
 
 End every final response with exactly one line: `WORK_NEXT: runnable` when you have
 a concrete authorized next action you can execute now; otherwise `WORK_NEXT: waiting`.
+A job is one run: there is no later run to leave work for, so do not end a turn by listing
+what a next run could do while the job has time left.
+A message nobody has answered yet is not a blocker: while your mission still has work
+you can do yourself, keep doing it in this turn.
 Do not create runnable work merely to remain active. Keep checkpoints aligned with
 waiting/blocked/done/cancelled work; an unchanged runnable checkpoint must not override
 a waiting result indefinitely. The runner refreshes project state before another turn.

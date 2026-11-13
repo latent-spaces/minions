@@ -32,10 +32,31 @@ test('team guidance defaults OFF independently of tasks and states self membersh
 test('each turn carries the shared update aim at the owner\'s pace and says when an update is due', () => {
   const card = { name: 'p', mission: 'm', rules: 'r', repoUrl: 'https://github.com/o/r', mergeApproval: 'humans' };
   const quiet = projectGuidanceForTurn({ project: card });
-  assert.match(quiet, /one update about every 5 minutes of work, one for the whole team, not one per agent/);
-  assert.match(projectGuidanceForTurn({ project: card, updateEveryMinutes: 30 }), /about every 30 minutes of work/);
-  assert.doesNotMatch(quiet, /due now/);
+  assert.match(quiet, /about one update every 5 minutes of work\. You are not asked for one now/);
+  assert.match(projectGuidanceForTurn({ project: card, updateEveryMinutes: 30 }), /about one update every 30 minutes of work/);
+  assert.doesNotMatch(quiet, /Steps:/);
+  // The one asked agent gets the steps in the turn itself (owner, 12 November 2026).
   const due = projectGuidanceForTurn({ project: card, updateDue: true });
-  assert.match(due, /An update is due now/);
-  assert.match(due, /publish_project_update: an image, a short headline and one sentence/);
+  assert.match(due, /You are the one agent asked to post the next one/);
+  assert.match(due, /before you return WORK_NEXT: waiting/);
+  assert.match(due, /Report only this job's work: pull requests and tasks from before it are not news.*Say only what you checked yourself/);
+  assert.match(due, /1\. Get one image.*chromium\.launch\(\{ args: \['--single-process'\] \}\).*NODE_PATH=.*node shot\.cjs.*2\. upload_project_image.*clientRequestId.*3\. publish_project_update.*title \(the headline, at most 60 characters\), body \(one sentence, at most 140 characters; count them before you send, a longer one is refused\)/);
+  assert.doesNotMatch(due, /only for that/);
+  // Where the project allows slides, a short set to swipe is the normal shape (owner, 12 November 2026).
+  const slides = projectGuidanceForTurn({ project: card, updateDue: true, updateSlides: true });
+  assert.match(slides, /1\. Make 2 to 4 slides.*Slide 1 says the whole result in one line.*The last slide says what the person has to do.*2\. upload_project_image once for each slide.*3\. publish_project_update.*the others in moreSlides in reading order/);
+  assert.doesNotMatch(slides, /Get one image/);
+  const nudge = projectGuidanceForTurn({ project: card, updateDue: true }, { updateNudge: true });
+  assert.match(nudge, /Your last turn ended without the team's update\. This turn is only for that/);
+  assert.match(nudge, /Steps: 1\./);
+  const closing = projectGuidanceForTurn({ project: card, updateDue: true, updateClosing: true });
+  assert.match(closing, /The job's time is almost up, and you are the one agent asked to post the team's closing update/);
+  assert.match(closing, /Steps: 1\./);
+  assert.match(closing, /listing what the whole team finished in this job: the pull requests merged since it started \(gh pr list --state merged\)/);
+  const dated = projectGuidanceForTurn({ project: card, updateDue: true, updateClosing: true, updateJobStartedAt: Date.UTC(2026, 10, 12, 12, 27, 16) });
+  assert.match(dated, /since it started at 2026-11-12T12:27:16Z \(gh pr list --state merged --search "merged:>=2026-11-12T12:27:16Z"\)/);
+  assert.match(dated, /work merged before this job started is not this job's result/);
+  assert.match(closing, /git fetch -q origin HEAD && mkdir merged && git archive FETCH_HEAD \| tar -x -C merged/);
+  assert.doesNotMatch(projectGuidanceForTurn({ project: card, updateDue: false, updateClosing: true }), /closing update/);
+  assert.doesNotMatch(projectGuidanceForTurn({ project: card }, { updateNudge: true }), /only for that/);
 });

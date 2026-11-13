@@ -82,9 +82,10 @@ async function setup(t, options = {}) {
     onChangeSpreadMs: options.onChangeSpreadMs ?? 0 });
   ctx.controllers = controllers;
   t.after(async () => { await controllers.close(); await store.close(); await rm(directory, { recursive: true, force: true }); });
+  // Under three minutes of job, so the keep-going turns (see runtime-controllers.test.mjs) stay out of these counts.
   ctx.start = async () => {
     const input = { version: 2, operationId: randomUUID(), missionId: randomUUID(), kind: 'start', target,
-      payload: { scope: 'Synthetic cloud controller acceptance', deadlineAt: Date.now() + (options.deadlineMs ?? 300000), execution: { provider: 'codex', model: null } } };
+      payload: { scope: 'Synthetic cloud controller acceptance', deadlineAt: Date.now() + (options.deadlineMs ?? 170000), execution: { provider: 'codex', model: null } } };
     ctx.mission = (await controllers.accept(input)).mission; return ctx.mission;
   };
   ctx.inspect = () => store.getMission({ missionId: ctx.mission.missionId, target });

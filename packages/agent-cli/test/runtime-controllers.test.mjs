@@ -120,3 +120,31 @@ test('external guard death retains uncertain cleanup and agent exclusivity', asy
   process.kill(-nativePid, 'SIGKILL');
   await until(async () => { try { process.kill(nativePid, 0); return false; } catch (error) { return error.code === 'ESRCH'; } }, Boolean, 'known fixture cleanup');
 });
+
+// So the agent asked for the team's closing update has a turn to post it in (owner, 12 November 2026).
+test('an idle worker is woken for one turn two minutes before the job\'s time ends', async t => {
+  const ctx = await setup(t);
+  const far = (await ctx.controllers.accept(start({ payload: { scope: 'Far from the end', deadlineAt: Date.now() + 600000, execution: { provider: 'claude', model: null } } }))).mission;
+  const near = (await ctx.controllers.accept(start({ target: { ...target, agentId: 'synthetic-agent-2' }, payload: { scope: 'Near the end', deadlineAt: Date.now() + 120300, execution: { provider: 'claude', model: null } } }))).mission;
+  await until(inspect(ctx.controllers, near), value => value.outcomes.length === 2, 'the closing wake starts a second turn');
+  // With three or more minutes left a worker that stops gets one more turn; that turn ends at once, so no third follows.
+  await until(inspect(ctx.controllers, far), value => value.outcomes.length === 2, 'the worker far from the end is asked to keep going');
+  await new Promise(resolve => setTimeout(resolve, 600));
+  assert.equal((await inspect(ctx.controllers, far)()).outcomes.length, 2);
+  assert.equal((await inspect(ctx.controllers, near)()).outcomes.length, 2);
+});
+
+// So the agent asked for the team's regular update has a turn to post it in; an idle project is not woken every interval.
+test('an idle worker is woken once when the next regular update comes due', async t => {
+  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-fake-controller-'));
+  const store = await openRuntimeStore({ directory: join(directory, 'state') });
+  const fake = createFakeAdapterFactory({ command: process.execPath, args: [fixture], cwd: directory, env: { PATH: process.env.PATH }, initialInput: (_mission, steering) => ({ events: join(directory, 'events.jsonl'), steering }) });
+  const adapterFactory = async (...input) => { const real = await fake(...input);
+    return new Proxy(real, { get: (object, key) => key === 'run' ? async turn => ({ ...await object.run(turn), updateNextDueAt: Date.now() + 200 }) : Reflect.get(object, key) }); };
+  const controllers = createRuntimeControllers({ store, adapterFactory });
+  t.after(async () => { await controllers.close(); await store.close(); await rm(directory, { recursive: true, force: true }); });
+  const { mission } = await controllers.accept(start({ payload: { scope: 'Update comes due', deadlineAt: Date.now() + 600000, execution: { provider: 'claude', model: null } } }));
+  await until(inspect(controllers, mission), value => value.outcomes.length === 3, 'the first turn, its keep-going turn and the update wake, which ends at once and so gets none');
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  assert.equal((await inspect(controllers, mission)()).outcomes.length, 3);
+});

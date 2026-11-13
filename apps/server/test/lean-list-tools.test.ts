@@ -79,7 +79,7 @@ test('find_agents, list_human_requests and list_project_updates return short row
   expect((await fox('find_agents', { limit: 101 })).error).toBe(true);
 
   const asked = await fox('request_human_help', { dedupe_key: 'access', visibility: 'private', title: 'Repository access',
-    question: 'Please check the permitted access.', context: 'The license check is waiting.', attempted: 'Checked the reader; access was refused.' });
+    question: 'Please check the permitted access.', context: 'The license check is waiting; the reader refused access.' });
   expect(asked.error, asked.value).toBe(false);
   const requests = await fox('list_human_requests');
   expect(Object.keys(requests.value.items[0]).sort()).toEqual(['id', 'revision', 'status', 'title', 'visibility']);

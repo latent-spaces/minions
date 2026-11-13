@@ -119,7 +119,7 @@ export function NotificationsBell({ user, active, go, collapsed = false }: { use
           : shown === 'needs-you'
             ? rows.length === 0 ? <EmptyState icon={Inbox} size="compact" title="Nothing needs you right now." />
               : <ul className="k42-bell-list">{rows.map(request => <li key={request.id}>
-                <NavLink to={projectRoute(request.projectId, 'needs-you')} go={open} className="k42-bell-row">
+                <NavLink to={request.moderation ? { view: 'needs-you' } : projectRoute(request.projectId, 'conversations')} go={open} className="k42-bell-row">
                   <span className="k42-bell-unread" aria-hidden="true" />
                   <AgentAvatar name={request.agentName} id={request.agentId} ownerId={profileId} size={32} decorative />
                   <span className="k42-bell-text">
