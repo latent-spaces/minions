@@ -139,6 +139,9 @@ Later runs on the same day, each answered "Yes, fix and run" by the owner:
   not work merged before the job started; the turn gives the job's start time and the pull
   request search for it. Its screenshot comes from the merged code, copied into a folder with
   `git archive`, because an agent's own branch may lack teammates' work and agents cannot pull.
+  That screenshot is required: an update of drawn text slides only is not a closing update, and
+  short on time the agent drops text slides, not the screenshot (owner, 13 November 2026, after
+  a wave 10 agent posted one drawn slide with two minutes left).
 - A Claude turn ends five seconds after the client reports its result, even when a command left
   in the background keeps the client alive. In one run a preview server held an agent's only
   turn open for the whole job.
@@ -152,6 +155,8 @@ Later runs on the same day, each answered "Yes, fix and run" by the owner:
   work, and ends with the agent's other processes when the agent is stopped or the project is
   closed. On Windows a turn's end stops every process the turn started, so there the turn tells
   the agent not to start a server and to say in its update how a person runs the work.
+  Closing the project also clears a `localhost` preview link, since its server ended with the
+  agents and the tab would show a dead address; an `https://` link stays (owner, 13 November 2026).
 - Agents are told to check the time left before a whole test suite or full build and to run the
   tests for their changed files first, and that an unanswered message is not a blocker while
   they still have their own work. In a 15-minute run on this repository one agent spent the
@@ -207,7 +212,10 @@ experiment?", the owner answered "Yes, fix and rerun".
   It exits right after the last screenshot, because closing the browser first sometimes hung
   past the command limit, and it gives up after a minute, because one agent's own lookup of
   Playwright with `npx` stalled for two minutes and its closing update was never posted. Agents
-  wrote this script themselves before; each wrote it a little differently. The steps name the tools'
+  wrote this script themselves before; each wrote it a little differently. A page given by its
+  file path is served from its own folder on a short-lived `127.0.0.1` port, because Chromium
+  does not run module scripts from a file address and a page that imports its code came out
+  half-empty; an error page fails the command instead of becoming the image. The steps name the tools'
   own fields (`clientRequestId`, `title`, `body`), after an agent sent `headline` and `caption`.
 - An asked agent that ends its turn without posting gets one more turn, only to post it. One such
   turn at most; nothing is refused because an update is missing. This supersedes the earlier rule

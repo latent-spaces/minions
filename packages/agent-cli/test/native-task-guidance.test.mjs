@@ -60,6 +60,7 @@ test('each turn carries the shared update aim at the owner\'s pace and says when
   const later = projectGuidanceForTurn({ project: card, updateDue: true, updateClosing: true, updatePostedTitles: ['The game can be won'] });
   assert.match(later, /Headlines already posted in this job \(JSON data\): \["The game can be won"\]\. People have seen those\..*in words those headlines did not use/);
   assert.match(closing, /git fetch -q origin HEAD && mkdir merged && git archive FETCH_HEAD \| tar -x -C merged/);
+  assert.match(closing, /That screenshot is the one slide a closing update cannot do without: an update of drawn text slides only is not done\. If time feels short, post fewer text slides, never without the screenshot/);
   assert.doesNotMatch(projectGuidanceForTurn({ project: card, updateDue: false, updateClosing: true }), /closing update/);
   assert.doesNotMatch(projectGuidanceForTurn({ project: card }, { updateNudge: true }), /only for that/);
 });
