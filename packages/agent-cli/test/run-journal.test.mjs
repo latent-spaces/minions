@@ -42,3 +42,12 @@ test('journal redacts a credential split by a NUL character that capture strips'
   assert.equal(readRunJournal({ directory, identity }).records[1].text, 'Done [REDACTED]');
   assert.equal(readFileSync(join(directory, 'run-evidence.jsonl'), 'utf8').includes('secret-token'), false);
 }));
+
+test('journal marks text truncated when redaction pushes it past the limit', () => fixture(directory => {
+  const journal = createRunJournal({ directory, identity, redact: ['k9'] }), attempt = event('attempt_started');
+  journal.append(attempt);
+  journal.append({ ...attempt, kind: 'status', text: 'x'.repeat(170) + 'k9 tail' });
+  const record = readRunJournal({ directory, identity }).records[1];
+  assert.equal(record.text.endsWith('tail'), false);
+  assert.equal(record.textTruncated, true);
+}));
