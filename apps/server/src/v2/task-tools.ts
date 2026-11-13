@@ -8,7 +8,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import * as z from 'zod';
 import type { NativeTask, NativeTaskActor, NativeTaskComment, NativeTaskDetail, NativeTaskMutation, NativeTaskMutationResult, NativeTaskReference } from '@mlswarm/contracts';
-import { getNativeTask, listNativeTaskSummaries, mutateNativeTask } from '../projects/native-tasks.js';
+import { getNativeTask, listNativeTasks, listNativeTaskSummaries, mutateNativeTask } from '../projects/native-tasks.js';
 import type { ProgressActor } from '../projects/progress-authority.js';
 import { nativeTasksEnabled } from '@mlswarm/contracts';
 import { actorSource, untrusted } from './untrusted.js';
@@ -133,9 +133,18 @@ export function registerTaskTools(server: McpServer, actor: () => ProgressActor,
 
   server.registerTool('claim_task', {
     description: 'Assign an unassigned task to yourself, atomically: if another agent claims it first, you get a refusal and it stays theirs. '
-      + 'Only unassigned backlog tasks can be claimed; claiming moves them to in_progress. The assignment survives restarts and never expires; it grants no repository permissions.',
+      + 'Only unassigned backlog tasks can be claimed; claiming moves them to in_progress. The assignment survives restarts and never expires; it grants no repository permissions. '
+      + 'The result lists other agents’ open tasks in teammatesOpen, because teammates who start at the same moment pick the same piece: read it before you write code.',
     inputSchema: { task_id: TASK_ID, expected_revision: REVISION, client_request_id: REQUEST_ID },
-  }, ({ task_id, expected_revision, client_request_id }) => mutate(client_request_id, { operation: 'claim', taskId: task_id, expectedRevision: expected_revision }));
+  // Two agents each created and claimed "Add help command" in the same three seconds and neither listed tasks again (13 November 2026).
+  }, ({ task_id, expected_revision, client_request_id }) => run(async () => {
+    const me = agentId();
+    const result = await mutateNativeTask(actor(), { operation: 'claim', taskId: task_id, expectedRevision: expected_revision, clientRequestId: taskRequestUuid(me, client_request_id) }, now);
+    const pages = await Promise.all((['in_progress', 'backlog'] as const).map(status => listNativeTasks(actor(), { status, limit: 20 }, now)));
+    const open = pages.flatMap(page => page.tasks).filter(task => task.id !== task_id && !task.parentId && task.assignedAgentId !== me && task.createdBy.id !== me);
+    return { ...resultWithSource(result), teammatesOpen: open.map(task => ({ id: task.id, title: taskWithSource(task).title, status: task.status, assignedAgentId: task.assignedAgentId, createdAt: task.createdAt })),
+      ...(open.length ? { note: `If a task in teammatesOpen covers the same piece as yours, the one created first keeps it (yours has createdAt ${result.task.createdAt}): when theirs is earlier, cancel yours now with update_task and take a different piece.` } : {}) };
+  }));
 
   server.registerTool('release_task', {
     description: 'Give up the task’s assignment so it returns to backlog with its history kept. Use after an explicit handoff or when you can’t continue.',

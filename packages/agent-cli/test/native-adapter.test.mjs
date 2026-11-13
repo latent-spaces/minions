@@ -182,5 +182,15 @@ console.log(JSON.stringify({type:'result',is_error:false,num_turns:1,result:'Syn
     assert.equal(buddy.deny.includes('Bash(gh pr merge *)'), false);
     assert.match(buddy.prompt, /never merge your own pull request/);
     assert.match(buddy.prompt, /names you as the merging agent and the agent who approved/);
+    // A resumed conversation holds what has not changed: the next turn names those blocks instead of repeating them.
+    const same = await turn();
+    assert.match(same.prompt, /Local development permissions: unchanged since you last got it in full in this conversation; it still applies\./);
+    assert.match(same.prompt, /Current project Card: unchanged since you last got it in full/);
+    assert.doesNotMatch(same.prompt, /never merge your own pull request|"mission":"Build a map"/);
+    assert.match(same.prompt, /Native tasks are ON/);
+    assert.ok(same.prompt.length < buddy.prompt.length / 2);
+    // Every tenth turn carries everything again, in case the client summarized its history.
+    let full = 0; for (let n = 0; n < 10; n += 1) if (/never merge your own pull request/.test((await turn()).prompt)) full += 1;
+    assert.equal(full, 1);
   } finally { rmSync(root, { recursive: true, force: true }); }
 });

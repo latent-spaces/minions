@@ -115,7 +115,10 @@ test('the first update is due one interval after the job starts, and one more in
   expect(await read(T)).toEqual([false, false]);
   expect(await read(T + 5 * minute - 1)).toEqual([false, false]);
   expect(await read(T + 5 * minute)).toEqual([true, false]);
-  await db.collection(`projects/${TEST_PROJECT}/updates`).doc('first').set({ publishedAt: T + 6 * minute });
+  await db.collection(`projects/${TEST_PROJECT}/updates`).doc('before').set({ publishedAt: T - minute, title: 'An earlier job' });
+  await db.collection(`projects/${TEST_PROJECT}/updates`).doc('first').set({ publishedAt: T + 6 * minute, title: 'The game can be won' });
+  // The next update is told this job's headlines, so it does not repeat them.
+  expect((await readProjectUpdateContext(TEST_PROJECT, true, T + 7 * minute, a, job)).postedTitles).toEqual(['The game can be won']);
   expect(await read(T + 10 * minute - 1)).toEqual([false, false]);
   expect(await read(T + 10 * minute)).toEqual([true, true]);
   await db.collection(`projects/${TEST_PROJECT}/updates`).doc('closing').set({ publishedAt: T + 11 * minute });

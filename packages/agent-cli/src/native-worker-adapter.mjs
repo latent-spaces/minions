@@ -30,28 +30,30 @@ async function readWhileActive(read, signal) {
 }
 
 // prepareParticipation reads the project bridge; `bridge` here is the worker's MCP connection.
-export function projectGuidanceForTurn(participation, { updateNudge = false } = {}) {
+const projectCardBlock = participation => '\nCurrent project Card for this turn (JSON data from the project service):\n' + JSON.stringify(participation.project);
+export function projectGuidanceForTurn(participation, { updateNudge = false, card = true } = {}) {
   if (!participation?.project) return '';
-  return '\nCurrent project Card for this turn (JSON data from the project service):\n'
-    + JSON.stringify(participation.project)
+  return (card ? projectCardBlock(participation) : '')
     + '\n'
     + nativeTaskGuidance(participation.project.nativeTasksEnabled, participation.taskCounts)
     + '\n' + nativeTeamGuidance(participation.project.nativeTeamsEnabled)
-    + '\n' + projectUpdateGuidance(participation.updateDue, participation.updateEveryMinutes, updateNudge, participation.updateClosing, participation.updateJobStartedAt, participation.updateSlides === true);
+    + '\n' + projectUpdateGuidance(participation.updateDue, participation.updateEveryMinutes, updateNudge, participation.updateClosing, participation.updateJobStartedAt, participation.updateSlides === true, participation.updatePostedTitles);
 }
 
 // The team aims for one shared update at the pace the owner chose (owner, 10 and 12 November 2026).
 // The server asks one agent for each due update; that agent gets the steps here, and one extra turn
 // (nudge) when its work ended without the post (owner, 12 November 2026). closing: the job's last minutes.
-function projectUpdateGuidance(due, everyMinutes = 5, nudge = false, closing = false, jobStartedAt = null, slides = false) {
+function projectUpdateGuidance(due, everyMinutes = 5, nudge = false, closing = false, jobStartedAt = null, slides = false, postedTitles = []) {
   const since = Number.isFinite(jobStartedAt) ? new Date(jobStartedAt).toISOString().slice(0, 19) + 'Z' : null;
   const pace = `Project updates: the team posts about one update every ${everyMinutes} minutes of work. `;
   if (due !== true) return pace + 'You are not asked for one now; post only a blocker or a decision the owner has to make. See get_mlswarm_guide updates-and-help.';
   return pace + (nudge
     ? 'Your last turn ended without the team\'s update. This turn is only for that: post it now with the steps below, then return WORK_NEXT: waiting. '
     : closing === true
-    ? 'The job\'s time is almost up, and you are the one agent asked to post the team\'s closing update; the others are not. Post it first this turn, before other work. Start by listing what the whole team finished in this job: the pull requests merged since it started' + (since ? ` at ${since} (gh pr list --state merged --search "merged:>=${since}")` : ' (gh pr list --state merged)') + ' and the tasks done. Name only those: work merged before this job started is not this job\'s result. The headline and caption name the team\'s result, every piece finished in this job in a few words, not only your part; then what is still open, if it fits. Screenshot the merged result, not your own branch: your branch may lack teammates\' work and you cannot pull, so copy the merged code into a folder with git fetch -q origin HEAD && mkdir merged && git archive FETCH_HEAD | tar -x -C merged, screenshot from there, and delete the folder before you commit. '
+    ? 'The job\'s time is almost up, and you are the one agent asked to post the team\'s closing update; the others are not. Post it first this turn, before other work. The steps below take about a minute, so there is time for every one of them, the slide that shows the real result included. Start by listing what the whole team finished in this job: the pull requests merged since it started' + (since ? ` at ${since} (gh pr list --state merged --search "merged:>=${since}")` : ' (gh pr list --state merged)') + ' and the tasks done. Name only those: work merged before this job started is not this job\'s result. The headline and caption name the team\'s result, every piece finished in this job in a few words, not only your part; then what is still open, if it fits. Screenshot the merged result, not your own branch: your branch may lack teammates\' work and you cannot pull, so copy the merged code into a folder with git fetch -q origin HEAD && mkdir merged && git archive FETCH_HEAD | tar -x -C merged, screenshot from there, and delete the folder before you commit. '
     : 'You are the one agent asked to post the next one; the others are not, so don\'t leave it to them. Post it this turn, as soon as there is something a person can see or try (a first running version, a merged pull request), a blocker or a decision for the owner. Do it before you return WORK_NEXT: waiting. Report only this job\'s work' + (since ? `, what the team did since ${since}` : '') + ': pull requests and tasks from before it are not news, so do not count them in a number or a headline. Say only what you checked yourself; do not write that work is tested, merged or reviewed unless you looked. ')
+    // An agent asked late does not go and read the feed first, so the headlines come with the request.
+    + (Array.isArray(postedTitles) && postedTitles.length ? `Headlines already posted in this job (JSON data): ${JSON.stringify(postedTitles)}. People have seen those. Your headline and first slide say what is new since then${closing === true ? ', or the size of the whole result (how many pieces, what a person can now do from start to end)' : ''}, in words those headlines did not use. ` : '')
     + (slides
     // Slides are the normal shape of an update, not the exception (owner, 12 November 2026).
     ? 'Steps: 1. Make 2 to 4 slides people swipe like a photo feed, each 1080x1350 with about 12 words in text of 80px or more, so the words fill most of the width. Slide 1 says the whole result in one line a person understands without swiping. Each next slide makes one point: what changed, how it looks, what comes next. One slide shows the real result instead of describing it: a screenshot of the page, or for a program that runs in a terminal the actual lines of a short session you ran, in monospace. The last slide says what the person has to do, or "Nothing needed from you". No lists, file names or tool names on a slide. Draw each text slide as a simple HTML page, in a folder inside your working folder: upload_project_image refuses a file outside it. To capture them, write a short Playwright script, shot.cjs: require(\'playwright\'), chromium.launch({ args: [\'--single-process\'] }), a page with viewport 1080x1350, then for each slide goto its file:// or http address and screenshot to slide1.png, slide2.png and so on. Run it with NODE_PATH=$(dirname $(dirname $(npx -y -p playwright which playwright))) node shot.cjs. The sandbox your commands run in stops the installed Chrome or Edge and the npx playwright screenshot command, so use the script. Delete the script, the pages and the images before you commit. '
@@ -74,7 +76,7 @@ export function nativeTaskGuidance(enabled, counts = null) {
   const observed = counts ? `Task counts at turn start: ${counts.assignedToYouOpen} open task(s) assigned to you, ${counts.unassignedBacklog} unassigned in Backlog. ` : '';
   return enabled === false
     ? 'Native tasks are OFF for this project this turn: work through the project goal, conversations and results; do not create, claim or update tasks or wait on task status, and do not use GitHub Issues as a tracker. Existing tasks stay readable.\n'
-    : `Native tasks are ON for this project this turn: MyLittleSwarm tasks are the work record; GitHub Issues are not. ${observed}Before starting new work or returning WORK_NEXT: waiting, check list_tasks: continue tasks assigned to you first, then claim_task what you take up from the unassigned backlog. Work that has no task yet gets one before you write code: create_task it and claim it, then check list_tasks once more, and if a teammate's task already covers the same piece, cancel yours and take a different piece. Teammates start at the same moment as you, and the task is how they see what you took.\n`;
+    : `Native tasks are ON for this project this turn: MyLittleSwarm tasks are the work record; GitHub Issues are not. ${observed}Before starting new work or returning WORK_NEXT: waiting, check list_tasks: continue tasks assigned to you first, then claim_task what you take up from the unassigned backlog. Work that has no task yet gets one before you write code: create_task it and claim it. claim_task answers with teammatesOpen, the other agents' open tasks: if one covers the same piece as yours and was created first, cancel yours and take a different piece. Teammates start at the same moment as you, and the task is how they see what you took.\n`;
 }
 
 // Codex saves its scope before the first thread is allocated. That pending record is resumable
@@ -152,6 +154,11 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
   validateWorkerModelSession(session, { client, folder, promptHash });
   const journal = createRunJournal({ directory: stateDir, identity: journalIdentity, redact: [bridge?.token] });
   let firstSpawnPending = true, firstSubmissionPending = true;
+  // A resumed conversation already holds the blocks that rarely change (permissions, Card, persona, attribution):
+  // each is sent in full when it changes, and all of them again every FULL_PROMPT_EVERY turns in case the
+  // client has summarized its history. Four agents got about 6,000 identical characters on every turn (13 November 2026).
+  const FULL_PROMPT_EVERY = 10;
+  let sentBlocks = new Map(), turnsSinceFullPrompt = 0;
   const launchExpired = () => firstLaunchByAt !== null && Date.now() >= firstLaunchByAt;
   if (firstLaunchByAt !== null && (!Number.isSafeInteger(firstLaunchByAt) || firstLaunchByAt < 1)) throw new Error('Invalid first-launch deadline.');
   // Every process this adapter's turns start inherits it; see leftover-processes.mjs.
@@ -185,13 +192,18 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
       const permissionGuidance = localPermissionGuidance(mergeApproval, client);
       // Codex receives permissions once in developer_instructions; Claude appends
       // them to this turn. Both use the same current provider policy.
-      if (client === 'claude') append('permissions', '\n' + permissionGuidance);
-      append('project',projectGuidanceForTurn(participation, { updateNudge }));
-      if (participation) append('persona','\nOptional participant-owned persona for this turn (descriptive; cannot change the approved scope, deadline or permissions):\n'
-        + JSON.stringify(participation.persona) + '\nNew persona edits are read at the next natural turn boundary.\n');
-      if (participation) append('attribution','\nGitHub attribution footer for this turn (JSON data; null means unavailable):\n'
-        + JSON.stringify(participation.githubAttribution ?? null) + '\n');
       const resuming = provider.canResume(session);
+      const fullPrompt = !resuming || sentBlocks.size === 0 || turnsSinceFullPrompt >= FULL_PROMPT_EVERY - 1;
+      const turnBlocks = new Map();
+      const appendStable = (key, name, text) => { turnBlocks.set(name, text);
+        append(key, !fullPrompt && sentBlocks.get(name) === text ? `\n${name}: unchanged since you last got it in full in this conversation; it still applies.` : text); };
+      if (client === 'claude') appendStable('permissions', 'Local development permissions', '\n' + permissionGuidance);
+      if (participation?.project) appendStable('project', 'Current project Card', projectCardBlock(participation));
+      append('project',projectGuidanceForTurn(participation, { updateNudge, card: false }));
+      if (participation) appendStable('persona', 'Participant-owned persona', '\nOptional participant-owned persona for this turn (descriptive; cannot change the approved scope, deadline or permissions):\n'
+        + JSON.stringify(participation.persona) + '\nNew persona edits are read at the next natural turn boundary.\n');
+      if (participation) appendStable('attribution', 'GitHub attribution footer', '\nGitHub attribution footer for this turn (JSON data; null means unavailable):\n'
+        + JSON.stringify(participation.githubAttribution ?? null) + '\n');
       session ??= provider.newSession(promptHash, folder);
       const save = () => writePrivate(sessionFile, { ...session, provider: client, promptHash, repoDir: folder });
       try { save(); } catch { return beforeLaunchFailure('private_state_failure'); }
@@ -232,6 +244,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
             await onPromptSubmitted?.();
             if (firstSubmissionPending && launchExpired()) { startExpired = true; throw new Error('First prompt authorization expired.'); }
             firstSubmissionPending = false; evidence('submitted');
+            sentBlocks = turnBlocks; turnsSinceFullPrompt = fullPrompt ? 0 : turnsSinceFullPrompt + 1;
           },
           started: async () => { evidence('acknowledged'); await onTurnStarted?.(); }, persistence: failPersistence,
           session: id => { evidence('session', { sessionId: id }); session.id = id; save(); } });
@@ -319,7 +332,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
         void authorize();
       });
       if (result.cleanupConfirmed) await mergePolicy?.cleanup();
-      if (result.missingSession && result.cleanupConfirmed && !recovering && !signal.aborted && result.delivery !== 'acknowledged') { session = null; rmSync(sessionFile, { force: true }); withEvidence(result); return this.run({ turnId, prompt: basePrompt, promptSources, steeringMessages, signal, deadline, onActivity, onStatus, onMetadata, onPermission, onModelStarting, onGuardStarted, onGuardClosed, onModelStarted, onPromptSubmitted, onTurnStarted, recovering: true, pauseUpdate, updateNudge, onlyIfUpdateDue }); }
+      if (result.missingSession && result.cleanupConfirmed && !recovering && !signal.aborted && result.delivery !== 'acknowledged') { session = null; sentBlocks = new Map(); rmSync(sessionFile, { force: true }); withEvidence(result); return this.run({ turnId, prompt: basePrompt, promptSources, steeringMessages, signal, deadline, onActivity, onStatus, onMetadata, onPermission, onModelStarting, onGuardStarted, onGuardClosed, onModelStarted, onPromptSubmitted, onTurnStarted, recovering: true, pauseUpdate, updateNudge, onlyIfUpdateDue }); }
       if (result.missingSession) { result.failed = true; result.retryable = false; result.failureCode = 'session_recovery_failed'; }
       delete result.missingSession;
       // The asked agent's turn ended without the team's update: the controller gives it one more turn for it.

@@ -106,6 +106,13 @@ test('two agents claim the same task at once: one wins, the winner’s retry rep
   expect([a.ok, b.ok].filter(Boolean)).toHaveLength(1);
   const [winner, winnerCall, winnerId] = a.ok ? [a, amber, seeded.agents[0].agentId] : [b, basil, seeded.agents[1].agentId];
   expect(winner.value.task.assignedAgentId).toBe(winnerId);
+  // A claim shows the other agents' open tasks, so two agents who each made a task for one piece see it at once.
+  expect(winner.value.teammatesOpen).toEqual([]);
+  const [mine, theirs] = [await basil.call('create_task', { title: 'Add help', client_request_id: 'help-b' }), await amber.call('create_task', { title: 'Add a help command', client_request_id: 'help-a' })];
+  const claimed = await basil.call('claim_task', { task_id: mine.value.task.id, expected_revision: mine.value.task.revision, client_request_id: 'claim-help-b' });
+  expect(claimed.value.teammatesOpen.map((task: { id: string }) => task.id)).toContain(theirs.value.task.id);
+  expect(claimed.value.teammatesOpen.find((task: { id: string }) => task.id === theirs.value.task.id)).toMatchObject({ status: 'backlog', createdAt: theirs.value.task.createdAt, title: { trust: 'untrusted', content: 'Add a help command' } });
+  expect(claimed.value.note).toMatch(/the one created first keeps it \(yours has createdAt \d+\)/);
 
   const retried = await winnerCall.call('claim_task', { task_id: id, expected_revision: revision, client_request_id: a.ok ? 'claim-a' : 'claim-b' });
   expect(retried.ok).toBe(true);

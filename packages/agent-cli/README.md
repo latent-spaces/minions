@@ -660,7 +660,9 @@ runtime/work-window guidance, steering, delivery notices, permissions, project/t
 policy, persona, attribution and otherwise unattributed base text. These source sizes
 sum to the assembled turn prompt. A steering message count and new/resumed session
 marker help distinguish additions across turns; resumed does not establish retained
-history size.
+history size. A turn that resumes a conversation names the permissions, project card, persona
+and attribution blocks as unchanged instead of repeating them when their text is the same as
+the last full copy; every tenth turn, and the first turn of a new conversation, carries them in full.
 
 Per-tool counters use the connector's fixed canonical MCP tool names, including
 conversation and task tools. They distinguish each returned definition/catalog
@@ -725,7 +727,8 @@ says when anyone last posted and whether one is due, and each turn's prompt repe
 It is guidance; nothing is refused when an update is missing. One agent is asked for each due
 update. An agent working on its own that is idle when the update comes due is woken for one
 turn; the others are not given a model turn. In the job's last two minutes one agent is woken
-for the team's closing update. People read the updates in the project's Updates tab.
+for the team's closing update. Each request for an update lists the headlines already posted
+in this job, so the next one says what is new. People read the updates in the project's Updates tab.
 Settings and `set_project_update_settings` set how often the team posts, which kinds of
 update are worth a post (results, blockers, decisions, summaries), whether slides are on,
 and the owner's own instructions (up to 1000 Unicode characters). Only the project owner
