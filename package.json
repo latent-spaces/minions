@@ -8,6 +8,7 @@
   "scripts": {
     "communication:lab": "node tools/communication-lab/start.mjs",
     "setup": "node tools/setup/engine-setup.mjs",
+    "stop": "node tools/setup/engine-stop.mjs",
     "build:web": "npm --prefix apps/web run build --",
     "build:backend": "npm --prefix apps/server run build:backend --",
     "typecheck:backend": "npm --prefix apps/server run typecheck --",

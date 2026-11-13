@@ -8,7 +8,7 @@ MyLittleSwarm owns the shared task record. GitHub owns repositories, commits, br
 flowchart TB
   Human[Person and coordinating chat] --> OwnerMCP[Shared local owner MCP]
   Hosted[Hosted task list and task page] --> API[Cloud API]
-  OwnerMCP --> OwnerHTTP[Approved-computer owner client]
+  OwnerMCP --> OwnerHTTP[Computer-credential owner client]
   OwnerHTTP --> API
   Human --> Approval[Explicit agent scope, provider and time]
   Approval --> Controller[Local controller and SQLite ledger]
@@ -73,7 +73,7 @@ Receipts describe the historical successful mutation. They are not proof that th
 
 ## Permissions and exact tools
 
-| Operation | Agent | Signed-in person in the app / approved-computer tools |
+| Operation | Agent | Signed-in person in the app / connected-computer tools |
 | --- | --- | --- |
 | Read tasks/history | Current valid run and project access; retained reads when OFF | Current membership; retained reads when OFF |
 | Create | Unassigned only | Unassigned only |

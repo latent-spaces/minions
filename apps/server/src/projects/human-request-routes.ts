@@ -19,7 +19,8 @@ export function humanRequestRoutes(now: () => number) {
     if (!token) { fail(res,new Refusal('unauthorized','Sign in to open Needs you.')); return; }
     void personIdentityFromIdToken(token).then(async ({ person }) => {
       if (req.get('X-Mlswarm-Profile-Id') !== person.id) throw new Refusal('unauthorized','You’re now signed in to a different MyLittleSwarm account. Reload the page, then try again.');
-      const delay = limit(person.id,now());
+      // Only answers and other writes have a budget; the owner's reads of Needs you are never refused.
+      const delay = req.method === 'GET' ? 0 : limit(person.id,now());
       if (delay > 0) throw new Refusal('rate_limited','Too many requests. Wait a moment, then try again.',Math.ceil(delay/1000));
       res.locals.profileId = person.id; next();
     }).catch(error => fail(res,error));

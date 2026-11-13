@@ -59,12 +59,13 @@ test('starting offers the job length with one hour preselected and Start enabled
     expect(html).toMatch(/<button(?![^>]*disabled)[^>]*>.*?Start project/s);
   }
 });
-test('the owner sees the job end time and Add time only in the job bar; others see the end time in the status panel', () => {
-  const panel = (patch: Partial<Workspace>) => renderToStaticMarkup(createElement(ProjectStatusPanel, { workspace: workspace(patch), controls }));
-  for (const endsAt of [Date.now() + 45 * 60_000 - 5000, null, Date.now() - 1000]) {
-    const owner = panel({ endsAt });
-    expect(owner).not.toContain('Add time'); expect(owner).not.toContain('min left'); expect(owner).not.toContain('Time is up');
-  }
+test('everyone sees the time left; once it is up the owner gets Add time, which opens the job bar (owner, 13 November 2026)', () => {
+  let opened = 0;
+  const panel = (patch: Partial<Workspace>) => renderToStaticMarkup(createElement(ProjectStatusPanel, { workspace: workspace(patch), controls, onAddTime: () => { opened++; } }));
+  const owner = panel({ endsAt: Date.now() + 45 * 60_000 - 5000 });
+  expect(owner).toContain('45 min left'); expect(owner).not.toContain('Add time'); expect(owner).not.toContain('Time is up');
+  for (const endsAt of [null, Date.now() - 1000]) { const up = panel({ endsAt }); expect(up).toContain('Time is up'); expect(up).toContain('Add time'); }
+  expect(opened).toBe(0);
   const paused = panel({ execution: 'paused', project: { started: true, paused: true } as Workspace['project'], endsAt: Date.now() + 45 * 60_000 - 5000 });
   expect(paused).not.toContain('Add time'); expect(paused).toContain('Resume all agents');
   const member = panel({ role: 'member', endsAt: Date.now() + 45 * 60_000 - 5000 });

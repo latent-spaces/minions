@@ -4,7 +4,6 @@ import { Refusal } from '../errors.js';
 import { assertCommunityActor, type CommunityActor } from './identity.js';
 import { GITHUB_USERNAME } from '../projects/github-username.js';
 import express from 'express';
-import { requestLimits } from '../request-state.js';
 import { createHash } from 'node:crypto';
 import { publicPersonAppearance } from './profile-photo-ref.js';
 import { githubPhotoSource, profileOperations, preparePhotoPublication, readProfilePhoto } from './profile-photos.js';
@@ -45,15 +44,11 @@ async function readPublicProfile(id: string) {
 }
 
 export function publicProfileRoutes(now: () => number) {
-  const router = express.Router(), admission = requestLimits.limiter(() => 'public-person-profile', 60, 60_000);
-  // Two 50-message history pages plus surrounding identities fit each 30-second burst without consuming JSON quota.
-  const photoAdmission = requestLimits.limiter(() => 'public-person-photo', 120, 30_000);
+  // No read budget: the engine listens only on this computer, so every caller is the owner viewing their own projects.
+  const router = express.Router();
   router.use((req, res, next) => {
     res.set('Cache-Control', 'no-store');
     if (req.method !== 'GET') { res.status(405).set('Allow', 'GET').json({ message: 'Profiles are read-only here.' }); return; }
-    const isPhoto = /^\/[^/]+\/photo\/[^/]+\/?$/.test(req.path);
-    const retry = (isPhoto ? photoAdmission : admission)(req.ip ?? 'unknown', now());
-    if (retry > 0) { res.status(429).set('Retry-After', String(Math.ceil(retry / 1000))).json({ message: isPhoto ? 'Wait before loading more profile photos.' : 'Wait before loading another profile.' }); return; }
     next();
   });
   router.get('/:personId/photo/:photoId', (req, res) => {

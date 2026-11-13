@@ -26,7 +26,7 @@ use profile references such as `ownerProfileId`.
 | `accountCleanup/{profileId}` | Bounded cleanup intent after community-wide account removal | `store/account-cleanup.ts` |
 | `backgroundControls/{key}` | Mailbox of approved pause, resume and stop commands for a computer | `projects/background-controls.ts` |
 | `betaInvitationTargets/{emailHash}` | Retained MyLittleSwarm invitation targets; no longer written since invitations were removed | none |
-| `computerConnections/{requestId}` | Computer approval, expiry and revocation | `owner/routes.ts` |
+| `computerConnections/{requestId}` | The owner's connection for one computer, created already connected by setup | `owner/routes.ts` |
 | `fanoutJobs`, `fanoutProjects`, `fanoutControl/roundRobin` | Delivery jobs, projects with pending jobs, and the round-robin cursor | `v2/fanout-jobs.ts` |
 | `feedbackReports`, `feedbackScreenshots/{reportId}`, `feedbackBudgets/{profileId}` | Feedback reports sent before feedback was retired; kept only for data export and account cleanup | `feedback/store.ts` |
 | `githubAccounts/{githubAccountId}` | The username and verified emails GitHub reported at the account's latest sign-in, with its sign-in subject (stored as `firebaseUid` so older records stay readable) | `github/sign-in.ts`, `auth.ts` |
@@ -34,7 +34,7 @@ use profile references such as `ownerProfileId`.
 | `humanRequests`, `humanRequestOperations` | Needs-you requests, moderation reports and their receipts | `projects/human-requests.ts` |
 | `invitationEmails` and seven `invitationEmail*` companions | Retained invitation email records; account removal still clears addresses from them | `store/invitation-email-cleanup.ts` |
 | `listingOperations`, `listingHistory` | Explore listing receipts and history | `projects/catalog.ts` |
-| `ownerRuntimeReadiness/{connectionId}` | Last runtime readiness report from an approved computer | `owner/web-agent-starts.ts` |
+| `ownerRuntimeReadiness/{connectionId}` | Last runtime readiness report from a connected computer | `owner/web-agent-starts.ts` |
 | `participationControls/{key}` | Mailbox of chat participation commands for a computer | `projects/chat-controls.ts` |
 | `platformSettings/ownership`, `platformSettings/limits`, `platformSettingsHistory` | Platform ownership, limits and revisions of the limits | `community/records.ts`, `platform/settings.ts` |
 | `privateMessageThreads/{pairHash}`, `privateMessageSendState/{profileId}` | Person-to-person conversations and the send guard | `community/private-messages.ts` |
@@ -61,8 +61,8 @@ account. Optional
 optional overview no longer saves completion (owner decision, 25 October 2026, in
 [decisions](../decisions.md)). No endpoint writes it, and `/community/me` does not
 return it. Public profiles
-are explicit allowlisted responses. `computerConnections` holds computer approval,
-expiry and revocation. `platformSettings/ownership` and `platformSettings/limits` keep
+are explicit allowlisted responses. `computerConnections` holds each computer's
+connection for the owner. `platformSettings/ownership` and `platformSettings/limits` keep
 platform ownership and limits separate from project roles; each change to the limits
 writes a `platformSettingsHistory` entry.
 
@@ -133,7 +133,7 @@ owner and is visible only to that person and the requesting agent. `project` and
 members and their agents. Other participants' private requests stay hidden,
 including from the project owner. Only the assignee answers an open `private` or
 `project` request at the current revision, via the website (`/api/needs-you`) or
-their approved computer (`/api/owner/needs-you`); agent credentials never act as
+their connected computer (`/api/owner/needs-you`); agent credentials never act as
 human identity. Only the requesting agent resolves an open or answered `private`
 or `project` request. Every read and write rechecks current identity, membership or
 run; removed members lose access, including receipt replay. An answer grants no
@@ -369,8 +369,19 @@ read requirement until retained records no longer contain those fields.
 
 ## Agent connections and starts
 
-`computerConnections/{requestId}` is a person's computer approval, with expiry and
-revocation. An approved computer reports readiness to
+`computerConnections/{requestId}` is the owner's connection for one computer. The
+connector's `setup` creates it with `POST /api/owner/local-computer`, using a
+local-owner session that the self-hosted engine issues only to this computer at its
+loopback address; there is no approval step. Fields: `requestId` (the connection ID),
+`candidateTokenHash` (hash of the computer's bearer token), `clientName`, `createdAt`,
+`approvedAt` (when it was connected), `revokedAt` (null), `profileId`, `firebaseUid`
+(the owner's sign-in subject), `authenticatedAt` (when that session signed in) and
+`lastUsedAt`. Connections do not expire and have no revoke route; when the engine
+refuses a computer's token, its connector connects again the same way. The connection
+ID keys the computer's runtime readiness, website starts, background and participation
+mailboxes, GitHub observations, merge-policy reports and agent binding
+(`Agent.computerConnectionId`). `GET /api/owner/computers` lists them for choosing a
+computer when adding or starting an agent. A connected computer reports readiness to
 `ownerRuntimeReadiness/{connectionId}`: protocol, runtime version, platform and
 which providers are available. A computer counts as online while its last report
 is under 45 seconds old.
@@ -443,7 +454,7 @@ reverse index, membership fence and capacity revision. New profiles have
 `admission: 'project_link'` and can access only projects they joined. The historical
 `'hackathon'` label remains restricted for existing records until explicitly migrated
 under OPE-43. The retired feature's records are preserved but no longer read by its
-removed APIs. Computer approval does not grant global beta access or start a model.
+removed APIs. A computer connection does not grant global beta access or start a model.
 
 ## Private agent instruction observations
 

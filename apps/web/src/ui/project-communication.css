@@ -93,3 +93,16 @@
 .k42-map-crowd li[data-tip]::after { content:attr(data-tip); position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); z-index:4; padding:4px 8px; border-radius:8px; background:var(--ink); color:#fff; font-size:11px; font-weight:500; line-height:1.4; white-space:nowrap; box-shadow:0 4px 12px rgba(20,20,20,.16); opacity:0; visibility:hidden; pointer-events:none; transition:opacity .12s; }
 .k42-map-crowd li[data-tip]:hover::after { opacity:1; visibility:visible; }
 .k42-map-counts { font-size:13px; color:var(--text-muted); white-space:nowrap; font-variant-numeric:tabular-nums; }
+
+/* In a .k42-fit region (the side panel's Map) the map fills the space left and resizes with it, instead of a fixed
+   height that makes the panel scroll (owner, 13 November 2026). The map refits itself when its box changes. */
+.k42-fit :is(.k42-activity-part, .k42-communication, .k42-communication-body, .k42-communication-network) { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+.k42-fit .k42-activity-main > :not(.k42-activity-part), .k42-fit .k42-communication > :not(.k42-communication-body) { flex:none; }
+.k42-fit .k42-communication-graph { flex:1 1 auto; height:auto; min-height:0; }
+.k42-fit .communication-map { height:100%; min-height:0; }
+/* In the panel, the map is the panel's own content: no second card frame, and full screen sits beside the toolbar
+   instead of wrapping onto a row of its own, so short windows keep room for the map (owner, 13 November 2026). */
+.k42-fit .k42-communication { padding:0; border:0; border-radius:0; background:none; }
+.k42-fit .k42-communication > .k42-activity-heading { flex-wrap:nowrap; align-items:flex-start; }
+.k42-fit .k42-communication > .k42-activity-heading .k42-communication-controls-slot { min-width:0; }
+@media (max-height:640px) { .k42-fit .k42-project-pause-status p { display:none; } .k42-fit .k42-project-pause-status { padding-block:8px; } }

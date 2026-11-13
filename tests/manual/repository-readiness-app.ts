@@ -57,7 +57,7 @@ try {
   }
   await seedRuntime(id,{started:true,paused:false});
   const computer=randomUUID(),incarnation=randomUUID(),requestId=randomUUID(),now=Date.now;
-  await collection('computerConnections').doc(computer).set({profileId:people[0].id,revokedAt:null,approvedAt:now(),connectionExpiresAt:now()+86400000});
+  await collection('computerConnections').doc(computer).set({profileId:people[0].id,revokedAt:null,approvedAt:now()});
   await publishRuntimeReadiness(people[0].id,computer,{protocol:1,version:'synthetic',incarnation,platform:'darwin',github:'ready',providers:[{id:'claude',available:true,reason:'ready'}]},now);
   await createWebAgentStart(people[0].id,{id:requestId,connectionId:computer,projectId:id,name:'repository-check-synthetic',execution:{provider:'claude',model:null},approved:true},now);
   await inProject(id,()=>connectOwnAgent(people[0].id,{name:'repository-check-synthetic',candidateTokenHash:hashToken(randomUUID()),clientName:'Synthetic browser check',folder:'/tmp/synthetic-no-execution',webStartId:requestId},now,computer));

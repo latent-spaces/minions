@@ -42,45 +42,70 @@ export function ownerOrigin(site) {
   if (!trustedWebsiteUrl(u) || u.search || u.hash || u.pathname !== '/') throw new Error('Owner management requires the MyLittleSwarm website, enrolled self-hosted origin or explicit loopback development origin.');
   return u.origin;
 }
-export function createOwnerClient({ home = sessionHome(), workspace = workspaceHome(), site, fetchImpl = fetch, now = Date.now } = {}) {
+// Failures where the connection itself was never made, so nothing reached the engine and nothing happened there.
+const NOT_CONNECTED_CODES = new Set(['ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH', 'ENOTFOUND', 'EAI_AGAIN', 'EADDRNOTAVAIL']);
+const neverConnected = error => {
+  const cause = error?.cause;
+  return [cause, ...(Array.isArray(cause?.errors) ? cause.errors : [])].some(item => NOT_CONNECTED_CODES.has(item?.code));
+};
+// The engine is not running (or not at this address): a known outcome, unlike a reply lost after the request was sent.
+function engineUnreachable(origin) {
+  return Object.assign(new Error(`The MyLittleSwarm engine isn’t running at ${origin}. Start it with npm run setup.`), { code: 'engine_unreachable', unreachable: true });
+}
+// The engine's local-owner session, which it gives only to a request from this computer at its own address.
+async function engineSession(origin, fetchImpl) {
+  let response;
+  try { response = await fetchImpl(new URL('/api/auth/local-owner/session', origin), { method: 'POST', redirect: 'error', credentials: 'omit', signal: AbortSignal.timeout(15000),
+    headers: { Accept: 'application/json', origin, 'content-type': 'application/json' }, body: '{}' }); }
+  catch (error) { if (neverConnected(error)) throw engineUnreachable(origin); throw new Error('MyLittleSwarm can’t be reached right now. Start the local engine, then try again.'); }
+  const data = await response.json().catch(() => null);
+  if (response.status === 404) throw new Error(`The MyLittleSwarm engine at ${origin} does not connect computers. Run setup with the address of the local engine on this computer.`);
+  if (!response.ok || typeof data?.token !== 'string' || data.token.length > 1024) throw new Error('The local MyLittleSwarm engine did not open a session for this computer. Check that setup uses the engine’s own address, then try again.');
+  return data.token;
+}
+export function createOwnerClient({ home = sessionHome(), workspace = workspaceHome(), site, fetchImpl = fetch, now = Date.now, ownerSession } = {}) {
   const origin = ownerOrigin(site); home = canonicalPath(home); workspace = canonicalPath(workspace);
   function directory() { ensureHome(home); const root = join(home, 'owners'); privateDir(root); const dir = join(root, digest(origin)); privateDir(dir); return dir; }
   function receipt() {
     const p = join(directory(), 'owner.json'); if (!lstatExists(p)) return null;
     const r = readPrivate(p, true);
-    if (r.schema !== 'mlswarm-owner-1' || r.origin !== origin || !/^[a-f0-9-]{36}$/.test(r.requestId ?? '') || !TOKEN.test(r.pollingSecret ?? '') || !TOKEN.test(r.token ?? '') || !['pending','approved','expired','cancelled','revoked'].includes(r.status)) throw new Error('Owner connection state is invalid. No credentials were changed.');
+    // Files saved before 13 November 2026 can also say pending, expired or cancelled, and hold the retired approval's
+    // pollingSecret and expiry; anything but a current connection is connected again.
+    if (r.schema !== 'mlswarm-owner-1' || r.origin !== origin || !TOKEN.test(r.token ?? '') || !['connecting','approved','pending','expired','cancelled','revoked'].includes(r.status)) throw new Error('Owner connection state is invalid. No credentials were changed.');
     return r;
   }
   const save = r => writePrivate(join(directory(), 'owner.json'), r);
   // A website path the service returned, as a full link on this website; anything else is no link.
   const siteUrl = path => typeof path === 'string' && /^\/[^/\\]/.test(path) && !path.includes('\\') ? new URL(path, origin).href : null;
-  // The one check behind every action that needs this computer's approval. It answers with the saved
-  // approval, or stops with the same instruction whether the computer was never approved or its approval
-  // ran out or was ended on My agents.
-  const NOT_APPROVED = `This computer is not approved for MyLittleSwarm, or its approval has ended. Call approve_this_computer: your human approves this computer once in the browser, then repeat this call. Setup instructions: ${new URL('/?view=agents', origin).href}`;
+  const NOT_CONNECTED = 'This computer is not connected to MyLittleSwarm yet. Run setup on this computer, then repeat this call.';
   function approved() {
     const r = receipt();
-    if (!r || r.status !== 'approved' || r.connectionExpiresAt <= now()) throw new Error(NOT_APPROVED);
+    if (!r || r.status !== 'approved' || !PROFILE.test(r.personId ?? '')) throw new Error(NOT_CONNECTED);
     return r;
   }
   function selectedAccount(expectedProfileId) {
     const r = approved();
-    if (expectedProfileId !== undefined && (!PROFILE.test(expectedProfileId ?? '') || r.personId !== expectedProfileId)) throw new Error('This computer is now approved for a different MyLittleSwarm account. Call approve_this_computer to check which account it uses, then try again with the same request.');
+    if (expectedProfileId !== undefined && (!PROFILE.test(expectedProfileId ?? '') || r.personId !== expectedProfileId)) throw new Error('This computer is now connected to a different MyLittleSwarm account. Run setup again to check which account it uses, then try again with the same request.');
     return r;
   }
-  async function request(path, { method = 'GET', body, token, poll, profileId, signal, responseLimit = 256 * 1024 } = {}) {
+  async function request(path, { method = 'GET', body, token, profileId, signal, responseLimit = 256 * 1024, reconnected = false } = {}) {
     let response;
-    try { response = await fetchImpl(new URL('/api/owner' + path, origin), { method, redirect: 'error', credentials: 'omit', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: { Accept: 'application/json', ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(poll ? { Authorization: `Bearer ${poll}` } : {}), ...(profileId ? { 'X-Mlswarm-Profile-Id': profileId } : {}) }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) }); }
-    catch { throw new Error('MyLittleSwarm can’t be reached right now. Try the same request again in a moment.'); }
+    try { response = await fetchImpl(new URL('/api/owner' + path, origin), { method, redirect: 'error', credentials: 'omit', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: { Accept: 'application/json', ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(profileId ? { 'X-Mlswarm-Profile-Id': profileId } : {}) }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) }); }
+    catch (error) { if (neverConnected(error)) throw engineUnreachable(origin); throw new Error('MyLittleSwarm can’t be reached right now. Try the same request again in a moment.'); }
     let size = 0, chunks = [];
     for await (const c of response.body) { size += c.byteLength; if (size > responseLimit) { await response.body.cancel?.().catch(() => {}); throw new Error('MyLittleSwarm sent back an unexpected reply. Try again in a moment.'); } chunks.push(c); }
     let data; try { data = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new Error('MyLittleSwarm sent back an unexpected reply. Try again in a moment.'); }
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('MyLittleSwarm sent back an unexpected reply. Try again in a moment.');
     if (!response.ok) {
       const detail = response.status < 500 && typeof data.message === 'string' && data.message.length <= 500 && !/[\x00-\x1f\x7f-\x9f]/.test(data.message) ? data.message : null;
-      // The service no longer accepts this computer's approval: remember that, so the next call asks for a new one.
-      // Any other refusal, such as a project the person does not belong to, leaves the approval as it is.
-      if (response.status === 401 && token && /^This computer approval /.test(data.message ?? '')) { const r = receipt(); if (r?.token === token && r.status === 'approved') save({ ...r, status: 'revoked' }); throw new Error(NOT_APPROVED); }
+      // The engine no longer accepts this computer's credential, for example after its store was set up again:
+      // connect again the same way setup does, nobody is asked, and repeat the request once with the new credential.
+      // Any other refusal, such as a project the person does not belong to, leaves the connection as it is.
+      if (response.status === 401 && token && !reconnected && /^This computer is no longer connected to MyLittleSwarm/.test(data.message ?? '')) {
+        const fresh = await reconnect(token);
+        if (profileId && fresh.personId !== profileId) throw new Error('This computer is now connected to a different MyLittleSwarm account. Run setup again to check which account it uses, then try again with the same request.');
+        return request(path, { method, body, token: fresh.token, profileId, signal, responseLimit, reconnected: true });
+      }
       const failure = new Error(detail ? `Owner operation refused: ${detail}` : 'MyLittleSwarm couldn’t do that. Check the current state, then try again.');
       // Keep permanent project refusals distinguishable from transport failures.
       // Retryable HTTP responses cannot retire a saved control, even if their
@@ -95,35 +120,35 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
     return data;
   }
   function publicState(r) {
-    const url = new URL('/', origin); url.searchParams.set('view','owner-connect'); url.searchParams.set('request',r.requestId);
-    if (/^\/s\/[A-Za-z0-9_-]{22}$/.test(r.approvalPath ?? '')) url.href = new URL(r.approvalPath, origin).href;
-    return { website_origin: origin, environment: new URL(origin).protocol === 'http:' ? 'local-development' : 'live', status: r.status, account_name: r.personName ?? null, account_profile_id: r.status === 'approved' && PROFILE.test(r.personId ?? '') ? r.personId : null, expires_at: r.connectionExpiresAt ?? r.expiresAt ?? null, ...(r.status === 'pending' ? { approval_url: url.href, request_check: r.verificationCode, next_step: 'Show the person the approval link and check code. They sign in and approve this computer once; then call check_computer_approval.' } : {}) };
+    return { website_origin: origin, environment: new URL(origin).protocol === 'http:' ? 'local-development' : 'live', status: r.status, account_name: r.personName ?? null, account_profile_id: r.status === 'approved' && PROFILE.test(r.personId ?? '') ? r.personId : null };
   }
-  async function connect(clientName = 'MyLittleSwarm CLI', expectedWebsite) {
-    if (expectedWebsite !== undefined && ownerOrigin(expectedWebsite) !== origin) throw new Error(`MyLittleSwarm website mismatch: this connector uses ${origin}, but setup requested ${ownerOrigin(expectedWebsite)}. Do not approve a link for the other environment. Check MLSWARM_SELF_HOSTED_ORIGIN and MLSWARM_SITE_URL, then run mcp-config --site for the requested website and reload only when agents are idle.`);
-    return withOperationLock(directory(), async () => {
+  // Connects this computer to the local engine with the owner's session (owner decision, 13 November 2026): there is
+  // no approval step and the connection does not expire. The credential is saved before the engine hears of it, so a
+  // retry after a lost reply sends the same one and the engine answers with the same connection.
+  let connecting = null;
+  function establish(clientName, replaced) {
+    return connecting ??= (async () => {
       let r = receipt();
-      if (r?.status === 'approved' && r.connectionExpiresAt > now()) return publicState(r);
-      if (!r || ['expired','cancelled','revoked','approved'].includes(r.status)) { r = { schema:'mlswarm-owner-1', origin, requestId:randomUUID(), pollingSecret:randomBytes(32).toString('base64url'), token:randomBytes(32).toString('base64url'), clientName, status:'pending' }; save(r); }
-      const response = await request('/connect', { method:'POST', body:{ requestId:r.requestId, pollingSecret:r.pollingSecret, candidateTokenHash:hash(r.token), clientName:r.clientName } });
-      if (response.requestId !== r.requestId || !['pending','approved','expired','cancelled'].includes(response.status)) throw new Error('Owner service returned an invalid connection response. Retry this saved request.');
-      r = { ...r, status:response.status === 'approved' ? 'pending' : response.status, expiresAt:response.expiresAt, verificationCode:response.verificationCode, approvalPath:response.approvalPath }; save(r);
-      return publicState(r);
-    });
+      if (r?.status === 'approved' && r.token !== replaced) return r;
+      if (!r || r.status !== 'connecting' || r.token === replaced) { r = { schema:'mlswarm-owner-1', origin, requestId:randomUUID(), token:randomBytes(32).toString('base64url'), clientName:r?.clientName ?? clientName, status:'connecting' }; save(r); }
+      const session = await (ownerSession ?? (() => engineSession(origin, fetchImpl)))();
+      const response = await request('/local-computer', { method:'POST', token:session, body:{ candidateTokenHash:hash(r.token), clientName:r.clientName } });
+      if (!UUID.test(response.connectionId ?? '') || !PROFILE.test(response.personId ?? '') || typeof response.personName !== 'string') throw new Error('MyLittleSwarm sent back an unexpected reply. Try again in a moment.');
+      const current = receipt();
+      if (current?.status === 'approved' && current.token !== r.token && current.token !== replaced) return current;
+      const saved = { ...r, requestId:response.connectionId, status:'approved', personId:response.personId, personName:response.personName, email:typeof response.email === 'string' ? response.email : null };
+      save(saved); return saved;
+    })().finally(() => { connecting = null; });
   }
-  async function finish() {
-    return withOperationLock(directory(), async () => {
-      const r = receipt(); if (!r) throw new Error('Owner connection has not been requested. Connect your human account first.');
-      if (r.status === 'approved' && r.connectionExpiresAt > now()) return publicState(r);
-      const response = await request(`/connect/${r.requestId}`, { poll:r.pollingSecret });
-      if (!['pending','approved','expired','cancelled'].includes(response.status) || response.status === 'approved' && (!Number.isFinite(response.connectionExpiresAt) || response.connectionExpiresAt <= now() || typeof response.personName !== 'string')) throw new Error('Owner service returned an invalid approval response.');
-      const saved = { ...r, ...response }; save(saved); return publicState(saved);
-    });
+  const reconnect = replaced => establish('MyLittleSwarm shared service', replaced);
+  async function connect(clientName = 'MyLittleSwarm CLI', expectedWebsite) {
+    if (expectedWebsite !== undefined && ownerOrigin(expectedWebsite) !== origin) throw new Error(`MyLittleSwarm website mismatch: this connector uses ${origin}, but setup requested ${ownerOrigin(expectedWebsite)}. Check MLSWARM_SELF_HOSTED_ORIGIN and MLSWARM_SITE_URL, then run mcp-config --site for the requested website and reload only when agents are idle.`);
+    return publicState(await establish(clientName));
   }
   async function operation(name, args, { expectedProfileId, signal } = {}) {
     const r = selectedAccount(expectedProfileId);
     const e = value => encodeURIComponent(value ?? ''), project = `/projects/${e(args.project_id)}`;
-    const specs = { list_working_agents:[`${project}/my-workers`], list_needs_you:['/needs-you'], answer_human_request:[`/needs-you/${e(args.request_id)}/answer`,'POST'], set_project_update_settings:[`${project}/project-update-settings`,'POST'], get_project_overview:[`${project}/overview`], list_project_agents:[`${project}/agents`], list_project_conversations:[`${project}/conversations`], read_project_conversation:[`${project}/conversations/${e(args.thread_id)}`], read_project_chat:[`${project}/chat`], read_project_updates:[`${project}/updates`], list_project_tasks:[`${project}/tasks`], read_project_task:[`${project}/tasks/${e(args.task_id)}`], update_project_card:[`${project}/card`,'POST'], set_project_repository:[`${project}/configure`,'POST'], publish_to_explore:[`${project}/publish`,'POST'], make_project_public:[`${project}/public-conversion`,'POST'], create_private_project:['/projects/private','POST'], set_agent_limits:[`${project}/agents/${e(args.agent_id)}/settings`,'POST'], register_my_agents:[`${project}/agents`,'POST'], list_my_projects:['/projects'], list_my_proposals:['/proposals'], get_my_proposal:[`/proposals/${e(args.project_id)}`], control_project:[`${project}/control`,'POST'], archive_my_project:[`${project}/personal-archive`,'POST'], end_computer_approval:['/connections/revoke','POST'] };
+    const specs = { list_working_agents:[`${project}/my-workers`], list_needs_you:['/needs-you'], answer_human_request:[`/needs-you/${e(args.request_id)}/answer`,'POST'], set_project_update_settings:[`${project}/project-update-settings`,'POST'], get_project_overview:[`${project}/overview`], list_project_agents:[`${project}/agents`], list_project_conversations:[`${project}/conversations`], read_project_conversation:[`${project}/conversations/${e(args.thread_id)}`], read_project_chat:[`${project}/chat`], read_project_updates:[`${project}/updates`], list_project_tasks:[`${project}/tasks`], read_project_task:[`${project}/tasks/${e(args.task_id)}`], update_project_card:[`${project}/card`,'POST'], set_project_repository:[`${project}/configure`,'POST'], publish_to_explore:[`${project}/publish`,'POST'], make_project_public:[`${project}/public-conversion`,'POST'], create_private_project:['/projects/private','POST'], set_agent_limits:[`${project}/agents/${e(args.agent_id)}/settings`,'POST'], register_my_agents:[`${project}/agents`,'POST'], list_my_projects:['/projects'], list_my_proposals:['/proposals'], get_my_proposal:[`/proposals/${e(args.project_id)}`], control_project:[`${project}/control`,'POST'], archive_my_project:[`${project}/personal-archive`,'POST'] };
     if (!specs[name]) throw new Error('Owner operation is unknown.');
     const schema = OWNER_SCHEMAS.get(name);
     if (schema.required.includes('project_id') && !ID.test(args.project_id ?? '')) throw new Error('Use the project’s ID from list_my_projects.');
@@ -145,10 +170,10 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
       if (args.approved !== true || typeof args.title !== 'string' || !args.title.trim() || args.title.trim().length > 120 || typeof args.goal !== 'string' || !args.goal.trim() || args.goal.trim().length > 1500 || typeof args.repoUrl !== 'string' || !isGithubRepositoryUrl(args.repoUrl) || !UUID.test(args.client_request_id ?? '')) throw new Error('Owner private creation requires approval of the name, purpose and GitHub repository and the original request UUID.');
       const body = { client_request_id: args.client_request_id, title: args.title.trim(), goal: args.goal.trim(), githubUrl: args.repoUrl, approved: true };
       // Save before contact, so an uncertain write never becomes another person's
-      // project after this computer is approved under a different account.
+      // project after this computer is connected under a different account.
       return withOperationLock(directory(), async () => {
         const account = selectedAccount(expectedProfileId);
-        if (!PROFILE.test(account.personId ?? '')) throw new Error('Owner account identity is missing. End this computer approval and connect again before creating a private project.');
+        if (!PROFILE.test(account.personId ?? '')) throw new Error('Owner account identity is missing. Run setup again before creating a private project.');
         const intents = join(directory(), 'private-projects'); privateDir(intents);
         const path = join(intents, `${digest(body.client_request_id)}.json`);
         const fingerprint = hash(JSON.stringify(body));
@@ -245,13 +270,11 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
       if (args.approved !== true || !/^[\w-]{1,64}$/.test(args.client_request_id ?? '') || !Array.isArray(args.names) || args.names.length < 1 || args.names.length > 10 || new Set(args.names).size !== args.names.length || args.names.some(n => typeof n !== 'string' || !/^[\w-]{1,64}$/.test(n))) throw new Error('Owner team registration requires approved distinct names and the original request ID.');
       body = { names:args.names,client_request_id:args.client_request_id,approved:true };
     }
-    if (name === 'end_computer_approval') body = {};
     if (name === 'list_my_projects' && args.scope !== undefined && !['owned','joined','all'].includes(args.scope)) throw new Error('Choose owned, joined or all projects.');
     const query = new URLSearchParams();
     for (const field of ['cursor','scope','q','source','limit']) if (args[field] !== undefined) query.set(field, String(args[field]));
     if (query.size) path += '?' + query;
     const response = await request(path,{method,body,token:r.token,profileId:r.personId});
-    if (name === 'end_computer_approval') save({...r,status:'revoked'});
     // The goal is already in definition.goal.
     if (name === 'get_project_overview' && response.project && typeof response.project === 'object') delete response.project.mission;
     return lean(response);
@@ -366,7 +389,7 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
     const account = selectedAccount(options.expectedProfileId);
     return request(path, { ...(body === undefined ? {} : { method: 'POST', body }), token: account.token, profileId: account.personId, signal: options.signal });
   };
-  return { origin,connect,finish,operation,addAgent,
+  return { origin,connect,operation,addAgent,
     async submitSteering(projectId,input,options={}) {
       if(!ID.test(projectId??''))throw new Error('Use the project ID.');
       const value=await participationRequest(`/projects/${projectId}/steering`,input,options);

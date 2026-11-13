@@ -10,6 +10,107 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## What “no expiry, no revoke” means for connections — owner decision, 13 November 2026
+
+Source: the owner's 13 November 2026 decision in [No computer approval: setup connects this computer by itself](#no-computer-approval-setup-connects-this-computer-by-itself--owner-decision-13-november-2026),
+recorded after review of the change that removed revocation.
+
+- **Connections no longer expire or get revoked.** The engine does not read a connection's expiry
+  and nothing ends a connection.
+- **A leaked connector credential stays valid** until the owner removes that connection. No command
+  or page removes one now, so in practice it stays valid until the engine's store is set up again.
+- **Previously expired connections count as live again.**
+- **The connector reconnects by itself** when the engine answers 401, and repeats the request once.
+
+## A dead local preview is not a broken frame — owner decision, 13 November 2026
+
+Source: the owner on 13 November 2026, asking to fix “an agent's preview dies with its run”, after
+the Preview tab showed the browser's "This site can't be reached" frame for a stopped
+`http://localhost:8791/index.html` server. Keeping the agent's server running is covered by
+the preview bullet of [The closing update covers this job's merged result](#the-closing-update-covers-this-jobs-merged-result-and-a-turn-ends-at-its-result--owner-selections-12-november-2026) (the server runs until the
+agent is stopped or the project closes; a localhost preview is cleared at close). The owner chose
+that approach over a service-served preview proposed in the same change.
+
+- The Preview tab checks a local (`http:`) link when it opens and every 10 seconds. When nothing
+  answers it shows "The preview isn't running", with what to do and **Check again**, and frames
+  the page again as soon as it answers. `https://` previews are framed as before.
+
+## Setup registers Claude Code itself — owner decision, 13 November 2026
+
+Source: the owner on 13 November 2026, after an AI coding agent set MyLittleSwarm up and used
+it, asking to fix “Registering the coding agent was a manual extra step”.
+
+- **Claude Code is registered by setup.** When the `claude` command is on PATH, `npm run setup`
+  registers the installation's MCP server in Claude Code's user settings through
+  `claude mcp add-json` (the connector's `register --client claude`), unless an entry with the
+  same address is already there, and says so in one line. Nothing runs through a shell; on
+  Windows an npm `.cmd` shim runs its JavaScript entry point with Node. `--no-register` skips
+  it, and a failed registration is a warning: setup carries on and prints the manual command.
+  Codex and other clients still get the printed `mcp-config` command.
+- **Tools before a restart.** A coding agent loads MCP tools only when a session starts, so the
+  connector's `tool` command calls the running service's tools from a terminal with the
+  service's own credential, and the setup summary names it.
+- **First-run port.** A first run whose port 8787 is held by another program uses the next
+  free port up to 8799, says which, and keeps it. A saved port or an explicit
+  `MLSWARM_ENGINE_PORT` is never moved.
+- **Engine not running.** A MyLittleSwarm tool that cannot reach the engine at all answers
+  that the engine isn't running at its address and to start it with `npm run setup`; the
+  “couldn't confirm whether that happened” answer stays for a request whose reply was lost.
+
+## The engine runs in the background; project pages fit the window — owner decisions, 13 November 2026
+
+Source: the owner in chat on 13 November 2026, after the first local run stopped when the
+terminal that ran setup closed: “the server has to run in the background”; “the UI has to fit
+the height of the window with the project description/git thing frozen on top”; “I don't want
+the map to be scrollable it has to fit (and the map size adapt) … for each tab we need to see
+what part is scrollable and what should fit”; and, for phones, the compact frozen header.
+
+- **Background engine.** `npm run setup` starts the engine detached, with its output in
+  `engine.log`, and returns once it listens; `npm run stop` stops it gracefully on every
+  platform through a loopback request carrying a key derived from the owner file's signing
+  secret. The port it ran on is saved in `engine-settings.json` and reused. A lock whose
+  process no longer exists (a crash or restart) is replaced at the next start.
+- **Framed project page.** The window never scrolls on a project page. The project header stays
+  at the top of the page column; below it each region is either `.k42-scroll` (scrolls on its
+  own) or `.k42-fit` (fills the space left; `.k42-grow` children share it). Preview fits; Tasks,
+  Communication, Agents, Usage, Teams and Settings scroll. In the side panel the Updates feed
+  scrolls and the Map fits, resizing with the window, the panel and the narrow-screen drawer.
+- **Phones (600px and narrower).** Only the header's title row (name, status, start and archive)
+  stays frozen; the repository and usage row opens the tab's scrolling content. Selected by the
+  owner over keeping the whole header frozen or letting it scroll away.
+- **Time left in the header for the owner too.** The owner asked to fix agents running out of time
+  unnoticed. The header's status now shows the time left (and "Time is up") to everyone; once time
+  is up the owner also gets **Add time**, which opens the job bar on Agents. Adding time still
+  happens in that one bar. This changes the 10 November choice to show the time only to people
+  who don't see the bar.
+- **The panel map has no inner frame.** In the side panel the map drops its own card border and
+  padding and keeps Full screen beside its toolbar, so short windows keep room for the map.
+
+## No computer approval: setup connects this computer by itself — owner decision, 13 November 2026
+
+Source: the owner in chat on 13 November 2026: “We don't need the computer add/approval — not
+in the backend and not in the settings.” MyLittleSwarm runs only as a local engine for one owner
+on 127.0.0.1, so a person approving their own computer in their own browser protected nothing.
+
+- **Automatic connection.** `setup` asks the engine for the owner's local session (given only to
+  a request from this computer at the engine's own address) and calls `POST /api/owner/local-computer`
+  with the candidate token's hash. The engine, only when self-hosted, records the connection
+  already connected. There is no approval link, check code, browser page or wait.
+- **No expiry, no revoke.** Connections do not expire, and the website and the connector no longer
+  end them. If the engine stops accepting a computer's credential (for example after its store
+  was set up again, or a connection ended before this change), the connector connects again by
+  itself and repeats the request once; nobody is asked to act.
+- **Removed.** The routes `/api/owner/connect`, `/connect/:id`, `/connect/:id/review`,
+  `/connect/:id/approve`, `/computers/:id/revoke` and `/connections/revoke`; the MCP tools
+  `approve_this_computer`, `check_computer_approval` and `end_computer_approval`; the CLI
+  commands `owner-connect`, `owner-finish` and `owner-disconnect`; the web approval page and
+  the **Connections** card in project Settings. This supersedes the Connections card and
+  “Approve this computer” parts of [My computers becomes Connections in project Settings](#my-computers-becomes-connections-in-project-settings--owner-decision-11-november-2026).
+- **Kept.** Connection records and their ID, which key runtime readiness, the web start queue,
+  background and in-chat controls, GitHub observations, merge-policy reports and an agent's
+  computer; `GET /api/owner/computers`, from which the web app picks a computer for a start;
+  the bearer token on every connector request; and `get_computer_status`.
+
 ## Live projects show a green dot; the menu sorts by last activity — owner request, 13 November 2026
 
 Source: the owner in chat on 13 November 2026, answering “Bring back a live dot in the sidebar and

@@ -6,7 +6,6 @@ import { OWNER_TOOLS } from '../owner-tools.mjs';
 import { DISCOVERY_TOOLS } from '../discovery.mjs';
 import { RuntimeError, validateTarget, validateUuid } from './contracts.mjs';
 import { createRuntimeTools } from './runtime-tools.mjs';
-import { GUIDE_REVISION } from '../version.mjs';
 import { participationCommandSchema, participationQuerySchema } from './participation-contracts.mjs';
 import { publicTargetSchema, bindPublicTarget } from './public-target.mjs';
 import { GUIDE_SECTIONS, readBundledGuide } from '../skill-bundle.mjs';
@@ -65,10 +64,6 @@ export function createRuntimeApplication({ controllers, principal, ownerClient, 
     throw new RuntimeError('bad_input', field ? `Check ${field}: it is missing or not in the expected form.` : 'Use only the fields this tool takes.');
   }
   const requirePort = port => { if (!port) throw new RuntimeError('unavailable', 'This runtime capability is not configured.'); return port; };
-  function checkAccount(account) {
-    if (account?.status === 'approved' && account.account_profile_id !== identity.ownerId) throw new RuntimeError('forbidden', 'Browser approval selected a different human profile. No runtime authority was changed.');
-    return account;
-  }
   return {
     listTools(caller, options) {
       return validateCaller(caller) === 'owner' ? structuredClone(ownerCatalog) : workerOperations?.listTools(caller, options) ?? [];
@@ -100,24 +95,6 @@ export function createRuntimeApplication({ controllers, principal, ownerClient, 
         if (name === 'get_mlswarm_guide') return { content: [{ type: 'text', text: input.section === undefined && guide !== undefined ? guide : readBundledGuide(input.section) }] };
         if (DISCOVERY_TOOLS.some(item => item.name === name)) return result(await requirePort(discovery).call(name, input));
         const client = requirePort(ownerClient);
-        if (name === 'approve_this_computer') {
-          if (input.website_origin !== undefined && input.website_origin !== identity.site) throw new RuntimeError('forbidden', 'The requested website differs from this runtime’s configured site.');
-          return result({...checkAccount(await client.connect('MyLittleSwarm shared runtime', identity.site)), guide_revision:GUIDE_REVISION});
-        }
-        if (name === 'check_computer_approval') {
-          const deadline = Date.now() + (input.wait_seconds ?? 0) * 1000;
-          for (;;) {
-            const account = checkAccount(await client.finish());
-            if (account.status !== 'pending' || Date.now() >= deadline) return result(account);
-            await new Promise((resolve, reject) => {
-              const timer = setTimeout(done, Math.min(1000, deadline - Date.now()));
-              function done() { signal?.removeEventListener('abort', cancelled); resolve(); }
-              function cancelled() { clearTimeout(timer); signal?.removeEventListener('abort', cancelled); reject(new RuntimeError('cancelled', 'Approval observation was cancelled.')); }
-              signal?.addEventListener('abort', cancelled, { once: true });
-              if (signal?.aborted) cancelled();
-            });
-          }
-        }
         if (name === 'add_project_agent') {
           const { start = true, provider = 'claude', model = null, task, ...add } = input;
           const added = await client.addAgent(add, 'MyLittleSwarm shared runtime', { expectedProfileId: identity.ownerId });
@@ -143,8 +120,10 @@ export function createRuntimeApplication({ controllers, principal, ownerClient, 
         }
         return result(await client.operation(name, input, { expectedProfileId: identity.ownerId, signal }));
       } catch (error) {
-        // A permanent refusal from the website is known and safe to show; other failures stay unconfirmed.
+        // A permanent refusal from the website is known and safe to show, as is an engine that could not be reached
+        // at all (nothing was sent, so nothing happened); other failures stay unconfirmed.
         const safe = error instanceof RuntimeError ? { code: error.code, message: error.message }
+          : error?.unreachable === true ? { code: 'engine_unreachable', message: error.message }
           : error?.refusal ? { code: error.code, message: error.message, ...(error.limit ? { limit: error.limit, retryable: false } : {}) } : { code: signal?.aborted ? 'cancelled' : 'operation_failed', message: 'MyLittleSwarm couldn’t confirm whether that happened. Check before trying again, and reuse the same request ID if you do.' };
         return { ...result({ error: safe }), isError: true };
       }

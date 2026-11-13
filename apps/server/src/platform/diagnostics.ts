@@ -1,7 +1,8 @@
 import { performance } from 'node:perf_hooks';
 import { FieldPath } from '../firestore.js';
 import { z } from 'zod';
-import { collection, db, inProject, profiles, agents } from '../firestore.js';
+import { db, inProject, profiles, agents } from '../firestore.js';
+import { computerConnections } from '../owner/computer-access.js';
 import { assertCommunityActor, type CommunityActor } from '../community/identity.js';
 import { activeRecipientOperators, connectionAllowed, membershipsOf, validProjectId } from '../projects/access.js';
 import { projects } from '../projects/records.js';
@@ -53,8 +54,6 @@ export async function lookupPlatformUsers(actor: CommunityActor, query: unknown,
   return { observedAt: now(), email, users: found.docs.map(d => profileSummary(d.id, d.data())), limit: 2, ambiguous: found.size === 2 };
 }
 
-type ComputerRecord = { clientName: string; createdAt: number; approvedAt: number | null; revokedAt: number | null; expiresAt: number; connectionExpiresAt: number | null; profileId: string | null; lastUsedAt?: number };
-const computers = collection<ComputerRecord>('computerConnections');
 
 async function readAgents(profileId: string, at: number) {
   const [joined, owned] = await Promise.all([
@@ -101,7 +100,7 @@ export async function readUserConnections(actor: CommunityActor, rawProfileId: u
   const profile = (await profiles.doc(profileId).get()).data();
   if (!profile) throw new Refusal('not_found', 'No registered account has this ID.');
   const at = now();
-  let page = computers.where('profileId', '==', profileId).orderBy(FieldPath.documentId()).limit(input.limit + 1);
+  let page = computerConnections.where('profileId', '==', profileId).orderBy(FieldPath.documentId()).limit(input.limit + 1);
   if (input.cursor) page = page.startAfter(input.cursor);
   const [found, agentResult] = await Promise.all([page.get(), readAgents(profileId, at)]);
   const rows = found.docs.slice(0, input.limit);
@@ -109,8 +108,9 @@ export async function readUserConnections(actor: CommunityActor, rawProfileId: u
     const c = d.data();
     const lastUsedAt = typeof c.lastUsedAt === 'number' && Number.isFinite(c.lastUsedAt) && c.lastUsedAt >= 0 && c.lastUsedAt <= at ? c.lastUsedAt : null;
     return { id: d.id, clientName: c.clientName,
-      status: c.revokedAt !== null ? 'revoked' : c.approvedAt !== null ? c.connectionExpiresAt === null || at >= c.connectionExpiresAt ? 'expired' : 'approved' : at >= c.expiresAt ? 'expired' : 'pending',
-      createdAt: c.createdAt, approvedAt: c.approvedAt, expiresAt: c.connectionExpiresAt, revokedAt: c.revokedAt,
+      // Only connections from before 13 November 2026 can be ended or never connected.
+      status: c.revokedAt !== null ? 'revoked' : c.approvedAt !== null ? 'connected' : 'not_connected',
+      createdAt: c.createdAt, connectedAt: c.approvedAt, revokedAt: c.revokedAt,
       lastUsedAt, contactStatus: lastUsedAt === null ? 'unknown' : at - lastUsedAt < 5 * 60_000 ? 'recent' : 'stale' };
   }), next: found.size > input.limit ? rows.at(-1)!.id : null, limit: input.limit, ...agentResult };
 }

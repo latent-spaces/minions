@@ -7,10 +7,12 @@ import { ENGINE_INITIALIZATION, initializationEvidenceHash, readOwnerConfigurati
 import { lockSelfHostedStore } from './self-hosted-lock.js';
 import { startSelfHostedRuntime } from './self-hosted-runtime.js';
 import { localOwnerSession } from './self-hosted-owner-session.js';
+import { engineStopKey, engineStopRoute } from './self-hosted-stop.js';
 import { CURRENT_STATE_CUTOVER_RECEIPT, CURRENT_STATE_PROGRESS_SCHEMA, CURRENT_STATE_PROGRESS_EPOCH, USAGE_EPOCH } from './storage/schema.js';
 
 let consumed = false;
-export async function startSelfHostedEngine() {
+/** requestStop runs when `npm run stop` asks this engine to stop; the caller owns the shutdown and exit code. */
+export async function startSelfHostedEngine({ requestStop }: { requestStop(): void }) {
   const config = selfHostedConfig();
   if (Number(process.versions.node.split('.')[0]) < 24) throw new Error('The standalone engine requires Node.js 24 or newer.');
   const owner = readOwnerConfiguration(config.ownerFile);
@@ -51,6 +53,7 @@ export async function startSelfHostedEngine() {
     const provider = localOwnerIdentity({ secret: Buffer.from(owner.signingSecret, 'hex'), owner: owner.owner, validAfter: owner.validAfter });
     setIdentityProvider(provider);
     authentication.use('/local-owner', localOwnerSession({ provider, installed: () => identity() === provider && vouchesForOwnerEmail(identity()), origin: () => origin }));
+    authentication.use('/engine/stop', engineStopRoute({ key: engineStopKey(owner.signingSecret), requestStop }));
     authentication.use(sessionRoutes(identity));
     const { createApi } = await import('./api.js');
     const { startLocalWorker } = await import('./v2/local-fanout.js');

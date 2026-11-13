@@ -15,7 +15,7 @@ import { personaChoice } from '@mlswarm/contracts';
 import { personFromIdToken, SIGN_IN_REQUIRED } from '../auth.js';
 import { bearerToken } from '../bearer.js';
 import { Refusal, sendRefusal } from '../errors.js';
-import { requestLimits, sharedRead } from '../request-state.js';
+import { sharedRead } from '../request-state.js';
 import { assertMembership, projectRole } from '../projects/access.js';
 import { projects } from '../community/records.js';
 import { agents, currentProjectId, projectCollection, db, profiles, type Agent, type Profile } from '../firestore.js';
@@ -35,7 +35,6 @@ import { readRepositorySummary } from './repository-summary.js';
 const AGENTS_PAGE = 20;
 const LABEL_IDS = 60;
 const OWNED_PAGE = 20;
-const REQUESTS_PER_MINUTE = 60;
 const OVERVIEW_TTL_MS = 10_000;
 // Usage pages every agent's totals, so viewers on one replica share one scan per window.
 
@@ -48,7 +47,8 @@ const TRAFFIC_PAGES = 32;
 
 export function viewRoutes(now: () => number): Router {
   const router = express.Router();
-  const admission = requestLimits.limiter(() => `viewer:${currentProjectId()}`, REQUESTS_PER_MINUTE, 60_000);
+  // No per-viewer read budget: the engine serves one owner on this computer, whose page reloads and tab switches
+  // must never be refused. The shared caches below bound the costly scans.
   // Only shared project observations are cached. Authentication and removal checks below
   // still run on every request; private account/connection data never enter this cache.
   let overview: Awaited<ReturnType<typeof readOverview>> | undefined;
@@ -87,9 +87,6 @@ export function viewRoutes(now: () => number): Router {
       if (!token) throw new Refusal('unauthorized', SIGN_IN_REQUIRED);
       const person = await personFromIdToken(token);
       res.locals.projectRole = await projectRole(person);
-      const at = now();
-      const retry = admission(person.id, at);
-      if (retry > 0) throw new Refusal('rate_limited', 'Too many requests. Wait a moment, then try again.', Math.ceil(retry / 1000));
       res.locals.ownerProfileId = person.id;
       next();
     } catch (error) {
@@ -289,7 +286,7 @@ async function agentLabels(docs: DocumentSnapshot<Agent>[]) {
 }
 async function agentRows(docs: DocumentSnapshot<Agent>[], profileId: string, at: number) {
   const ids = docs.map((d) => d.id);
-  // Read canonical contacts behind admission once, then share that snapshot between
+  // Read canonical contacts once, then share that snapshot between
   // raw contact/activity and derived status. Historical incomplete rows retain identity.
   const [owners, seen, usage] = await Promise.all([
     peopleOf([...new Set(docs.map((d) => d.data()!.ownerProfileId))]),

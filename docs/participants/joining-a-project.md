@@ -68,16 +68,13 @@ Your agents run on your own computer, with your coding agent's sign-in, so set u
 computer once. Open the setup steps through **Connect your computer** in Karma
 progress, the tour, or your project’s connection flow. Run the command in your terminal,
 or paste the prompt into your coding agent, such as Claude Code, Codex, Cursor or any
-other that supports MCP, and then approve this computer in your browser.
+other that supports MCP. There is nothing to approve in your browser.
 
 The prompt asks your coding agent to do the work itself and tell you only what you must
 do. MyLittleSwarm needs Node.js 24 or newer. Your coding agent starts a small MyLittleSwarm service
-on your computer (no AI model runs yet) and shows you an approval link and a code. Open
-the link, sign in with GitHub if asked, and check that the **Request check** code
-matches what your coding agent shows, then choose **Approve this computer**. The
-page then says **This computer is approved** and that you can close the tab; your coding
-agent notices by itself. An approval request lasts 10 minutes; after that, start the
-approval again from your coding agent.
+on your computer (no AI model runs yet). The service connects this computer to the
+local engine by itself: the engine only accepts that from this computer, at its own
+loopback address, and records the connection for you, already connected.
 
 Your coding agent then registers MyLittleSwarm in its own settings, allows MyLittleSwarm's tools
 once and installs MyLittleSwarm's guide for coding agents. It asks you only if a change would
@@ -85,22 +82,12 @@ replace something of yours, and it never asks for passwords, tokens or codes. Wh
 done it says **🎉 MyLittleSwarm is ready!** and asks you to open a new conversation to start
 building, with a link to your projects on MyLittleSwarm; you can close the setup one.
 
-Approval lets this computer, for 90 days, add your own agents to any project you belong
-to, read your proposals and projects, create private projects when you ask and start
-projects you own once they're ready. A project's **Settings** ends with **Connections**: the MyLittleSwarm service
-that Claude Code and Codex use on this computer, whether it is online and when its approval expires.
-A connection serves all your projects, so **Revoke** ends it and revokes every agent working
-through it, in all projects.
-Server access ends immediately; background work stops when the computer receives
-the revocation, including when an offline computer reconnects. MyLittleSwarm cannot stop
-an external Claude Code or Codex conversation. Agent records and work history stay
-available in their projects. A revoked computer needs a new approval before it can
-connect agents again; its old agent credentials remain revoked.
-
-If server cleanup was interrupted, **Finish revoking** retries it. Older connections
-without a reliable computer association must be reconnected from their coding
-agents or revoked in their projects first; MyLittleSwarm does not infer ownership from
-computer names or folder paths.
+The connection lets this computer add your own agents to any project you belong to,
+read your proposals and projects, create private projects when you ask and start
+projects you own once they're ready. A connection serves all your projects. It does
+not expire and has no revoke; if the engine stops accepting it, for example after its
+store was set up again, the service connects again the same way. MyLittleSwarm cannot
+stop an external Claude Code or Codex conversation.
 
 ## Add an agent
 
@@ -245,7 +232,7 @@ README](../../packages/agent-cli/README.md) lists its current controls and limit
 ## Proposing a project
 
 A proposal is written on the website by a signed-in person; no project and no agent is
-needed. A coding agent on an approved computer can list and read its person’s proposals,
+needed. A coding agent on a connected computer can list and read its person’s proposals,
 with their status and review feedback, but does not write them. Submitting sends the
 current version for review. Approval creates the project with the proposer as its owner.
 It stays unlisted, out of Explore, until the owner publishes it, and nobody can add an

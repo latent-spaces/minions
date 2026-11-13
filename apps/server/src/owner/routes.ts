@@ -1,8 +1,9 @@
 import { reportMergePolicy } from '../projects/merge-policy.js';
 import { shortSharedLink } from '../shared-links.js';
 import { FieldPath } from '../firestore.js';
-import { computerConnections, type ComputerConnection as Connection } from './computer-access.js';
-import { revokeComputer } from './computer-revocation.js';
+import { computerConnections, currentComputer, COMPUTER_DISCONNECTED } from './computer-access.js';
+import { deploymentKind } from '../deployment.js';
+import { randomUUID } from 'node:crypto';
 export { computerConnections } from './computer-access.js';
 import { prepareOnboardingProgress } from '../onboarding/progress.js';
 import { submitSteering, steeringResult } from '../projects/steering.js';
@@ -29,7 +30,7 @@ import { saveAgentPersona } from '../projects/agent-participation.js';
 import express, { type Request, type Response } from 'express';
 import { localhostHostValidation } from '@modelcontextprotocol/sdk/server/middleware/hostHeaderValidation.js';
 import { z } from 'zod';
-import { hashToken, personIdentityFromIdToken, signInFromIdToken, verifiedEmails } from '../auth.js';
+import { SIGN_IN_REQUIRED, hashToken, personIdentityFromIdToken, signInFromIdToken, verifiedEmails } from '../auth.js';
 import { identity } from '../identity/index.js';
 import { bearerToken } from '../bearer.js';
 import { approvedAdminSession } from '../admin-auth.js';
@@ -47,51 +48,41 @@ import { projectRole, validProjectId } from '../projects/access.js';
 import { PERSONAL_ARCHIVE, setPersonalArchive } from '../projects/personal-archive.js';
 import { CREATE_PRIVATE, createPrivateProject } from '../projects/private.js';
 
-// The one approval a person gives (owner decision, 11 October 2026): this computer manages their projects and adds
-// and connects their own agents in every project they belong to, until they end it or it expires.
-export const COMPUTER_LIFETIME = 90 * 24 * 60 * 60_000;
 // One process-wide expensive-auth budget, also shared by computer-only hosting ingress.
 export const ownerVerification = boundedVerification();
 const secret = z.string().regex(/^[\w-]{43}$/), uuid = z.string().uuid();
-const OWNER_CONNECT = z.object({ requestId: uuid, pollingSecret: secret, candidateTokenHash: z.string().regex(/^[a-f0-9]{64}$/), clientName: z.string().trim().min(1).max(100).refine(v => !/[\x00-\x1f\x7f]/.test(v)) }).strict();
+const LOCAL_COMPUTER = z.object({ candidateTokenHash: z.string().regex(/^[a-f0-9]{64}$/), clientName: z.string().trim().min(1).max(100).refine(v => !/[\x00-\x1f\x7f]/.test(v)) }).strict();
 const parse = <T>(schema: z.ZodType<T>, value: unknown): T => { const result = schema.safeParse(value); if (!result.success) throw new Refusal('bad_input', 'Some fields in this request are missing or not in the expected form.'); return result.data; };
-// The MCP recognizes this message as "the computer's approval is gone" and asks for a new one.
-const unavailable = () => new Refusal('unauthorized', 'This computer approval expired or was ended. Approve this computer again.');
-const verificationCode = (c: Connection) => hashToken(`${c.requestId}:${c.candidateTokenHash}`).slice(0, 8).toUpperCase();
-const state = (c: Connection, at: number) => c.revokedAt !== null ? 'cancelled' : c.approvedAt !== null ? (at >= c.connectionExpiresAt! ? 'expired' : 'approved') : at >= c.expiresAt ? 'expired' : 'pending';
-const metadata = (c: Connection, at: number) => ({ requestId: c.requestId, clientName: c.clientName, status: state(c, at), expiresAt: c.expiresAt, connectionExpiresAt: c.connectionExpiresAt, verificationCode: verificationCode(c) });
+// The connector recognizes this message and connects this computer again by itself.
+const unavailable = () => new Refusal('unauthorized', COMPUTER_DISCONNECTED);
 
-async function createOwnerConnection(input: z.infer<typeof OWNER_CONNECT>, now: () => number) {
-  return db.runTransaction(async tx => {
-    const ref = computerConnections.doc(input.requestId), existing = (await tx.get(ref)).data();
-    const hashes = { pollingSecretHash: hashToken(input.pollingSecret), candidateTokenHash: input.candidateTokenHash };
-    if (existing) {
-      if (existing.pollingSecretHash !== hashes.pollingSecretHash || existing.candidateTokenHash !== hashes.candidateTokenHash || existing.clientName !== input.clientName) throw new Refusal('duplicate', 'This request ID is already used by another approval request. Start a new one.');
-      return metadata(existing, now());
-    }
-    const connection: Connection = { requestId: input.requestId, ...hashes, clientName: input.clientName, createdAt: now(), expiresAt: now() + 10 * 60_000, approvedAt: null, revokedAt: null, connectionExpiresAt: null, profileId: null, firebaseUid: null, authenticatedAt: null };
-    tx.create(ref, connection); return metadata(connection, now());
-  });
-}
-async function approveOwnerConnection(id: string, idToken: string, now: () => number, admit: (profileId: string) => void) {
+// The engine serves one owner on this computer (owner decision, 13 November 2026): the connector connects the computer
+// with the owner's local session, with no approval step, and the connection does not expire. The candidate token's
+// hash names the connection, so a retry after a lost reply answers with the same one.
+async function connectLocalComputer(input: z.infer<typeof LOCAL_COMPUTER>, idToken: string, now: () => number, admit: (profileId: string) => void) {
   const signIn = await signInFromIdToken(idToken);
   const { person } = await personIdentityFromIdToken(idToken);
   admit(person.id);
   return db.runTransaction(async tx => {
-    const ref = computerConnections.doc(id), c = (await tx.get(ref)).data();
-    if (!c || state(c, now()) === 'expired' || c.revokedAt !== null) throw unavailable();
-    if (c.approvedAt !== null) { if (c.profileId !== person.id || c.firebaseUid !== signIn.firebaseUid) throw new Refusal('forbidden', 'This computer is already approved for another MyLittleSwarm account.'); return metadata(c, now()); }
-    const active = (await tx.get(profiles.doc(person.id))).data(); if (!active || active.removedAt !== null) throw unavailable();
-    const updated = { ...c, profileId: person.id, firebaseUid: signIn.firebaseUid, authenticatedAt: signIn.authTime, approvedAt: now(), connectionExpiresAt: now() + COMPUTER_LIFETIME };
+    const found = await tx.get(computerConnections.where('candidateTokenHash', '==', input.candidateTokenHash).limit(2));
+    const existing = found.size === 1 ? found.docs[0] : null, c = existing?.data();
+    const reply = (id: string) => ({ connectionId: id, personId: person.id, personName: person.name, email: person.email });
+    if (found.size > 1 || c && (!currentComputer(c, person.id) || c.firebaseUid !== signIn.firebaseUid)) throw new Refusal('duplicate', 'This computer credential is already in use. Connect again with a new one.');
+    if (existing) return reply(existing.id);
+    const active = (await tx.get(profiles.doc(person.id))).data(); if (!active || active.removedAt !== null) throw new Refusal('unauthorized', SIGN_IN_REQUIRED);
     const progress = await prepareOnboardingProgress(tx, person.id, now());
-    progress(['computer']); tx.update(ref, updated); return metadata(updated, now());
+    const at = now(), id = randomUUID();
+    tx.create(computerConnections.doc(id), { requestId: id, candidateTokenHash: input.candidateTokenHash, clientName: input.clientName, createdAt: at,
+      approvedAt: at, revokedAt: null, profileId: person.id, firebaseUid: signIn.firebaseUid, authenticatedAt: signIn.authTime });
+    progress(['computer']);
+    return reply(id);
   });
 }
 export async function ownerFromToken(token: string, now: () => number): Promise<{ person: WithId<Profile>; connectionId: string; coFounder: boolean }> {
   if (!secret.safeParse(token).success) throw unavailable();
   const found = await computerConnections.where('candidateTokenHash', '==', hashToken(token)).limit(2).get();
   const doc = found.size === 1 ? found.docs[0] : null, c = doc?.data();
-  if (!c || state(c, now()) !== 'approved' || !c.profileId || !c.firebaseUid) throw unavailable();
+  if (!c || !c.profileId || !currentComputer(c, c.profileId) || !c.firebaseUid) throw unavailable();
   const [person, account] = await Promise.all([profiles.doc(c.profileId).get(), identity().account(c.firebaseUid).catch(() => null)]);
   if (!person.exists || person.data()!.removedAt !== null || !account || account.disabled || !(await verifiedEmails(account)).includes(person.data()!.email.toLowerCase()) || account.validAfter > c.authenticatedAt!) throw unavailable();
   // Records authenticated account API use, before any project-specific authorization.
@@ -101,12 +92,12 @@ export async function ownerFromToken(token: string, now: () => number): Promise<
   const recentUse = (value: number | undefined) => typeof value === 'number' && Number.isFinite(value) && value >= 0 && at - value < 5 * 60_000;
   if (!recentUse(c.lastUsedAt)) await db.runTransaction(async tx => {
     const current = (await tx.get(doc!.ref)).data();
-    // Recheck approval after the identity lookup; simultaneous requests coalesce to one write.
-    if (!current || state(current, at) !== 'approved' || current.profileId !== c.profileId
+    // Recheck the connection after the identity lookup; simultaneous requests coalesce to one write.
+    if (!current || !currentComputer(current, c.profileId!)
       || current.firebaseUid !== c.firebaseUid || current.candidateTokenHash !== c.candidateTokenHash) throw unavailable();
     if (!recentUse(current.lastUsedAt)) tx.update(doc!.ref, { lastUsedAt: at });
   });
-  // Co-founder authority follows the approved sign-in the same way a website session does (auth.ts).
+  // Co-founder authority follows the connecting sign-in the same way a website session does (auth.ts).
   return { person: { id: person.id, ...person.data()! }, connectionId: doc!.id, coFounder: approvedAdminSession({ provider: account.primaryProvider, email: person.data()!.email }) };
 }
 function projectStatus(id: string, w: Awaited<ReturnType<typeof readWorkspace>>) {
@@ -128,7 +119,7 @@ export function participationSnapshotParser(host: string) {
   router.use(express.json({ limit: '300kb' }));
   return router;
 }
-export function ownerRoutes(now: () => number) {
+export function ownerRoutes(now: () => number, { selfHosted = () => deploymentKind() === 'self-hosted' }: { selfHosted?: () => boolean } = {}) {
   const router = express.Router(); router.use(express.json({ limit: '300kb' }));
   router.use((req, res, next) => { const limit=['/participations/sync','/backgrounds/sync'].includes(req.path) ? 300*1024 : 16*1024;
     if (req.body !== undefined && Buffer.byteLength(JSON.stringify(req.body), 'utf8') > limit) { res.status(413).set('Cache-Control', 'no-store').json({ error: 'bad_input', message: 'This request is too large.' }); } else next(); });
@@ -137,7 +128,6 @@ export function ownerRoutes(now: () => number) {
   const personLimit = requestLimits.limiter(() => 'owner-person', 60, 60_000);
   const observationLimit = requestLimits.limiter(() => 'owner-observation',120,60_000);
   const deviceObservationLimit = requestLimits.limiter(() => 'owner-device-observation',30,60_000);
-  const pairingLimit = requestLimits.limiter(() => 'owner-pairing', 60, 60_000);
   const unverifiedLimit = requestLimits.limiter(() => 'owner-unverified', 60, 60_000);
   router.use((_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   const admit = (limit: ReturnType<typeof requestLimits.limiter>, key: string) => {
@@ -153,26 +143,14 @@ export function ownerRoutes(now: () => number) {
   };
   const answer = (res: Response, fn: () => Promise<unknown>) => void Promise.resolve().then(fn).then(v => res.json(v), e => fail(res, e));
   const requestId = (value: unknown) => parse(uuid, value);
-  router.post('/connect', (req, res) => answer(res, async () => { unverified(req); const result = await createOwnerConnection(parse(OWNER_CONNECT, req.body), now); return { ...result, approvalPath: await shortSharedLink(`/?view=owner-connect&request=${result.requestId}`) }; }));
-  router.get('/connect/:id', (req, res) => answer(res, async () => {
-    const poll = secret.safeParse(bearerToken(req.headers.authorization));
-    if (!poll.success) { unverified(req); throw unavailable(); }
-    const c = await verify(async () => (await computerConnections.doc(requestId(req.params.id)).get()).data());
-    if (!c || c.pollingSecretHash !== hashToken(poll.data)) { unverified(req); throw unavailable(); }
-    admit(pairingLimit, c.requestId);
-    const person = c.profileId ? (await profiles.doc(c.profileId).get()).data() : null;
-    return { ...metadata(c, now()), ...(person ? { personName: person.name, personId: c.profileId, email: person.email } : {}) };
+  router.post('/local-computer', (req, res) => answer(res, async () => {
+    if (!selfHosted()) { unverified(req); throw new Refusal('not_found', 'This MyLittleSwarm engine connects computers only when it runs on this computer.'); }
+    const input = parse(LOCAL_COMPUTER, req.body);
+    return verify(() => connectLocalComputer(input, bearerToken(req.headers.authorization) ?? '', now, personAdmission));
   }));
-  router.get('/connect/:id/review', (req, res) => answer(res, async () => {
-    const person = await browserPerson(req); personAdmission(person.id);
-    const c = (await computerConnections.doc(requestId(req.params.id)).get()).data();
-    if (!c || c.profileId && c.profileId !== person.id) throw unavailable();
-    return { ...metadata(c, now()), personName: person.name, email: person.email };
-  }));
-  router.post('/connect/:id/approve', (req, res) => answer(res, () => { parse(z.object({ approved: z.literal(true) }).strict(), req.body); return verify(() => approveOwnerConnection(requestId(req.params.id), bearerToken(req.headers.authorization) ?? '', now, personAdmission)); }));
-  // Account controls list and revoke this person’s computers.
+  // The owner's browser reads below have no budget: the one local owner's viewing is never refused.
   router.get('/notifications', (req,res)=>answer(res,async()=>{
-    const person=await browserPerson(req);observationAdmission(person.id);
+    const person=await browserPerson(req);
     if(req.get('X-Mlswarm-Profile-Id')!==person.id)throw new Refusal('unauthorized','Your selected account changed.');
     return readNotifications(person.id,req.query);
   }));
@@ -186,32 +164,26 @@ export function ownerRoutes(now: () => number) {
     if(req.get('X-Mlswarm-Profile-Id')!==person.id)throw new Refusal('unauthorized','Your selected account changed.');
     return markNotificationRead(person.id,String(req.params.id),now);
   }));
-  router.get('/profile', (req,res) => answer(res, async () => { const person=await browserPerson(req); observationAdmission(person.id); return {profileId:person.id,name:person.name}; }));
+  router.get('/profile', (req,res) => answer(res, async () => { const person=await browserPerson(req); return {profileId:person.id,name:person.name}; }));
+  // The web app picks one of this person's computers to queue an agent start on.
   router.get('/computers', (req, res) => answer(res, async () => {
-    const person = await browserPerson(req); observationAdmission(person.id);
+    const person = await browserPerson(req);
     const cursor = req.query.cursor === undefined ? null : requestId(req.query.cursor);
     let query = computerConnections.where('profileId', '==', person.id).orderBy(FieldPath.documentId()).limit(51);
     if (cursor) query = query.startAfter(cursor);
     const found = await query.get(), page = found.docs.slice(0, 50), at = now();
-    const eligible = page.map(d => ({ ...d.data(), requestId: d.id })).filter(c => state(c, at) === 'approved'
-      || req.query.includeRevoking === 'true' && c.revokedAt !== null && c.revocationCompleteAt === null);
+    const eligible = page.map(d => ({ ...d.data(), requestId: d.id })).filter(c => currentComputer(c, person.id));
     const readiness = new Map((await Promise.all(eligible.map(c => runtimeReadiness.doc(c.requestId).get()))).map(d => [d.id,d.data()]));
     return { next: found.size > 50 ? page.at(-1)!.id : null,
       computers: eligible.sort((a, b) => b.approvedAt! - a.approvedAt!).map(c => ({ id: c.requestId, clientName: c.clientName,
-        approvedAt: c.approvedAt, expiresAt: c.connectionExpiresAt, revocationPending: c.revokedAt !== null, runtime: readinessView(readiness.get(c.requestId), at) })) };
-  }));
-  router.post('/computers/:id/revoke', (req, res) => answer(res, async () => {
-    parse(z.object({}).strict(), req.body);
-    const person = await browserPerson(req); personAdmission(person.id);
-    await revokeComputer(person.id, requestId(req.params.id), now);
-    return { revoked: true };
+        approvedAt: c.approvedAt, runtime: readinessView(readiness.get(c.requestId), at) })) };
   }));
   router.post('/web-agent-starts',(req,res)=>answer(res,async()=>{
     const person=await browserPerson(req);personAdmission(person.id);
-    if(req.get('X-Mlswarm-Profile-Id')!==person.id)throw new Refusal('unauthorized','This computer is now approved for a different MyLittleSwarm account. Check which account you meant, then try again.');
+    if(req.get('X-Mlswarm-Profile-Id')!==person.id)throw new Refusal('unauthorized','This computer is now connected to a different MyLittleSwarm account. Check which account you meant, then try again.');
     return createWebAgentStart(person.id,req.body,now);
   }));
-  router.get('/web-agent-starts/:id',(req,res)=>answer(res,async()=>{const person=await browserPerson(req);observationAdmission(person.id);return readWebAgentStart(person.id,String(req.params.id),now);}));
+  router.get('/web-agent-starts/:id',(req,res)=>answer(res,async()=>{const person=await browserPerson(req);return readWebAgentStart(person.id,String(req.params.id),now);}));
   router.use(async (req, res, next) => {
     try {
       const session = await verify(() => ownerFromToken(bearerToken(req.headers.authorization) ?? '', now));
@@ -248,14 +220,13 @@ export function ownerRoutes(now: () => number) {
   const projectId = (value: string) => { if (!validProjectId(value)) throw new Refusal('bad_input', 'Choose one of your projects.'); return value; };
   router.get('/needs-you', (req,res) => answer(res, () => readHumanRequests(res.locals.owner.id,req.query)));
   router.post('/needs-you/:id/answer', (req,res) => answer(res, () => {
-    if (req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized','This computer is now approved for a different MyLittleSwarm account. Check which account you meant, then try again.');
+    if (req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized','This computer is now connected to a different MyLittleSwarm account. Check which account you meant, then try again.');
     const {approved:_,...input} = parse(ANSWER_HUMAN.extend({approved:z.literal(true)}),req.body);
     return answerHumanRequest(res.locals.owner.id,String(req.params.id),input,now);
   }));
-  router.post('/connections/revoke', (req, res) => answer(res, async () => { parse(z.object({}).strict(), req.body); await computerConnections.doc(res.locals.connectionId).update({ revokedAt: now() }); return { revoked: true }; }));
   router.post('/projects/private', (req, res) => answer(res, async () => {
     const { approved: _approved, ...input } = parse(CREATE_PRIVATE.extend({ approved: z.literal(true) }), req.body);
-    if (req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'This computer is now approved for a different MyLittleSwarm account. Check which account you meant, then try again.');
+    if (req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'This computer is now connected to a different MyLittleSwarm account. Check which account you meant, then try again.');
     const created = await createPrivateProject(res.locals.owner, input, now) as { id: string; memberLimit: number; messageProtection: string; replayed: boolean };
     return { ...created, ...projectStatus(created.id, await readWorkspace(res.locals.owner, created.id)), projectPagePath: await shortSharedLink(`/?project=${created.id}`) };
   }));
@@ -278,7 +249,7 @@ export function ownerRoutes(now: () => number) {
   router.get('/proposals/:id', (req, res) => answer(res, async () => { const result = await getProposal({ kind: 'person', operatorId: res.locals.owner.id }, projectId(req.params.id)); const state = deriveProjectLifecycle({ kind: 'proposal', role: 'owner', proposalStatus: result.proposal.status }); return { ...result, state: withoutCopy(state), status: state.status, nextStep: state.next.description, reviewerFeedback: result.proposal.feedback }; }));
   const selectedProject = (req: express.Request, res: Response) => {
     const id = projectId(String(req.params.id));
-    if (req.method === 'POST' && req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'This computer is now approved for a different MyLittleSwarm account. Check which account you meant, then try again.');
+    if (req.method === 'POST' && req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'This computer is now connected to a different MyLittleSwarm account. Check which account you meant, then try again.');
     return id;
   };
   const owned = async (req: express.Request, res: Response) => {
@@ -302,16 +273,16 @@ export function ownerRoutes(now: () => number) {
     const { approved: _, ...input } = parse(PUBLIC_CONVERSION.extend({ approved: z.literal(true) }), req.body);
     return convertProjectToPublic(res.locals.owner, selectedProject(req, res), input, now);
   }));
-  router.post('/projects/:id/steering', (req,res)=>answer(res,()=>{if(req.get('X-Mlswarm-Profile-Id')!==res.locals.owner.id)throw new Refusal('unauthorized','This computer is approved for another account.');return inProject(projectId(req.params.id),()=>submitSteering(res.locals.owner.id,req.body,now));}));
+  router.post('/projects/:id/steering', (req,res)=>answer(res,()=>{if(req.get('X-Mlswarm-Profile-Id')!==res.locals.owner.id)throw new Refusal('unauthorized','This computer is connected to another account.');return inProject(projectId(req.params.id),()=>submitSteering(res.locals.owner.id,req.body,now));}));
   router.get('/projects/:id/steering/:operationId', (req,res)=>answer(res,()=>inProject(projectId(req.params.id),()=>steeringResult(res.locals.owner.id,String(req.params.operationId)))));
   router.get('/projects/:id/my-workers', (req, res) => answer(res, () => inProject(projectId(req.params.id), () => listMyWorkers(res.locals.owner.id, now))));
   router.post('/projects/:id/agents/:agentId/participation',(req,res)=>answer(res,()=>{
-    if(req.get('X-Mlswarm-Profile-Id')!==res.locals.owner.id) throw new Refusal('unauthorized','This computer is now approved for a different MyLittleSwarm account. Check which account you meant, then try again.');
+    if(req.get('X-Mlswarm-Profile-Id')!==res.locals.owner.id) throw new Refusal('unauthorized','This computer is now connected to a different MyLittleSwarm account. Check which account you meant, then try again.');
     return inProject(projectId(req.params.id),()=>requestParticipationControl(res.locals.owner.id,String(req.params.agentId),req.body,now));
   }));
   router.post('/projects/:id/project-update-settings', (req, res) => answer(res, () => inProject(projectId(req.params.id), () => saveProjectUpdateSettings(res.locals.owner.id, req.body, now))));
   // Members read through their computer what they can read on the website (owner decision, 25 October 2026).
-  // Membership is checked first so an outsider gets "not found", never the 401 that means the approval ended.
+  // Membership is checked first so an outsider gets "not found", never the 401 that means the computer is no longer connected.
   const member = async (req: express.Request, res: Response) => { const id = projectId(String(req.params.id)); return { id, role: await projectRole(res.locals.owner, id) }; };
   const person = (res: Response) => ({ kind: 'person' as const, person: res.locals.owner as WithId<Profile> });
   router.get('/projects/:id/overview', (req, res) => answer(res, async () => {
@@ -344,13 +315,13 @@ export function ownerRoutes(now: () => number) {
   router.post('/projects/:id/agents/:agentId/persona', (req, res) => answer(res, async () =>
     inProject(projectId(req.params.id), () => saveAgentPersona(res.locals.owner.id, String(req.params.agentId), req.body, now))));
   router.post('/projects/:id/control', (req, res) => answer(res, async () => {
-    if (req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'This computer is now approved for a different MyLittleSwarm account. Check which account you meant, then try again.');
+    if (req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'This computer is now connected to a different MyLittleSwarm account. Check which account you meant, then try again.');
     const { approved: _, ...input } = parse(CONTROL.extend({ approved: z.literal(true) }), req.body);
     return controlWorkspace(res.locals.owner, projectId(req.params.id), input, now);
   }));
   // Archive only hides the project from this person's own list; nothing about the project changes.
   router.post('/projects/:id/personal-archive', (req, res) => answer(res, async () => {
-    if (req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'This computer is now approved for a different MyLittleSwarm account. Check which account you meant, then try again.');
+    if (req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'This computer is now connected to a different MyLittleSwarm account. Check which account you meant, then try again.');
     const { approved: _, ...input } = parse(PERSONAL_ARCHIVE.extend({ approved: z.literal(true) }), req.body);
     return setPersonalArchive(res.locals.owner, projectId(req.params.id), input, now);
   }));

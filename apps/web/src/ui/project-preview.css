@@ -7,3 +7,9 @@
 .k42-preview-frame iframe { display: block; border: 0; width: 100%; height: min(70vh, 720px); min-height: 380px; background: #fff; }
 .k42-preview-url { margin: -8px 0 16px; color: #616161; font-size: 14px; overflow-wrap: anywhere; }
 @media (max-width: 600px) { .k42-preview-frame iframe, .k42-preview-placeholder { min-height: 320px; } }
+/* Preview fits below the project header: the frame takes the height left and the game or site resizes with the
+   window instead of the page scrolling (owner, 13 November 2026). */
+.k42-fit > .k42-preview { display:flex; flex-direction:column; padding-bottom:0; }
+.k42-fit > .k42-preview > * { flex:none; }
+.k42-fit > .k42-preview > :is(.k42-preview-frame, .k42-preview-placeholder) { flex:1 1 auto; min-height:240px; }
+.k42-fit > .k42-preview .k42-preview-frame iframe { height:100%; min-height:0; }

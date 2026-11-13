@@ -1,6 +1,6 @@
 import { prepareUsageProgress } from '../v2/usage-progress.js';
 import { prepareCurrentStateProgress } from '../view/current-state-progress.js';
-import { assertComputerApproval } from './computer-access.js';
+import { assertCurrentComputer } from './computer-access.js';
 import { prepareProjectJourney } from '../onboarding/journeys.js';
 import { associateWebStart } from './web-agent-starts.js';
 import { assertProjectWritable } from '../projects/access.js';
@@ -30,7 +30,7 @@ export const connectOwnAgentInput = z.object({ name: z.string().regex(NAME), web
 export async function connectOwnAgent(personId: string, input: z.infer<typeof connectOwnAgentInput>, now: () => number, connectionId?: string) {
   const projectId = currentProjectId(), created = agents().doc();
   return db.runTransaction(async tx => {
-    if (connectionId) await assertComputerApproval(tx, connectionId, personId, now());
+    if (connectionId) await assertCurrentComputer(tx, connectionId, personId);
     await assertMembership(tx, personId);
     const epoch = await currentConnectionEpoch(tx, personId);
     const [main, card] = await Promise.all([tx.get(projectDoc()), tx.get(cardDoc(projectId))]);

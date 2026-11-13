@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { createSetupScreen, createChatScreen, interruptSelf } from '../src/setup-screen.mjs';
-import { main, waitForApproval, signInToGitHub } from '../src/cli.mjs';
+import { main, connectWhenReady, signInToGitHub } from '../src/cli.mjs';
 
 function terminal({ raw = false, flowing = null } = {}) {
   const input = Object.assign(new EventEmitter(), { isTTY: true, isRaw: raw, readableFlowing: flowing,
@@ -38,20 +38,25 @@ test('missing raw-mode capability leaves setup usable through the printed URL', 
   assert.equal(input.listenerCount('data'), 0);
 });
 
-test('initial and later approval failures always release terminal input and spinner', async () => {
-  for (const failAt of [1, 2]) {
-    const input = terminal(), screen = screenFor(input); let polls = 0, spinners = 0, stopped = 0, at = 0;
-    const stopEnter = screen.onEnter(() => {});
-    const owner = { async finish() { if (++polls === failAt) throw new Error('synthetic transport failure'); return { status: 'pending' }; } };
-    await assert.rejects(waitForApproval(owner, { seconds: 5, stopEnter, now: () => at, sleep: async ms => { at += ms; },
-      screen: { waiting() { spinners++; return () => stopped++; } } }), /synthetic transport failure/);
-    assert.equal(input.isRaw, false); assert.equal(input.readableFlowing, false); assert.equal(input.listenerCount('data'), 0);
-    assert.equal(stopped, spinners);
-  }
+test('setup connects this computer without any human step, waiting only while the engine cannot be reached', async () => {
+  let attempts = 0, at = 0;
+  const unreachable = new Error('MyLittleSwarm can’t be reached right now. Start the local engine, then try again.');
+  const owner = { async connect(clientName, site) {
+    assert.equal(clientName, 'MyLittleSwarm shared service'); assert.equal(site, 'http://127.0.0.1:8787');
+    if (++attempts < 3) throw unreachable; return { status: 'approved', account_name: 'Owner' }; } };
+  const sleep = async ms => { at += ms; };
+  assert.deepEqual(await connectWhenReady(owner, 'http://127.0.0.1:8787', { seconds: 5, now: () => at, sleep }), { status: 'approved', account_name: 'Owner' });
+  assert.equal(attempts, 3);
+  attempts = -100; at = 0;
+  await assert.rejects(connectWhenReady(owner, 'http://127.0.0.1:8787', { seconds: 2, now: () => at, sleep }), /can’t be reached/);
+  const refused = { async connect() { attempts++; throw new Error('The MyLittleSwarm engine at http://127.0.0.1:8787 does not connect computers.'); } };
+  attempts = 0;
+  await assert.rejects(connectWhenReady(refused, 'http://127.0.0.1:8787', { seconds: 60, now: () => at, sleep }), /does not connect computers/);
+  assert.equal(attempts, 1);
 });
 
-test('invalid setup wait duration is rejected before any approval request or setup message', async t => {
-  t.mock.method(globalThis, 'fetch', () => assert.fail('invalid arguments must never contact approval'));
+test('invalid setup wait duration is rejected before contacting the engine or any setup message', async t => {
+  t.mock.method(globalThis, 'fetch', () => assert.fail('invalid arguments must never contact the engine'));
   for (const value of ['-1', '601', 'NaN', '0.5']) {
     const output = [], errors = [];
     assert.equal(await main(['setup', `--wait-seconds=${value}`], line => output.push(line), line => errors.push(line)), 2);

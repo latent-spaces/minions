@@ -12,7 +12,7 @@ import {platformSettings} from '../src/platform/settings.js';
 import {idTokenFor,resetEmulator,seed,TEST_PROJECT,seedRuntime} from './helpers.js';
 let server:Server,base:string,at:number;
 const now=()=>at;
-beforeAll(async()=>{const app=express();app.use('/api/owner',ownerRoutes(now));server=app.listen(0,'127.0.0.1');await new Promise<void>(r=>server.once('listening',r));base=`http://127.0.0.1:${(server.address() as {port:number}).port}/api/owner`;});
+beforeAll(async()=>{const app=express();app.use('/api/owner',ownerRoutes(now,{ selfHosted: () => true }));server=app.listen(0,'127.0.0.1');await new Promise<void>(r=>server.once('listening',r));base=`http://127.0.0.1:${(server.address() as {port:number}).port}/api/owner`;});
 afterAll(async()=>new Promise<void>(r=>server.close(()=>r())));
 beforeEach(async()=>{await resetEmulator();at=2_000_000_000_000;});
 async function http(path:string,token?:string,body?:object,profileId?:string){const r=await fetch(base+path,{method:body?'POST':'GET',headers:{'content-type':'application/json',...(token?{authorization:`Bearer ${token}`}:{}) ,...(profileId?{'X-Mlswarm-Profile-Id':profileId}:{})},...(body?{body:JSON.stringify(body)}:{})});return {status:r.status,body:await r.json()};}
@@ -21,7 +21,7 @@ async function fixture(){
   // The job has ten minutes left.
   await seedRuntime(TEST_PROJECT,{endsAt:at+600_000});
   const owner=f.personIds[0],other=f.personIds[1],computer=randomUUID(),incarnation=randomUUID();
-  await collection('computerConnections').doc(computer).set({profileId:owner,revokedAt:null,approvedAt:at,connectionExpiresAt:at+30*86400_000});
+  await collection('computerConnections').doc(computer).set({profileId:owner,revokedAt:null,approvedAt:at});
   const readiness={protocol:1,version:'0.1.0',incarnation,platform:'darwin',providers:[{id:'codex',available:true,reason:'ready'},{id:'claude',available:false,reason:'unavailable'}]};
   const publish=(v:object=readiness)=>publishRuntimeReadiness(owner,computer,v,now);await publish();
   const input={id:randomUUID(),connectionId:computer,projectId:TEST_PROJECT,name:'Research',scope:'Review the documented problem',execution:{provider:'codex',model:null},approved:true};
@@ -126,9 +126,8 @@ test('accepted deadline is immutable; registration is new-only, exact token repl
   await expect(f.create({...f.input,id:randomUUID()})).rejects.toMatchObject({code:'duplicate'});
 });
 test('browser endpoints require Firebase human auth and exact selected profile; devices have separate authenticated routes',async()=>{
-  const f=await fixture(),firebase=await idTokenFor('owner@example.test'),token=newToken(),id=randomUUID();
-  expect((await http('/connect',undefined,{requestId:id,pollingSecret:newToken(),candidateTokenHash:hashToken(token),clientName:'Device'})).status).toBe(200);
-  expect((await http(`/connect/${id}/approve`,firebase,{approved:true})).status).toBe(200);
+  const f=await fixture(),firebase=await idTokenFor('owner@example.test'),token=newToken();
+  const connected=await http('/local-computer',firebase,{candidateTokenHash:hashToken(token),clientName:'Device'});expect(connected.status).toBe(200);const id=connected.body.connectionId as string;
   expect((await http('/runtime/readiness',firebase,f.readiness)).status).toBe(401);
   expect((await http('/runtime/readiness',token,f.readiness)).status).toBe(200);
   const input={...f.input,connectionId:id};

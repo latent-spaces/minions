@@ -25,7 +25,7 @@ test('the same transport policy accepts the local engine and loopback sites and 
     assert.equal(trustedWebsiteUrl(site), false, site);
     assert.throws(() => ownerOrigin(site));
     assert.throws(() => createDiscovery({ site }));
-    assert.equal(openPage(`${site}/?view=owner-connect`, { platform: 'darwin', env: {}, spawnImpl: () => assert.fail('Foreign approval must not launch a browser.') }), false);
+    assert.equal(openPage(`${site}/?view=projects`, { platform: 'darwin', env: {}, spawnImpl: () => assert.fail('A foreign page must not launch a browser.') }), false);
   }
   for (const path of ['/path', '/?token=private', '/#fragment']) {
     assert.throws(() => ownerOrigin(`${DEFAULT_WEBSITE_ORIGIN}${path}`));
@@ -33,7 +33,7 @@ test('the same transport policy accepts the local engine and loopback sites and 
   }
 });
 
-test('approval pages use native browser opening without shell interpolation on each platform', () => {
+test('MyLittleSwarm pages use native browser opening without shell interpolation on each platform', () => {
   const url = 'http://127.0.0.1:12345/?project=' + 'a'.repeat(64) + '#synthetic';
   for (const [platform, expected] of [['darwin','open'],['win32','rundll32'],['linux','xdg-open']]) {
     let called;
@@ -73,11 +73,11 @@ test('enrolled origins work across setup, browser, discovery and attribution wit
     }
     for (const platform of ['darwin', 'win32', 'linux']) {
       let opened;
-      assert.equal(openPage(`${site}/?view=owner-connect`, { platform, env: { DISPLAY: ':synthetic' },
+      assert.equal(openPage(`${site}/?view=projects`, { platform, env: { DISPLAY: ':synthetic' },
         spawnImpl: (_command, args, options) => { opened = args.at(-1); assert.equal(options.shell, undefined); return { on() {}, unref() {} }; } }), true);
-      assert.equal(opened, `${site}/?view=owner-connect`);
+      assert.equal(opened, `${site}/?view=projects`);
       assert.equal(openPage(`${site}/unrelated`, { platform, env: { DISPLAY: ':synthetic' },
-        spawnImpl: () => assert.fail('Only supported approval pages may open.') }), false);
+        spawnImpl: () => assert.fail('Only supported MyLittleSwarm pages may open.') }), false);
     }
     const attribution = formatGitHubAttribution({ projectId: 'a'.repeat(64),
       agent: { id: 'synthetic-agent', name: 'Agent' }, participant: { id: 'synthetic-person', name: 'Member' } });

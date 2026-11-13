@@ -10,11 +10,10 @@ import { projects } from './api';
 import './ui/project-setup.css';
 import './ui/settings.css';
 import type { Workspace } from './project-api';
-import { Connections } from './ui/Connections';
 import './ui/control-center.css';
 import { MyCharacter } from './ui/MyCharacter';
 
-// Settings is one page (owner decision, 11 November 2026): Agents, Updates, Features and Connections, each explained behind a ? note.
+// Settings is one page (owner decision, 11 November 2026): Agents, Updates and Features, each explained behind a ? note.
 // Pause, Close and Reopen moved to the project header (owner, 12 November 2026).
 export function ControlCenter({ user, workspace, refresh, active, refreshKey }: { refreshKey: number; user: SessionUser; workspace: Workspace; refresh: () => void; active: boolean }) {
   const catalogRequest = useCallback(<T,>(path: string, body?: object) => projects<T>(user, path, body), [user]);
@@ -43,7 +42,6 @@ export function ControlCenter({ user, workspace, refresh, active, refreshKey }: 
           <NativeTeamSettings key={`${user.uid}:${workspace.id}:teams`} user={user} projectId={workspace.id} active={active} readOnly={closed} onSaved={() => refresh()} />
         </section>
       </fieldset>
-      <Connections key={`${user.uid}:connections`} user={user} active={active} refreshKey={refreshKey} retry={refresh} />
       </>}
     </div>
   </section>;

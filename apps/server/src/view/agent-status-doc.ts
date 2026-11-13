@@ -9,7 +9,7 @@ import type { AgentStateSources } from './communication-agents.js';
 // Writers own disjoint groups and blind-merge only their own (c4's guard). Inputs are stored, never derived state.
 export type AgentStatusDoc = {
   // run group (top level, as presence today), plus the run's end and mode, written by the run's start and every
-  // run-ending writer in the same transaction (c1's list: reportPhase stopping, chat stop, computer revocation,
+  // run-ending writer in the same transaction (c1's list: reportPhase stopping, chat stop,
   // member cleanup, account cleanup, onboarding, close-work).
   runId: string | null; lastContactAt: number; phase: Phase; phaseAt: number;
   lastTurn?: Presence['lastTurn']; activity?: Presence['activity']; acceptingWork?: boolean | null; protocol?: 2;

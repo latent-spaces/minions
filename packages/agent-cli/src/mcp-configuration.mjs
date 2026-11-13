@@ -40,7 +40,7 @@ export function renderReusableConfiguration(config) {
     `Bundled MyLittleSwarm guide revision: ${GUIDE_REVISION}. Read its revision, hashes and complete file bundle with skill --json.`,
     '',
     `Website: ${config.site}${new URL(config.site).protocol === 'http:' ? ' (local development only)' : ''}.`,
-    'Run setup first to approve this computer and start its shared service. Claude, Codex and CLI connect to that same service; reconnecting starts no model and adds no time.',
+    'Run setup first to connect this computer and start its shared service. Claude, Codex and CLI connect to that same service; reconnecting starts no model and adds no time.',
     `Inspect an existing ${config.name} entry before replacing it. Remove its retired command/args/env fields and use this HTTP entry. Preserve other connections and native permissions.`,
     'Approve adding or replacing the entry unless already authorized. Defer maintenance until affected work/client sessions are idle; never stop or restart running agents for an update.',
     config.client === 'codex' ? `Put this table in your user-level ~/.codex/config.toml, replacing only the ${config.name} table:`
@@ -63,6 +63,6 @@ export function renderReusableConfiguration(config) {
     'Install every entry in files relative to that skill directory, including references/. The content field alone is only the router; skill --section NAME reads one workflow. MCP get_mlswarm_guide returns the router by default and accepts section for one workflow.',
     'Compare guide revision/hash and all existing reference files first. Preserve local modifications, newer skills and unrelated files. Ask about a replacement or symlink destination unless already approved.',
     'Printing or writing configuration does not prove the client loaded it. Tell the person only that setup is done, or the one thing they must do, in plain words.',
-    'The service has one configured website and owner. Never move saved approvals or credentials between environments. Project membership, participation lifetime and model-run approval remain separate.',
+    'The service has one configured website and owner. Never move saved connections or credentials between environments. Project membership, participation lifetime and model-run approval remain separate.',
   ].join('\n');
 }

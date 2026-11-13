@@ -55,25 +55,18 @@ export function projectManagementRoutes(now: () => number) {
   const answer = (res: Response, work: () => Promise<unknown>) => void Promise.resolve().then(work).then(value => res.json(value), error => fail(res, error));
   const parsed = <T>(schema: z.ZodType<T>, value: unknown) => { const p = schema.safeParse(value); if (!p.success) throw new Refusal('bad_input', 'Some settings are missing or not in the expected form. Check them, then try again.'); return p.data; };
   const admission = requestLimits.limiter(() => 'project-management', 60, 60_000);
-  const readAdmission = requestLimits.limiter(() => 'project-management-read', 120, 60_000);
   router.use(async (req, res, next) => {
     res.set('Cache-Control', 'no-store');
     try {
       const { person: operator, adminAuthenticated } = await person(req); res.locals.operator = operator; res.locals.coFounder = adminAuthenticated;
-      // Several independently refreshed panels must not consume an owner's write allowance.
-      const retry = (req.method === 'GET' ? readAdmission : admission)(operator.id, now());
+      // Only writes have a budget: reads by the one local owner (reloads, tab switches, panels) are never refused.
+      const retry = req.method === 'GET' ? 0 : admission(operator.id, now());
       if (retry > 0) throw new Refusal('rate_limited', 'Too many requests. Wait a moment, then try again.', Math.ceil(retry / 1000));
       next();
     } catch (error) { fail(res, error); }
   });
-  const publicAdmission = requestLimits.limiter(() => 'project-discovery', 60, 60_000);
-  // Discovery reads are rate limited per address. Publication does not grant private membership.
-  router.get(['/starters', '/explore'], (req, res, next) => {
-    res.set('Cache-Control', 'no-store');
-    const retry = publicAdmission(req.ip ?? 'unknown', now());
-    if (retry > 0) { fail(res, new Refusal('rate_limited', 'Too many requests. Wait a moment, then try again.', Math.ceil(retry / 1000))); return; }
-    next();
-  });
+  // Publication does not grant private membership.
+  router.get(['/starters', '/explore'], (_req, res, next) => { res.set('Cache-Control', 'no-store'); next(); });
   router.get('/starters', (_req, res) => res.json({ starters: starterProjects, kind: 'starter_briefs', approvalRequired: true }));
   router.get('/explore', (req, res) => answer(res, async () => {
     const query = parsed(CATALOG_QUERY, req.query);

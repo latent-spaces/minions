@@ -60,7 +60,7 @@ try{
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));site=`http://127.0.0.1:${server.address().port}`;
   env={...process.env,MLSWARM_SERVICE_HOME:home,MLSWARM_CREDENTIAL_HOME:credentials,MLSWARM_SITE_URL:site,MLSWARM_NO_BROWSER:'1'};
   state.ensureHome(credentials);state.ensureHome(join(credentials,'owners'));state.ensureHome(join(credentials,'owners',state.digest(site)));
-  state.writePrivate(join(credentials,'owners',state.digest(site),'owner.json'),{schema:'mlswarm-owner-1',origin:site,requestId:randomUUID(),pollingSecret:randomBytes(32).toString('base64url'),token:randomBytes(32).toString('base64url'),status:'approved',personId:ownerId,personName:'Synthetic owner',connectionExpiresAt:Date.now()+86400000});
+  state.writePrivate(join(credentials,'owners',state.digest(site),'owner.json'),{schema:'mlswarm-owner-1',origin:site,requestId:randomUUID(),token:randomBytes(32).toString('base64url'),status:'approved',personId:ownerId,personName:'Synthetic owner'});
   for(let i=0;i<2;i++){
     const projectId=String(i+1).repeat(64),agentId=`synthetic-${i}`,url=`${site}/p/${projectId}`,folder=join(root,`checkout-${i}`);await mkdir(folder);
     const token=randomBytes(32).toString('base64url'),id=session.sessionId(url,agentId),dir=state.connectionDir(credentials,id);

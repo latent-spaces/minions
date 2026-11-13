@@ -23,12 +23,12 @@ const projectId = (req: Request) => {
 
 export function projectProgressRoutes(now: () => number) {
   const router = express.Router();
-  const readAdmission = requestLimits.limiter(() => 'progress-reads', 60, 60_000);
   const writeAdmission = requestLimits.limiter(() => 'progress-writes', 60, 60_000);
   router.use((_req, res, next) => { res.set('Cache-Control', 'private, no-store'); next(); });
   const answer = (res: Response, work: () => Promise<unknown>) => void work().then(value => res.json(value), error => fail(res, error));
   const admission = (req: Request, res: Response, next: NextFunction) => {
-    const retry = (req.method === 'GET' ? readAdmission : writeAdmission)(res.locals.actor ? `person:${res.locals.actor.person.id}` : `guest:${req.ip}`, now());
+    // Reads have no budget (one local owner); writes keep theirs.
+    const retry = req.method === 'GET' ? 0 : writeAdmission(res.locals.actor ? `person:${res.locals.actor.person.id}` : `guest:${req.ip}`, now());
     if (retry > 0) { fail(res, new Refusal('rate_limited', 'Too many requests. Wait a moment, then try again.', Math.ceil(retry / 1000))); return; }
     next();
   };

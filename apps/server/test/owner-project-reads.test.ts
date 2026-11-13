@@ -12,7 +12,7 @@ import { seed, resetEmulator, idTokenFor } from './helpers.js';
 vi.setConfig({ testTimeout: 30_000 });
 let server: Server, base: string;
 const now = () => 1000;
-beforeAll(async () => { const app = express(); app.use('/api/owner', ownerRoutes(now)); server = app.listen(0, '127.0.0.1'); await new Promise<void>(r => server.once('listening', r)); base = `http://127.0.0.1:${(server.address() as { port: number }).port}/api/owner`; });
+beforeAll(async () => { const app = express(); app.use('/api/owner', ownerRoutes(now, { selfHosted: () => true })); server = app.listen(0, '127.0.0.1'); await new Promise<void>(r => server.once('listening', r)); base = `http://127.0.0.1:${(server.address() as { port: number }).port}/api/owner`; });
 afterAll(async () => { await new Promise<void>(r => server.close(() => r())); });
 beforeEach(resetEmulator);
 async function http(path: string, token: string, body?: object, profileId?: string) {
@@ -20,9 +20,8 @@ async function http(path: string, token: string, body?: object, profileId?: stri
   return { status: res.status, body: await res.json() };
 }
 async function computer(email: string) {
-  const token = newToken(), id = randomUUID();
-  await http('/connect', '', { requestId: id, pollingSecret: newToken(), candidateTokenHash: hashToken(token), clientName: 'Test' });
-  expect((await http(`/connect/${id}/approve`, await idTokenFor(email), { approved: true })).status).toBe(200);
+  const token = newToken();
+  expect((await http('/local-computer', await idTokenFor(email), { candidateTokenHash: hashToken(token), clientName: 'Test' })).status).toBe(200);
   return token;
 }
 async function fixture() {

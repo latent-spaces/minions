@@ -13,11 +13,10 @@ import { ProjectStatusPanel } from './ui/ProjectStatusPanel';
 import { JobLimitsBar } from './ui/JobLimitsBar';
 import { Button } from './ui/Button';
 import { CloseButton } from './ui/CloseButton';
-import { OwnerConnectionApproval } from './ui/OwnerConnectionApproval';
 import { personalProjectStatus, workspaceProjectStatus } from './ui/personal-project-status';
 import { SessionLoading, SessionUnavailable } from './ui/SessionLoading';
 import { WorkspaceNavigation, type ProjectMenu, type WorkspaceNavItem } from './ui/WorkspaceNavigation';
-import { COMPACT_SHELL } from './ui/shell-breakpoint';
+import { COMPACT_SHELL, PHONE_HEADER } from './ui/shell-breakpoint';
 import { useMenuCollapsed } from './ui/menu-collapse';
 import { ListTodo, Folder, Settings, Menu, Users, Activity, MonitorPlay, LogOut, MessageSquare, Megaphone, Network, Bot } from 'lucide-react';
 import { ProjectUpdatesFeed } from './ProjectUpdatesFeed';
@@ -50,11 +49,11 @@ import { Conversations } from './Conversations';
 import { BrandLogo } from './ui/BrandLogo';
 import { AddAgentNudge } from './ui/ProjectCheatSheet';
 import type { ProjectEntry, ProjectPage, Workspace } from './project-api';
-import { formatRoute, mayLeaveProject, ownerApprovalRequest, parseRoute, projectRoute, validProjectId, type GlobalView, type Route, type Section } from './route';
+import { formatRoute, mayLeaveProject, parseRoute, projectRoute, validProjectId, type GlobalView, type Route, type Section } from './route';
 import { NavLink, time, usePages } from './shared';
 import { useAllPages } from './use-all-pages';
 import { refreshOnReturn } from './refresh-on-return';
-import { ProjectHeader, type HeaderMenuItem } from './ui/ProjectHeader';
+import { ProjectHeader, ProjectRepository, type HeaderMenuItem } from './ui/ProjectHeader';
 import { useProjectUsage } from './ui/ProjectUsage';
 import { CommunityDirectory } from './ui/CommunityDirectory';
 import { ProjectHomePreparation } from './ui/ProjectHomePreparation';
@@ -77,15 +76,8 @@ function workspaceEntry(workspace: Workspace): ProjectEntry {
 export function App() {
   const [user, setUser] = useState<SessionUser | null | undefined>(undefined);
   const [accessTick, setAccessTick] = useState(0);
-  // Computer-approval links are read from the address before the workspace opens.
-  const [entrySearch, setEntrySearch] = useState(() => window.location.search);
-  useEffect(() => {
-    const restore = () => setEntrySearch(window.location.search);
-    window.addEventListener('popstate', restore);
-    return () => window.removeEventListener('popstate', restore);
-  }, []);
   useEffect(() => session.onTokenChanged(value => {
-    setUser(value); setEntrySearch(window.location.search);
+    setUser(value);
     // A renewed session can keep the same SessionUser object. Check the account again even then.
     setAccessTick(tick => tick + 1);
   }), []);
@@ -106,8 +98,6 @@ export function App() {
   const render = () => {
     if (user === undefined || user && !checked) return <SessionLoading />;
     if (!user) return <SessionUnavailable />;
-    const ownerRequest = ownerApprovalRequest(entrySearch);
-    if (ownerRequest) return <main><OwnerConnectionApproval key={`${user.uid}:${ownerRequest}`} user={user} requestId={ownerRequest} /></main>;
     const account = checked?.account;
     if (!account) return <SessionUnavailable />;
     return <Viewer key={`${user.uid}:${account.person.id}`} user={user} account={account} />;
@@ -117,6 +107,8 @@ export function App() {
 
 const SHORTCUTS = 5;
 const SECTION_NAMES: Record<Section, string> = { overview: 'Tasks', preview: 'Preview', usage: 'Usage', teams: 'Teams', agents: 'Agents', conversations: 'Communication', 'control-center': 'Settings' };
+/** Tabs whose content fits the space below the project header instead of scrolling; the rest scroll on their own. */
+const FIT_SECTIONS: ReadonlySet<Section> = new Set(['preview']);
 // Needs you is reached from the notifications bell.
 const GLOBAL_NAMES: Record<GlobalView, string> = { projects: 'My projects', 'needs-you': 'Needs you' };
 /** Project navigation and own-agent shortcuts; web creation is hidden (OPE-230). */
@@ -299,7 +291,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   const openProject = menuMode(route, projectShown ? selected!.id : null) === 'project' ? selected! : null;
   const openFacts = openProject && facts?.projectId === openProject.id ? facts : null;
   const projectsLink: WorkspaceNavItem = { id:'projects', label:GLOBAL_NAMES.projects, icon:<Folder size={18} />, href:formatRoute({ view:'projects' }), current:route.view === 'projects', onNavigate:() => go({ view:'projects' }) };
-  // There is no top bar (owner, 11 November 2026): the bell sits at the foot of the menu; connections are in project Settings.
+  // There is no top bar (owner, 11 November 2026): the bell sits at the foot of the menu.
   const shortcut = (p: ProjectEntry) => ({ id:p.id, name:p.name, href:formatRoute(projectRoute(p.id)), onNavigate:() => go(projectRoute(p.id)), status:executionLabel(p), private:p.private, cover:covers[p.id] ?? null, live:isLive(p) });
   // Projects and agents are created from Claude through local MCP (owner, 10 November 2026).
   const projectMenu: ProjectMenu | null = openProject && { id:openProject.id, name:openProject.name, status:executionLabel(openProject), private:openProject.private, cover:covers[openProject.id] ?? null, live:isLive(openProject),
@@ -382,7 +374,8 @@ const agentRowsPath = () => '/agents';
 function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSection, agent, search, onAgent, go, thread, messageId, taskId, tick, refresh, refreshAll, active, onDenied, onFacts }: { suppliedProfileId: string; user: SessionUser; projectId: string; section: Section; chooseSection: (section: Section) => void; agent: string | null; search: string | null; onAgent: (projectId: string, id: string, name: string) => void; go: (to: Route, replace?: boolean) => void; thread: string | null; messageId?: string; taskId: string | null; tick: number; refresh: () => void; refreshAll: () => void; active: boolean; onDenied: (projectId: string, error: Error) => void; onFacts: (facts: ProjectFacts) => void }) {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState<string | null>(null);
-  // A read refused for being over the viewer budget is retried by the next refresh; the loaded view stays.
+  const phone = useMediaQuery(PHONE_HEADER);
+  // A refused read (429) is retried by the next refresh; the loaded view stays.
   const [held, setHeld] = useState(false);
   const [loadedAt, setLoadedAt] = useState<number | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -456,7 +449,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   }, [taskLabelRows, liveAgents]);
   const walkedPeople = useAllPages(user, allMembersPath, 'members', members.page?.items ?? NO_PEOPLE, tick, tasksShown && morePeople, REFRESH_MS);
   const taskPeople = morePeople ? walkedPeople : members.page?.items ?? NO_PEOPLE;
-  // One read labels up to 60 shown actors the paced walks have not reached; it counts once against the viewer budget.
+  // One read labels up to 60 shown actors the paced walks have not reached.
   const taskLabels = useMemo(() => ({
     agents: async (ids: string[]) => (await read<{ agents: TaskAgent[] }>(user, `/agents?view=labels&ids=${ids.map(encodeURIComponent).join(',')}`, projectId)).agents,
     members: async (ids: string[]) => (await read<{ members: typeof NO_PEOPLE }>(user, `/members?ids=${ids.map(encodeURIComponent).join(',')}`, projectId)).members,
@@ -554,16 +547,19 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
         {error && !(held && overview) && <div role="alert"><p className="error">Could not load: {error}</p><Button onClick={() => { document.getElementById('content')?.focus({ preventScroll: true }); refresh(); }}>Try again</Button></div>}
         {!overview && !error && <p className="muted" role="status">Loading…</p>}
         {overview && <>
-          {workspace && <ProjectHeader id={projectId} cover={headerCover} name={project?.name ?? workspace.definition.title} statusPanel={<ProjectStatusPanel workspace={workspace} controls={controls} />}
+          {workspace && <ProjectHeader id={projectId} cover={headerCover} name={project?.name ?? workspace.definition.title} statusPanel={<ProjectStatusPanel workspace={workspace} controls={controls} onAddTime={() => go(projectRoute(projectId, 'agents'))} />}
             repositorySummary={overview.repositorySummary} usage={usage} repoUrl={project?.repoUrl}
             onCopyLink={copyLink}
             menu={menu}
             observed={<>{stale && <p className="warn observation-age">Out of date: last updated {time(overview.generatedAt)}</p>}</>}
-            titleLevel={detail ? 2 : 1} />}
+            titleLevel={detail ? 2 : 1} repository={!phone} />}
           {!workspace && <><div className="project-heading"><PathHeading title={project?.name ?? ''} parents={[{label:'My projects',to:{view:'projects'}}]} go={go} />
             <span className={`badge execution${toneClass(statusTone(status))}`}>{status}</span></div></>}
           <LeaveProjectFeedback controls={leave} />
           {workspace && <ProjectControlFeedback controls={controls} />}
+          {/* Below the header, the open tab either scrolls on its own or fits the space left (owner, 13 November 2026). */}
+          <div className={`k42-project-body ${FIT_SECTIONS.has(currentSection) ? 'k42-fit' : 'k42-scroll'}`}>
+          {workspace && phone && <div className="k42-project-repository"><ProjectRepository repoUrl={project?.repoUrl} summary={overview.repositorySummary} usage={usage} /></div>}
           {workspace && detail && !agent && <div className="project-heading">
             <PathHeading trail={false} title={SECTION_NAMES[currentSection]}
               parents={[{label:'My projects',to:{view:'projects'}}, {label:project?.name ?? workspace?.definition.title ?? '',to:projectRoute(projectId)},
@@ -596,7 +592,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
           {workspace && <div hidden={currentSection !== 'teams'}><ProjectTeams key={`${user.uid}:${projectId}`} api={teams} active={visible && currentSection === 'teams'} refreshToken={tick + teamsTick} disabledNotice={!nativeTeamsEnabled(workspace.nativeTeams)} agents={liveAgents} lookup={project ? taskLabels : undefined} scope={`${user.uid}:${projectId}`} /></div>}
           <div hidden={currentSection !== 'conversations'}><Conversations user={user} thread={thread} messageId={messageId} tick={tick} active={visible && currentSection === 'conversations'} go={go} requests={openRequests.requests} readOnly={workspace?.execution === 'closed'} /></div>
           {/* One mounted composer owns the saved retry across Home and My agents. */}
-
+          </div>
         </>}
       </div>
       {workspace && overview && <>
@@ -607,8 +603,8 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
             <button type="button" className="k42-task-segment" aria-pressed={panel === 'updates'} onClick={() => setPanel('updates')}><Megaphone size={16} aria-hidden="true" />Updates{unseen.count>0&&<span className="k42-updates-count" aria-live="polite" aria-label={`${unseenLabel} unseen updates`}>{unseenLabel}</span>}</button>
             <button type="button" className="k42-task-segment" aria-pressed={panel === 'map'} onClick={() => setPanel('map')}><Network size={16} aria-hidden="true" />Map</button>
           </div>}
-          <div hidden={panel === 'map' && !waiting && !!project}><ProjectUpdatesFeed key={`${user.uid}:${projectId}`} projectId={projectId} user={user} tick={tick} observe={visible} active={visible && (panel === 'updates' || waiting || !project)} go={go} onUnseenChange={recordUnseen} /></div>
-          {panel === 'map' && !waiting && project && <ProjectActivity user={user} tick={tick} active={visible && panel === 'map'} go={go} projectName={project.name ?? workspace.definition.title} canAddAgent={workspace.role !== 'guest'} readOnly={workspace.execution === 'closed'} pauseRequest={project.paused ? project.pauseRequest : undefined} agentRows={agentRows.page?.items ?? []} onOpenAgent={activateAgent} onCopyLink={copyLink} />}
+          <div className="k42-scroll" hidden={panel === 'map' && !waiting && !!project}><ProjectUpdatesFeed key={`${user.uid}:${projectId}`} projectId={projectId} user={user} tick={tick} observe={visible} active={visible && (panel === 'updates' || waiting || !project)} go={go} onUnseenChange={recordUnseen} /></div>
+          {panel === 'map' && !waiting && project && <div className="k42-fit"><ProjectActivity user={user} tick={tick} active={visible && panel === 'map'} go={go} projectName={project.name ?? workspace.definition.title} canAddAgent={workspace.role !== 'guest'} readOnly={workspace.execution === 'closed'} pauseRequest={project.paused ? project.pauseRequest : undefined} agentRows={agentRows.page?.items ?? []} onOpenAgent={activateAgent} onCopyLink={copyLink} /></div>}
         </aside>
       </>}
     </div>

@@ -141,7 +141,7 @@ export function AddAgent({ user, projectId, projectName, refresh, go, occupied =
         </ul>
         <div className="actions k42-add-footer"><Button type="button" className="k42-ph-thin" onClick={() => setAdded(null)}>Add another</Button>{added.agentId && go ? <Button type="button" className="primary k42-add-primary" onClick={() => { setOpen(false); go(projectRoute(projectId, 'agents', added.agentId!)); }}>View agent</Button> : <Button type="button" className="primary k42-add-primary" onClick={() => setOpen(false)}>Done</Button>}</div>
       </div> : <>
-      {!fixed && setupPhase === 'needed' && <SetupCard approved={!!computers?.length} onCancel={() => setOpen(false)} onContinue={() => setSetupPhase('done')} />}
+      {!fixed && setupPhase === 'needed' && <SetupCard connected={!!computers?.length} onCancel={() => setOpen(false)} onContinue={() => setSetupPhase('done')} />}
       <form hidden={!fixed && (setupPhase !== 'done' || !computers?.length)} onSubmit={e => { e.preventDefault(); void send(); }}>
         <fieldset disabled={fixed || busy} style={{ border: 0, padding: 0, margin: 0 }}>
           <p className="k42-add-connected"><span className="k42-add-check" aria-hidden="true"><Check size={14} /></span>Computer connected<span className="muted">{providerName(chosenProvider!)} on {computer?.clientName ?? 'this computer'}</span></p>

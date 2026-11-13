@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { owner } from '../api';
 import { CHECKOUT, CHECKOUT_PREPARE, computerSetupInstructions, GITHUB_COMMANDS, githubSetupInstructions, setupCommand } from '../setup-instruction';
 import './your-agent.css';
-import { Check, Copy, ShieldCheck } from 'lucide-react';
+import { Check, Copy } from 'lucide-react';
 import './first-ai.css';
 
-export type Computer = { id: string, clientName: string, approvedAt: number, expiresAt: number; revocationPending?: boolean; runtime?: null | { protocol: number; version: string; incarnation: string; platform: string; providers: { id: string; available: boolean; reason: string }[]; lastSeenAt: number; online: boolean } };
+export type Computer = { id: string, clientName: string, approvedAt: number; runtime?: null | { protocol: number; version: string; incarnation: string; platform: string; providers: { id: string; available: boolean; reason: string }[]; lastSeenAt: number; online: boolean } };
 // A page that is not focused may never settle a clipboard write; the prompt is then shown to copy by hand.
 export async function copyText(text: string): Promise<boolean> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -23,15 +23,10 @@ export async function copyText(text: string): Promise<boolean> {
   }
 }
 
-// Set by the approval tab, so other open tabs reload their computers without a Check again.
-export const COMPUTER_APPROVED = 'mlswarm.computerApproved';
-export function useComputers(user: SessionUser, active: boolean, tick: number, includeRevoking = false) {
+// Setup connects this computer by itself, so the list is all of this owner's connected computers.
+export function useComputers(user: SessionUser, active: boolean, tick: number) {
   const [state, setState] = useState<{ computers: Computer[] | null, error: string | null }>({ computers: null, error: null });
-  const [approvedAt, setApprovedAt] = useState(0);
-  useEffect(() => {
-    const heard = (event: StorageEvent) => { if (event.key === COMPUTER_APPROVED) setApprovedAt(Date.now()); };
-    window.addEventListener('storage', heard); return () => window.removeEventListener('storage', heard);
-  }, []);
+  const [lookedAt, setLookedAt] = useState(0);
   useEffect(() => {
     if (!active) return;
     let cancelled = false;
@@ -39,10 +34,7 @@ export function useComputers(user: SessionUser, active: boolean, tick: number, i
       const computers: Computer[] = [];
       let next: string | null = null;
       do {
-        const query = new URLSearchParams();
-        if (includeRevoking) query.set('includeRevoking', 'true');
-        if (next) query.set('cursor', next);
-        const page: { computers: Computer[]; next: string | null } = await owner(user, `/computers${query.size ? `?${query}` : ''}`);
+        const page: { computers: Computer[]; next: string | null } = await owner(user, `/computers${next ? `?${new URLSearchParams({ cursor: next })}` : ''}`);
         if (cancelled) return;
         computers.push(...page.computers); next = page.next;
       } while (next);
@@ -50,7 +42,7 @@ export function useComputers(user: SessionUser, active: boolean, tick: number, i
     };
     void read().catch((e: Error) => { if (!cancelled) setState(s => ({ computers: s.computers, error: e.message })); });
     return () => { cancelled = true; };
-  }, [user, active, tick, approvedAt, includeRevoking]);
+  }, [user, active, tick, lookedAt]);
   // While no computer is set up or online, look again every 2 seconds (for up to 2 minutes), so a computer
   // that just finished setup appears without waiting for the regular check.
   const waiting = active && !!state.computers && !state.computers.some(c => c.runtime?.online);
@@ -58,7 +50,7 @@ export function useComputers(user: SessionUser, active: boolean, tick: number, i
   useEffect(() => { if (!waiting) fastChecks.current = 0; }, [waiting]);
   useEffect(() => {
     if (!waiting || fastChecks.current >= 60) return;
-    const timer = setTimeout(() => { fastChecks.current++; setApprovedAt(Date.now()); }, 2000);
+    const timer = setTimeout(() => { fastChecks.current++; setLookedAt(Date.now()); }, 2000);
     return () => clearTimeout(timer);
   }, [waiting, state]);
   return state;
@@ -90,31 +82,30 @@ export function PromptBox({ prompt, label, rows = 2 }: { prompt: string, label: 
 }
 const setupPrompt = () => computerSetupInstructions(window.location.origin);
 // Every Connect your X reads the same: the commands, or the prompt for the coding agent.
-function ConnectSteps({ intro, command, commandLabel, then, prompt, promptLabel }: { intro: string; command: string; commandLabel: string; then: string; prompt: string; promptLabel: string }) {
+function ConnectSteps({ intro, command, commandLabel, then, prompt, promptLabel }: { intro: string; command: string; commandLabel: string; then?: string; prompt: string; promptLabel: string }) {
   return <>
     <p className="muted">{intro}</p>
     <CopyCommand command={command} label={commandLabel} />
     <h3>Or let your coding agent do it</h3>
-    <p className="muted">Paste this into your coding chat, then {then} in the browser.</p>
+    <p className="muted">Paste this into your coding chat{then ? `, then ${then} in the browser` : ''}.</p>
     <CopyCommand command={prompt} label={promptLabel} />
   </>;
 }
 export function SetupSteps() {
   const prompt = useMemo(setupPrompt, []), command = useMemo(() => setupCommand(window.location.origin), []);
-  return <ConnectSteps intro={`In ${CHECKOUT}, run ${CHECKOUT_PREPARE}, then run this in your terminal:`} command={command} commandLabel="Copy setup command" then="approve your computer" prompt={prompt} promptLabel="Copy setup prompt" />;
+  return <ConnectSteps intro={`In ${CHECKOUT}, run ${CHECKOUT_PREPARE}, then run this in your terminal. It connects this computer, your coding agents and GitHub.`} command={command} commandLabel="Copy setup command" prompt={prompt} promptLabel="Copy setup prompt" />;
 }
 export function GitHubSteps() {
   return <ConnectSteps intro="Run these in your terminal:" command={GITHUB_COMMANDS.join('\n')} commandLabel="Copy GitHub commands" then="sign in to GitHub" prompt={githubSetupInstructions()} promptLabel="Copy GitHub prompt" />;
 }
 
 // The one way to connect a computer, wherever one is needed (owner, 21 October 2026).
-export function SetupCard({ onCheck, approved = false, onCancel, onContinue, title = 'Bring your AI along.' }: { onCheck?: () => void; approved?: boolean; onCancel?: () => void; onContinue?: () => void; title?: string }) {
+export function SetupCard({ connected, onCancel, onContinue, title = 'Bring your AI along.' }: { connected: boolean; onCancel: () => void; onContinue: () => void; title?: string }) {
   return <div className="k42-first-ai">
     <div className="k42-first-ai-body">
       <h2 className="k42-first-ai-title">{title}</h2>
       <SetupSteps />
-      {onContinue ? <div className="k42-first-ai-footer"><Button className="k42-ph-thin" type="button" onClick={onCancel}>Not now</Button><Button className="primary" type="button" disabled={!approved} onClick={onContinue}>{approved ? <><Check size={16} aria-hidden="true" />Continue</> : 'Waiting for approval…'}</Button></div>
-        : onCheck && <div className="k42-first-ai-footer"><Button className="k42-ph-thin" type="button" onClick={onCheck}><ShieldCheck size={16} aria-hidden="true" />Check again</Button></div>}
+      <div className="k42-first-ai-footer"><Button className="k42-ph-thin" type="button" onClick={onCancel}>Not now</Button><Button className="primary" type="button" disabled={!connected} onClick={onContinue}>{connected ? <><Check size={16} aria-hidden="true" />Continue</> : 'Waiting for your computer…'}</Button></div>
     </div>
   </div>;
 }

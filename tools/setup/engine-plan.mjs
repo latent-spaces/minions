@@ -23,14 +23,49 @@ export function enginePaths(home, platform = process.platform) {
   return {
     sqlitePath: paths.join(home, 'engine.sqlite'), blobDir: paths.join(home, 'media'), ownerFile: paths.join(home, 'owner.json'),
     serviceHome: paths.join(home, 'connector-service'), credentialHome: paths.join(home, 'connector-credentials'),
-    engineLog: paths.join(home, 'engine.log'),
+    engineLog: paths.join(home, 'engine.log'), settingsFile: paths.join(home, 'engine-settings.json'),
   };
 }
 
-export function enginePort(env) {
-  const text = env.MLSWARM_ENGINE_PORT ?? '8787';
-  if (!/^\d{1,5}$/.test(text) || Number(text) < 1024 || Number(text) > 65_535) throw new Error('MLSWARM_ENGINE_PORT must be a port from 1024 to 65535.');
+const validPort = port => Number.isInteger(port) && port >= 1024 && port <= 65_535;
+
+/**
+ * MLSWARM_ENGINE_PORT wins; otherwise the port this installation last ran on (saved in engine-settings.json), so a
+ * restarted background engine keeps its address and links; otherwise 8787.
+ */
+export function enginePort(env, saved = null) {
+  if (env.MLSWARM_ENGINE_PORT === undefined) return saved ?? 8787;
+  const text = env.MLSWARM_ENGINE_PORT;
+  if (!/^\d{1,5}$/.test(text) || !validPort(Number(text))) throw new Error('MLSWARM_ENGINE_PORT must be a port from 1024 to 65535.');
   return Number(text);
+}
+
+const FIRST_RUN_PORTS = Array.from({ length: 13 }, (_, index) => 8787 + index);
+
+/**
+ * The ports setup may use, in order. An explicit MLSWARM_ENGINE_PORT or an installation's saved port is the only one,
+ * as is 8787 for an initialized store from before ports were saved, whose connector is bound to that address; a first
+ * run starts at 8787 and, when another program holds it, takes the next free port up to 8799.
+ */
+export function portCandidates(env, saved = null, { initialized = false } = {}) {
+  return env.MLSWARM_ENGINE_PORT === undefined && saved === null && !initialized ? FIRST_RUN_PORTS : [enginePort(env, saved)];
+}
+
+/** Why setup stopped when none of the candidate ports was free. */
+export function occupiedMessage(candidates) {
+  return candidates.length > 1
+    ? `Ports ${candidates[0]}–${candidates.at(-1)} are all occupied. Stop a program using one of them, or choose another port with MLSWARM_ENGINE_PORT. Nothing was started or stopped.`
+    : `Port ${candidates[0]} is occupied. Stop the program using it, or choose another with MLSWARM_ENGINE_PORT. Nothing was started or stopped.`;
+}
+
+/** The saved port from engine-settings.json's text, or null when there is none or it is not a usable port. */
+export function savedPort(text) {
+  if (text === null) return null;
+  try { const { port } = JSON.parse(text); return validPort(port) ? port : null; } catch { return null; }
+}
+
+export function settingsText(port) {
+  return `${JSON.stringify({ schema: 1, port }, null, 2)}\n`;
 }
 
 /** Children see the selected Node first on PATH (one PATH key, as Windows ignores case) and no hosted settings. */
@@ -97,12 +132,9 @@ export function interruptedByUser({ code, signal } = {}) {
 }
 
 /** Recovery advice for known engine startup refusals, from its error output. Nothing is removed for the person. */
-export function startupHint(output, { home, sqlitePath }) {
+export function startupHint(output, { home }) {
   if (/no completed standalone initialization/.test(output)) {
     return ` An earlier first run stopped before initialization finished. If nothing in ${home} needs keeping, remove that directory (or choose a new MLSWARM_ENGINE_HOME) and run npm run setup again.`;
-  }
-  if (/standalone database is locked/.test(output)) {
-    return ` If no engine is running (for example after a crash or restart), remove ${sqlitePath}.lock and run npm run setup again.`;
   }
   return '';
 }

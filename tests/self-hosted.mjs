@@ -29,7 +29,7 @@ async function main() {
   return runProcess(process.execPath, [executable('vitest', 'vitest'), 'run',
     'test/self-hosted-config.test.ts', 'test/self-hosted-paths.test.ts', 'test/self-hosted-files.test.ts',
     'test/self-hosted-lock.test.ts', 'test/self-hosted-initialize.test.ts', 'test/self-hosted-runtime.test.ts',
-    'test/self-hosted-owner-session.test.ts', 'test/self-hosted-engine.test.ts', 'test/self-hosted-http-flow.test.ts',
+    'test/self-hosted-owner-session.test.ts', 'test/self-hosted-stop.test.ts', 'test/self-hosted-engine.test.ts', 'test/self-hosted-http-flow.test.ts',
     'test/standalone-smoke.test.ts'], { cwd: new URL('../apps/server/', import.meta.url), env: { ...env, NODE_ENV: 'test' } });
 }
 

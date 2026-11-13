@@ -21,8 +21,10 @@ npm run setup
 
 The command:
 
-1. refuses to continue when the engine port is held by another program, and stops
-   nothing; on a first run it also checks the owner identity (below) before
+1. checks the engine port: on a first run, when another program holds 8787, it uses
+   the next free port up to 8799, says which and keeps it; a saved port or an
+   explicit `MLSWARM_ENGINE_PORT` held by another program is refused, and nothing
+   is stopped. On a first run it also checks the owner identity (below) before
    installing anything;
 2. runs `npm ci` unless npm's record of a finished install
    (`node_modules/.package-lock.json`) is at least as new as `package-lock.json`,
@@ -31,33 +33,48 @@ The command:
    with each package's own `npm run build` script;
 4. initializes the database on the first run, and keeps it on later runs;
 5. starts the engine and opens the local app in your browser;
-6. runs the connector's `setup` for this computer.
+6. runs the connector's `setup` for this computer, then registers the engine's MCP
+   server with Claude Code when its `claude` command is found (below).
 
 Install and build output is shown only when a step fails. The engine's routine
-activity goes to `engine.log` in the engine directory; its errors stay on the
-console. The command keeps the engine running in the foreground until you press
-Ctrl+C. Running it again later rebuilds, keeps the existing database and connector
+activity and errors go to `engine.log` in the engine directory; if the engine stops
+during startup, the command shows what it wrote there. The engine runs detached in
+the background, so it keeps running after the command, the terminal or the coding
+session that ran it ends; `npm run stop` stops it. The port it ran on is saved in
+`engine-settings.json`, so later runs reuse it unless `MLSWARM_ENGINE_PORT` names
+another. Running it again later rebuilds, keeps the existing database and connector
 installation, starts the engine and opens the local app again. Running it while
 the engine already runs (from another window) starts nothing: it opens the local
-app and runs the connector's `setup` again, which finishes at once for an
-approved computer. It starts no model.
+app and runs the connector's `setup` again, which finishes at once for a
+connected computer. It starts no model.
 
 The local app has one person, the owner, so it opens without a sign-in step. A
 page the engine serves at its own loopback address gets the owner's session from
 the engine; other websites and other hosts are refused. Without a desktop (over
 SSH, in CI, or with `MLSWARM_NO_BROWSER=1`) the command prints the address to open.
 
-One step stays in your browser, because it is your own yes: **approve this
-computer.** The connector shows the approval page with its code, opens the page
-when you press Enter, and waits up to ten minutes. Check the code and approve in
-the local app. If the wait runs out or the connector fails, the engine keeps
-running; run `npm run setup` again, in another terminal window or after Ctrl+C, to
-connect.
+The connector's `setup` connects this computer with no human step: it asks the
+engine for a local-owner session the same way, and the engine records this
+computer's connection for the owner, already connected. There is no approval page
+or code. If the connector fails, the engine keeps running; run `npm run setup`
+again to connect.
 
-The command then prints the connector's `mcp-config` command for registering this
-installation in your coding client, and reminds you to sign in to GitHub with
-`gh auth login` for project work. This separate installation never changes
-coding-client settings or GitHub sign-in on its own.
+When the `claude` command is on PATH, the command then registers this installation's
+MCP server in Claude Code's user settings with `claude mcp add-json`, unless an entry
+with the same address is already there, and says so in one line (owner decision,
+13 November 2026). It runs `claude` without a shell; on Windows an npm `.cmd` shim runs
+its JavaScript entry point with Node. Pass `--no-register` (`npm run setup --
+--no-register`) to skip it; a failed registration is a warning and setup carries on.
+Claude Code loads the tools in its next session. Until then, the summary prints the
+connector's `tool` command, with which a coding agent calls the same tools from a
+terminal (`tool --list`, then `tool TOOL_NAME '{"field":"value"}'`).
+
+The short closing summary gives the local app's address, says the engine runs in the
+background until `npm run stop`, whether Claude Code was registered, the `tool`
+fallback, and the connector's `mcp-config` command only for clients that were not
+registered (Codex or another client, or Claude Code when it was not registered). It
+reminds you to sign in to GitHub with `gh auth login` for project work. Other clients' settings, the
+MyLittleSwarm skill and GitHub sign-in are not changed by this command.
 
 The owner's name and email come from `--owner-name` and `--owner-email`
 (`npm run setup -- --owner-name 'Your Name' --owner-email you@example.com`), or
@@ -69,8 +86,9 @@ prints which identity it used. They are only needed on the first run.
 Engine files and the connector's separate credentials live in one private
 directory: `~/.mlswarm/engine` on macOS and Linux, `%USERPROFILE%\.mlswarm\engine`
 on Windows. Set `MLSWARM_ENGINE_HOME` to an absolute path to choose another, and
-`MLSWARM_ENGINE_PORT` to use a port other than 8787. Keep both settings the same on
-later runs: the connector installation is bound to the engine address.
+`MLSWARM_ENGINE_PORT` to use a port other than 8787 (or the port a first run chose and
+saved). Keep both settings the same on later runs: the connector installation is bound
+to the engine address.
 
 | File | Purpose |
 | --- | --- |
@@ -110,21 +128,23 @@ setup` uses it to recognize that a busy port is its own engine.
 
 ## Stopping and recovery
 
-Press Ctrl+C once in the setup terminal, also while the connector waits for the
-approval. Closing the terminal window stops the engine the same way (SIGHUP on
-macOS and Linux; on Windows a closed console, and Ctrl+Break, too; Windows ends
-the process about 10 seconds after the window closes). The command asks the engine
-to stop; shutdown drains held HTTP requests and the delivery worker before closing
-SQLite, then removes the `.lock` file. The command exits with status 0 only after
-a clean stop; if the engine fails to stop, or has to be killed after 15 seconds,
-it exits non-zero and the lock remains for inspection. Stopping the engine does not
+Run `npm run stop`. It asks the engine at its saved address to stop, proving itself
+with a key derived from the owner file's signing secret, so only someone who can
+read that file can stop the engine and no web page can. Windows has no graceful
+signal for a detached process, so every platform uses this same request. Shutdown
+drains held HTTP requests and the delivery worker before closing SQLite, then
+removes the `.lock` file; `npm run stop` waits up to 20 seconds for the engine to
+stop answering. The next start replaces a lock left behind by a crash or a computer
+restart: one whose process no longer exists, or one written before the computer last
+started (its process ID may now belong to another program). Any other lock is refused.
+Stopping the engine does not
 stop the connector's shared service; use the connector's `service-stop` (below)
 for that.
 
-A second engine on the same database is refused by its `.lock` file. After a
-crash, confirm that no engine is running before explicitly removing that lock;
-startup never guesses that a lock is stale, and the command names the lock file
-when the engine refuses to start because of it. The engine runs its delivery
+A second engine on the same database is refused by its `.lock` file, and the
+refusal names that file. If `npm run stop` then finds no engine, it names the lock
+too: the lock is left over from an earlier run and is safe to delete. Nothing
+stops or signals another process to recover a lock. The engine runs its delivery
 worker in the same process. Live views follow the engine's own writes at once; a write that
 another program commits to the database file reaches them within about a second,
 so make changes through the engine where you can.

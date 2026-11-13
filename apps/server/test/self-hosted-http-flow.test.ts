@@ -1,5 +1,5 @@
 // The standalone engine end to end over HTTP, as a person and their coding agents use it: the owner signs in,
-// approves a computer, creates and starts a private project and connects two agents; one agent's message reaches
+// connects a computer, creates and starts a private project and connects two agents; one agent's message reaches
 // the other's inbox and is still there after a restart. Every engine process runs under the loopback-only network
 // guard, so this also shows the flow needs no outside service. Needs the built viewer (apps/web/dist).
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
@@ -71,11 +71,11 @@ test('owner, computer, project and two agents exchange a message over HTTP and i
     const opened = await fetch(`${first.url}/api/auth/local-owner/session`, { method: 'POST', headers: { origin: first.url, 'content-type': 'application/json' }, body: '{}' });
     const session = (await opened.json()).token as string;
 
-    // The owner approves this computer, as the connector's browser approval does.
-    const computer = secret(), requestId = randomUUID(), polling = secret();
-    expect((await call(first.url, '/api/owner/connect', undefined, { requestId, pollingSecret: polling, candidateTokenHash: hash(computer), clientName: 'Smoke computer' })).status).toBe(200);
-    expect((await call(first.url, `/api/owner/connect/${requestId}/approve`, session, { approved: true })).body.status).toBe('approved');
-    const profile = (await call(first.url, `/api/owner/connect/${requestId}`, polling)).body.personId as string;
+    // The connector connects this computer with the owner's local session; nobody approves it.
+    const computer = secret();
+    const connected = await call(first.url, '/api/owner/local-computer', session, { candidateTokenHash: hash(computer), clientName: 'Smoke computer' });
+    expect(connected.status).toBe(200);
+    const profile = connected.body.personId as string;
 
     const created = await call(first.url, '/api/owner/projects/private', computer, { githubUrl: 'https://github.com/example/standalone', client_request_id: randomUUID(),
       title: 'Standalone smoke', goal: 'Deliver a message without Google.', approved: true }, profile);

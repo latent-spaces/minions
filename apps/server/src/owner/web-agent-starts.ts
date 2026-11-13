@@ -3,6 +3,7 @@ import type { Transaction } from '../firestore.js';
 import { z } from 'zod';
 import { hashToken } from '../auth.js';
 import { agents, collection, currentProjectId, db, inProject } from '../firestore.js';
+import { computerConnections, currentComputer, COMPUTER_DISCONNECTED } from './computer-access.js';
 import { Refusal } from '../errors.js';
 import { agentLimit, agentLimitReached } from '../onboarding/store.js';
 import { AGENTS_PER_PARTICIPANT_CEILING } from '../platform/settings.js';
@@ -44,7 +45,6 @@ export type WebAgentStart = Omit<z.infer<typeof startInput>,'approved'|'agentId'
   waitingOn?:RepositoryWait|null; repository?:z.infer<typeof repositoryCheck>|null};
 export const runtimeReadiness = collection<Readiness>('ownerRuntimeReadiness');
 export const webAgentStarts = collection<WebAgentStart>('webAgentStarts');
-const connections = collection<{profileId:string|null;approvedAt:number|null;revokedAt:number|null;connectionExpiresAt:number|null}>('computerConnections');
 export const webStartKey = (profileId:string,id:string)=>hashToken(JSON.stringify([profileId,id]));
 const parse = <T>(schema:z.ZodType<T>,input:unknown):T=>{const v=schema.safeParse(input);if(!v.success)throw new Refusal('bad_input','Some fields in this request are missing or not in the expected form.');return v.data;};
 const missing = ()=>new Refusal('not_found','This Add agent request wasn’t found. Add the agent again.');
@@ -59,10 +59,8 @@ export function readinessView(value:Readiness|undefined,at:number) {
   const {profileId:_,connectionId:__,updates:___,...v}=value as Readiness&{updates?:unknown};
   return {...v,online:at>=v.lastSeenAt&&at-v.lastSeenAt<45_000};
 }
-async function connection(tx:Transaction,profileId:string,connectionId:string,at:number) {
-  const c=(await tx.get(connections.doc(connectionId))).data();
-  if(!c||c.profileId!==profileId||c.approvedAt===null||c.revokedAt!==null||c.connectionExpiresAt===null||c.connectionExpiresAt<=at)
-    throw new Refusal('unauthorized','This computer approval expired or was ended. Approve this computer again.');
+async function connection(tx:Transaction,profileId:string,connectionId:string) {
+  if(!currentComputer((await tx.get(computerConnections.doc(connectionId))).data(),profileId)) throw new Refusal('unauthorized',COMPUTER_DISCONNECTED);
 }
 async function access(tx:Transaction,profileId:string,projectId:string) {
   return inProject(projectId,async()=>{await assertMembership(tx,profileId);await assertProjectWritable(tx);return currentConnectionEpoch(tx,profileId);});
@@ -80,7 +78,7 @@ export async function publishRuntimeReadiness(profileId:string,connectionId:stri
   // platforms cannot advertise execution merely by supplying a boolean.
   const providers=value.providers.map(p=>!['darwin','linux','win32'].includes(value.platform)?{...p,available:false,reason:'unsupported_platform' as const}:
     {...p,available:p.available&&p.reason==='ready'});
-  return db.runTransaction(async tx=>{const at=now();await connection(tx,profileId,connectionId,at);
+  return db.runTransaction(async tx=>{const at=now();await connection(tx,profileId,connectionId);
     const progress = value.github === 'ready' ? await prepareOnboardingProgress(tx, profileId, at) : null;
     progress?.(['github']);
     tx.set(runtimeReadiness.doc(connectionId),{...value,providers,profileId,connectionId,lastSeenAt:at});return {ok:true,serverTime:at};});
@@ -93,7 +91,7 @@ export async function createWebAgentStart(profileId:string,input:unknown,now:()=
     const ref=webAgentStarts.doc(webStartKey(profileId,value.id)),previous=(await tx.get(ref)).data(),at=now();
     // Retry identity precedes changing availability, membership and name observations.
     if(previous){if(previous.fingerprint!==fingerprint)throw new Refusal('duplicate','This request ID was already used with different details. Send the original request again, or use a new request ID.');return {request:view(previous,at)};}
-    await connection(tx,profileId,value.connectionId,at);
+    await connection(tx,profileId,value.connectionId);
     const epoch=await access(tx,profileId,value.projectId);
     // An online computer must offer the provider.
     const ready=(await tx.get(runtimeReadiness.doc(value.connectionId))).data();
@@ -185,7 +183,7 @@ export async function acceptAgentStart(profileId:string,connectionId:string,id:s
     if(!r||r.profileId!==profileId||r.connectionId!==connectionId)throw missing();
     if(r.incarnation!==null&&r.incarnation!==incarnation)throw new Refusal('runtime_conflict','This request was made before MyLittleSwarm restarted on this computer. Add the agent again.');
     if(terminal(r.state))return {request:view(r,at)};
-    await connection(tx,profileId,connectionId,at);await access(tx,profileId,r.projectId);
+    await connection(tx,profileId,connectionId);await access(tx,profileId,r.projectId);
     const ready=(await tx.get(runtimeReadiness.doc(connectionId))).data();
     if(!ready||ready.incarnation!==incarnation||!readinessView(ready,at)?.online)throw new Refusal('runtime_conflict','MyLittleSwarm on this computer restarted or stopped. Add the agent again.');
     if(r.state!=='pending')return {request:view(r,at)};
@@ -209,7 +207,7 @@ export async function associateWebStart(tx:Transaction,profileId:string,connecti
   agentId:string,existing:{id:string;tokenHash:string}|undefined,tokenHash:string,at:number) {
   const ref=webAgentStarts.doc(webStartKey(profileId,id)),r=(await tx.get(ref)).data();
   if(!r||r.profileId!==profileId||r.connectionId!==connectionId||r.projectId!==projectId||r.name!==name)throw missing();
-  await connection(tx,profileId,connectionId!,at);
+  await connection(tx,profileId,connectionId!);
   const replay=!!existing&&r.agentId===existing.id&&existing.tokenHash===tokenHash;
   if(existing&&!replay)throw new Refusal('duplicate','Choose a new name. Adding an agent from the website always creates a new agent.');
   if(replay)return;
@@ -252,7 +250,7 @@ function assertStartTarget(r:WebAgentStart|undefined,profileId:string,connection
 export async function inspectAgentStart(profileId:string,connectionId:string,id:string,input:unknown,now:()=>number) {
   parse(uuid,id);const target=parse(startTarget,input);
   const r=assertStartTarget((await webAgentStarts.doc(webStartKey(profileId,id)).get()).data(),profileId,connectionId,target);
-  await inProject(r.projectId,()=>db.runTransaction(async tx=>{await connection(tx,profileId,connectionId,now());await assertMembership(tx,profileId);}));
+  await inProject(r.projectId,()=>db.runTransaction(async tx=>{await connection(tx,profileId,connectionId);await assertMembership(tx,profileId);}));
   return readWebAgentStart(profileId,id,now);
 }
 export async function cancelAgentStart(profileId:string,connectionId:string,id:string,input:unknown,now:()=>number) {
@@ -264,7 +262,7 @@ export async function cancelAgentStart(profileId:string,connectionId:string,id:s
     const receiptRef=collection<{fingerprint:string;requestId:string;cancelledAt:number;profileId:string;connectionId:string;target:z.infer<typeof startTarget>}>('agentStartCancellations').doc(webStartKey(profileId,value.operationId));
     const [doc,receipt]=await Promise.all([tx.get(ref),tx.get(receiptRef)]);
     const r=assertStartTarget(doc.data(),profileId,connectionId,value.target),at=now();
-    await connection(tx,profileId,connectionId,at);
+    await connection(tx,profileId,connectionId);
     await inProject(r.projectId,()=>assertMembership(tx,profileId));
     if(receipt.exists){
       if(receipt.data()!.fingerprint!==fingerprint)throw new Refusal('duplicate','Retry the original stop request.');
