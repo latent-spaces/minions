@@ -9,7 +9,8 @@ export const CONNECTOR_ENTRY = fileURLToPath(new URL('./cli.mjs', import.meta.ur
  */
 export function connectorCommand(platform, { node = process.execPath, cli = CONNECTOR_ENTRY, env = {}, args = [] } = {}) {
   if (platform === 'win32') {
-    const quote = value => `'${String(value).replaceAll("'", "''")}'`;
+    // PowerShell also reads the curly quotes ‘ ’ ‚ ‛ as single quotes; doubling escapes each one.
+    const quote = value => `'${String(value).replace(/['‘’‚‛]/g, '$&$&')}'`;
     return `${Object.entries(env).map(([name, value]) => `$env:${name}=${quote(value)}; `).join('')}& ${[node, cli, ...args].map(quote).join(' ')}`;
   }
   const quote = value => `'${String(value).replaceAll("'", "'\\''")}'`;

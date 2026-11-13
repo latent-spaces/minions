@@ -18,3 +18,8 @@ test('connector commands keep paths with spaces, quotes, $ and % as single argum
   assert.equal(windows, "& 'C:\\Program Files\\nodejs\\node.exe' 'C:\\Users\\Ana O''Neil\\$x %y%\\cli.mjs' 'skill'");
   assert.equal(connectorCommand('win32', { node: 'n', cli: 'c', env: { A: 'x' } }), "$env:A='x'; & 'n' 'c'");
 });
+
+test('PowerShell commands double curly single quotes, which PowerShell also reads as quote marks', () => {
+  assert.equal(connectorCommand('win32', { node: 'n', cli: 'C:\\Users\\Ana O\u2019Neil\\\u2018a\u201a\u201b\\cli.mjs' }),
+    "& 'n' 'C:\\Users\\Ana O\u2019\u2019Neil\\\u2018\u2018a\u201a\u201a\u201b\u201b\\cli.mjs'");
+});
