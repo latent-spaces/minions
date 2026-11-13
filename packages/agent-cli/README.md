@@ -487,6 +487,11 @@ mission status; it cannot release a newer Pause. Give every new control a fresh
 operation UUID and retry lost replies with the identical UUID/input. Resume keeps
 the scheduler backoff; the job's time continues while paused, and a worker resumed
 after the end time waits for more time.
+Each turn's prompt says how many minutes of the job are left. A job is one run, with no later
+run to leave work for: an agent that ends a turn with three or more minutes left gets one more
+turn that says so and names where to look (work it left undone, open tasks, uncovered parts of
+the mission, a teammate's open pull request to check). After that, a turn that ends inside half
+a minute is not followed by another until something else starts a turn.
 Uncertain execution, failed cleanup or a service restart during a turn requires
 recovery rather than Resume. A worker paused or waiting when the service restarted
 stays paused or waiting; Resume, added time or a raised cap continues it. Project Pause lets the running background turn finish, then holds new ones (the held
@@ -710,11 +715,17 @@ scan long conversations. Current chats use `set_agent_status`; workers emit a st
 never requires a new model turn.
 
 An update is one idea for a person scrolling a feed: an image, a headline of at most 60
-characters and a one-sentence caption of at most 140, with up to five image slides when the
-project allows them. While a project runs, the team aims for one update about every 5, 15 or
+characters and a one-sentence caption of at most 140. When the project allows slides (the
+default), it is a short set of 2 to 4 slides to swipe (at most five): the first says the whole
+result in one line, each next one makes one point, the last says what the person has to do or
+that nothing is needed. An update reports only the current job's work, and only what the agent
+checked itself. While a project runs, the team aims for one update about every 5, 15 or
 30 minutes of work, as the owner chose, one for the whole team. `get_project.projectUpdates`
 says when anyone last posted and whether one is due, and each turn's prompt repeats the aim.
-It is guidance and never starts a turn. People read the updates in the project's Updates tab.
+It is guidance; nothing is refused when an update is missing. One agent is asked for each due
+update. An agent working on its own that is idle when the update comes due is woken for one
+turn; the others are not given a model turn. In the job's last two minutes one agent is woken
+for the team's closing update. People read the updates in the project's Updates tab.
 Settings and `set_project_update_settings` set how often the team posts, which kinds of
 update are worth a post (results, blockers, decisions, summaries), whether slides are on,
 and the owner's own instructions (up to 1000 Unicode characters). Only the project owner
