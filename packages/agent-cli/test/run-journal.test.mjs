@@ -34,3 +34,11 @@ for (const provider of ['claude','codex']) test(`${provider} collector scrubs a 
   const record=readRunJournal({directory,identity}).records[0];
   assert.equal(record.textTruncated,true); assert.equal(record.text.includes('synthetic-long-bridge'),false); assert.ok(record.text.includes('[REDACTED]'));
 }));
+
+test('journal redacts a credential split by a NUL character that capture strips', () => fixture(directory => {
+  const journal = createRunJournal({ directory, identity, redact: ['secret-token'] }), attempt = event('attempt_started');
+  journal.append(attempt);
+  journal.append({ ...attempt, kind: 'assistant_text', text: 'Done secret\0-token' });
+  assert.equal(readRunJournal({ directory, identity }).records[1].text, 'Done [REDACTED]');
+  assert.equal(readFileSync(join(directory, 'run-evidence.jsonl'), 'utf8').includes('secret-token'), false);
+}));

@@ -91,7 +91,7 @@ export function readRunJournal({ directory, identity, after = 0, limit = 100 }) 
 export function createRunJournal({ directory, identity, redact = [] }) {
   identity = validateIdentity(identity);
   const secrets = redact.filter(value => typeof value === 'string' && value.length).sort((a,b) => b.length - a.length);
-  const clean = (value, maximum) => { let text = value; for (const secret of secrets) text = text.split(secret).join('[REDACTED]'); return [...text.replace(/\0/g, '')].slice(0, maximum).join(''); };
+  const clean = (value, maximum) => { let text = value.replace(/\0/g, ''); for (const secret of secrets) text = text.split(secret).join('[REDACTED]'); return [...text].slice(0, maximum).join(''); };
   let bytes = 0, sequence = 0, device, inode, truncated = false, failure = null;
   const status = () => ({ availability: failure ? 'unavailable' : 'available', truncated, faults: failure ? [failure] : [], scope: 'collector-visible' });
   try {
