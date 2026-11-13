@@ -10,6 +10,18 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## What “no expiry, no revoke” means for connections — owner decision, 13 November 2026
+
+Source: the owner's 13 November 2026 decision in [No computer approval: setup connects this computer by itself](#no-computer-approval-setup-connects-this-computer-by-itself--owner-decision-13-november-2026),
+recorded after review of the change that removed revocation.
+
+- **Connections no longer expire or get revoked.** The engine does not read a connection's expiry
+  and nothing ends a connection.
+- **A leaked connector credential stays valid** until the owner removes that connection. No command
+  or page removes one now, so in practice it stays valid until the engine's store is set up again.
+- **Previously expired connections count as live again.**
+- **The connector reconnects by itself** when the engine answers 401, and repeats the request once.
+
 ## A dead local preview is not a broken frame — owner decision, 13 November 2026
 
 Source: the owner on 13 November 2026, asking to fix “an agent's preview dies with its run”, after
