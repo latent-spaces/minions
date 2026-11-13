@@ -13,7 +13,7 @@ export function prepareSupervisedModel(options) {
     cwd: options.cwd, env: options.env, detached: true, windowsHide: true,
     stdio: [options.stdio[0], 'pipe', 'pipe', 'ipc'],
   });
-  let launched = false, authorized = false, spawned = false;
+  let authorized = false, spawned = false;
   guard.once('spawn', () => { spawned = true; });
   guard.authorize = (command, args) => {
     if (authorized) throw new Error('Worker guard was already authorized.');
@@ -22,7 +22,6 @@ export function prepareSupervisedModel(options) {
     authorized = true;
     const launch = () => {
       if (!guard.connected) return;
-      launched = true;
       guard.send({ command, args, deadline: options.deadline, rpc: options.stdio[0] === 'pipe' }, error => {
         if (error) guard.kill('SIGTERM');
       });
