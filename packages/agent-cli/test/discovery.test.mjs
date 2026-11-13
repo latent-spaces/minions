@@ -15,3 +15,12 @@ test('discovery accepts only trusted/loopback origins and sends bounded credenti
     assert.deepEqual(requests.map(r=>r.method),['GET','GET']);assert.ok(requests.every(r=>r.authorization===undefined));assert.match(requests[0].url,/q=front\+end/);
   } finally {server.closeAllConnections();await new Promise(r=>server.close(r));}
 });
+
+test('discovery reports an empty 204 reply as an invalid response, not a TypeError', async () => {
+  const server = createServer((req, res) => { res.statusCode = 204; res.end(); });
+  await new Promise(r => server.listen(0, '127.0.0.1', r));
+  try {
+    const discovery = createDiscovery({ site: `http://127.0.0.1:${server.address().port}` });
+    await assert.rejects(discovery.call('explore_projects', {}), /Public discovery returned an invalid response\./);
+  } finally { await new Promise(r => server.close(r)); }
+});

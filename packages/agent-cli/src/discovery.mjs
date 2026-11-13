@@ -17,7 +17,7 @@ export function createDiscovery({ site = configuredWebsiteOrigin() } = {}) {
     catch { throw new Error('Public discovery is unavailable. Retry later; no connection or worker was changed.'); }
     if (!response.ok) throw new Error(response.status === 404 ? 'This project is not published.' : response.status === 429 ? 'Public discovery is rate limited. Wait before retrying.' : 'Public discovery is unavailable. Retry later; no connection or worker was changed.');
     let bytes = 0, chunks = [];
-    for await (const chunk of response.body) { bytes += chunk.byteLength; if (bytes > 256 * 1024) { await response.body.cancel?.().catch(() => {}); throw new Error('Public discovery returned an oversized response.'); } chunks.push(chunk); }
+    for await (const chunk of response.body ?? []) { bytes += chunk.byteLength; if (bytes > 256 * 1024) { await response.body.cancel?.().catch(() => {}); throw new Error('Public discovery returned an oversized response.'); } chunks.push(chunk); }
     let data; try { data = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new Error('Public discovery returned an invalid response.'); }
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('Public discovery returned an invalid response.');
     return data;
