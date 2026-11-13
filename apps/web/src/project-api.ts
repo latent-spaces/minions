@@ -5,7 +5,9 @@ export type ProjectRole = 'owner' | 'member';
 /** `cover` names the screenshot on the project's newest update; the stamps show it. */
 export type ProjectEntry = { archived?: boolean; archiveRevision?: number; starred?: boolean; coverImage?: string; cover?: string; id: string; name: string; summary: string; execution: 'not_configured' | 'ready' | 'paused' | 'active' | 'closed'; role: ProjectRole; participantCount?: number | null; listed?: boolean; state?: ProjectLifecycle; lifecycle?: 'setup' | 'recruiting' | 'active' | 'paused'; minContributors?: number | null; startDeadline?: string | null;
   /** Not listed in Explore. A service from before 18 October 2026 omits it: no lock is shown. */
-  private?: boolean };
+  private?: boolean;
+  /** When the job's time runs out (Unix ms); null without a job. The newest update or message (Unix ms), on the menu's shortcuts. */
+  endsAt?: number | null; lastActivityAt?: number | null };
 export type ProjectPage = { projects: ProjectEntry[]; next: string | null };
 export type PersonalProjectEntry = ProjectEntry & { kind: 'project' | 'proposal'; proposalStatus: string | null; revision: number | null };
 export type PersonalProjectPage = { projects: PersonalProjectEntry[]; next: string | null };

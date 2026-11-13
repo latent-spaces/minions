@@ -121,6 +121,8 @@ const GLOBAL_NAMES: Record<GlobalView, string> = { projects: 'My projects', 'nee
 /** Project navigation and own-agent shortcuts; web creation is hidden (OPE-230). */
 type ProjectFacts = { projectId: string; connect: (() => void) | null; addTask?: (() => void) | null; openAgent?: (id: string) => void; myAgents?: { state?: import('@mlswarm/contracts').CommunicationAgentState; provider?: string; id: string; name: string; status: string; detail: string; waiting?: boolean; queued?: boolean }[]; cheatSheet?: { title: string; started: boolean } | null; sections?: { id: Section; current: boolean; locked: boolean; count: number }[] };
 const executionLabel = (p: ProjectEntry) => personalProjectStatus({ ...p, kind: 'project', proposalStatus: null }).label;
+/** Live: running, with job time left (owner, 13 November 2026). */
+const isLive = (p: ProjectEntry, now = Date.now()) => p.execution === 'active' && typeof p.endsAt === 'number' && p.endsAt > now;
 
 export function Viewer({ user, account }: { user: SessionUser; account: CommunityAccount }) {
   const [route, setRoute] = useState<Route>(() => parseRoute(window.location.search));
@@ -297,9 +299,9 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   const openFacts = openProject && facts?.projectId === openProject.id ? facts : null;
   const projectsLink: WorkspaceNavItem = { id:'projects', label:GLOBAL_NAMES.projects, icon:<Folder size={18} />, href:formatRoute({ view:'projects' }), current:route.view === 'projects', onNavigate:() => go({ view:'projects' }) };
   // There is no top bar (owner, 11 November 2026): the bell sits at the foot of the menu; connections are in project Settings.
-  const shortcut = (p: ProjectEntry) => ({ id:p.id, name:p.name, href:formatRoute(projectRoute(p.id)), onNavigate:() => go(projectRoute(p.id)), status:executionLabel(p), private:p.private, cover:covers[p.id] ?? null });
+  const shortcut = (p: ProjectEntry) => ({ id:p.id, name:p.name, href:formatRoute(projectRoute(p.id)), onNavigate:() => go(projectRoute(p.id)), status:executionLabel(p), private:p.private, cover:covers[p.id] ?? null, live:isLive(p) });
   // Projects and agents are created from Claude through local MCP (owner, 10 November 2026).
-  const projectMenu: ProjectMenu | null = openProject && { id:openProject.id, name:openProject.name, status:executionLabel(openProject), private:openProject.private, cover:covers[openProject.id] ?? null,
+  const projectMenu: ProjectMenu | null = openProject && { id:openProject.id, name:openProject.name, status:executionLabel(openProject), private:openProject.private, cover:covers[openProject.id] ?? null, live:isLive(openProject),
     back: { id:'all-projects', label:'All projects', href:formatRoute({ view:'projects' }), onNavigate:() => go({ view:'projects' }) },
     // The project's sections sit in the menu, below New task and above My agents (owner, 11 November 2026).
     sections: (openFacts?.sections ?? []).map(({ id, current, locked, count }) => { const tab = PROJECT_TABS.find(t => t.id === id)!, Icon = tab.icon, to = projectRoute(openProject.id, id);

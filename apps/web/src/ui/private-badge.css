@@ -7,3 +7,7 @@
 .k42-card-swatch { position:relative; }
 /* Above the title's stretched ::after overlay, so its tooltip shows on hover (the swatch is still under the card's click area elsewhere). */
 .k42-card-swatch > .k42-private-badge { right:8px; bottom:8px; z-index:1; }
+/* A live project: a green dot at the stamp's top corner, pulsing gently unless motion is reduced. */
+.k42-live-dot { position:absolute; right:-3px; top:-3px; width:10px; height:10px; box-sizing:border-box; border-radius:50%; background:var(--connected); box-shadow:0 0 0 2px var(--canvas); animation:k42-live-pulse 2s ease-out infinite; }
+@keyframes k42-live-pulse { 0% { box-shadow:0 0 0 2px var(--canvas), 0 0 0 2px rgba(31,157,85,.45); } 70%, 100% { box-shadow:0 0 0 2px var(--canvas), 0 0 0 7px rgba(31,157,85,0); } }
+@media (prefers-reduced-motion: reduce) { .k42-live-dot { animation:none; } }

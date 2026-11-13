@@ -23,7 +23,8 @@ import { assertMembership, assertProjectWritable } from './access.js';
 import { CARD_EDIT, agentText, cardDefinition, cardDoc, cardVersionId, cardVersions, currentCard, type CardVersion } from './card.js';
 import { projectListings, searchPrefixes } from './catalog.js';
 import { artworkOf } from './artwork.js';
-import { latestUpdateScreenshotId } from './progress.js';
+import { latestUpdateAt, latestUpdateScreenshotId } from './progress.js';
+import { messagesV2 } from '../v2/records.js';
 import { runtimeOf, runtimeWithCard, recordWithRuntime, type WorkspaceProject, type RuntimeState } from './records.js';
 import { communityRulesDoc, communitySettingsDoc, setCommunityPublication } from './community-schema.js';
 import { communityRulesView } from './community-rules.js';
@@ -119,7 +120,19 @@ export async function listProjectShortcuts(operator: WithId<Profile>) {
   }
   const active = await listProjects(operator, undefined, 'active');
   const seen = new Set(pinned.map(project => project.id));
-  return { projects: [...pinned, ...active.projects.filter(project => !seen.has(project.id))].slice(0, 20), next: null };
+  // The menu lists the most recently active projects first; starred ones stay on top (owner, 13 November 2026).
+  const withActivity = async <T extends { id: string }>(rows: T[]) => {
+    const dated = await Promise.all(rows.map(async row => ({ ...row, lastActivityAt: await projectLastActivityAt(row.id) })));
+    return dated.sort((a, b) => (b.lastActivityAt ?? 0) - (a.lastActivityAt ?? 0));
+  };
+  const [starred, rest] = await Promise.all([withActivity(pinned), withActivity(active.projects.filter(project => !seen.has(project.id)))]);
+  return { projects: [...starred, ...rest].slice(0, 20), next: null };
+}
+// A project's last activity is its newest update or message (Unix ms), or null when it has neither.
+async function projectLastActivityAt(id: string): Promise<number | null> {
+  const [update, message] = await Promise.all([latestUpdateAt(id),
+    inProject(id, () => messagesV2().orderBy('createdAt', 'desc').select('createdAt').limit(1).get()).then(page => (page.docs[0]?.get('createdAt') as number | undefined) ?? null)]);
+  return update === null && message === null ? null : Math.max(update ?? 0, message ?? 0);
 }
 type ArchiveView = 'all' | 'current' | 'archived' | 'active';
 async function listDirectory(operator: WithId<Profile>, cursor: string | undefined, includeProposals: boolean, view: ArchiveView, size = 20) {
@@ -167,7 +180,7 @@ async function listDirectoryPage(operator: WithId<Profile>, cursor: string | und
       if (definition.exists) counts[start + offset] = await registeredParticipantCount(definition.id, definition.data()!.ownerProfileId);
     }));
   }
-  const rows = definitions.flatMap<{ id: string; name: string; summary: string; coverImage?: string; cover?: string; execution: string; role: ProjectRole; kind: 'project' | 'proposal'; proposalStatus: string | null; revision: number | null; participantCount?: number | null; listed?: boolean; lifecycle?: string; minContributors?: number | null; startDeadline?: string | null; state: ProjectLifecycle; private: boolean; repository?: string | null; archived: boolean; archiveRevision: number; starred: boolean }>((definition, index) => {
+  const rows = definitions.flatMap<{ id: string; name: string; summary: string; coverImage?: string; cover?: string; execution: string; role: ProjectRole; kind: 'project' | 'proposal'; proposalStatus: string | null; revision: number | null; participantCount?: number | null; listed?: boolean; lifecycle?: string; minContributors?: number | null; startDeadline?: string | null; state: ProjectLifecycle; private: boolean; repository?: string | null; archived: boolean; archiveRevision: number; starred: boolean; endsAt?: number | null }>((definition, index) => {
     if (!definition.exists) {
       const proposal = proposalPage?.docs.find(d => d.id === definition.id)?.data();
       if (!proposal) return [];
@@ -184,7 +197,7 @@ async function listDirectoryPage(operator: WithId<Profile>, cursor: string | und
     const state = deriveProjectLifecycle({ kind: 'project', role: projectRole, execution: p.execution.completedAt !== null ? 'closed' : projectExecution(current), runtimeStarted: current?.started, listed,
       privateProject: !!isPrivateProject(p), setupRequired: setup.required, setupFinalizedAt: setup.finalizedAt, participantCount: counts[index], minContributors: setup.minContributors });
     // Members' agents match GitHub invitations to their projects by this repository.
-    return [{ ...archiveState(preferences[index].data()), ...starState(stars[index].data()), id: definition.id, repository: current?.repoUrl ?? null, ...(coverImage ? { coverImage } : {}), ...(covers[index] ? { cover: covers[index]! } : {}), name: currentCard(p, cards[index].data() as CardVersion | undefined).definition.title, summary: currentCard(p, cards[index].data() as CardVersion | undefined).definition.goal, state, execution: p.execution.completedAt !== null ? 'closed' : projectExecution(current), role: projectRole, kind: 'project' as const, proposalStatus: null, revision: null, participantCount: counts[index], listed, lifecycle: p.setup.required ? state.setup === 'pending' ? 'setup' : !current?.started ? 'recruiting' : current.paused ? 'paused' : 'active' : undefined, minContributors: current?.minContributors ?? definition.data()!.setup.minContributors ?? null, startDeadline: current?.startDeadline ?? null, private: !!isPrivateProject(p) }];
+    return [{ ...archiveState(preferences[index].data()), ...starState(stars[index].data()), id: definition.id, repository: current?.repoUrl ?? null, ...(coverImage ? { coverImage } : {}), ...(covers[index] ? { cover: covers[index]! } : {}), name: currentCard(p, cards[index].data() as CardVersion | undefined).definition.title, summary: currentCard(p, cards[index].data() as CardVersion | undefined).definition.goal, state, execution: p.execution.completedAt !== null ? 'closed' : projectExecution(current), role: projectRole, kind: 'project' as const, proposalStatus: null, revision: null, participantCount: counts[index], listed, lifecycle: p.setup.required ? state.setup === 'pending' ? 'setup' : !current?.started ? 'recruiting' : current.paused ? 'paused' : 'active' : undefined, minContributors: current?.minContributors ?? definition.data()!.setup.minContributors ?? null, startDeadline: current?.startDeadline ?? null, private: !!isPrivateProject(p), endsAt: p.execution.endsAt ?? null }];
   });
   return { projects: rows, next: selectedIds ? null : ids.length > size || authored.size === size + 1 || (joined.size === size + 1 || proposalPage?.size === size + 1) ? nextCursor(scope, page.at(-1) ?? joined.docs.at(-1)?.id ?? authored.docs.at(-1)!.id) : null };
 }
