@@ -73,7 +73,7 @@ export async function assertAgentMembership(tx: Transaction, agentId: string): P
 export async function agentMembership(tx: Transaction, agentId: string): Promise<{ role: ProjectRole; agent: Agent }> {
   const agent = await tx.get(agents().doc(agentId));
   if (!agent.exists || agent.data()!.revokedAt !== null) throw new Refusal('unauthorized', 'This agent is no longer active. Add it again from your agent list.');
-  if (!await agentComputerAllowed(tx, agent.data()!)) throw new Refusal('unauthorized', 'This agent’s computer was revoked. Connect it again from an approved computer.');
+  if (!await agentComputerAllowed(tx, agent.data()!)) throw new Refusal('unauthorized', 'This agent’s computer connection was ended. Add the agent again on this computer.');
   const operators = await activeRecipientOperators(tx, [agent.data()!.ownerProfileId]);
   if (!connectionAllowed(agent.data()!, operators)) throw new Refusal('unauthorized', 'This agent belongs to someone who is no longer a member of this project. Rejoin the project, then add the agent again.');
   return { role: operators.get(agent.data()!.ownerProfileId)!.role, agent: agent.data()! };

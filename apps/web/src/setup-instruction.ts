@@ -10,8 +10,8 @@ export function setupCommand(origin: string) {
   if (!/^[a-z0-9.-]+$/i.test(url.hostname) || url.pathname !== '/' || url.username || url.password || url.search || url.hash || (url.protocol !== 'https:' && !(url.protocol === 'http:' && ['127.0.0.1', 'localhost'].includes(url.hostname)))) throw new Error('Choose a valid MyLittleSwarm address.');
   return `node packages/agent-cli/src/cli.mjs setup${url.origin === 'http://127.0.0.1:8787' ? '' : ` --site ${url.origin}`}`;
 }
-// Run in the background, setup keeps waiting for the person while the agent posts the messages it writes (the code
-// to check, the links to open); in the foreground the agent would see nothing until setup ended. Asking for the
+// Run in the background, setup keeps waiting for the person while the agent posts the messages it writes (such as
+// the GitHub sign-in link); in the foreground the agent would see nothing until setup ended. Asking for the
 // messages here, in the person's own words, is what makes agents post them rather than retell them.
 export const computerSetupInstructions = (origin: string) => `Set up MyLittleSwarm on this computer from ${CHECKOUT}: in it, run ${CHECKOUT_PREPARE}, then run ${setupCommand(origin)} in the background and show me each MyLittleSwarm setup message it writes, exactly as written.`;
 

@@ -272,16 +272,10 @@ and communication map. People add agents through MyLittleSwarm MCP in their loca
 agent. The unmounted `AddAgent` dialog and existing creation APIs/runtime are retained
 for this visibility-only change (OPE-230); accepted work continues normally. Revisit
 the retained dialog when the owner decides whether web creation will return.
-The **Connections** card at the end of project Settings (`Connections.tsx`, list in
-`ConnectionList`) shows each approved connection (the shared service Claude Code and Codex use),
-reported online status and approval expiry, with Revoke as its only management action. The global
-My agents page has been removed; agents remain in their projects. Revocation ends
-the computer grant and every associated agent across projects. The confirmation
-explains that background work stops when the computer receives the revocation;
-external coding chats remain under their host's control. Interrupted server cleanup
-stays visible with Finish revoking. Ambiguous older associations require verified
-reconnection or project-level revocation before computer revocation can proceed.
-Setup remains in Karma progress and the project connection flow.
+There is no computer approval page and no connections card: the connector's setup command
+connects this computer, its coding agents and GitHub by itself (owner, 13 November 2026), and
+an old `?view=owner-connect` link opens My projects. The global My agents page has been
+removed; agents remain in their projects.
 
 Page headings use `PathHeading`: a breadcrumb trail above a single h1. The trail starts
 at Home, which opens My projects, followed by the route-backed parent levels. Separators are
@@ -290,7 +284,7 @@ the trail and earlier levels move into a menu. Levels navigate through `go` when
 given and `routeBase` is not; otherwise they are plain links that check
 `mayLeaveProject()` on click. `trail={false}` renders the h1 alone. Member project pages use
 `ProjectHeader`: on pages that are not tabs its title becomes an h2, and, except on
-agent pages, a trail-less `PathHeading` gives the page title. Global pages and computer approval also use it. Section headings and
+agent pages, a trail-less `PathHeading` gives the page title. Global pages also use it. Section headings and
 dialog titles stay plain headings.
 
 ### Shared project chat

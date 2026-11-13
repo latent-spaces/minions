@@ -252,7 +252,7 @@ test('owner computer poll: reads per request through the owner routes', async ()
   const { ownerRoutes } = await import('../src/owner/routes.js');
   const { idTokenFor } = await import('./helpers.js');
   const { hashToken, newToken } = await import('../src/auth.js');
-  const app = express(); app.use(express.json()); app.use('/api/owner', ownerRoutes(now));
+  const app = express(); app.use(express.json()); app.use('/api/owner', ownerRoutes(now, { selfHosted: () => true }));
   const owner = app.listen(0, '127.0.0.1'); await new Promise<void>(resolve => owner.once('listening', resolve));
   const root = `http://127.0.0.1:${(owner.address() as { port: number }).port}/api/owner`;
   const call = async (path: string, token: string, body?: object) => {
@@ -262,9 +262,8 @@ test('owner computer poll: reads per request through the owner routes', async ()
   };
   try {
     await seed({ profiles: [{ name: 'Computer owner', email: 'computer-owner@example.test' }] });
-    const token = newToken(), id = randomUUID();
-    expect((await call('/connect', '', { requestId: id, pollingSecret: newToken(), candidateTokenHash: hashToken(token), clientName: 'Unit' })).status).toBe(200);
-    expect((await call(`/connect/${id}/approve`, await idTokenFor('computer-owner@example.test'), { approved: true })).status).toBe(200);
+    const token = newToken();
+    expect((await call('/local-computer', await idTokenFor('computer-owner@example.test'), { candidateTokenHash: hashToken(token), clientName: 'Unit' })).status).toBe(200);
     const poll = [['/participations/sync', { participations: [] }], ['/participation-controls', undefined], ['/backgrounds/sync', { backgrounds: [] }], ['/background-controls', undefined]] as const;
     const table: Record<string, number[]> = {};
     for (let round = 0; round < 2; round++) {
@@ -292,7 +291,7 @@ test('owner computer sync page: reads and writes per background row', async () =
   const f = await seed({ profiles: [{ name: 'Row owner', email: 'row-owner@example.test' }],
     agents: Array.from({ length: 5 }, (_, i) => ({ person: 0, name: `Row worker ${i}` })) });
   const owner = f.personIds[0], computer = randomUUID();
-  await collection('computerConnections').doc(computer).set({ profileId: owner, revokedAt: null, approvedAt: clock, connectionExpiresAt: clock + 86_400_000 });
+  await collection('computerConnections').doc(computer).set({ profileId: owner, revokedAt: null, approvedAt: clock });
   const rows = await Promise.all(f.agents.map(async agent => {
     const missionId = randomUUID();
     const run = await inProject(TEST_PROJECT, () => startRun(agent.agentId, { clientRunId: missionId, runnerVersion: 'synthetic-background', takeover: false }, now));

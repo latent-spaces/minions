@@ -12,7 +12,19 @@
 .k42-compact-bar .wordmark { justify-self:center; min-width:0; gap:6px; white-space:nowrap; }
 .k42-compact-bar .wordmark-logo { font-size:20px; }
 .k42-compact-bar :is(a, button):focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
-.workspace-column > .workspace-content { flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain; }
+/* position:relative makes the page the containing block of its absolutely positioned descendants (such as
+   visually-hidden labels), so they scroll and clip with it instead of stretching the window (owner, 13 November 2026). */
+.workspace-column > .workspace-content { position:relative; flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain; }
+/* Framed pages (owner, 13 November 2026); the project page is one. A framed page fills the window and never scrolls as a whole. Each region in
+   it is either .k42-scroll, which scrolls on its own, or .k42-fit, which fills the space left: its children keep their
+   own height except the ones marked .k42-grow, which share what remains (and pass it on with height:100% or their own
+   .k42-fit). Everything else in a flex column of the frame keeps its natural height. Both are positioned, so absolutely
+   positioned content scrolls and clips with its region; overflow:clip keeps focus from scrolling a frame or fit region. */
+.workspace-column > .workspace-content:has(> div:not([hidden]) > .k42-project-layout) { display:flex; flex-direction:column; overflow:clip; padding-bottom:24px; }
+.k42-scroll { position:relative; flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain; }
+.k42-fit { position:relative; flex:1 1 auto; min-height:0; display:flex; flex-direction:column; overflow:clip; }
+.k42-fit > * { flex:none; }
+.k42-fit > .k42-grow { flex:1 1 auto; min-height:0; }
 .workspace-layout > .project-sidebar:not(.drawer) { min-height:0; overflow:hidden auto; overscroll-behavior:contain; display:flex; flex-direction:column; }
 /* Desktop menu column: brand, Explore and footer stay put; only the project shortcuts scroll (inside a project, its
    sections and Switch project).

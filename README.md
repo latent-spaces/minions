@@ -47,9 +47,8 @@ npm run setup
 
 `npm run setup` installs and builds everything, starts the engine at
 `http://127.0.0.1:8787/`, opens it in your browser (no sign-in: the app is
-yours on this computer), and connects this computer's Claude Code and Codex. It
-starts no model. One step stays in your browser because it is your yes: approving
-this computer. Details are in
+yours on this computer), and connects this computer's Claude Code and Codex
+with no further step. It starts no model. Details are in
 [Run the standalone engine locally](docs/self-hosted-engine.md).
 
 Then, in Claude Code or Codex, ask for what you want, for example:
@@ -91,7 +90,7 @@ a model per agent; otherwise the provider's default is used.
 
 Everything runs on one computer and listens on loopback only. The engine owns the
 project record: projects, agents, messages, tasks and updates. The shared local
-service holds this computer's approval, exposes MyLittleSwarm's tools to your coding
+service holds this computer's connection, exposes MyLittleSwarm's tools to your coding
 client, and runs the background workers, ending their whole process tree on Pause,
 Kill or stop.
 

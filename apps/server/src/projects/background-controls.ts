@@ -1,4 +1,4 @@
-import { assertComputerApproval } from '../owner/computer-access.js';
+import { assertCurrentComputer, computerConnections as computers, currentComputer, COMPUTER_DISCONNECTED } from '../owner/computer-access.js';
 import { createHash } from 'node:crypto';
 import type { Transaction } from '../firestore.js';
 import { RUN_LENGTH } from '@mlswarm/contracts';
@@ -40,9 +40,6 @@ type Command = { version: 2; operationId: string; kind: 'pause' | 'resume' | 'st
 type Mail = { id: string; profileId: string; connectionId: string; projectId: string; agentId: string; fingerprint: string; actorProfileId?: string; reason?:string;
   // deadlineAt is this command's own expiry, not the mission's.
   command: Command; approvedAt: number; deadlineAt: number; state: BackgroundControlState; message?: string; acknowledgedAt?: number; effectObservedAt?: number };
-type Computer = {profileId:string|null;revokedAt:number|null;approvedAt:number|null;connectionExpiresAt:number|null};
-const computers=collection<Computer>('computerConnections');
-const approvedComputer=(computer:Computer|undefined,profileId:string,at:number)=>!!computer && computer.profileId===profileId && computer.revokedAt===null && computer.approvedAt!==null && (computer.connectionExpiresAt??0)>at;
 const snapshots = () => projectCollection<Saved>('backgroundControls');
 const mailbox = collection<Mail>('backgroundControls');
 const key = (profileId: string, id: string) => createHash('sha256').update(JSON.stringify([profileId,id])).digest('hex');
@@ -71,7 +68,7 @@ export async function readBackgroundControl(tx: Transaction, profileId: string, 
   const pending=saved.pendingId ? (await tx.get(mailbox.doc(key(profileId,saved.pendingId)))).data():undefined;
   const run=(await tx.get(runs().doc(agentId))).data(),computer=(await tx.get(computers.doc(saved.connectionId))).data();
   const result=publicView(saved,pending,at);
-  if(!approvedComputer(computer,profileId,at) || saved.cloudRun && (run?.runId!==saved.missionId || run.endedAt!==null || run.generation!==saved.cloudRun.generation)) result.available=false;
+  if(!currentComputer(computer,profileId) || saved.cloudRun && (run?.runId!==saved.missionId || run.endedAt!==null || run.generation!==saved.cloudRun.generation)) result.available=false;
   return result;
 }
 export async function syncBackgrounds(profileId: string, connectionId: string, input: unknown, now:()=>number) {
@@ -109,7 +106,7 @@ export async function syncBackgrounds(profileId: string, connectionId: string, i
         throw new Refusal('run_active','Another run already owns this agent.');
       if(saved && saved.connectionId!==connectionId && (!snapshot.cloudRun || run?.endedAt!==null))
         throw new Refusal('runtime_conflict','Another computer must first confirm a fresh background run.');
-      await assertComputerApproval(tx, connectionId, profileId, now());
+      await assertCurrentComputer(tx, connectionId, profileId);
       const effect= same && unresolved(pending) && pending.command.missionId===snapshot.missionId && pending.command.generation===snapshot.generation
         && (pending.command.kind==='stop' ? snapshot.state==='stopped' : !ended(snapshot) && (pending.command.kind==='pause'
           ? snapshot.state==='paused' && snapshot.pauseOperationId===pending.id
@@ -142,7 +139,7 @@ export async function requestBackgroundControl(actorId:string,agentId:string,inp
     const pending=pendingRef ? (await tx.get(pendingRef)).data():undefined;
     const run=(await tx.get(runs().doc(agentId))).data(),computer=(await tx.get(computers.doc(saved.connectionId))).data();
     const queued=await tx.get(mailbox.where('connectionId','==',saved.connectionId).where('state','in',['queued','accepted']).limit(33));
-    if(!approvedComputer(computer,profileId,at)) throw new Refusal('runtime_conflict','This computer’s approval ended. Approve this computer again, then try again.');
+    if(!currentComputer(computer,profileId)) throw new Refusal('runtime_conflict',`${COMPUTER_DISCONNECTED} Try again in a moment.`);
     if(saved.missionId!==value.missionId || saved.generation!==value.generation)
       throw new Refusal('runtime_conflict','This agent’s work changed. Refresh, then try again.');
     if(ended(saved) || ['stopping','recovery_required'].includes(saved.state)) throw new Refusal('runtime_conflict','This agent already stopped working, so it can’t be paused or resumed. Start it again instead.');

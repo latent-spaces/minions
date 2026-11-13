@@ -24,8 +24,9 @@ import { createRunEvidence } from './run-evidence.mjs';
 
 export async function composeInstalledRuntime({ home, site, getService, credentialHome = sessionHome(), fetchImpl = fetch, webStartOptions = {} }) {
   const accountClient = createOwnerClient({ home: credentialHome, site, fetchImpl });
-  const account = accountClient.currentAccount();
-  if (account.status !== 'approved' || !account.account_profile_id) throw new Error('Run setup and finish computer approval before starting the service.');
+  // A saved connection is used as is; without one the service connects this computer itself, as setup does.
+  const account = await accountClient.connect('MyLittleSwarm shared service');
+  if (account.status !== 'approved' || !account.account_profile_id) throw new Error('This computer could not connect to MyLittleSwarm. Run setup again.');
   const principal = { site, ownerId: account.account_profile_id };
   validateTarget({ ...principal, projectId: 'installation', agentId: 'installation' });
   const registry = new Map();

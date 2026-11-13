@@ -29,8 +29,9 @@ Claude, Codex, DeepSeek or another model supported by that client.
 
 Commands:
   setup [--site WEBSITE] [--wait-seconds N]
-      Approve this computer, start its shared local service and connect Claude Code
-      and Codex to it, with the MyLittleSwarm skill. Starts no models.
+      Connect this computer to the local MyLittleSwarm engine (waiting up to N seconds,
+      default 120, for the engine to answer), start its shared local service and connect
+      Claude Code and Codex to it, with the MyLittleSwarm skill. Starts no models.
   mcp-config --client claude|codex|other [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
       Print HTTP registration for another client; changes no client settings.
   service-start / service-status / service-stop
@@ -63,7 +64,6 @@ Commands:
       [--minimum N] [--start-date ISO_DATE]
   project-agents --project PROJECT_ID [--cursor CURSOR]
   agents-register --project PROJECT_ID --names NAME1,NAME2 --request-id ID --approve
-  owner-connect / owner-finish / owner-disconnect
       Sign in through browser approval for 90-day human project management.
       Management commands require the selected shared runtime to be running.
   my-projects [--scope owned|joined|all] [--cursor CURSOR]
@@ -102,7 +102,6 @@ export const specs = {
   skill: { json: { type: 'boolean' }, section: { type: 'string' } },
   'project-agents': { ...stateSpec, project:{type:'string'}, cursor:{type:'string'} },
   'agents-register': { ...stateSpec, project:{type:'string'}, names:{type:'string'}, 'request-id':{type:'string'}, approve:{type:'boolean'} },
-  'owner-connect': stateSpec, 'owner-finish': stateSpec, 'owner-disconnect': stateSpec,
   'my-projects': { ...stateSpec, scope:{type:'string'}, cursor:{type:'string'} }, 'my-proposals': { ...stateSpec, cursor:{type:'string'} },
   'project-create-private': { ...stateSpec, title:{type:'string'}, goal:{type:'string'}, repo:{type:'string'}, 'request-id':{type:'string'}, approve:{type:'boolean'} },
   'proposal-status': { ...stateSpec, project:{type:'string'} },
@@ -141,24 +140,14 @@ export async function main(args, out = console.log, err = console.error) {
       try { return readInstallation(home).site; } catch (error) { if (error.code !== 'ENOENT') throw error; }
       return configuredWebsiteOrigin();
     };
-    if (['setup','owner-connect','owner-finish','service-start'].includes(command)) {
+    if (['setup','service-start'].includes(command)) {
       const site = selectedSite(), owner = createOwnerClient({home:sessionHome(),site});
       // A person at a terminal sees the setup screen; a coding agent gets the same steps as chat messages to pass on.
       const screen = command !== 'setup' ? null : process.stdin.isTTY && process.stdout.isTTY ? createSetupScreen() : createChatScreen(out);
-      let stopEnter = () => {};
-      if (command === 'setup' || command === 'owner-connect') {
-        if (screen) { screen.start(); screen.step(1, 'Approve this computer on MyLittleSwarm'); }
-        const connected = await owner.connect('MyLittleSwarm shared service',site);
-        if (command === 'owner-connect') { out(JSON.stringify(connected,null,2)); if (connected.approval_url) openPage(connected.approval_url); return 0; }
-        if (connected.approval_url) stopEnter = offerPage(screen, { codeHint: 'Check the page shows this code', code: connected.request_check, label: 'the approval page', url: connected.approval_url });
-      }
-      if (command === 'setup' || command === 'owner-finish') {
-        const account = await waitForApproval(owner, { seconds: waitSeconds, screen, stopEnter });
-        if (command === 'owner-finish') { out(JSON.stringify(account,null,2)); return 0; }
-        if (account.status !== 'approved') { screen.problem(account.status === 'pending' ? 'Not approved yet. Approve this computer in your browser, then run setup again.' : 'That approval link has expired. Run setup again for a new one.'); return 1; }
-        screen.done(`This computer is approved${account.account_name ? ` for ${account.account_name}` : ''}`);
-      }
-      owner.currentAccount();
+      // This computer connects to the local engine by itself; nobody approves it (owner decision, 13 November 2026).
+      if (screen) { screen.start(); screen.step(1, 'Connecting this computer to MyLittleSwarm'); }
+      const account = await connectWhenReady(owner, site, { seconds: waitSeconds });
+      if (screen) screen.done(`This computer is connected${account.account_name ? ` for ${account.account_name}` : ''}`);
       if (screen) screen.step(2, 'Connecting your coding agents');
       const stop = screen?.waiting();
       let status;
@@ -196,18 +185,14 @@ export function separateInstallationHint(home, platform = process.platform) {
   const command = connectorCommand(platform, { args: ['mcp-config', '--client', 'claude', '--state-dir', home] });
   return `This is a separate installation, so no coding client was changed. To register it, run this, with --client codex or --client other for those coding agents: ${command}`;
 }
-// Enter handling starts when the page is offered, before the first poll. Every
-// exit, including an initial transport failure, must give stdin back unchanged.
-export async function waitForApproval(owner, { seconds, screen, stopEnter = () => {}, now = Date.now,
-  sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
-  let stop;
-  try {
-    const until = now() + seconds * 1000;
-    let account = await owner.finish();
-    stop = screen?.waiting('Waiting for you to approve in your browser');
-    while (account.status === 'pending' && now() < until) { await sleep(1000); account = await owner.finish(); }
-    return account;
-  } finally { try { stop?.(); } finally { stopEnter(); } }
+// Connects this computer, retrying while the local engine is still starting and cannot be reached yet.
+export async function connectWhenReady(owner, site, { seconds, now = Date.now, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+  const until = now() + seconds * 1000;
+  for (;;) {
+    try { return await owner.connect('MyLittleSwarm shared service', site); }
+    catch (error) { if (!/can’t be reached right now/.test(error.message) || now() >= until) throw error; }
+    await sleep(1000);
+  }
 }
 // Connects the coding clients, then GitHub, which agents need for project code. Setup signs in to GitHub itself
 // and shows its code, at a terminal or through the coding agent, so the agent never runs gh login commands.
@@ -332,7 +317,7 @@ function managementCall(command, values) {
     }
     return {name:command === 'run-log' ? 'get_agent_run_log' : 'get_agent_run_diagnostics',args};
   }
-  const tools = {'project-overview':'get_project_overview','project-configure':'set_project_repository','project-card':'update_project_card','project-publish':'publish_to_explore','project-create-private':'create_private_project','project-agents':'list_project_agents','agents-register':'register_my_agents','my-projects':'list_my_projects','my-proposals':'list_my_proposals','proposal-status':'get_my_proposal','project-start':'control_project','owner-disconnect':'end_computer_approval'};
+  const tools = {'project-overview':'get_project_overview','project-configure':'set_project_repository','project-card':'update_project_card','project-publish':'publish_to_explore','project-create-private':'create_private_project','project-agents':'list_project_agents','agents-register':'register_my_agents','my-projects':'list_my_projects','my-proposals':'list_my_proposals','proposal-status':'get_my_proposal','project-start':'control_project'};
   if (!tools[command]) throw new Error('Owner command is unknown.');
   const args = command === 'project-start' ? { action: 'start' } : {};
   if (values.names !== undefined) args.names=values.names.split(',');

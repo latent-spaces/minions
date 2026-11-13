@@ -95,7 +95,7 @@ progress, input[type="radio"], input[type="range"] { accent-color: var(--ink); }
 /* Explore extends the compact light repository directory. */
 
 /* Agents: a directory searched by name and one agent's page, from the approved agents reference
-   with shared presentation. Account controls manage computer connections. */
+   with shared presentation. */
 .agent-help { color: var(--muted); font-size: 12px; }
 .agent-search-status { margin: -4px 0 16px; }
 .agent-search-status:empty { margin: 0; }

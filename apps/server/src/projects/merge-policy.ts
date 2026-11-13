@@ -2,6 +2,7 @@ import type { Transaction } from '../firestore.js';
 import { z } from 'zod';
 import type { ProjectMergePolicy, MergePolicyTarget, MergePolicyView, MergePolicyCode } from '@mlswarm/contracts';
 import { collection, db, githubAccounts, inProject, profiles } from '../firestore.js';
+import { computerConnections, currentComputer } from '../owner/computer-access.js';
 import { hashToken } from '../auth.js';
 import { Refusal } from '../errors.js';
 import { activeRecipientOperators, assertMembership, assertProjectWritable, type Membership } from './access.js';
@@ -48,8 +49,8 @@ export async function mergePolicyView(tx: Transaction, id: string, at: number): 
   const saved = await tx.get(reports(id).orderBy('checkedAt', 'desc').limit(10));
   const record = (await tx.get(projects.doc(id))).data()!;
   const ownerReports = saved.docs.map(row => row.data()).filter(row => row.profileId === record.ownerProfileId && row.policyKey === target?.policyKey);
-  const computers = ownerReports.length ? await tx.getAll(...saved.docs.filter(row => row.data().profileId === record.ownerProfileId && row.data().policyKey === target?.policyKey).map(row => collection('computerConnections').doc(row.id))) : [];
-  const latest = ownerReports.find((_row, index) => { const device = computers[index]?.data(); return device?.profileId === record.ownerProfileId && typeof device.approvedAt === 'number' && device.revokedAt === null && typeof device.connectionExpiresAt === 'number' && device.connectionExpiresAt > at; });
+  const computers = ownerReports.length ? await tx.getAll(...saved.docs.filter(row => row.data().profileId === record.ownerProfileId && row.data().policyKey === target?.policyKey).map(row => computerConnections.doc(row.id))) : [];
+  const latest = ownerReports.find((_row, index) => currentComputer(computers[index]?.data(), record.ownerProfileId));
   const operators = await activeRecipientOperators(tx, policy.selected.map(row => row.profileId));
   const visiblePolicy = { ...policy, selected: policy.selected.filter(row => operators.get(row.profileId)?.epoch === row.epoch) };
   const state = problem ? 'pending' : !latest ? 'pending' : at - latest.checkedAt > 120000 ? 'stale' : latest.code === 'verified' ? 'verified' : latest.code === 'removed' ? 'not_enabled' : 'failed';
@@ -93,9 +94,9 @@ export async function reportMergePolicy(actorId: string, connectionId: string, b
   const input = parsed.data;
   return inProject(input.projectId, () => db.runTransaction(async tx => {
     await assertMembership(tx, actorId);
-    const [project, computer] = await Promise.all([tx.get(projects.doc(input.projectId)), tx.get(collection<{ profileId: string; approvedAt: number | null; revokedAt: number | null; connectionExpiresAt: number | null }>('computerConnections').doc(connectionId))]);
-    const at = now(), device = computer.data();
-    if (project.data()!.ownerProfileId !== actorId || !device || device.profileId !== actorId || typeof device.approvedAt !== 'number' || device.revokedAt !== null || !device.connectionExpiresAt || device.connectionExpiresAt <= at) throw new Refusal('forbidden', 'Only the project owner’s approved computer can report enforcement.');
+    const [project, computer] = await Promise.all([tx.get(projects.doc(input.projectId)), tx.get(computerConnections.doc(connectionId))]);
+    const at = now();
+    if (project.data()!.ownerProfileId !== actorId || !currentComputer(computer.data(), actorId)) throw new Refusal('forbidden', 'Only the project owner’s computer can report enforcement.');
     const snapshot = await mergePolicySnapshot(tx, input.projectId);
     if (!snapshot.target || snapshot.target.policyKey !== input.policyKey) throw new Refusal('proposal_conflict', 'Merge access changed. Synchronize the current policy.');
     if (input.code === 'verified' && snapshot.policy.mode !== 'selected_people' || input.code === 'removed' && snapshot.policy.mode !== 'existing') throw new Refusal('bad_input', 'Report does not match the selected mode.');

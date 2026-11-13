@@ -11,8 +11,8 @@ const site = 'https://swarm.example:8443';
 const enrolled = { MLSWARM_SELF_HOSTED_ORIGIN: site };
 
 test('only the explicitly enrolled HTTPS origin joins the existing website policy', () => {
-  assert.equal(trustedWebsiteUrl(`${site}/?view=owner-connect`, {}), false);
-  assert.equal(trustedWebsiteUrl(`${site}/?view=owner-connect`, enrolled), true);
+  assert.equal(trustedWebsiteUrl(`${site}/?view=projects`, {}), false);
+  assert.equal(trustedWebsiteUrl(`${site}/?view=projects`, enrolled), true);
   for (const url of ['https://swarm.example', 'https://swarm.example:8444', 'https://swarm.example.evil:8443',
     'https://other.example:8443', 'http://swarm.example:8443', 'https://user:secret@swarm.example:8443']) {
     assert.equal(trustedWebsiteUrl(url, enrolled), false, url);

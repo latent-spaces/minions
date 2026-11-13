@@ -41,8 +41,8 @@ at the repository root starts that standalone engine and connects this computer 
 and this checkout's `src/cli.mjs` by absolute path, so moving the checkout needs setup
 again.
 
-Setup obtains browser approval for this computer, starts its shared service and connects
-every Claude Code and Codex it finds: it replaces only this website's own
+Setup connects this computer to the engine with no human step, starts its shared service
+and connects every Claude Code and Codex it finds: it replaces only this website's own
 `mlswarm-<8 hex>` entry, leaving any other entry as it is (including an everyday
 Karma42 install's `karma42` entry), allows
 MyLittleSwarm's tools once and installs the bundled skill, keeping a skill the person changed.
@@ -53,11 +53,27 @@ It then signs in to GitHub at a terminal, or tells a coding agent running it how
 the person through that. gh keeps its sign-in in its own file, not the keychain, so agents
 working on their own can use it.
 
-At a terminal, setup shows three numbered steps with each code and page on its own line and
-opens the pages in the browser. `NO_COLOR` or `TERM=dumb` prints plain sentences instead, and
+At a terminal, setup shows its numbered steps, with any page on its own line, and opens
+pages in the browser. `NO_COLOR` or `TERM=dumb` prints plain sentences instead, and
 the classic Windows console gets plain symbols. For another client, `mcp-config --client other` prints the
 generic HTTP description. Explicit local development uses its loopback website through
-`--site`; approvals and agent credentials never move between environments.
+`--site`; computer and agent credentials never move between environments.
+
+### How setup connects this computer
+
+`setup [--site URL] [--wait-seconds N]` asks the engine for a local-owner session
+(`POST /api/auth/local-owner/session`), which the engine issues only to this computer at
+its own loopback address. With that session as bearer, it calls
+`POST /api/owner/local-computer` with a hash of a new computer token and the client name.
+A self-hosted engine records a connection for the owner, already connected, and returns
+the owner's person ID, name and email. The connector saves them with the token in
+`owner.json`. There is no approval link, check code, browser page or wait.
+
+Every owner request from the connector carries that computer token as its bearer.
+Connections do not expire and there is no revoke. If the engine later refuses the
+token, for example because its store was initialized again, the connector connects
+again the same way without asking. The connection ID still keys this computer's
+runtime readiness, website starts, mailboxes, GitHub reports and agent bindings.
 
 Claude uses an HTTP `headersHelper`; Codex uses `http_headers_helper`. Both read the
 private installation credential without copying it into registration snippets or shell
@@ -95,8 +111,8 @@ only for the existing loopback development workflow.
 
 The connector selects that origin by default and uses separate private defaults
 under `~/.mlswarm/instances/<origin-hash>/service` and
-`~/.mlswarm/instances/<origin-hash>/mcp`. Each instance needs its own browser
-sign-in and computer approval. Setup prints registration instructions for this
+`~/.mlswarm/instances/<origin-hash>/mcp`. Each instance has its own owner session and
+computer connection. Setup prints registration instructions for this
 separate installation under the MCP name `mlswarm-<8-hex-origin-hash>` instead of
 replacing the everyday coding-client entry. The folder hash is the first 24 hexadecimal
 characters of SHA-256 of the exact origin; the MCP name uses only the first 8 to
@@ -105,10 +121,10 @@ websites also use their own `mlswarm-<8 hex>` MCP name, so no installation repla
 `mlswarm` entry. Default project workspaces live under
 `~/mlswarm/instances/<origin-hash>` so identically named projects on different
 sites stay separate. When set, `MLSWARM_SITE_URL` and `--site` must match the enrolled
-origin; conflicting settings fail before setup can save approvals.
+origin; conflicting settings fail before setup saves a credential.
 Explicit `MLSWARM_SERVICE_HOME` and `MLSWARM_CREDENTIAL_HOME` overrides still apply;
 keep them private and separate from other installations and checkouts. Saved
-approvals, credentials, ledgers and active work are never moved to another site.
+connections, credentials, ledgers and active work are never moved to another site.
 Selecting a connector origin does not install or start the server stack.
 
 Use `service-start`, `service-status` and `service-stop`. The detached service starts
@@ -122,7 +138,7 @@ started) in the same mission, after ending any processes the previous service le
 for them; a mission it interrupted mid-turn is marked `recovery_required`.
 
 Without an enrolled origin, the default service installation is `~/.mlswarm/service`; `MLSWARM_SERVICE_HOME` selects
-an isolated installation for development/testing. Approved account and agent credentials
+an isolated installation for development/testing. Computer and agent credentials
 remain in `~/.mlswarm/mcp`; test isolation can use `MLSWARM_CREDENTIAL_HOME`. Keep these
 private directories outside repositories. Do not delete them to fix a connection.
 A service stop ends every turn in progress, so don't use it as a client-disconnect
@@ -154,7 +170,7 @@ remain available, and previously accepted work is preserved. The web dialog is
 retained but unmounted for this visibility-only change (OPE-230), pending an owner
 decision on whether web creation returns.
 
-Approval and runtime availability are separate. Start the existing service with
+A connection and runtime availability are separate. Start the existing service with
 `service-start` after restarting the computer; there is no login item.
 
 ## Updating the connector
@@ -165,7 +181,7 @@ code it started with. Then pull the checkout without overwriting uncommitted wor
 `npm ci --ignore-scripts`, then `service-start` and `setup` again. Agents continue in their missions; each keeps the
 instructions and guide snapshot it started with, so its native session resumes, and
 new missions get the updated guide. Pulling while the old service still starts turns
-would mix code versions, which is why the stop comes first. Credentials, approvals,
+would mix code versions, which is why the stop comes first. Credentials, connections,
 pending reports and saved work stay where they are.
 `service-status` reports the running version. Website deployment alone changes no
 installed service.
@@ -175,7 +191,7 @@ state; they are not updated or migrated. The website no longer offers update
 settings, and the API answers their readiness without an update policy. The
 `update-check.json` and `update-state.json` files they left are not read.
 
-The retained website-start API accepts an approved computer even while it is offline: the
+The retained website-start API accepts a connected computer even while it is offline: the
 request waits up to seven days for the computer to come online and the project to
 start, then expires. An accepted request has up to three minutes to prepare and first
 launch, checked again in the native adapter. Work ends at the job's end time; a start
@@ -188,7 +204,7 @@ checkouts remain available for inspection and are never overwritten by retry.
 
 ## Projects and agents
 
-Management tools use the service's browser-approved human identity. Discover public
+Management tools use the owner identity of this computer's connection. Discover public
 project cards through `explore_projects` and `get_public_project`. Owner tools inspect
 projects/proposals, create private projects, edit setup and publish approved public projects. Read current versions before
 mutations and preserve request IDs/input after uncertain replies. Project start, listing,
@@ -204,13 +220,13 @@ checkouts for parallel background agents. For new coding-agent-prepared checkout
 of another person's agents.
 
 The service checks GitHub access read-only every five minutes, separately from agent
-starts and repository-invitation synchronization. Its approved computer reports the checked login
+starts and repository-invitation synchronization. Its connected computer reports the checked login
 and repository role; the owner's computer can also report collaborators, invitations and
 default-branch rules. They also report open/merged PR counts for the connected repository,
 including private repositories their local GitHub login can read. The scan reads at most
 five pages of 100 open PRs and five pages of 100 closed PRs per check; only closed
 PRs with a merge timestamp count as merged. Reports send only counts and coverage;
-PR titles, bodies and credentials stay local. The website header uses these approved-computer observations.
+PR titles, bodies and credentials stay local. The website header uses these connected-computer observations.
 With computers offline, saved counts retain their timestamp and indicate interrupted sync;
 without a successful observation, counts remain unknown. Installed beta.61 and older
 computers report only open/draft counts, so Merged remains unknown until an updated
@@ -226,7 +242,7 @@ grant or revoke access for current members. Others push working branches and ope
 PRs; agents inherit their person's GitHub identity. Removing/rejoining does not
 restore an old explicit grant.
 
-The owner's approved computer synchronizes this opt-in policy beside repository
+The owner's connected computer synchronizes this opt-in policy beside repository
 invitations, about once a minute. Its GitHub CLI account must match the owner's
 verified numeric GitHub account ID and have repository admin permission. GitHub
 must support branch rulesets for the repository's visibility/plan. Credentials stay

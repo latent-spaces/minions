@@ -10,6 +10,53 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## The engine runs in the background; project pages fit the window — owner decisions, 13 November 2026
+
+Source: the owner in chat on 13 November 2026, after the first local run stopped when the
+terminal that ran setup closed: “the server has to run in the background”; “the UI has to fit
+the height of the window with the project description/git thing frozen on top”; “I don't want
+the map to be scrollable it has to fit (and the map size adapt) … for each tab we need to see
+what part is scrollable and what should fit”; and, for phones, the compact frozen header.
+
+- **Background engine.** `npm run setup` starts the engine detached, with its output in
+  `engine.log`, and returns once it listens; `npm run stop` stops it gracefully on every
+  platform through a loopback request carrying a key derived from the owner file's signing
+  secret. The port it ran on is saved in `engine-settings.json` and reused. A lock whose
+  process no longer exists (a crash or restart) is replaced at the next start.
+- **Framed project page.** The window never scrolls on a project page. The project header stays
+  at the top of the page column; below it each region is either `.k42-scroll` (scrolls on its
+  own) or `.k42-fit` (fills the space left; `.k42-grow` children share it). Preview fits; Tasks,
+  Communication, Agents, Usage, Teams and Settings scroll. In the side panel the Updates feed
+  scrolls and the Map fits, resizing with the window, the panel and the narrow-screen drawer.
+- **Phones (600px and narrower).** Only the header's title row (name, status, start and archive)
+  stays frozen; the repository and usage row opens the tab's scrolling content. Selected by the
+  owner over keeping the whole header frozen or letting it scroll away.
+
+## No computer approval: setup connects this computer by itself — owner decision, 13 November 2026
+
+Source: the owner in chat on 13 November 2026: “We don't need the computer add/approval — not
+in the backend and not in the settings.” MyLittleSwarm runs only as a local engine for one owner
+on 127.0.0.1, so a person approving their own computer in their own browser protected nothing.
+
+- **Automatic connection.** `setup` asks the engine for the owner's local session (given only to
+  a request from this computer at the engine's own address) and calls `POST /api/owner/local-computer`
+  with the candidate token's hash. The engine, only when self-hosted, records the connection
+  already connected. There is no approval link, check code, browser page or wait.
+- **No expiry, no revoke.** Connections do not expire, and the website and the connector no longer
+  end them. If the engine stops accepting a computer's credential (for example after its store
+  was set up again, or a connection ended before this change), the connector connects again by
+  itself and repeats the request once; nobody is asked to act.
+- **Removed.** The routes `/api/owner/connect`, `/connect/:id`, `/connect/:id/review`,
+  `/connect/:id/approve`, `/computers/:id/revoke` and `/connections/revoke`; the MCP tools
+  `approve_this_computer`, `check_computer_approval` and `end_computer_approval`; the CLI
+  commands `owner-connect`, `owner-finish` and `owner-disconnect`; the web approval page and
+  the **Connections** card in project Settings. This supersedes the Connections card and
+  “Approve this computer” parts of [My computers becomes Connections in project Settings](#my-computers-becomes-connections-in-project-settings--owner-decision-11-november-2026).
+- **Kept.** Connection records and their ID, which key runtime readiness, the web start queue,
+  background and in-chat controls, GitHub observations, merge-policy reports and an agent's
+  computer; `GET /api/owner/computers`, from which the web app picks a computer for a start;
+  the bearer token on every connector request; and `get_computer_status`.
+
 ## Live projects show a green dot; the menu sorts by last activity — owner request, 13 November 2026
 
 Source: the owner in chat on 13 November 2026, answering “Bring back a live dot in the sidebar and

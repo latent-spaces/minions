@@ -23,14 +23,31 @@ export function enginePaths(home, platform = process.platform) {
   return {
     sqlitePath: paths.join(home, 'engine.sqlite'), blobDir: paths.join(home, 'media'), ownerFile: paths.join(home, 'owner.json'),
     serviceHome: paths.join(home, 'connector-service'), credentialHome: paths.join(home, 'connector-credentials'),
-    engineLog: paths.join(home, 'engine.log'),
+    engineLog: paths.join(home, 'engine.log'), settingsFile: paths.join(home, 'engine-settings.json'),
   };
 }
 
-export function enginePort(env) {
-  const text = env.MLSWARM_ENGINE_PORT ?? '8787';
-  if (!/^\d{1,5}$/.test(text) || Number(text) < 1024 || Number(text) > 65_535) throw new Error('MLSWARM_ENGINE_PORT must be a port from 1024 to 65535.');
+const validPort = port => Number.isInteger(port) && port >= 1024 && port <= 65_535;
+
+/**
+ * MLSWARM_ENGINE_PORT wins; otherwise the port this installation last ran on (saved in engine-settings.json), so a
+ * restarted background engine keeps its address and links; otherwise 8787.
+ */
+export function enginePort(env, saved = null) {
+  if (env.MLSWARM_ENGINE_PORT === undefined) return saved ?? 8787;
+  const text = env.MLSWARM_ENGINE_PORT;
+  if (!/^\d{1,5}$/.test(text) || !validPort(Number(text))) throw new Error('MLSWARM_ENGINE_PORT must be a port from 1024 to 65535.');
   return Number(text);
+}
+
+/** The saved port from engine-settings.json's text, or null when there is none or it is not a usable port. */
+export function savedPort(text) {
+  if (text === null) return null;
+  try { const { port } = JSON.parse(text); return validPort(port) ? port : null; } catch { return null; }
+}
+
+export function settingsText(port) {
+  return `${JSON.stringify({ schema: 1, port }, null, 2)}\n`;
 }
 
 /** Children see the selected Node first on PATH (one PATH key, as Windows ignores case) and no hosted settings. */
@@ -97,12 +114,9 @@ export function interruptedByUser({ code, signal } = {}) {
 }
 
 /** Recovery advice for known engine startup refusals, from its error output. Nothing is removed for the person. */
-export function startupHint(output, { home, sqlitePath }) {
+export function startupHint(output, { home }) {
   if (/no completed standalone initialization/.test(output)) {
     return ` An earlier first run stopped before initialization finished. If nothing in ${home} needs keeping, remove that directory (or choose a new MLSWARM_ENGINE_HOME) and run npm run setup again.`;
-  }
-  if (/standalone database is locked/.test(output)) {
-    return ` If no engine is running (for example after a crash or restart), remove ${sqlitePath}.lock and run npm run setup again.`;
   }
   return '';
 }

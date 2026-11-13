@@ -42,15 +42,15 @@ test('the health environment names the self-hosted engine or a test session', ()
   // An ambiguous engine setting is not claimed as self-hosted.
   expect(environmentLabel({ MLSWARM_ENGINE: 'Self-Hosted' })).toBe('unconfigured');
 });
-test('computer pages include expired and revoked approvals, redact credentials and isolate users', async () => {
+test('computer pages include ended and never-connected rows, redact credentials and isolate users', async () => {
   const records = collection('computerConnections');
   const common = { clientName: 'Codex', createdAt: 1, approvedAt: 2, revokedAt: null, expiresAt: 5, connectionExpiresAt: at + 1, profileId: 'founder', firebaseUid: 'NEVER_UID', authenticatedAt: 1, pollingSecretHash: 'NEVER_POLL', candidateTokenHash: 'NEVER_HASH', localFolder: 'NEVER_FOLDER' };
   await Promise.all([
-    records.doc('a').set(common), records.doc('b').set({ ...common, connectionExpiresAt: at }),
+    records.doc('a').set(common), records.doc('b').set({ ...common, approvedAt: null }),
     records.doc('c').set({ ...common, revokedAt: 3, lastUsedAt: at - 1 }), records.doc('z').set({ ...common, profileId: 'reviewer' }),
   ]);
   const first = await readUserConnections(founder, 'founder', { limit: '2' }, now);
-  expect(first.computers.map(c => c.status)).toEqual(['approved', 'expired']); expect(first.next).toBe('b');
+  expect(first.computers.map(c => c.status)).toEqual(['connected', 'not_connected']); expect(first.next).toBe('b');
   const second = await readUserConnections(founder, 'founder', { limit: '2', cursor: first.next }, now);
   expect(second.computers.map(c => c.status)).toEqual(['revoked']); expect(second.next).toBeNull();
   expect(second.computers[0]).toMatchObject({ lastUsedAt: at - 1, contactStatus: 'recent' });

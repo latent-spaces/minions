@@ -17,11 +17,11 @@ commands or reveal credentials. A diagnostic is not a MyLittleSwarm setup messag
 The connector runs from a checkout of the mylittleswarm repository; it is not an npm
 package. For first setup, in that checkout run `npm ci --ignore-scripts`, then
 `node packages/agent-cli/src/cli.mjs setup` (`--site WEBSITE` only for a website other
-than the local engine at `http://127.0.0.1:8787`). Approving this computer happens in the person's
-browser: show them the approval link and check code, then run setup again once they
-approve. Never ask for passwords or tokens, and never reuse an approval from another
-website. Setup connects Claude Code and Codex itself: their registration, the bundled
-skill, and allowing MyLittleSwarm's tools once, so the client doesn't block something the
+than the local engine at `http://127.0.0.1:8787`). Setup connects this computer to the
+local engine by itself; nobody approves it, and the connection doesn't expire. If the
+engine later stops accepting it, the service connects again on its own. Never ask for
+passwords or tokens, and never reuse a connection from another website. Setup connects
+Claude Code and Codex itself: their registration, the bundled skill, and allowing MyLittleSwarm's tools once, so the client doesn't block something the
 person already said yes to in chat. For another client, `mcp-config --client other`
 prints how to register it. `service-start` starts the service without starting any agent.
 Clients read the service's private key through a helper: never print its output, put keys
@@ -29,7 +29,7 @@ in settings, or replace other entries or permissions. Still ask in chat before e
 
 If the service isn't reachable, check `service-status` and start that service rather than
 a second one. `service-stop` ends every turn in progress, so don't use it just to
-disconnect a chat. Approving this computer again can't move existing agents to another person.
+disconnect a chat. Running setup again can't move existing agents to another person.
 
 ## GitHub access
 

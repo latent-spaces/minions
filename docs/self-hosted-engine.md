@@ -34,25 +34,27 @@ The command:
 6. runs the connector's `setup` for this computer.
 
 Install and build output is shown only when a step fails. The engine's routine
-activity goes to `engine.log` in the engine directory; its errors stay on the
-console. The command keeps the engine running in the foreground until you press
-Ctrl+C. Running it again later rebuilds, keeps the existing database and connector
+activity and errors go to `engine.log` in the engine directory; if the engine stops
+during startup, the command shows what it wrote there. The engine runs detached in
+the background, so it keeps running after the command, the terminal or the coding
+session that ran it ends; `npm run stop` stops it. The port it ran on is saved in
+`engine-settings.json`, so later runs reuse it unless `MLSWARM_ENGINE_PORT` names
+another. Running it again later rebuilds, keeps the existing database and connector
 installation, starts the engine and opens the local app again. Running it while
 the engine already runs (from another window) starts nothing: it opens the local
-app and runs the connector's `setup` again, which finishes at once for an
-approved computer. It starts no model.
+app and runs the connector's `setup` again, which finishes at once for a
+connected computer. It starts no model.
 
 The local app has one person, the owner, so it opens without a sign-in step. A
 page the engine serves at its own loopback address gets the owner's session from
 the engine; other websites and other hosts are refused. Without a desktop (over
 SSH, in CI, or with `MLSWARM_NO_BROWSER=1`) the command prints the address to open.
 
-One step stays in your browser, because it is your own yes: **approve this
-computer.** The connector shows the approval page with its code, opens the page
-when you press Enter, and waits up to ten minutes. Check the code and approve in
-the local app. If the wait runs out or the connector fails, the engine keeps
-running; run `npm run setup` again, in another terminal window or after Ctrl+C, to
-connect.
+The connector's `setup` connects this computer with no human step: it asks the
+engine for a local-owner session the same way, and the engine records this
+computer's connection for the owner, already connected. There is no approval page
+or code. If the connector fails, the engine keeps running; run `npm run setup`
+again to connect.
 
 The command then prints the connector's `mcp-config` command for registering this
 installation in your coding client, and reminds you to sign in to GitHub with
@@ -110,14 +112,15 @@ setup` uses it to recognize that a busy port is its own engine.
 
 ## Stopping and recovery
 
-Press Ctrl+C once in the setup terminal, also while the connector waits for the
-approval. Closing the terminal window stops the engine the same way (SIGHUP on
-macOS and Linux; on Windows a closed console, and Ctrl+Break, too; Windows ends
-the process about 10 seconds after the window closes). The command asks the engine
-to stop; shutdown drains held HTTP requests and the delivery worker before closing
-SQLite, then removes the `.lock` file. The command exits with status 0 only after
-a clean stop; if the engine fails to stop, or has to be killed after 15 seconds,
-it exits non-zero and the lock remains for inspection. Stopping the engine does not
+Run `npm run stop`. It asks the engine at its saved address to stop, proving itself
+with a key derived from the owner file's signing secret, so only someone who can
+read that file can stop the engine and no web page can. Windows has no graceful
+signal for a detached process, so every platform uses this same request. Shutdown
+drains held HTTP requests and the delivery worker before closing SQLite, then
+removes the `.lock` file; `npm run stop` waits up to 20 seconds for the engine to
+stop answering. A lock left behind by a crash or a computer restart names a process
+that no longer exists, so the next start replaces it; a lock held by a running
+engine is refused. Stopping the engine does not
 stop the connector's shared service; use the connector's `service-stop` (below)
 for that.
 

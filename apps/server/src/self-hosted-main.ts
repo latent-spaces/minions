@@ -8,11 +8,11 @@ import { standaloneStopSignals } from './self-hosted-runtime.js';
 async function main() {
   if (Number(process.versions.node.split('.')[0]) < 24) throw new Error('The standalone engine requires Node.js 24 or newer.');
   const command = process.argv[2];
-  if (!['init', 'start', 'check-running'].includes(command ?? '')) throw new Error('Use self-hosted-main.js init, start or check-running. See the self-hosted engine instructions.');
+  if (!['init', 'start', 'check-running', 'stop'].includes(command ?? '')) throw new Error('Use self-hosted-main.js init, start, check-running or stop. See the self-hosted engine instructions.');
   const { values } = parseArgs({ args: process.argv.slice(3), options: {
     'owner-name': { type: 'string' }, 'owner-email': { type: 'string' }, 'source-revision': { type: 'string' }, url: { type: 'string' },
   }, allowPositionals: false });
-  const allowed = command === 'init' ? ['owner-name', 'owner-email', 'source-revision'] : command === 'check-running' ? ['url'] : [];
+  const allowed = command === 'init' ? ['owner-name', 'owner-email', 'source-revision'] : command === 'check-running' || command === 'stop' ? ['url'] : [];
   if (Object.keys(values).some(key => !allowed.includes(key))) throw new Error('An option does not belong to this standalone command.');
   const config = selfHostedConfig();
   if (command === 'init') {
@@ -30,10 +30,14 @@ async function main() {
     } finally { lock.release(); }
     return;
   }
+  const origin = new URL(values.url ?? `http://127.0.0.1:${config.port}`);
+  if (origin.protocol !== 'http:' || origin.hostname !== '127.0.0.1' || origin.href !== `${origin.origin}/`) throw new Error('Provide a literal http://127.0.0.1:PORT engine address with --url.');
+  if (command === 'stop') {
+    await stopRunningEngine(origin.origin, readOwnerConfiguration(config.ownerFile).signingSecret);
+    return;
+  }
   if (command === 'check-running') {
     // Exits 0 only when the engine at this address signs sessions with this owner file's secret. Nothing secret is sent.
-    const origin = new URL(values.url ?? `http://127.0.0.1:${config.port}`);
-    if (origin.protocol !== 'http:' || origin.hostname !== '127.0.0.1' || origin.href !== `${origin.origin}/`) throw new Error('Provide a literal http://127.0.0.1:PORT engine address with --url.');
     const owner = readOwnerConfiguration(config.ownerFile);
     const { localOwnerIdentity } = await import('./identity/local-owner.js');
     const provider = localOwnerIdentity({ secret: Buffer.from(owner.signingSecret, 'hex'), owner: owner.owner, validAfter: owner.validAfter });
@@ -44,12 +48,14 @@ async function main() {
     return;
   }
   const { startSelfHostedEngine } = await import('./self-hosted-engine.js');
-  const engine = await startSelfHostedEngine();
-  let stopping = false;
+  let engine: Awaited<ReturnType<typeof startSelfHostedEngine>> | undefined;
+  let stopping = false, stopRequested = false;
   const stop = () => {
+    // A stop request can arrive while startup finishes; it runs as soon as the engine handle exists.
+    if (!engine) { stopRequested = true; return; }
     if (stopping) return; stopping = true;
-    // An active worker cannot have its database closed underneath it. A hard timeout reports an unclean stop;
-    // its lock remains for explicit operator recovery, instead of pretending all work drained.
+    // An active worker cannot have its database closed underneath it. A hard timeout reports an unclean stop; its
+    // lock stays behind and the next start replaces it once this process is gone, instead of pretending work drained.
     const deadline = setTimeout(() => { console.error('Standalone shutdown did not finish; inspect the database lock before restarting.'); process.exit(1); }, 10_000);
     deadline.unref();
     void engine.stop().then(() => { clearTimeout(deadline); if (process.connected) process.disconnect(); process.exitCode = 0; }, () => {
@@ -57,10 +63,29 @@ async function main() {
     });
   };
   for (const signal of standaloneStopSignals(process.platform, process.connected)) process.on(signal, stop);
+  engine = await startSelfHostedEngine({ requestStop: stop });
   // A supervising Node process can request the same graceful shutdown on Windows, where kill(SIGTERM) is abrupt.
   if (process.connected) process.on('message', message => { if (message === 'mlswarm-stop') stop(); });
   console.info(`Standalone engine listening on ${engine.url}. Open ${engine.url}/ on this computer.`);
+  if (stopRequested) stop();
 }
+/** Asks the engine at this address to stop, then waits up to 20 s until it no longer answers. */
+async function stopRunningEngine(origin: string, signingSecret: string) {
+  const { engineStopKey } = await import('./self-hosted-stop.js');
+  let response: Response;
+  try {
+    response = await fetch(`${origin}/api/auth/engine/stop`, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(5_000),
+      headers: { authorization: `Bearer ${engineStopKey(signingSecret)}` } });
+  } catch { console.info(`No engine is running at ${origin}.`); return; }
+  if (response.status !== 202) throw new Error(`The program at ${origin} did not accept the stop request (HTTP ${response.status}). Nothing was stopped.`);
+  for (const deadline = Date.now() + 20_000; Date.now() < deadline;) {
+    await new Promise(resolve => setTimeout(resolve, 250));
+    try { await fetch(`${origin}/`, { signal: AbortSignal.timeout(1_000) }); }
+    catch { console.info(`The engine at ${origin} stopped.`); return; }
+  }
+  throw new Error(`The engine at ${origin} accepted the stop request but is still answering after 20 seconds. Its log says why.`);
+}
+
 void main().catch(error => {
   // Refusals describe configuration without printing provider responses, tokens, codes, or request bodies.
   console.error(error instanceof Error ? error.message : 'Standalone startup failed.');

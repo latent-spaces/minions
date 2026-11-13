@@ -71,13 +71,13 @@ test('only accepted human chat/steering count, exactly once; visits and agent co
   expect(JSON.stringify(result)).not.toContain('candidateTokenHash');
   const exported = await exportPerson(f.person.id, now); expect(exported.records.some(r => r.path === `onboardingJourneys/${a.id}`)).toBe(true);
 });
-test('computer approval and GitHub readiness are real account observations reused by matching project journeys', async () => {
-  const id = await project(), f = await invited(id); await f.accept(); const token = await idTokenFor(f.person.email), connectionId = randomUUID();
-  const headers = { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
-  expect((await fetch(`${base}/owner/connect`, { method: 'POST', headers, body: JSON.stringify({ requestId: connectionId, pollingSecret: newToken(), candidateTokenHash: hashToken(newToken()), clientName: 'Windows computer' }) })).status).toBe(200);
+test('computer connection and GitHub readiness are real account observations reused by matching project journeys', async () => {
+  const id = await project(), f = await invited(id); await f.accept(); const token = await idTokenFor(f.person.email);
+  const headers = { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body = JSON.stringify({ candidateTokenHash: hashToken(newToken()), clientName: 'Windows computer' });
   at += 1000;
-  const approve = () => fetch(`${base}/owner/connect/${connectionId}/approve`, { method: 'POST', headers, body: '{"approved":true}' });
-  expect((await approve()).status).toBe(200); at += 1000; expect((await approve()).status).toBe(200);
+  const connect = () => fetch(`${base}/owner/local-computer`, { method: 'POST', headers, body });
+  const connected = await connect(); expect(connected.status).toBe(200); const { connectionId } = await connected.json();
+  at += 1000; expect((await connect()).status).toBe(200);
   await publishRuntimeReadiness(f.person.id, connectionId, { protocol: 1, version: 'test', incarnation: randomUUID(), platform: 'win32', github: 'ready', providers: [] }, now);
   const result = await readOnboardingTimings(founder, {}, now);
   expect(result.journeys[0].elapsed).toMatchObject({ computer: 1000, github: 2000 });
@@ -97,7 +97,7 @@ test('distribution reports sample coverage, median, p90 and fastest/slowest with
   expect(distribution([10, 30, 20, 40, -1, NaN])).toEqual({ samples: 4, medianMs: 25, p90Ms: 40, minMs: 10, maxMs: 40 });
 });
 let server: Server, base: string;
-beforeAll(async () => { const app = express(); app.use('/owner', ownerRoutes(now)); app.use('/projects', projectManagementRoutes(now)); app.use('/chat', humanChatRoutes(now)); app.use(platformRoutes(now)); server = app.listen(0, '127.0.0.1'); await new Promise<void>(r => server.once('listening', r)); base = `http://127.0.0.1:${(server.address() as { port: number }).port}`; });
+beforeAll(async () => { const app = express(); app.use('/owner', ownerRoutes(now, { selfHosted: () => true })); app.use('/projects', projectManagementRoutes(now)); app.use('/chat', humanChatRoutes(now)); app.use(platformRoutes(now)); server = app.listen(0, '127.0.0.1'); await new Promise<void>(r => server.once('listening', r)); base = `http://127.0.0.1:${(server.address() as { port: number }).port}`; });
 afterAll(async () => { await new Promise<void>(r => server.close(() => r())); });
 test('visit endpoint is profile-fenced, membership checked, no-store, and never counts as human action', async () => {
   const id = await project(), f = await invited(id); await f.accept(); const token = await idTokenFor(f.person.email);

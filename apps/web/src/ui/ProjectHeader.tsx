@@ -19,8 +19,10 @@ export type HeaderMenuItem = { id: string; label: string; icon: ReactNode; dange
  * the stamp, title, status and actions, then the repository and usage as chips.
  * The project's sections are in the menu (owner, 11 November 2026). People, agents and the map live in the map toolbar on Tasks.
  */
-export function ProjectHeader({ id, name, cover, statusPanel, repoUrl, repositorySummary, usage, onCopyLink, menu, onContribute, observed, about, titleLevel = 1 }: {
+export function ProjectHeader({ id, name, cover, statusPanel, repoUrl, repositorySummary, usage, onCopyLink, menu, onContribute, observed, about, titleLevel = 1, repository = true }: {
   about?: ReactNode;
+  /** false leaves the repository row out, for a host that shows ProjectRepository elsewhere (phones scroll it with the tab). */
+  repository?: boolean;
   titleLevel?: 1 | 2;
   id: string; name: string; /** A loaded image URL for the stamp: the screenshot on the newest update. */ cover?: string | null; /** The project status panel, above the repository bar (Noa, 26 October 2026). */ statusPanel?: ReactNode; repoUrl?: string | null;
   repositorySummary?: RepositorySummary | null; usage?: ProjectUsage | null;
@@ -46,7 +48,7 @@ export function ProjectHeader({ id, name, cover, statusPanel, repoUrl, repositor
           {menu.length > 0 && <MoreMenu items={menu} />}
         </div>
       </div>
-      <ProjectRepository repoUrl={repoUrl} summary={repositorySummary} usage={usage} />
+      {repository && <ProjectRepository repoUrl={repoUrl} summary={repositorySummary} usage={usage} />}
     </div>
   </section>;
 }

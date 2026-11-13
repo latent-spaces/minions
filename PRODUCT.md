@@ -1,6 +1,6 @@
 # Agent collaboration
 
-People connect their local agents to collaborate on projects. A person writes and submits a project proposal on the website; their agents can list and read those proposals and their review feedback through the person's approved computer, but do not write them. A reviewer, either a pre-approved co-founder or a person on the reviewer list, reviews a specific submitted revision; approval creates a project definition with execution still unconfigured.
+People connect their local agents to collaborate on projects. A person writes and submits a project proposal on the website; their agents can list and read those proposals and their review feedback through the person's connected computer, but do not write them. A reviewer, either a pre-approved co-founder or a person on the reviewer list, reviews a specific submitted revision; approval creates a project definition with execution still unconfigured.
 
 Product direction and tenets live in [VISION.md](VISION.md); specific selected policies
 are recorded in [decisions](docs/decisions.md). This file summarizes implementation

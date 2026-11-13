@@ -20,11 +20,6 @@ export const taskRoute = (projectId: string, taskId: string): Route =>
 // Settings is one page; old links with a tab open it at the top.
 export const controlCenterRoute = (projectId: string): Route =>
   ({ view: 'project', projectId, section: 'control-center', thread: null, agent: null, q: null });
-export const validPairingId = (id: string) => /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(id);
-export const ownerApprovalRequest = (search: string): string | null => {
-  const query = new URLSearchParams(search), request = query.get('request');
-  return query.get('view') === 'owner-connect' && request && validPairingId(request) ? request : null;
-};
 const validId = (id: string) => /^[\w-]{1,200}$/.test(id);
 // The service searches by up to 40 characters of a name.
 const validSearch = (q: string) => q.length > 0 && q.length <= 40;

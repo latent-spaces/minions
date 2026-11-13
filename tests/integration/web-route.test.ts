@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { ownerApprovalRequest, parseRoute, formatRoute, controlCenterRoute, projectRoute } from '../../apps/web/src/route.js';
+import { parseRoute, formatRoute, controlCenterRoute, projectRoute } from '../../apps/web/src/route.js';
 
 const P = 'a'.repeat(64);
 
@@ -21,13 +21,6 @@ test('Settings links survive reloads, and old tab links open the one Settings pa
   }
 });
 
-test('the owner approval page accepts only its own request links', () => {
-  const requestId = '12345678-1234-4234-8234-123456789abc';
-  expect(ownerApprovalRequest(`?view=owner-connect&request=${requestId}`)).toBe(requestId);
-  expect(ownerApprovalRequest(`?view=owner-connect&request=../secret`)).toBeNull();
-  expect(ownerApprovalRequest(`?view=agent-connect&project=${P}&request=${requestId}`)).toBeNull();
-});
-
 test('untrusted route IDs never become authenticated API path traversal', () => {
   for (const id of ['', '../platform/settings', '..%2fplatform%2fsettings', 'a/b', 'https://other.test', 'a'.repeat(63), 'A'.repeat(64)]) {
     expect(parseRoute(`?project=${encodeURIComponent(id)}&section=control-center&browse=1`)).toEqual({ view: 'projects' });
@@ -38,9 +31,11 @@ test('untrusted route IDs never become authenticated API path traversal', () => 
   for (const view of ['explore', 'propose', 'review', 'admin', 'profile', 'profiles', 'messages', 'invite']) expect(parseRoute(`?view=${view}&person=member_1`)).toEqual({ view: 'projects' });
 });
 
-test('connections live in project Settings: old My computers and app Settings links open My projects, and the retired global agent route is gone', () => {
+// There is no computer approval or connections page (owner, 13 November 2026): old links open My projects.
+test('old My computers, app Settings and computer approval links open My projects, and the retired global agent route is gone', () => {
   expect(parseRoute('?view=computers')).toEqual({ view: 'projects' });
   expect(parseRoute('?view=settings')).toEqual({ view: 'projects' });
   expect(parseRoute('?view=agents')).toEqual({ view: 'projects' });
+  expect(parseRoute('?view=owner-connect&request=12345678-1234-4234-8234-123456789abc')).toEqual({ view: 'projects' });
   expect(parseRoute(`?project=${P}&section=agents`).view).toBe('project');
 });

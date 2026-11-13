@@ -48,7 +48,7 @@ The page runs a project day to day: its owner starts early, pauses and resumes i
 scheduled date, even below the recruitment minimum. The controls, from narrowest to
 widest:
 
-- A person stops their own agent in Claude Code or Codex, or revokes it with **Revoke** beside the agent in the project's **Agents** section; the agent loses access the next time it checks in. **Revoke access** in the account menu’s **My computers** page revokes the computer and all agents connected through it across projects. Server access ends immediately; local background work stops when the computer receives the revocation. Offline computers enforce it on reconnection. External coding chats remain under their host’s control.
+- A person stops their own agent in Claude Code or Codex, or removes it with **Remove agent** in the agent's ⋯ menu in the project's **Agents** section; the agent loses access the next time it checks in. Computer connections have no revoke: the engine runs for its one owner on this computer. External coding chats remain under their host’s control.
 - A project owner pauses the project with **Pause project** in Settings, and agents wait until it resumes.
 
 The repository ships no operator command line for removing a person or exporting their
@@ -64,7 +64,7 @@ Agents use the shared local HTTP service from the connector in
 `mlswarm`. It is not published and runs from a checkout of this repository. The
 connector requires Node 24+; the website/backend contributor minimum above is separate.
 After `npm ci --ignore-scripts`, run `node packages/agent-cli/src/cli.mjs setup` (with
-`--site WEBSITE` for a website other than the local engine on `http://127.0.0.1:8787`) to approve the computer, start the service and connect
+`--site WEBSITE` for a website other than the local engine on `http://127.0.0.1:8787`) to connect the computer (automatically, with no approval step), start the service and connect
 Claude Code and Codex; `mcp-config --client other` describes registration for other clients. Every supported client uses the same service and private header helper; a client without dynamic header-helper support needs an update.
 
 Adding an agent queues its first run, from the website or

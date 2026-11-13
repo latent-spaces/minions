@@ -10,7 +10,7 @@ export function repeatExecution(selection: Selection | null | undefined, compute
   if (!selection?.execution) throw new Error('Choose this agent’s computer, provider and model explicitly before starting it.');
   const computer = computers.find(c => c.id === selection.connectionId);
   if (!computer) throw new Error('This agent’s last computer is unavailable. Choose a computer explicitly before starting it.');
-  if (computer.expiresAt <= now || !availableProviders(computer, now).includes(selection.execution.provider))
+  if (!availableProviders(computer, now).includes(selection.execution.provider))
     throw new Error('Reconnect this agent’s computer and selected provider, or choose a different setup explicitly.');
   return { connectionId: selection.connectionId, execution: { ...selection.execution } };
 }

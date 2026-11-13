@@ -46,7 +46,7 @@ test('links saved before the app moved to the root still resolve, and /viewer/ r
 });
 
 test('only internal app destinations can be shortened, and creation requires access', async () => {
-  for (const path of ['https://evil.test', '//evil.test', '/api/owner/connect', '/s/code', '/?view=join\n', '/?view=join#other', '/?next=\\evil', '/viewer/?view=join#other', '/other/?view=join', '/viewerx/?view=join']) {
+  for (const path of ['https://evil.test', '//evil.test', '/api/owner/local-computer', '/s/code', '/?view=join\n', '/?view=join#other', '/?next=\\evil', '/viewer/?view=join#other', '/other/?view=join', '/viewerx/?view=join']) {
     expect(sharedDestination(path)).toBe(false);
     await expect(shortSharedLink(path)).rejects.toMatchObject({ code: 'bad_input' });
   }

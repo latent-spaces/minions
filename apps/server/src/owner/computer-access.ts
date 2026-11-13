@@ -2,22 +2,29 @@ import type { Transaction } from '../firestore.js';
 import { collection, type Agent } from '../firestore.js';
 import { Refusal } from '../errors.js';
 
-// Records approved before 10 November 2026 can also hold updatePolicy, updateRequest and updateActivation from the
-// retired connector self-update; they are kept and not read.
-export type ComputerConnection = { requestId: string; pollingSecretHash: string; candidateTokenHash: string; clientName: string; createdAt: number; expiresAt: number; approvedAt: number | null; revokedAt: number | null; connectionExpiresAt: number | null; profileId: string | null; firebaseUid: string | null; authenticatedAt: number | null; lastUsedAt?: number; revocationCompleteAt?: number | null };
+// The engine serves one owner on this computer, so a computer connects without an approval step and its connection
+// does not expire (owner decision, 13 November 2026). Rows connected before then also hold pollingSecretHash,
+// expiresAt and connectionExpiresAt from the retired browser approval, and older ones updatePolicy, updateRequest and
+// updateActivation from the retired connector self-update; they are kept and not read.
+export type ComputerConnection = { requestId: string; candidateTokenHash: string; clientName: string; createdAt: number; approvedAt: number | null;
+  revokedAt: number | null; profileId: string | null; firebaseUid: string | null; authenticatedAt: number | null; lastUsedAt?: number;
+  pollingSecretHash?: string; expiresAt?: number; connectionExpiresAt?: number | null; revocationCompleteAt?: number | null };
 export const computerConnections = collection<ComputerConnection>('computerConnections');
 
-// Registration reads the grant in its write transaction, fencing concurrent revocation.
-export async function assertComputerApproval(tx: Transaction, id: string, profileId: string, at: number) {
-  const computer = (await tx.get(computerConnections.doc(id))).data();
-  if (!computer || computer.profileId !== profileId || !Number.isFinite(computer.approvedAt) || computer.revokedAt !== null
-    || !Number.isFinite(computer.connectionExpiresAt) || at >= computer.connectionExpiresAt!)
-    throw new Refusal('unauthorized', 'This computer approval expired or was ended. Approve this computer again.');
+// The connector recognizes this message and connects the computer again by itself, so nobody is asked to act.
+export const COMPUTER_DISCONNECTED = 'This computer is no longer connected to MyLittleSwarm.';
+
+// A connection counts while it belongs to the person and was not ended. Only rows from before 13 November 2026 can be
+// ended (revokedAt) or never connected (approvedAt null).
+export const currentComputer = (computer: Pick<ComputerConnection, 'profileId' | 'approvedAt' | 'revokedAt'> | undefined, profileId: string) =>
+  !!computer && computer.profileId === profileId && typeof computer.approvedAt === 'number' && computer.revokedAt === null;
+
+// Registration reads the connection in its write transaction.
+export async function assertCurrentComputer(tx: Transaction, id: string, profileId: string) {
+  if (!currentComputer((await tx.get(computerConnections.doc(id))).data(), profileId)) throw new Refusal('unauthorized', COMPUTER_DISCONNECTED);
 }
 
-// Approval expiry retains its existing semantics; explicit revocation also fences agents.
 export async function agentComputerAllowed(tx: Transaction, agent: Agent) {
   if (agent.computerConnectionId === undefined) return true;
-  const computer = (await tx.get(computerConnections.doc(agent.computerConnectionId))).data();
-  return !!computer && computer.profileId === agent.ownerProfileId && Number.isFinite(computer.approvedAt) && computer.revokedAt === null;
+  return currentComputer((await tx.get(computerConnections.doc(agent.computerConnectionId))).data(), agent.ownerProfileId);
 }

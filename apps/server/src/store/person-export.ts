@@ -207,12 +207,13 @@ async function community(out: Collected, personId: string): Promise<string[]> {
     } else out.record(d.ref.path, data);
   }
 
-  // Computer approvals contain credential verifiers, never export reusable proof material.
+  // Computer connections contain credential verifiers; never export reusable proof material.
   for await (const d of pages(db.collection('onboardingJourneys').where('profileId', '==', personId))) out.record(d.ref.path, d.data());
   for await (const d of pages(db.collection('computerConnections').where('profileId', '==', personId))) {
-    const { pollingSecretHash: _polling, candidateTokenHash: _candidate, ...metadata } = d.data();
-    out.record(d.ref.path, { ...metadata, pollingSecretHash: VERIFIER, candidateTokenHash: VERIFIER });
-    // This fence only serializes starts on the person's approved computer.
+    // Only connections from before 13 November 2026 also hold the retired approval's polling verifier.
+    const { pollingSecretHash: polling, candidateTokenHash: _candidate, ...metadata } = d.data();
+    out.record(d.ref.path, { ...metadata, ...(polling !== undefined ? { pollingSecretHash: VERIFIER } : {}), candidateTokenHash: VERIFIER });
+    // This fence only serializes starts on the person's connected computer.
     for (const fence of await existing([`webAgentStartOwners/${d.id}`])) out.record(fence.ref.path,fence.data());
   }
   for await (const row of pages(db.collection('backgroundControls').where('profileId','==',personId))) out.record(row.ref.path,row.data());

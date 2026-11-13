@@ -19,7 +19,7 @@ let at = 2_000_000_000_000, server: Server, base: string;
 const clients: Client[] = [];
 beforeEach(async () => {
   await resetEmulator(); at = 2_000_000_000_000;
-  const app = express(); app.use('/api/owner', ownerRoutes(() => at)); app.use(express.json()); app.use('/v2', scoped(v2Routes(() => at)));
+  const app = express(); app.use('/api/owner', ownerRoutes(() => at, { selfHosted: () => true })); app.use(express.json()); app.use('/v2', scoped(v2Routes(() => at)));
   server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
   base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
 });
@@ -111,11 +111,10 @@ test('list_work_intents short rows carry the next step; detail: true adds the bl
 // The connector sends ?limit= to the owner routes; a cursor continued with a different limit
 // neither skips nor repeats rows.
 async function ownerComputer(email: string) {
-  const token = newToken(), requestId = randomUUID();
+  const token = newToken();
   const post = (path: string, body: object, auth = '') => fetch(base + '/api/owner' + path, { method: 'POST',
     headers: { authorization: `Bearer ${auth}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  await post('/connect', { requestId, pollingSecret: newToken(), candidateTokenHash: hashToken(token), clientName: 'Test' });
-  expect((await post(`/connect/${requestId}/approve`, { approved: true }, await idTokenFor(email))).status).toBe(200);
+  expect((await post('/local-computer', { candidateTokenHash: hashToken(token), clientName: 'Test' }, await idTokenFor(email))).status).toBe(200);
   return async (path: string) => {
     const res = await fetch(base + '/api/owner' + path, { headers: { authorization: `Bearer ${token}` } });
     return { status: res.status, body: await res.json() };

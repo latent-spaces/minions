@@ -15,7 +15,6 @@ import { connectOwnAgent } from '../src/owner/agents.js';
 import { reportAgentFocus } from '../src/projects/agent-focus.js';
 import { saveAgentPersona } from '../src/projects/agent-participation.js';
 import { revokeOwned } from '../src/onboarding/store.js';
-import { revokeComputer } from '../src/owner/computer-revocation.js';
 import { acceptAgentStart, createWebAgentStart, projectQueuedStarts, publishRuntimeReadiness, webAgentStarts } from '../src/owner/web-agent-starts.js';
 import { activeRecipientOperators, connectionAllowed, membershipDoc, membershipFenceDoc, membershipsOf } from '../src/projects/access.js';
 import { requestParticipationControl, syncParticipations } from '../src/projects/chat-controls.js';
@@ -165,17 +164,6 @@ test('project close (endProjectWork) merges runEndedAt for current-chat runs', a
   const revision = (await project.get()).data()!.revision;
   await endProjectWork(TEST_PROJECT, () => at, revision);
   await expectWritten('endProjectWork', f.agentId, { state: 'stopped', doc: { runId: f.participationId, runEndedAt: at } });
-});
-
-test('computer revocation (revokeComputer) merges agent.revokedAt and runEndedAt', async () => {
-  const { personId, agentId } = await fixture();
-  const computer = randomUUID();
-  await collection('computerConnections').doc(computer).set({ profileId: personId, approvedAt: at, revokedAt: null, connectionExpiresAt: at + 86_400_000 });
-  await scope(() => agents().doc(agentId).update({ computerConnectionId: computer }));
-  await start(agentId);
-  at += 1000;
-  await revokeComputer(personId, computer, () => at);
-  await expectWritten('revokeComputer', agentId, { state: 'revoked', doc: { runEndedAt: at, agent: { revokedAt: at } } });
 });
 
 test('account removal (removePerson, continueAccountCleanup) merges agent.revokedAt and runEndedAt', async () => {

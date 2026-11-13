@@ -55,6 +55,15 @@ test('actual project Tasks keeps the communication map and cheat sheet and fits 
     await sheet.getByRole('button',{name:'Close',exact:true}).click();
     const graph=await page.locator('.communication-map').boundingBox();
     expect(graph.height).toBeGreaterThanOrEqual(500);
+    // The project page is framed (owner, 13 November 2026): the window never scrolls, the header sits above the tab's own
+    // region, and the panel's map fits the space left, shrinking with a shorter window instead of scrolling the panel.
+    const frame=()=>page.evaluate(()=>{const panel=document.querySelector('.k42-updates-panel')!, map=panel.querySelector('.communication-map')!.getBoundingClientRect(), box=panel.getBoundingClientRect();
+      return {window:document.documentElement.scrollHeight<=innerHeight, panel:box.bottom<=innerHeight && panel.scrollHeight<=panel.clientHeight, map:map.bottom<=box.bottom+1, header:!document.querySelector('.k42-project-body .k42-ph')};});
+    expect(await frame()).toEqual({window:true,panel:true,map:true,header:true});
+    await page.setViewportSize({width:1440,height:760});
+    await expect.poll(async()=>(await page.locator('.communication-map').boundingBox()).height).toBeLessThan(graph.height);
+    expect(await frame()).toEqual({window:true,panel:true,map:true,header:true});
+    await page.setViewportSize({width:1440,height:1000});
     expect(await page.getByRole('form',{name:'Steer your agents',exact:true}).count()).toBe(0);
     await page.getByRole('button',{name:'Full screen',exact:true}).click();
     await page.locator('.k42-communication.is-expanded').waitFor();

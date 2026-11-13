@@ -1,5 +1,5 @@
 import { prepareCurrentStateProgress } from '../view/current-state-progress.js';
-import { assertComputerApproval } from '../owner/computer-access.js';
+import { assertCurrentComputer } from '../owner/computer-access.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { RUN_LENGTH, validRunMinutes } from '@mlswarm/contracts';
 import type { Transaction } from '../firestore.js';
@@ -122,7 +122,7 @@ export async function syncParticipations(profileId: string, connectionId: string
           && (run.mode!=='current_chat' || (run.deadlineAt ?? Infinity)>at))
           throw new Refusal('run_active','Another current run already owns this agent.');
         const ended = pending?.command.kind === 'release' && pending.command.participationId === snapshot.participationId;
-        await assertComputerApproval(tx, connectionId, profileId, now());
+        await assertCurrentComputer(tx, connectionId, profileId);
         tx.set(ref,{...snapshot,...(ended ? {state:'released' as const} : {}),connectionId,updatedAt:at,deviceLastSeenAt:at,pendingId:saved?.pendingId ?? null});
         tx.update(agents().doc(snapshot.target.agentId), { computerConnectionId: connectionId });
       }));

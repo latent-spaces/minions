@@ -54,3 +54,6 @@
 .k42-ph { position:relative; }
 .k42-ph-visibility { padding-left:0; }
 .k42-ph-visibility .k42-status-panel { padding-left:0; border-left:0; }
+/* Phones: the repository row leaves the frozen header and opens the tab's scrolling content (owner, 13 November 2026). */
+.k42-project-repository { margin:0 0 16px; }
+.k42-project-repository .k42-ph-repository { margin-top:0; }
