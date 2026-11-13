@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { nativeTaskGuidance, nativeTeamGuidance, projectGuidanceForTurn } from '../src/native-worker-adapter.mjs';
+import { nativeTaskGuidance, nativeTeamGuidance, previewGuidance, projectGuidanceForTurn } from '../src/native-worker-adapter.mjs';
 
 test('each worker turn states whether optional native tasks are on, defaulting to on, and never offers a GitHub Issues fallback', () => {
   const card = { name: 'p', mission: 'm', rules: 'r', repoUrl: 'https://github.com/o/r', mergeApproval: 'humans' };
@@ -40,7 +40,7 @@ test('each turn carries the shared update aim at the owner\'s pace and says when
   assert.match(due, /You are the one agent asked to post the next one/);
   assert.match(due, /before you return WORK_NEXT: waiting/);
   assert.match(due, /Report only this job's work: pull requests and tasks from before it are not news.*Say only what you checked yourself/);
-  assert.match(due, /1\. Get one image.*chromium\.launch\(\{ args: \['--single-process'\] \}\).*NODE_PATH=.*node shot\.cjs.*2\. upload_project_image.*clientRequestId.*3\. publish_project_update.*title \(the headline, at most 60 characters\), body \(one sentence, at most 140 characters; count them before you send, a longer one is refused\)/);
+  assert.match(due, /1\. Get one image.*run node \"[^\"]*shot\.cjs\" <address> update\.png.*ends within a minute; if it fails, run it once more.*2\. upload_project_image.*clientRequestId.*3\. publish_project_update.*title \(the headline, at most 60 characters\), body \(one sentence, at most 140 characters; count them before you send, a longer one is refused\)/);
   assert.doesNotMatch(due, /only for that/);
   // Where the project allows slides, a short set to swipe is the normal shape (owner, 12 November 2026).
   const slides = projectGuidanceForTurn({ project: card, updateDue: true, updateSlides: true });
@@ -60,6 +60,23 @@ test('each turn carries the shared update aim at the owner\'s pace and says when
   const later = projectGuidanceForTurn({ project: card, updateDue: true, updateClosing: true, updatePostedTitles: ['The game can be won'] });
   assert.match(later, /Headlines already posted in this job \(JSON data\): \["The game can be won"\]\. People have seen those\..*in words those headlines did not use/);
   assert.match(closing, /git fetch -q origin HEAD && mkdir merged && git archive FETCH_HEAD \| tar -x -C merged/);
+  assert.match(closing, /That screenshot is the one slide a closing update cannot do without: an update of drawn text slides only is not done\. If time feels short, post fewer text slides, never without the screenshot/);
   assert.doesNotMatch(projectGuidanceForTurn({ project: card, updateDue: false, updateClosing: true }), /closing update/);
   assert.doesNotMatch(projectGuidanceForTurn({ project: card }, { updateNudge: true }), /only for that/);
+});
+
+test('each turn says what the Preview tab shows and asks one agent to fill an empty one', () => {
+  const card = { name: 'p', mission: 'm', rules: 'r', repoUrl: 'https://github.com/o/r', mergeApproval: 'humans' };
+  const empty = projectGuidanceForTurn({ project: card });
+  assert.match(empty, /Preview tab is empty.*one agent puts it there as soon as a first version runs.*keeps running after your turn.*set_project_preview with http:\/\/localhost:PORT\//);
+  assert.match(empty, /If nothing here runs in a browser, skip this/);
+  const shown = projectGuidanceForTurn({ project: card, previewUrl: 'http://localhost:4173/' });
+  assert.match(shown, /Preview tab shows http:\/\/localhost:4173\/\. If you started that server and it no longer answers/);
+  assert.doesNotMatch(shown, /Preview tab is empty/);
+  assert.equal(previewGuidance(''), previewGuidance(null));
+  assert.match(previewGuidance(null, 'darwin'), /keeps running until you are stopped or the project is closed/);
+  for (const text of [previewGuidance(null, 'win32'), previewGuidance('http://localhost:4173/', 'win32')]) {
+    assert.match(text, /a server you start ends with your turn, so do not start one/);
+    assert.doesNotMatch(text, /nohup|start it again/);
+  }
 });

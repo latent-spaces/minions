@@ -162,7 +162,7 @@ test('project close (endProjectWork) merges runEndedAt for current-chat runs', a
   const project = projects.doc(TEST_PROJECT);
   await project.update({ 'execution.completedAt': at, 'execution.paused': true });
   const revision = (await project.get()).data()!.revision;
-  await endProjectWork(TEST_PROJECT, () => at, revision);
+  await endProjectWork(TEST_PROJECT, () => at, revision, 'closer');
   await expectWritten('endProjectWork', f.agentId, { state: 'stopped', doc: { runId: f.participationId, runEndedAt: at } });
 });
 
@@ -254,7 +254,7 @@ test('project close (endProjectWork) cancels a queued start and ends Waiting', a
   at += 1000;
   const project = projects.doc(TEST_PROJECT);
   await project.update({ 'execution.completedAt': at, 'execution.paused': true });
-  await endProjectWork(TEST_PROJECT, () => at, (await project.get()).data()!.revision);
+  await endProjectWork(TEST_PROJECT, () => at, (await project.get()).data()!.revision, 'closer');
   expect((await webAgentStarts.where('agentId', '==', agentId).get()).docs[0]!.data().state).toBe('expired');
   await expectWritten('endProjectWork queued', agentId, { state: 'stopped', doc: {} });
 });
@@ -315,7 +315,7 @@ test('recorded, not changed (c9): project close expires pending starts only; an 
   at += 1000;
   const project = projects.doc(TEST_PROJECT);
   await project.update({ 'execution.completedAt': at, 'execution.paused': true });
-  await endProjectWork(TEST_PROJECT, () => at, (await project.get()).data()!.revision);
+  await endProjectWork(TEST_PROJECT, () => at, (await project.get()).data()!.revision, 'closer');
   expect((await webAgentStarts.doc(q.key).get()).data()!.state).toBe('accepted');
   expect((await compare(q.agentId)).actual.state).toBe('waiting');
 });

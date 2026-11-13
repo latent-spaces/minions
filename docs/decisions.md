@@ -15,7 +15,7 @@ How to read this file:
 Source: the owner on 13 November 2026, asking to fix “an agent's preview dies with its run”, after
 the Preview tab showed the browser's "This site can't be reached" frame for a stopped
 `http://localhost:8791/index.html` server. Keeping the agent's server running is covered by
-[Agents on their own fill the Preview tab](#) and its follow-ups on `main` (the server runs until the
+the preview bullet of [The closing update covers this job's merged result](#the-closing-update-covers-this-jobs-merged-result-and-a-turn-ends-at-its-result--owner-selections-12-november-2026) (the server runs until the
 agent is stopped or the project closes; a localhost preview is cleared at close). The owner chose
 that approach over a service-served preview proposed in the same change.
 
@@ -228,12 +228,24 @@ Later runs on the same day, each answered "Yes, fix and run" by the owner:
   not work merged before the job started; the turn gives the job's start time and the pull
   request search for it. Its screenshot comes from the merged code, copied into a folder with
   `git archive`, because an agent's own branch may lack teammates' work and agents cannot pull.
+  That screenshot is required: an update of drawn text slides only is not a closing update, and
+  short on time the agent drops text slides, not the screenshot (owner, 13 November 2026, after
+  a wave 10 agent posted one drawn slide with two minutes left).
 - A Claude turn ends five seconds after the client reports its result, even when a command left
   in the background keeps the client alive. In one run a preview server held an agent's only
   turn open for the whole job.
-- Agents working on their own in turns are told not to start a server or leave a command in the
-  background, and to set a preview only for an `https://` page. Who hosts a preview for such
-  agents is not decided.
+- Agents working on their own in turns host the preview themselves (owner, 13 November 2026:
+  the preview is a first-class tool). Each turn says what the Preview tab shows; when it is
+  empty and the work runs in a browser, one agent starts the server so it keeps running after
+  its turn, with its output detached, checks the address answers with the project's page and
+  calls `set_project_preview`. That server is the only command an agent leaves running. This
+  replaces the earlier rule that such agents set a preview only for an `https://` page.
+  The server keeps running while the agent waits for more time, so a person can still try the
+  work, and ends with the agent's other processes when the agent is stopped or the project is
+  closed. On Windows a turn's end stops every process the turn started, so there the turn tells
+  the agent not to start a server and to say in its update how a person runs the work.
+  Closing the project also clears a `localhost` preview link, since its server ended with the
+  agents and the tab would show a dead address; an `https://` link stays (owner, 13 November 2026).
 - Agents are told to check the time left before a whole test suite or full build and to run the
   tests for their changed files first, and that an unanswered message is not a blocker while
   they still have their own work. In a 15-minute run on this repository one agent spent the
@@ -283,9 +295,16 @@ experiment?", the owner answered "Yes, fix and rerun".
   without a post. The other agents are told they are not asked.
 - The reminder carries the steps: capture one image, `upload_project_image`, then
   `publish_project_update`, with the headline and caption limits.
-  The image step is a short Playwright script that starts Chromium with `--single-process`: in
-  the reruns the installed Chrome and `npx playwright screenshot` both failed inside the command
-  sandbox, and that script is what produced the first real screenshot. The steps name the tools'
+  The image step is one command, the connector's own `src/shot.cjs`, which the reminder names
+  by its full path. It starts Chromium through Playwright with `--single-process`: in the reruns
+  the installed Chrome and `npx playwright screenshot` both failed inside the command sandbox.
+  It exits right after the last screenshot, because closing the browser first sometimes hung
+  past the command limit, and it gives up after a minute, because one agent's own lookup of
+  Playwright with `npx` stalled for two minutes and its closing update was never posted. Agents
+  wrote this script themselves before; each wrote it a little differently. A page given by its
+  file path is served from its own folder on a short-lived `127.0.0.1` port, because Chromium
+  does not run module scripts from a file address and a page that imports its code came out
+  half-empty; an error page fails the command instead of becoming the image. The steps name the tools'
   own fields (`clientRequestId`, `title`, `body`), after an agent sent `headline` and `caption`.
 - An asked agent that ends its turn without posting gets one more turn, only to post it. One such
   turn at most; nothing is refused because an update is missing. This supersedes the earlier rule

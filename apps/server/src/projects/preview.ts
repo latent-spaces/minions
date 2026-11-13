@@ -14,6 +14,10 @@ export const isPreviewUrl = (value: string) => {
     return url.protocol === 'https:' || (url.protocol === 'http:' && LOOPBACK.has(url.hostname));
   } catch { return false; }
 };
+// A link to a server on an agent's computer. Those servers end when the project is closed.
+export const isLocalPreview = (value: string | null | undefined) => {
+  try { return !!value && new URL(value).protocol === 'http:' && LOOPBACK.has(new URL(value).hostname); } catch { return false; }
+};
 const PREVIEW_URL = z.string().max(500).refine(isPreviewUrl, 'Use an https:// link, or http://localhost:PORT for a server on this computer.');
 const PREVIEW = z.object({ schemaVersion: z.literal(1), url: PREVIEW_URL.nullable(), updatedBy: z.string().min(1).max(200), updatedAt: z.number().int().nonnegative() }).strict();
 export const PREVIEW_INPUT = { url: z.union([PREVIEW_URL, z.literal('')]).describe('The page to show in Preview: http://localhost:PORT/… for a server you started on this computer, or an https:// link. An empty string removes it.') };

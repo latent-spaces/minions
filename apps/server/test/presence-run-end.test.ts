@@ -61,7 +61,7 @@ test('a chat participation is mode current_chat; closing the project ends it in 
   expect((await status(id))?.runMode).toBe('current_chat');
   at += 1_000;
   await seedRuntime(TEST_PROJECT, { completedAt: at, paused: true });
-  await endProjectWork(TEST_PROJECT, now, (await projects.doc(TEST_PROJECT).get()).data()!.revision);
+  await endProjectWork(TEST_PROJECT, now, (await projects.doc(TEST_PROJECT).get()).data()!.revision, 'closer');
   expect((await run(id))?.endedAt).toBe(at);
   await expectMirrors(id);
 });
