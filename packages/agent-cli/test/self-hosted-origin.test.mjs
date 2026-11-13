@@ -84,3 +84,10 @@ test('enrollment refuses subdomains of the live site too', () => {
   }
   assert.equal(selfHostedWebsiteOrigin({ MLSWARM_SELF_HOSTED_ORIGIN: 'https://notkarma42.ai' }), 'https://notkarma42.ai');
 });
+
+test('a project folder never reuses a folder another project already holds, also after the ID suffix', () => {
+  const projects = join('/r', 'projects'), id = 'abc123' + 'f'.repeat(58);
+  const placed = [{ projectId: 'b'.repeat(64), folder: join(projects, 'tools') }, { projectId: 'c'.repeat(64), folder: join(projects, 'tools-abc123') }];
+  const folder = projectFolder('/r', id, 'Tools', placed);
+  assert.equal(placed.some(p => p.folder === folder), false, folder);
+});

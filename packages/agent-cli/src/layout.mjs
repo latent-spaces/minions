@@ -28,6 +28,9 @@ const slug = name => {
 export function projectFolder(root, projectId, projectName, placed) {
   const projects = layout(root).projects, own = placed.find(p => p.projectId === projectId);
   if (own) return own.folder;
-  const readable = join(projects, slug(projectName));
-  return placed.some(p => p.folder === readable) ? `${readable}-${projectId.slice(0, 6)}` : readable;
+  const readable = join(projects, slug(projectName)), taken = folder => placed.some(p => p.folder === folder);
+  if (!taken(readable)) return readable;
+  // The suffixed name can itself be another project's readable folder ("Tools abc123"); lengthen the ID part until free.
+  for (let length = 6; length < projectId.length; length += 6) if (!taken(`${readable}-${projectId.slice(0, length)}`)) return `${readable}-${projectId.slice(0, length)}`;
+  return `${readable}-${projectId}`;
 }
