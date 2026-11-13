@@ -48,6 +48,11 @@ const writingGuidance = (settings: ProjectUpdateSettings) => `Write for a person
   + `${settings.slides ? `Post a short set of slides to swipe, 2 to 4 (at most ${L.slides}), with large text and about 12 words each: the first says the whole result in one line, each next one makes one point, the last says what the person has to do or that nothing is needed` : 'The image carries the detail; one image per update'}. Say when something is a concept, local or unverified. Nothing new to say: post nothing.`;
 
 // A project's cover is the screenshot on its newest update that has one; the stamps show it.
+// When the project's newest update was published (Unix ms), or null before the first one.
+export async function latestUpdateAt(projectId: string): Promise<number | null> {
+  const latest = await progressUpdates(projectId).orderBy('publishedAt', 'desc').select('publishedAt').limit(1).get();
+  return (latest.docs[0]?.get('publishedAt') as number | undefined) ?? null;
+}
 export async function latestUpdateScreenshotId(projectId: string): Promise<string | null> {
   const latest = await progressUpdates(projectId).orderBy('publishedAt', 'desc').select('screenshot').limit(5).get();
   return (latest.docs.map(doc => doc.get('screenshot') as { id?: unknown } | null | undefined).find(shot => typeof shot?.id === 'string')?.id as string | undefined) ?? null;

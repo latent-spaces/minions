@@ -13,12 +13,12 @@ import { useAnchoredPopover } from './use-anchored-popover';
 export interface WorkspaceNavItem { id: string; label: string; icon?: ReactNode; href: string; current?: boolean; locked?: string; count?: number; onNavigate: () => void; }
 /** `private` marks a project that is not listed in Explore: a lock on its stamp (shell polish 2026-10-18, section 12). */
 /** `cover` is a loaded image URL for the project's stamp: the screenshot on its newest update. */
-/** A running project says nothing about itself in the menu; only other states are named (owner, 11 November 2026). */
+/** A running project has no status words in the menu, only the live dot on its stamp; other states are named (owner, 11 and 13 November 2026). */
 const shownStatus = (status?: string) => !!status && status !== 'Active';
-export interface WorkspaceShortcut { id: string; name: string; href: string; onNavigate: () => void; current?: boolean; status?: string; locked?: string; private?: boolean; cover?: string | null; }
+export interface WorkspaceShortcut { id: string; name: string; href: string; onNavigate: () => void; current?: boolean; status?: string; locked?: string; private?: boolean; cover?: string | null; live?: boolean; }
 /** Project mode (shell polish 2026-10-18, section 12): inside a project the menu shows its identity and own-agent shortcuts. */
 export interface ProjectMenu {
-  id: string; name: string; status?: string; private?: boolean; cover?: string | null;
+  id: string; name: string; status?: string; private?: boolean; cover?: string | null; live?: boolean;
   /** "← All projects": leaving the project restores the global menu. */
   back: WorkspaceNavItem;
   /** Public/guest project shells still use section links; member tabs supply an empty list. */
@@ -52,10 +52,12 @@ export interface WorkspaceNavigationProps {
 
 const initials = personInitials;
 /** The project stamp: its cover where it has one, else its initials on the project's gradient (a sharp square, unlike people and agents); a lock when it is private. */
-function ProjectStamp({ project, className = '' }: { project: { id: string; name: string; private?: boolean; cover?: string | null }; className?: string }) {
+/** A live project's stamp carries a green dot: its job is running (owner, 13 November 2026). */
+function ProjectStamp({ project, className = '' }: { project: { id: string; name: string; private?: boolean; cover?: string | null; live?: boolean }; className?: string }) {
   const stamp = <span className={`k42-project-stamp${className}`} style={{ background: projectGradient(project.id) }} aria-hidden="true">{project.cover ? <img src={project.cover} alt="" /> : initials(project.name)}</span>;
-  return project.private ? <span className="k42-stamp-frame">{stamp}<PrivateBadge /></span> : stamp;
+  return project.private || project.live ? <span className="k42-stamp-frame">{stamp}{project.private && <PrivateBadge />}{project.live && <span className="k42-live-dot" title="Live: the job is running" aria-hidden="true" />}</span> : stamp;
 }
+const LiveNote = () => <span className="visually-hidden">, live</span>;
 
 /** My agents shows the rows that fit the menu's remaining height, agents that need you first; the rest sit behind "+N more",
  *  which opens a popover list, so the menu never scrolls for them (owner, 11 November 2026). Re-measured when the space or the agents change. */
@@ -123,7 +125,7 @@ export function WorkspaceNavigation({ globals, projectsLink, projects, projectSt
         <ul className="k42-nav-back"><li>{link(project.back, <><ArrowLeft size={16} aria-hidden="true" />{text(project.back.label)}</>)}</li></ul>
         <div className="k42-nav-project" title={collapsed ? project.name : undefined}>
           <ProjectStamp project={project} className=" is-large" />
-          <span className={collapsed ? 'k42-nav-text' : 'k42-nav-project-text'}><strong>{project.name}</strong>{project.private && <PrivateNote />}{shownStatus(project.status) && <small>{project.status}</small>}</span>
+          <span className={collapsed ? 'k42-nav-text' : 'k42-nav-project-text'}><strong>{project.name}</strong>{project.private && <PrivateNote />}{project.live && <LiveNote />}{shownStatus(project.status) && <small>{project.status}</small>}</span>
         </div>
         {/* New task sits above the project's sections (owner, 11 November 2026). */}
         {project.addTask && <ul className="k42-nav-add-task"><li><button type="button" className="primary k42-nav-add-task-button" onClick={project.addTask} title={collapsed ? 'New task' : undefined} aria-label={collapsed ? 'New task' : undefined}>
@@ -161,7 +163,7 @@ export function WorkspaceNavigation({ globals, projectsLink, projects, projectSt
         {!collapsed && projectStatus}
         <ul>{projects.map(shortcut => <li key={shortcut.id}>{link({ id: shortcut.id, label: shortcut.name, href: shortcut.href, locked: shortcut.locked, current: shortcut.current, onNavigate: shortcut.onNavigate }, <>
           {/* Private or shared, at a glance on every row (owner, 19 October 2026): a lock or a globe at the row's end. */}
-          <ProjectStamp project={{ ...shortcut, private: collapsed && shortcut.private }} />{collapsed ? text(<>{shortcut.name}{shortcut.private ? <PrivateNote /> : <span className="visually-hidden">, shared project</span>}</>) : <span>{shortcut.name}{shortcut.private ? <PrivateNote /> : <span className="visually-hidden">, shared project</span>}{shownStatus(shortcut.status) && <small>{shortcut.status}</small>}</span>}
+          <ProjectStamp project={{ ...shortcut, private: collapsed && shortcut.private }} />{collapsed ? text(<>{shortcut.name}{shortcut.private ? <PrivateNote /> : <span className="visually-hidden">, shared project</span>}{shortcut.live && <LiveNote />}</>) : <span>{shortcut.name}{shortcut.private ? <PrivateNote /> : <span className="visually-hidden">, shared project</span>}{shortcut.live && <LiveNote />}{shownStatus(shortcut.status) && <small>{shortcut.status}</small>}</span>}
           {!collapsed && <span className={`k42-project-kind${shortcut.private ? ' is-private' : ''}`} title={shortcut.private ? 'Private project' : 'Shared project'} aria-hidden="true">{shortcut.private ? <LockKeyhole size={14} /> : <Globe size={14} />}</span>}
         </>, 'k42-project-title', { currentKind: 'location' })}</li>)}</ul>
       </nav>}

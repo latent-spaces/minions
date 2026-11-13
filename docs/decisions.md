@@ -10,6 +10,19 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Live projects show a green dot; the menu sorts by last activity — owner request, 13 November 2026
+
+Source: the owner in chat on 13 November 2026, answering “Bring back a live dot in the sidebar and
+sort projects by last activity?” with “Yes, add both”.
+
+- **Live dot.** A project whose job is running (Active, with job time left) shows a small green dot
+  on its stamp in the menu, both in the project list and on the open project. Screen readers hear
+  “live” after the name. This supersedes the part of the 11 November entry that left a running
+  project unmarked in the menu; the project header still names no Active label or clock.
+- **Last activity order.** Starred projects stay on top; within starred and the rest, the most recently
+  active project comes first. Last activity is the newest update or message; a project with neither
+  sorts last. The order applies to the bounded set the menu already reads (up to 20 shortcuts).
+
 ## Avatar pose sheets and exploratory poking — owner direction, 13 November 2026
 
 The owner selected transparent direction/reaction/action pose sheets with code
@@ -605,7 +618,7 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
 - **The project header names no owner, privacy or running time.** The engine is local with one
   owner, so the owner removed the "Private project · Created by" pill and the "Active" label with
   its running clock, and the "Active" label under the project in the menu. Paused, Closed and Ready to start still show, with Pause, Resume and Start
-  (owner, 11 November 2026).
+  (owner, 11 November 2026). A running project's menu stamp now carries a live dot (owner, 13 November 2026).
 - **The communication map has no owner menu.** A project has one owner, so the owner removed
   the map's **Highlight agents by person** menu and its "N owners · Rings show ownership" line.
   Hovering, focusing or selecting an agent still highlights its owner's agents (owner,
