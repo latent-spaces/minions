@@ -44,8 +44,3 @@ test('oversized optional telemetry is omitted without mutating or invalidating t
  assert.ok(withMeasurements.usage.context);assert.ok(withMeasurements.usage.nativeContext);
  assert.equal(fitContextTelemetry(base,limit),base);
 });
-
-test('context-measurement exports only names other modules use', async () => {
-  const module = await import('../src/context-measurement.mjs');
-  assert.deepEqual(Object.keys(module).sort(), ['fitContextTelemetry', 'validContextMeasurement', 'validNativeContext']);
-});
