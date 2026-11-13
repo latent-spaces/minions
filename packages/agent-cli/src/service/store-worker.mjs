@@ -602,10 +602,6 @@ const operations = {
       return snapshot(missionRow(missionId));
     });
   },
-  blockMission({missionId,generation,reason}) {
-    boundedText(reason,'reason',2048);
-    return transaction(()=>{const row=missionRow(missionId,generation);if(!isTerminalState(row.state)&&row.state!=='stopping'&&row.state!=='recovery_required')updateState(row,'blocked',{reason});return snapshot(missionRow(missionId));});
-  },
   listMissionSummaries({site,ownerId,projectId,after,limit=50}) {
     validateTarget({site,ownerId,projectId:projectId??'query',agentId:'query'});
     if(!Number.isInteger(limit)||limit<1||limit>100)error('invalid_command','List limit must be 1–100');
