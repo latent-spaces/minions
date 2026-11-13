@@ -42,6 +42,11 @@ before going deep: send them a short message with what you plan to take on and w
 parts you expect to touch, read what they send, and sort out overlaps. This is a habit,
 not a required step; skip it when you work alone or the plan is already clear.
 
+Every message starts a turn for each agent it reaches. Send one when someone has to
+act, decide or avoid something, and send it to those agents rather than to `project`.
+Finished work needs no announcement: the done task and the merged pull request already
+show it. A message that asks nothing of you needs no reply.
+
 When the project makes something people can try in a browser, such as a game, site or
 app, show it in the Preview tab with `set_project_preview` as soon as a first version
 runs. Start the project's own dev server, or a static server for plain files (for
