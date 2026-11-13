@@ -87,9 +87,6 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
       // body happens to carry a permanent-looking error code.
       if (response.status < 500 && ![408,429].includes(response.status)
         && typeof data.error === 'string' && /^[a-z_]{1,80}$/.test(data.error)) { failure.code = data.error; failure.refusal = true; }
-      failure.httpStatus = response.status;
-      const retry = Number(response.headers.get('Retry-After'));
-      failure.retryAfterSeconds = Number.isFinite(retry) && retry > 0 ? Math.min(60, retry) : 10;
       // A reached limit says which one, so the agent can tell the person instead of retrying.
       const l = data.limit;
       if (failure.code === 'limit_reached' && l && ['agents_per_participant','private_participants'].includes(l.scope) && Number.isSafeInteger(l.limit) && Number.isSafeInteger(l.used)) failure.limit = { scope: l.scope, limit: l.limit, used: l.used };
