@@ -375,7 +375,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const phone = useMediaQuery(PHONE_HEADER);
-  // A read refused for being over the viewer budget is retried by the next refresh; the loaded view stays.
+  // A refused read (429) is retried by the next refresh; the loaded view stays.
   const [held, setHeld] = useState(false);
   const [loadedAt, setLoadedAt] = useState<number | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
@@ -449,7 +449,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   }, [taskLabelRows, liveAgents]);
   const walkedPeople = useAllPages(user, allMembersPath, 'members', members.page?.items ?? NO_PEOPLE, tick, tasksShown && morePeople, REFRESH_MS);
   const taskPeople = morePeople ? walkedPeople : members.page?.items ?? NO_PEOPLE;
-  // One read labels up to 60 shown actors the paced walks have not reached; it counts once against the viewer budget.
+  // One read labels up to 60 shown actors the paced walks have not reached.
   const taskLabels = useMemo(() => ({
     agents: async (ids: string[]) => (await read<{ agents: TaskAgent[] }>(user, `/agents?view=labels&ids=${ids.map(encodeURIComponent).join(',')}`, projectId)).agents,
     members: async (ids: string[]) => (await read<{ members: typeof NO_PEOPLE }>(user, `/members?ids=${ids.map(encodeURIComponent).join(',')}`, projectId)).members,
@@ -547,7 +547,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
         {error && !(held && overview) && <div role="alert"><p className="error">Could not load: {error}</p><Button onClick={() => { document.getElementById('content')?.focus({ preventScroll: true }); refresh(); }}>Try again</Button></div>}
         {!overview && !error && <p className="muted" role="status">Loading…</p>}
         {overview && <>
-          {workspace && <ProjectHeader id={projectId} cover={headerCover} name={project?.name ?? workspace.definition.title} statusPanel={<ProjectStatusPanel workspace={workspace} controls={controls} />}
+          {workspace && <ProjectHeader id={projectId} cover={headerCover} name={project?.name ?? workspace.definition.title} statusPanel={<ProjectStatusPanel workspace={workspace} controls={controls} onAddTime={() => go(projectRoute(projectId, 'agents'))} />}
             repositorySummary={overview.repositorySummary} usage={usage} repoUrl={project?.repoUrl}
             onCopyLink={copyLink}
             menu={menu}

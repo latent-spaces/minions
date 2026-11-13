@@ -84,8 +84,6 @@ async function readOperator(req: Request) {
 }
 export function humanChatRoutes(now: () => number) {
   const router = express.Router(); router.use(express.json({ limit: '12kb' }));
-  const reads = requestLimits.limiter(() => 'human-chat-read', 60, 60_000);
-  const anonymousReads = requestLimits.limiter(() => 'human-chat-anonymous-read', 60, 10_000);
   const writes = requestLimits.limiter(() => 'human-chat-write', 60, 60_000);
   const admit = (limit: (key: string, at: number) => number, key: string) => { const retry = limit(key, now()); if (retry) throw new Refusal('rate_limited', 'Chat is busy. Wait a moment, then try again.', Math.ceil(retry / 1000)); };
   router.use((req, res, next) => {
@@ -97,7 +95,6 @@ export function humanChatRoutes(now: () => number) {
     void (async () => {
       if (Object.keys(req.query).some(key => key !== 'cursor')) throw new Refusal('bad_input', 'Use the chat’s pagination controls.');
       const operator = await readOperator(req);
-      admit(operator ? reads : anonymousReads, operator?.id ?? req.ip ?? 'unknown');
       return readHumanChat(String(req.params.id), operator, req.query.cursor, now);
     })().then(value => res.json(value), error => fail(res, error));
   });
@@ -107,11 +104,11 @@ export function humanChatRoutes(now: () => number) {
   });
   // All interactions retain the same human-account and current-membership checks.
   router.get('/:id/search', (req, res) => {
-    void readOperator(req).then(operator => { admit(operator ? reads : anonymousReads, operator?.id ?? req.ip ?? 'unknown'); return searchHumanChat(String(req.params.id), operator, req.query.q, req.query.cursor, now); })
+    void readOperator(req).then(operator => searchHumanChat(String(req.params.id), operator, req.query.q, req.query.cursor, now))
       .then(value => res.json(value), error => fail(res, error));
   });
   router.get('/:id/messages/:messageId', (req, res) => {
-    void readOperator(req).then(operator => { admit(operator ? reads : anonymousReads, operator?.id ?? req.ip ?? 'unknown'); return readHumanChatMessage(String(req.params.id), operator, req.params.messageId, now); })
+    void readOperator(req).then(operator => readHumanChatMessage(String(req.params.id), operator, req.params.messageId, now))
       .then(value => res.json(value), error => fail(res, error));
   });
   // Reactions are human feedback on human messages; agents never receive them, so agent messages take none.
@@ -119,7 +116,7 @@ export function humanChatRoutes(now: () => number) {
     void person(req).then(operator => { admit(writes,operator.id); return setChatReaction(String(req.params.id),operator,req.params.messageId,req.body,now); }).then(value=>res.json(value),error=>fail(res,error));
   });
   router.get('/:id/unread', (req,res) => {
-    void person(req).then(operator => { admit(reads,operator.id); return readChatUnread(String(req.params.id),operator,req.query.threads,now); }).then(value=>res.json(value),error=>fail(res,error));
+    void person(req).then(operator => readChatUnread(String(req.params.id),operator,req.query.threads,now)).then(value=>res.json(value),error=>fail(res,error));
   });
   router.post('/:id/read', (req,res) => {
     void person(req).then(operator => { admit(writes,operator.id); return markChatRead(String(req.params.id),operator,req.body); }).then(value=>res.json(value),error=>fail(res,error));

@@ -42,12 +42,22 @@ export function ownerOrigin(site) {
   if (!trustedWebsiteUrl(u) || u.search || u.hash || u.pathname !== '/') throw new Error('Owner management requires the MyLittleSwarm website, enrolled self-hosted origin or explicit loopback development origin.');
   return u.origin;
 }
+// Failures where the connection itself was never made, so nothing reached the engine and nothing happened there.
+const NOT_CONNECTED_CODES = new Set(['ECONNREFUSED', 'EHOSTUNREACH', 'ENETUNREACH', 'ENOTFOUND', 'EAI_AGAIN', 'EADDRNOTAVAIL']);
+const neverConnected = error => {
+  const cause = error?.cause;
+  return [cause, ...(Array.isArray(cause?.errors) ? cause.errors : [])].some(item => NOT_CONNECTED_CODES.has(item?.code));
+};
+// The engine is not running (or not at this address): a known outcome, unlike a reply lost after the request was sent.
+function engineUnreachable(origin) {
+  return Object.assign(new Error(`The MyLittleSwarm engine isn’t running at ${origin}. Start it with npm run setup.`), { code: 'engine_unreachable', unreachable: true });
+}
 // The engine's local-owner session, which it gives only to a request from this computer at its own address.
 async function engineSession(origin, fetchImpl) {
   let response;
   try { response = await fetchImpl(new URL('/api/auth/local-owner/session', origin), { method: 'POST', redirect: 'error', credentials: 'omit', signal: AbortSignal.timeout(15000),
     headers: { Accept: 'application/json', origin, 'content-type': 'application/json' }, body: '{}' }); }
-  catch { throw new Error('MyLittleSwarm can’t be reached right now. Start the local engine, then try again.'); }
+  catch (error) { if (neverConnected(error)) throw engineUnreachable(origin); throw new Error('MyLittleSwarm can’t be reached right now. Start the local engine, then try again.'); }
   const data = await response.json().catch(() => null);
   if (response.status === 404) throw new Error(`The MyLittleSwarm engine at ${origin} does not connect computers. Run setup with the address of the local engine on this computer.`);
   if (!response.ok || typeof data?.token !== 'string' || data.token.length > 1024) throw new Error('The local MyLittleSwarm engine did not open a session for this computer. Check that setup uses the engine’s own address, then try again.');
@@ -81,7 +91,7 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
   async function request(path, { method = 'GET', body, token, profileId, signal, responseLimit = 256 * 1024, reconnected = false } = {}) {
     let response;
     try { response = await fetchImpl(new URL('/api/owner' + path, origin), { method, redirect: 'error', credentials: 'omit', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: { Accept: 'application/json', ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(profileId ? { 'X-Mlswarm-Profile-Id': profileId } : {}) }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) }); }
-    catch { throw new Error('MyLittleSwarm can’t be reached right now. Try the same request again in a moment.'); }
+    catch (error) { if (neverConnected(error)) throw engineUnreachable(origin); throw new Error('MyLittleSwarm can’t be reached right now. Try the same request again in a moment.'); }
     let size = 0, chunks = [];
     for await (const c of response.body) { size += c.byteLength; if (size > responseLimit) { await response.body.cancel?.().catch(() => {}); throw new Error('MyLittleSwarm sent back an unexpected reply. Try again in a moment.'); } chunks.push(c); }
     let data; try { data = JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { throw new Error('MyLittleSwarm sent back an unexpected reply. Try again in a moment.'); }

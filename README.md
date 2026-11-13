@@ -35,27 +35,32 @@ you already use.
 
 See [VISION.md](VISION.md) for the product principles.
 
-## Get started
+## Start here
 
 You need Node.js 24 or newer, Git, and Claude Code or Codex signed in on this computer.
 
 ```sh
 git clone https://github.com/oronanschel/mylittleswarm.git
 cd mylittleswarm
-npm run setup
+npm run setup     # install, build, start the engine in the background, connect this computer
+npm run stop      # stop the engine; npm run setup starts it again
 ```
 
-`npm run setup` installs and builds everything, starts the engine at
-`http://127.0.0.1:8787/`, opens it in your browser (no sign-in: the app is
-yours on this computer), and connects this computer's Claude Code and Codex
-with no further step. It starts no model. Details are in
-[Run the standalone engine locally](docs/self-hosted-engine.md).
+`npm run setup` starts the engine at `http://127.0.0.1:8787/` (or the next free port
+when 8787 is taken; later runs keep that address) and opens it in your browser, with
+no sign-in: the app is yours on this computer. The engine keeps running in the
+background after the command, the terminal or your coding chat ends. Setup connects
+this computer and registers MyLittleSwarm with Claude Code by itself; it starts no
+model. Details are in [Run the standalone engine locally](docs/self-hosted-engine.md).
 
 Then, in Claude Code or Codex, ask for what you want, for example:
 
 ```text
 Create a private MyLittleSwarm project for this repository and add three agents.
 ```
+
+A chat that was already open during setup gets the MyLittleSwarm tools after you
+restart it; until then it can use the connector's `tool` command that setup prints.
 
 ## Runtimes
 

@@ -33,7 +33,7 @@ async function main() {
   const origin = new URL(values.url ?? `http://127.0.0.1:${config.port}`);
   if (origin.protocol !== 'http:' || origin.hostname !== '127.0.0.1' || origin.href !== `${origin.origin}/`) throw new Error('Provide a literal http://127.0.0.1:PORT engine address with --url.');
   if (command === 'stop') {
-    await stopRunningEngine(origin.origin, readOwnerConfiguration(config.ownerFile).signingSecret);
+    await stopRunningEngine(origin.origin, readOwnerConfiguration(config.ownerFile).signingSecret, `${config.sqlitePath}.lock`);
     return;
   }
   if (command === 'check-running') {
@@ -69,21 +69,24 @@ async function main() {
   console.info(`Standalone engine listening on ${engine.url}. Open ${engine.url}/ on this computer.`);
   if (stopRequested) stop();
 }
-/** Asks the engine at this address to stop, then waits up to 20 s until it no longer answers. */
-async function stopRunningEngine(origin: string, signingSecret: string) {
+/**
+ * Asks the engine at this address to stop, then waits up to 20 s for its database lock to go: the engine removes it at
+ * the end of a clean stop. (Whether the port still answers proves nothing; another program may share it.)
+ */
+async function stopRunningEngine(origin: string, signingSecret: string, lock: string) {
   const { engineStopKey } = await import('./self-hosted-stop.js');
+  const { existsSync } = await import('node:fs');
   let response: Response;
   try {
     response = await fetch(`${origin}/api/auth/engine/stop`, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(5_000),
       headers: { authorization: `Bearer ${engineStopKey(signingSecret)}` } });
   } catch { console.info(`No engine is running at ${origin}.`); return; }
-  if (response.status !== 202) throw new Error(`The program at ${origin} did not accept the stop request (HTTP ${response.status}). Nothing was stopped.`);
+  if (response.status !== 202) throw new Error(`The program at ${origin} is not this engine or refused the stop request (HTTP ${response.status}). Nothing was stopped.`);
   for (const deadline = Date.now() + 20_000; Date.now() < deadline;) {
+    if (!existsSync(lock)) { console.info(`The engine at ${origin} stopped.`); return; }
     await new Promise(resolve => setTimeout(resolve, 250));
-    try { await fetch(`${origin}/`, { signal: AbortSignal.timeout(1_000) }); }
-    catch { console.info(`The engine at ${origin} stopped.`); return; }
   }
-  throw new Error(`The engine at ${origin} accepted the stop request but is still answering after 20 seconds. Its log says why.`);
+  throw new Error(`The engine at ${origin} accepted the stop request but has not finished stopping after 20 seconds. Its log says why.`);
 }
 
 void main().catch(error => {

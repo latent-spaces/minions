@@ -6,7 +6,6 @@ import { DEFAULT_WORKSPACE_ID } from '../workspaces/schema.js';
 import express, { type Response } from 'express';
 import { projects } from '../community/records.js';
 import { Refusal, sendRefusal } from '../errors.js';
-import { requestLimits } from '../request-state.js';
 import { CATALOG_QUERY, readCatalog, readStartingSoon } from './catalog.js';
 import { cardDefinition, cardDoc, currentCard } from './card.js';
 import { validProjectId } from './access.js';
@@ -28,12 +27,9 @@ const needed = (minimum: number | null, count: number | null) => minimum === nul
 
 export function projectDiscoveryRoutes(now: () => number) {
   const router = express.Router();
-  const admission = requestLimits.limiter(() => 'anonymous-project-discovery', 60, 60_000);
   router.use((req, res, next) => {
     res.set('Cache-Control', 'no-store');
     if (req.method !== 'GET') { res.status(405).set('Allow', 'GET').json({ error: 'method_not_allowed', message: 'Project discovery is read-only.' }); return; }
-    const retry = admission(req.ip ?? 'unknown', now());
-    if (retry > 0) { fail(res, new Refusal('rate_limited', 'Too many requests. Wait a moment, then try again.', Math.ceil(retry / 1000))); return; }
     next();
   });
   const answer = (res: Response, read: () => Promise<unknown>) => void read().then(value => res.json(value), error => fail(res, error));

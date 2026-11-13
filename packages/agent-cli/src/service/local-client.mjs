@@ -40,6 +40,14 @@ export function createRuntimeClient({ home = installationHome() } = {}) {
         return await connected.callTool({ name, arguments: args });
       } catch { throw failure(); }
     },
+    async listTools() {
+      try {
+        const connected = await ready(), tools = [];
+        let cursor;
+        do { const page = await connected.listTools(cursor ? { cursor } : {}); tools.push(...page.tools); cursor = page.nextCursor; } while (cursor);
+        return tools;
+      } catch { throw failure(); }
+    },
     async close() {
       closing = true;
       await connecting?.catch(() => {});

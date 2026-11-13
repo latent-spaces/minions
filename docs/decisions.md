@@ -10,6 +10,48 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## An agent's preview outlives its run — owner decision, 13 November 2026
+
+Source: the owner on 13 November 2026, asking to fix “an agent's preview dies with its run”. An
+agent had started a static server for a plain HTML5 game inside its run and set the preview to
+`http://localhost:8791/index.html`; when the project's time ran out the server stopped with the
+run, and the Preview tab showed the browser's "This site can't be reached" frame.
+
+- **The local service serves previews.** Background agents get the worker tool
+  `serve_project_preview`: the shared local service, which outlives runs, serves a folder inside
+  the agent's working folder on `127.0.0.1` and sets the project preview to it. It serves only
+  `GET`/`HEAD` of regular files inside that folder, never names starting with a dot, and keeps
+  the port per project, serving the same folder again after a restart. Builds serve their static
+  output folder. Agents no longer start servers for the preview; `set_project_preview` remains
+  for `https://` pages and servers that keep running.
+- **A dead local preview is not a broken frame.** The Preview tab checks a local link when it
+  opens and every 10 seconds; when nothing answers it shows "The preview isn't running", with
+  what to do, and shows the page again as soon as it answers.
+- This changes how the 10 November “Agent sets a link” preview is served; who may set it and the
+  frame's sandbox are unchanged.
+
+## Setup registers Claude Code itself — owner decision, 13 November 2026
+
+Source: the owner on 13 November 2026, after an AI coding agent set MyLittleSwarm up and used
+it, asking to fix “Registering the coding agent was a manual extra step”.
+
+- **Claude Code is registered by setup.** When the `claude` command is on PATH, `npm run setup`
+  registers the installation's MCP server in Claude Code's user settings through
+  `claude mcp add-json` (the connector's `register --client claude`), unless an entry with the
+  same address is already there, and says so in one line. Nothing runs through a shell; on
+  Windows an npm `.cmd` shim runs its JavaScript entry point with Node. `--no-register` skips
+  it, and a failed registration is a warning: setup carries on and prints the manual command.
+  Codex and other clients still get the printed `mcp-config` command.
+- **Tools before a restart.** A coding agent loads MCP tools only when a session starts, so the
+  connector's `tool` command calls the running service's tools from a terminal with the
+  service's own credential, and the setup summary names it.
+- **First-run port.** A first run whose port 8787 is held by another program uses the next
+  free port up to 8799, says which, and keeps it. A saved port or an explicit
+  `MLSWARM_ENGINE_PORT` is never moved.
+- **Engine not running.** A MyLittleSwarm tool that cannot reach the engine at all answers
+  that the engine isn't running at its address and to start it with `npm run setup`; the
+  “couldn't confirm whether that happened” answer stays for a request whose reply was lost.
+
 ## The engine runs in the background; project pages fit the window — owner decisions, 13 November 2026
 
 Source: the owner in chat on 13 November 2026, after the first local run stopped when the
@@ -31,6 +73,13 @@ what part is scrollable and what should fit”; and, for phones, the compact fro
 - **Phones (600px and narrower).** Only the header's title row (name, status, start and archive)
   stays frozen; the repository and usage row opens the tab's scrolling content. Selected by the
   owner over keeping the whole header frozen or letting it scroll away.
+- **Time left in the header for the owner too.** The owner asked to fix agents running out of time
+  unnoticed. The header's status now shows the time left (and "Time is up") to everyone; once time
+  is up the owner also gets **Add time**, which opens the job bar on Agents. Adding time still
+  happens in that one bar. This changes the 10 November choice to show the time only to people
+  who don't see the bar.
+- **The panel map has no inner frame.** In the side panel the map drops its own card border and
+  padding and keeps Full screen beside its toolbar, so short windows keep room for the map.
 
 ## No computer approval: setup connects this computer by itself — owner decision, 13 November 2026
 

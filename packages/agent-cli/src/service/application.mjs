@@ -120,8 +120,10 @@ export function createRuntimeApplication({ controllers, principal, ownerClient, 
         }
         return result(await client.operation(name, input, { expectedProfileId: identity.ownerId, signal }));
       } catch (error) {
-        // A permanent refusal from the website is known and safe to show; other failures stay unconfirmed.
+        // A permanent refusal from the website is known and safe to show, as is an engine that could not be reached
+        // at all (nothing was sent, so nothing happened); other failures stay unconfirmed.
         const safe = error instanceof RuntimeError ? { code: error.code, message: error.message }
+          : error?.unreachable === true ? { code: 'engine_unreachable', message: error.message }
           : error?.refusal ? { code: error.code, message: error.message, ...(error.limit ? { limit: error.limit, retryable: false } : {}) } : { code: signal?.aborted ? 'cancelled' : 'operation_failed', message: 'MyLittleSwarm couldn’t confirm whether that happened. Check before trying again, and reuse the same request ID if you do.' };
         return { ...result({ error: safe }), isError: true };
       }

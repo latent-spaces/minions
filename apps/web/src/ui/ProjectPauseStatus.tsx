@@ -12,8 +12,8 @@ export function ProjectPauseStatus({ request, agents, now, incomplete }: {
   return <div className="k42-project-pause-status" role="status" aria-live="polite">
     <Pause size={16} aria-hidden="true" />
     <div><strong>{pending || unconfirmed || incomplete ? 'Pause requested' : current.length ? 'Agents paused' : 'Project work paused'}</strong>
-      <p>{current.length ? `${confirmed} paused · ${pending} awaiting feedback · ${unconfirmed} unconfirmed.` : incomplete ? 'Pause requested. Checking agent feedback…' : 'No active agent runs require confirmation.'}
-        {incomplete && ' Agent confirmations are incomplete.'}
+      <p>{current.length ? `${confirmed} paused · ${pending} awaiting feedback · ${unconfirmed} unconfirmed.` : incomplete ? 'Checking which agents have paused…' : 'No active agent runs require confirmation.'}
+        {incomplete && !!current.length && ' Agent confirmations are incomplete.'}
         {!!unconfirmed && ' Unconfirmed agents may still be working. Inspect an agent for its last contact.'}</p>
       {current.some(agent => agent.projectPause?.externalChat) && <p>Agents in coding chats can’t be paused from here. Pause those chats directly.</p>}
     </div>

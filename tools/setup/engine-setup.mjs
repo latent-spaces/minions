@@ -3,14 +3,14 @@
 // runs the package build scripts as any npm run does. Nothing here runs a model.
 import { spawn, spawnSync } from 'node:child_process';
 import { closeSync, existsSync, openSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { createServer } from 'node:net';
+import { connect, createServer } from 'node:net';
 import { homedir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { npmCli } from './npm-cli.mjs';
-import { childEnvironment, connectorCommand, connectorEnvironment, engineEnvironment, engineHome, enginePaths, enginePort, engineUrl,
-  initializationState, interruptedByUser, needsInstall, ownerIdentity, pageOpener, requireNode24, savedPort, settingsText, startupHint } from './engine-plan.mjs';
+import { childEnvironment, connectorCommand, connectorEnvironment, engineEnvironment, engineHome, enginePaths, engineUrl, initializationState,
+  interruptedByUser, needsInstall, occupiedMessage, ownerIdentity, pageOpener, portCandidates, requireNode24, savedPort, settingsText, startupHint } from './engine-plan.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const at = (...parts) => join(repository, ...parts);
@@ -32,7 +32,22 @@ function run(label, args, { cwd = repository, env, stdio = 'inherit', quiet = fa
   });
 }
 
-function portFree(port) {
+/** Something answers a connection to 127.0.0.1 on this port. */
+function answers(port) {
+  return new Promise(accept => {
+    const socket = connect({ port, host: '127.0.0.1' });
+    socket.setTimeout(1_000, () => { socket.destroy(); accept(false); });
+    socket.once('connect', () => { socket.destroy(); accept(true); });
+    socket.once('error', () => accept(false));
+  });
+}
+
+/**
+ * Free only when nothing answers there and 127.0.0.1 can be bound. Binding alone is not enough: macOS lets a program
+ * bind 127.0.0.1 on a port another program holds on all addresses (0.0.0.0), and both would then share the port.
+ */
+async function portFree(port) {
+  if (await answers(port)) return false;
   return new Promise(accept => {
     const server = createServer();
     server.once('error', () => accept(false));
@@ -90,7 +105,8 @@ async function startEngine(env, files) {
 /** The connector's own setup for this computer: 'connected', 'interrupted' (Ctrl+C) or 'failed'. */
 async function connectComputer(url, env) {
   try {
-    await run('connector setup', [at('packages/agent-cli/src/cli.mjs'), 'setup', '--site', url, '--wait-seconds', '600'], { env });
+    // This command registers the coding agent itself, so the connector's own hint for a separate installation is left out.
+    await run('connector setup', [at('packages/agent-cli/src/cli.mjs'), 'setup', '--site', url, '--wait-seconds', '600', '--no-client-hint'], { env });
     return 'connected';
   } catch (error) {
     // During its GitHub sign-in step the connector reads keys in raw mode, so a Ctrl+C there reaches only the connector.
@@ -100,29 +116,54 @@ async function connectComputer(url, env) {
   }
 }
 
-const shellName = () => process.platform === 'win32' ? 'PowerShell' : 'terminal';
+/**
+ * Registers the MCP server with Claude Code through its claude command when it is on PATH and not registered yet
+ * (owner decision, 13 November 2026): 'registered' (now or before), 'missing' (no claude command) or 'failed'. The
+ * summary reports it; a failure's output is shown as a warning and setup carries on.
+ */
+function registerClaudeCode(env) {
+  return new Promise(accept => {
+    const child = spawn(process.execPath, [at('packages/agent-cli/src/cli.mjs'), 'register', '--client', 'claude'],
+      { cwd: repository, env, stdio: ['ignore', 'pipe', 'pipe'], shell: false, windowsHide: true });
+    let output = '';
+    for (const stream of [child.stdout, child.stderr]) stream.on('data', chunk => { output += chunk; });
+    child.once('error', error => { console.error(`Claude Code registration failed: ${error.message}`); accept('failed'); });
+    child.once('exit', code => {
+      if (code === 0) return accept('registered');
+      if (code === 4) return accept('missing');
+      console.error(`Claude Code registration failed${output.trim() ? `: ${output.trim()}` : '.'} Setup carries on.`);
+      accept('failed');
+    });
+  });
+}
 
-function summary(url, connected, files) {
-  const mcpConfig = connectorCommand(process.platform, { node: process.execPath, cli: at('packages/agent-cli/src/cli.mjs'),
-    serviceHome: files.serviceHome, credentialHome: files.credentialHome, args: ['mcp-config', '--client', 'claude'] });
+const CLAUDE_NOT_REGISTERED = { missing: 'no claude command was found', skipped: 'skipped with --no-register', failed: 'registration failed', unconnected: 'this computer is not connected yet' };
+
+function summary(url, connected, files, claude) {
+  const connector = args => connectorCommand(process.platform, { node: process.execPath, cli: at('packages/agent-cli/src/cli.mjs'),
+    serviceHome: files.serviceHome, credentialHome: files.credentialHome, args });
+  const registered = claude === 'registered';
   say(`${connected ? 'Done' : 'The engine is running; this computer is not connected yet'}. The local app is at ${url}/.
-The engine runs in the background, also after this window closes; npm run stop stops it. Run npm run setup again at any time: it starts the engine when it is stopped, and otherwise opens the local app.
-When you want them:
-- Use this installation from your coding agent (or --client codex or other); run this in another ${shellName()} window and follow what it prints:
-  ${mcpConfig}
-- Sign in to GitHub with gh auth login, for agents that work on repositories.`);
+The engine runs in the background; npm run stop stops it.
+${registered
+    ? `Claude Code is registered and loads the MyLittleSwarm tools in its next session. Until then, call them with: ${connector(['tool', '--list'])} (then tool NAME '{...}').
+For Codex or another coding agent (--client other), run: ${connector(['mcp-config', '--client', 'codex'])}`
+    : `Claude Code is not registered (${CLAUDE_NOT_REGISTERED[claude]}). To register a coding agent, run (--client claude, codex or other): ${connector(['mcp-config', '--client', 'claude'])}`}
+For agents that work on repositories, sign in to GitHub with gh auth login.`);
+}
+
+/** After the connector's own setup: registers Claude Code unless --no-register, then prints the summary. */
+async function finish(url, connected, files, connectorEnv, values) {
+  const claude = !connected ? 'unconnected' : values['no-register'] ? 'skipped' : await registerClaudeCode(connectorEnv);
+  summary(url, connected, files, claude);
 }
 
 async function main() {
   requireNode24(process.version);
-  const { values } = parseArgs({ args: process.argv.slice(2), options: { 'owner-name': { type: 'string' }, 'owner-email': { type: 'string' } }, allowPositionals: false });
+  const { values } = parseArgs({ args: process.argv.slice(2), options: { 'owner-name': { type: 'string' }, 'owner-email': { type: 'string' }, 'no-register': { type: 'boolean' } }, allowPositionals: false });
   const home = engineHome({ env: process.env, userHome: homedir(), platform: process.platform });
   const files = { home, ...enginePaths(home) };
-  const port = enginePort(process.env, savedPort(readText(files.settingsFile)));
   const base = childEnvironment(process.env, { nodeDirectory: dirname(process.execPath) });
-  const engineEnv = engineEnvironment(base, { home, port });
-  const connectorEnv = connectorEnvironment(base, { home, port });
-  const site = `http://127.0.0.1:${port}`;
   const engineMain = at('apps/server/dist/self-hosted-main.js');
   const steps = 6;
   let step = 0;
@@ -133,17 +174,30 @@ async function main() {
   if (state === 'incomplete') {
     throw new Error(`An earlier first run stopped before initialization finished: ${home} holds only one of engine.sqlite and owner.json. Nothing was changed. If nothing there needs keeping, remove that directory (or choose a new MLSWARM_ENGINE_HOME) and run npm run setup again.`);
   }
+  const candidates = portCandidates(process.env, savedPort(readText(files.settingsFile)), { initialized: state === 'existing' });
+  let port = candidates[0];
   if (!await portFree(port)) {
     // Only an engine started with this owner file signs sessions with its secret, so a verified session proves the port is this engine.
     const ours = state === 'existing' && existsSync(engineMain)
-      && await run('engine check', [engineMain, 'check-running', '--url', site], { env: engineEnv, stdio: 'ignore' }).then(() => true, () => false);
-    if (!ours) throw new Error(`Port ${port} is occupied. Stop the program using it, or choose another with MLSWARM_ENGINE_PORT. Nothing was started or stopped.`);
-    say(`The engine is already running at ${site}. Opening the local app and checking this computer's connection.`);
-    openApp(site);
-    const result = await connectComputer(site, connectorEnv);
-    if (result !== 'interrupted') summary(site, result === 'connected', files);
-    return;
+      && await run('engine check', [engineMain, 'check-running', '--url', `http://127.0.0.1:${port}`], { env: engineEnvironment(base, { home, port }), stdio: 'ignore' }).then(() => true, () => false);
+    if (ours) {
+      const site = `http://127.0.0.1:${port}`, connectorEnv = connectorEnvironment(base, { home, port });
+      say(`The engine is already running at ${site}. Opening the local app and checking this computer's connection.`);
+      openApp(site);
+      const result = await connectComputer(site, connectorEnv);
+      if (result !== 'interrupted') await finish(site, result === 'connected', files, connectorEnv, values);
+      return;
+    }
+    // A first run moves to the next free port and keeps it (saved once the engine starts); a chosen or saved port is never changed.
+    let free = null;
+    for (const candidate of candidates.slice(1)) if (await portFree(candidate)) { free = candidate; break; }
+    if (free === null) throw new Error(occupiedMessage(candidates));
+    say(`Port ${port} is used by another program, so the engine uses port ${free}. Later runs keep ${free}.`);
+    port = free;
   }
+  const engineEnv = engineEnvironment(base, { home, port });
+  const connectorEnv = connectorEnvironment(base, { home, port });
+  const site = `http://127.0.0.1:${port}`;
   // A first run needs the owner's identity and this checkout's revision; check both before minutes of installing.
   let owner, revision;
   if (state === 'new') {
@@ -186,7 +240,7 @@ async function main() {
 
   next('Connecting this computer');
   const result = await connectComputer(url, connectorEnv);
-  if (result !== 'interrupted') summary(url, result === 'connected', files);
+  if (result !== 'interrupted') await finish(url, result === 'connected', files, connectorEnv, values);
 }
 
 main().catch(error => { console.error(error.message); process.exitCode = 1; });

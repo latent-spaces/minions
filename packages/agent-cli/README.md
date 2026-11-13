@@ -55,7 +55,9 @@ working on their own can use it.
 
 At a terminal, setup shows its numbered steps, with any page on its own line, and opens
 pages in the browser. `NO_COLOR` or `TERM=dumb` prints plain sentences instead, and
-the classic Windows console gets plain symbols. For another client, `mcp-config --client other` prints the
+the classic Windows console gets plain symbols. Run by a coding agent (no terminal), or under
+`npm run setup` (`--no-client-hint`), setup prints short lines instead; only GitHub's sign-in
+code and page are framed between marker lines, for the agent to show the person. For another client, `mcp-config --client other` prints the
 generic HTTP description. Explicit local development uses its loopback website through
 `--site`; computer and agent credentials never move between environments.
 
@@ -83,6 +85,22 @@ records into chat. Unsupported clients fail explicitly; there is no stdio fallba
 
 References: [Claude MCP authentication](https://code.claude.com/docs/en/mcp#use-dynamic-headers-for-custom-authentication),
 [official OpenAI MCP configuration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+For a separate installation (`--state-dir`, `MLSWARM_SERVICE_HOME` or an enrolled origin)
+setup changes no client and prints the `mcp-config` command instead; `--no-client-hint`
+leaves that to its caller. `npm run setup` passes it and then runs `register --client
+claude`, which registers the installation through Claude Code's own `claude mcp add-json`
+(spawned without a shell; an npm `.cmd` shim on Windows runs its JavaScript entry point with
+Node) unless an entry with the same address exists, replaces an entry with an older
+address, and exits 4 when no `claude` command is on PATH.
+
+A client loads MCP tools only when its session starts. Until then, `tool --list [TOOL_NAME]`
+lists the running service's tools (one tool's full schema with a name), and
+`tool TOOL_NAME ['JSON_ARGUMENTS']` calls one with the service's own credential (the
+private endpoint record, as the CLI's other management commands use), prints its JSON
+result and exits 1 when the tool reports an error. A tool that cannot reach the engine at
+all answers `engine_unreachable`, naming the address and `npm run setup`; nothing was sent.
+The uncertain `operation_failed` answer is kept for requests whose reply was lost.
 
 `mcp-config` prints instructions; it does not edit client settings. Setup's skill
 destinations: `~/.claude/skills/mlswarm/` and `~/.agents/skills/mlswarm/`. Each contains
@@ -862,8 +880,23 @@ web search runs as you type and shows Show more when further candidates remain. 
 
 An agent shows live work in the project's Preview tab with `set_project_preview`
 (owner, 10 November 2026). It takes one `url`: `http://localhost`, `127.0.0.1` or
-`[::1]` for a server the agent started on this computer, or any `https://` page; an
+`[::1]` for a server on this computer, or any `https://` page; an
 empty string clears it. The newest save wins, and an agent may set it while the
 project is paused. The tab frames the page in a sandbox (scripts, forms, pointer lock
 and fullscreen) and never frames a page on the app's own origin. A localhost preview
 only works for people on the agent's computer. The record is `settings/preview`.
+
+A server an agent starts stops when its run ends, so the shared local service serves
+previews instead (owner, 13 November 2026). The worker tool `serve_project_preview`
+(`src/service/project-previews.mjs`) takes an optional `folder` relative to the agent's
+working folder and an optional `page` (default `index.html`). The service serves that
+folder on `127.0.0.1` on a port it keeps per project, then saves the link through the
+project's `set_project_preview`, which checks the agent's authority. It answers only
+`GET` and `HEAD` with the `127.0.0.1` or `localhost` host name, serves only regular files
+whose real path stays inside the folder (no names starting with a dot, no Windows stream or
+device names, no directory listings) and sends `Cache-Control: no-store`, so a reload shows
+the agent's latest saved files. One folder is served per project; serving again replaces it,
+and another link set through `set_project_preview` stops it. What is served is saved in
+`previews.json` in the service home and served again on the same port after a restart while
+the same agent's folder still holds it. The Preview tab checks a local link every 10 seconds
+and shows "The preview isn't running" instead of a broken frame when nothing answers.

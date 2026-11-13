@@ -27,7 +27,9 @@ async function freePort() {
 
 function setup(env, args = []) {
   return new Promise((accept, reject) => {
-    const child = spawn(process.execPath, [script, ...args], { env: { ...process.env, MLSWARM_NO_BROWSER: '1', ...env }, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+    // A variable given as undefined is left out of the child's environment.
+    const merged = Object.fromEntries(Object.entries({ ...process.env, MLSWARM_NO_BROWSER: '1', ...env }).filter(([, value]) => value !== undefined));
+    const child = spawn(process.execPath, [script, ...args], { env: merged, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     let output = '';
     child.stdout.on('data', chunk => { output += chunk; });
     child.stderr.on('data', chunk => { output += chunk; });
@@ -64,7 +66,7 @@ test('a first run without an owner identity stops before installing, not after t
   beforeInstall(output);
 }));
 
-test('a port held by another program is refused, and that program is left alone', withHome(async home => {
+test('a chosen port held by another program is refused, and that program is left alone', withHome(async home => {
   const server = await listen();
   try {
     const { code, output } = await setup({ MLSWARM_ENGINE_HOME: home, MLSWARM_ENGINE_PORT: String(server.address().port) });
@@ -73,4 +75,19 @@ test('a port held by another program is refused, and that program is left alone'
     beforeInstall(output);
     assert.equal(server.listening, true);
   } finally { await new Promise(accept => server.close(accept)); }
+}));
+
+test('a first run moves off a busy 8787 to the next free port and says which', withHome(async home => {
+  // 8787 is held here, or already by another program on this computer; either way it is not this new engine.
+  const held = await listen(8787).catch(() => null);
+  try {
+    const empty = join(home, '..', 'empty.gitconfig');
+    writeFileSync(empty, '');
+    // Stops at the missing owner email, after the port is chosen and before anything is installed.
+    const { code, output } = await setup({ MLSWARM_ENGINE_PORT: undefined, MLSWARM_ENGINE_HOME: home, GIT_CONFIG_GLOBAL: empty, GIT_CONFIG_NOSYSTEM: '1' }, ['--owner-name', 'Ana Lee']);
+    assert.equal(code, 1);
+    assert.match(output, /Port 8787 is used by another program, so the engine uses port (87(8[89]|9\d))\. Later runs keep \1\./);
+    assert.match(output, /--owner-email/);
+    beforeInstall(output);
+  } finally { if (held) await new Promise(accept => held.close(accept)); }
 }));

@@ -7,7 +7,6 @@ import { projectExecution } from '@mlswarm/contracts';
 import express, { type Response } from 'express';
 import { FieldPath, type DocumentSnapshot } from '../firestore.js';
 import { Refusal, sendRefusal } from '../errors.js';
-import { requestLimits } from '../request-state.js';
 import { agents, db, inProject, projectDoc, currentProjectId, type Agent } from '../firestore.js';
 import { readCanonicalAgentStates, readReadyCanonicalContacts } from '../view/communication-agents.js';
 import { projects } from '../community/records.js';
@@ -50,15 +49,12 @@ function runtime(p: WorkspaceProject | undefined) {
 
 export function publicProjectRoutes(now: () => number) {
   const router = express.Router({ mergeParams: true });
-  const admission = requestLimits.limiter(() => 'published-project-reads', 60, 60_000);
   router.use((req, res, next) => {
     res.set('Cache-Control', 'no-store');
     // Unknown methods stay outside the public reader; authenticated mutation routes remain unchanged.
     if (req.method !== 'GET') { res.status(405).json({ error: 'method_not_allowed', message: 'Published project access is read-only.' }); return; }
     const id = req.params.id;
     if (!validProjectId(id)) { fail(res, new Refusal('not_found', 'This project isn’t published to Explore.')); return; }
-    const retry = admission(req.ip ?? 'unknown', now());
-    if (retry > 0) { fail(res, new Refusal('rate_limited', 'Too many requests. Wait a moment, then try again.', Math.ceil(retry / 1000))); return; }
     inProject(id, async () => {
       try {
         const catalog = await readCatalog({ project: id }, now);

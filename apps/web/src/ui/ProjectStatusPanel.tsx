@@ -13,17 +13,18 @@ import './project-status-panel.css';
  * starts, pauses or resumes the whole project (owner decision, 27 October 2026). Pause, Resume, Close and Reopen are
  * icon buttons with a hover label here, not a Settings card (owner, 12 November 2026). A requested pause links to Updates, where the map holds the per-agent confirmations.
  * The job has one end time for every agent (owner decision, 9 November 2026). The owner sees it and adds time in one
- * place, the job bar above My agents (owner decision, 10 November 2026); the panel shows the end time and the time
- * left only to people who do not see that bar. When time is up agents are not ended: they finish their turn and wait.
+ * place, the job bar above the Agents cards (owner decision, 10 November 2026). The panel shows the time left to
+ * everyone, the owner too, so time running out is seen on every tab; once it is up, the owner's Add time opens that bar
+ * (owner, 13 November 2026). When time is up agents are not ended: they finish their turn and wait.
  */
-export function ProjectStatusPanel({ workspace, controls }: { workspace: Workspace; controls: ProjectControls }) {
+export function ProjectStatusPanel({ workspace, controls, onAddTime }: { workspace: Workspace; controls: ProjectControls; /** Opens the job bar. */ onAddTime?: () => void }) {
   const titleId = useId();
   const closed = workspace.execution === 'closed', started = !!workspace.project?.started, paused = !!workspace.project?.paused;
   const manager = workspace.role === 'owner';
   const waiting = startWork(workspace);
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const timer = window.setInterval(() => setNow(Date.now()), 1000); return () => window.clearInterval(timer); }, []);
-  const endsAt = workspace.endsAt ?? null, showTime = started && !closed && !manager, timeUp = showTime && (endsAt === null || endsAt <= now);
+  const endsAt = workspace.endsAt ?? null, showTime = started && !closed, timeUp = showTime && (endsAt === null || endsAt <= now);
   // A running project says nothing about itself; only the states that change what you can do are named (owner, 11 November 2026).
   const status = closed ? 'Closed' : !started ? manager ? 'Ready to start' : 'Waiting for the owner to start' : paused ? 'Paused' : null;
   const help = closed ? 'Read-only. History is kept.'
@@ -49,6 +50,7 @@ export function ProjectStatusPanel({ workspace, controls }: { workspace: Workspa
       </div>}
       <div className="k42-status-actions">
         {/* Start lives here, with the project's status (Noa, 26 October 2026). */}
+        {timeUp && manager && onAddTime && <Button type="button" className="k42-ph-thin" onClick={onAddTime}><Hourglass size={16} aria-hidden="true" />Add time</Button>}
         {canStart && <StartProject id={`${titleId}-length`} className="k42-ph-thin" disabled={controls.locked} controls={controls} />}
         {projectAction && <HeaderIcon label={projectAction === 'pause' ? 'Pause all agents' : 'Resume all agents'} tip={projectAction === 'pause' ? 'Each agent finishes its turn, then waits.' : 'Agents pick up where they stopped.'} disabled={controls.locked} onClick={() => void controls.act(projectAction)}>
           {projectAction === 'pause' ? <Pause size={18} aria-hidden="true" /> : <Play size={18} aria-hidden="true" />}</HeaderIcon>}

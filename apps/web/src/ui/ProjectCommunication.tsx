@@ -7,6 +7,7 @@ import {ApiError} from '../authorized-request';
 import {refreshOnReturn} from '../refresh-on-return';
 import {walkDue} from '../all-pages';
 import {readMapRoster,type MapAgent,type RosterPage} from './communication-map/read-roster';
+import {mapEmptyState} from './communication-map/map-empty-state';
 import {CommunicationMap} from './communication-map/CommunicationMap';
 import {CURRENT_STATE_FAST_POLL_MS,CURRENT_STATE_POLL_MS,accessRefused,createCurrentStateMap,currentStateRound,type CurrentStateMap,type CurrentStateRound} from './communication-map/current-state-source';
 import type {CurrentStateAnswer} from './communication-map/current-state-reader';
@@ -82,7 +83,7 @@ function ProjectCommunicationView({user,projectId,projectName,active,agents,go,a
   refresh.current=()=>void load();const stop=refreshOnReturn(()=>void load());void load();return()=>{cancelled=true;refresh.current=null;clearTimeout(liveTimer);stop();stopLive();};
  },[user,projectId,active]);
  useEffect(()=>{if(active&&pulse)refresh.current?.();},[active,pulse]);
- const [roster,setRoster]=useState<MapAgent[]>([]),[rosterLoading,setRosterLoading]=useState(false),[rosterLoaded,setRosterLoaded]=useState(false),[rosterError,setRosterError]=useState<string|null>(null),[rosterRetry,setRosterRetry]=useState(0);
+ const [roster,setRoster]=useState<MapAgent[]>([]),[rosterLoading,setRosterLoading]=useState(false),[rosterLoaded,setRosterLoaded]=useState(false),[rosterRead,setRosterRead]=useState(false),[rosterError,setRosterError]=useState<string|null>(null),[rosterRetry,setRosterRetry]=useState(0);
  // Only the first roster walk renders progressively. Later refreshes replace the roster once complete,
  // so a background refresh neither shrinks the graph nor cancels the status sweep below.
  const rosterShown=useRef(false);
@@ -90,7 +91,7 @@ function ProjectCommunicationView({user,projectId,projectName,active,agents,go,a
  const rosterWalk=useRef<{pages:number;startedAt:number}|null>(null);
  useEffect(()=>{
   if(!active)return;let cancelled=false,busy=false;
-  const load=async(forced:boolean)=>{if(cancelled||busy||!forced&&!walkDue(rosterWalk.current,Date.now(),60000))return;busy=true;setRosterLoading(true);setRosterError(null);const progressive=!rosterShown.current,startedAt=Date.now();let latest:MapAgent[]|null=null,pages=0;try{await readMapRoster(cursor=>{pages++;return read<RosterPage>(user,'/communication/roster'+(cursor?'?'+new URLSearchParams({cursor}):''),projectId);},rows=>{if(progressive)setRoster(rows);else latest=rows;},()=>!cancelled);if(!cancelled){rosterWalk.current={pages,startedAt};if(latest)setRoster(latest);}}catch(failure){if(!cancelled)rosterWalk.current={pages,startedAt};if(!cancelled)setRosterError(failure instanceof Error?failure.message:'Could not load agents');}finally{busy=false;if(!cancelled){setRosterLoading(false);rosterShown.current=true;setRosterLoaded(true);}}};
+  const load=async(forced:boolean)=>{if(cancelled||busy||!forced&&!walkDue(rosterWalk.current,Date.now(),60000))return;busy=true;setRosterLoading(true);setRosterError(null);const progressive=!rosterShown.current,startedAt=Date.now();let latest:MapAgent[]|null=null,pages=0;try{await readMapRoster(cursor=>{pages++;return read<RosterPage>(user,'/communication/roster'+(cursor?'?'+new URLSearchParams({cursor}):''),projectId);},rows=>{if(progressive)setRoster(rows);else latest=rows;},()=>!cancelled);if(!cancelled){rosterWalk.current={pages,startedAt};if(latest)setRoster(latest);setRosterRead(true);}}catch(failure){if(!cancelled)rosterWalk.current={pages,startedAt};if(!cancelled)setRosterError(failure instanceof Error?failure.message:'Could not load agents');}finally{busy=false;if(!cancelled){setRosterLoading(false);rosterShown.current=true;setRosterLoaded(true);}}};
   void load(rosterRetry>0);const timer=setInterval(()=>void load(false),60000);return()=>{cancelled=true;clearInterval(timer);};
  },[user,projectId,active,rosterRetry]);
  const peopleWalk=useRef<{pages:number;startedAt:number}|null>(null);
@@ -157,6 +158,7 @@ function ProjectCommunicationView({user,projectId,projectName,active,agents,go,a
   {!!crowd.length&&<span className="k42-map-counts">{people.length} {people.length===1?'person':'people'} · {liveNodes.length} {liveNodes.length===1?'agent':'agents'} shown</span>}
   {onCopyLink&&<Tooltip label="Copy project link" side="bottom"><button type="button" className="k42-map-share" aria-label="Copy project link" onClick={onCopyLink}><Link size={18} aria-hidden="true"/></button></Tooltip>}
  </>;
+ const empty=mapEmptyState({agents:nodes.length,people:people.length,rosterRead,rosterError,invite:!!invite});
  const conversationRoute=(messageId:string|null):Route=>({view:'project',projectId,section:'conversations',thread:messageId,message:messageId??undefined,agent:null,q:null});
  const openConversation=(messageId:string|null)=>{dismissTooltip();if(document.fullscreenElement===panel.current)void document.exitFullscreen().catch(()=>undefined);setExpanded(false);go(conversationRoute(messageId));};
  const content=<section ref={panel} className={`k42-swarm-panel k42-communication${expanded?' is-expanded':''}`} aria-labelledby={`${id}-title`} role={expanded?'dialog':undefined} aria-modal={expanded||undefined}>
@@ -168,20 +170,20 @@ function ProjectCommunicationView({user,projectId,projectName,active,agents,go,a
   {pauseRequest&&!closed&&<ProjectPauseStatus request={pauseRequest} agents={observations?.agents.filter(agent=>liveIds.has(agent.id))??[]} now={now||Date.now()} incomplete={rosterLoading||!!rosterError||statusError||!!liveNodes.length&&(!observations||observedPauseRevision!==pauseRequest.revision||liveNodes.some(node=>!statusById.has(node.id)))} />}
   {error&&<p role="alert">Could not refresh communication. {error} <Button onClick={()=>refresh.current?.()}>Try again</Button></p>}
   <div className="k42-communication-body" aria-busy={loading}><div className="k42-communication-network"><div className="k42-communication-graph">
-   <div className="k42-communication-map-stage" data-status-rounds={statusRounds||undefined}><CommunicationMap key={projectId} crowding="focus-active" controlsSlot={controlsSlot} toolbarStart={toolbarStart} nodes={[...liveNodes.map(n=>({...n,ownerId:ownersById.get(n.id)??null,ownerName:ownerNames.get(ownersById.get(n.id)??'')??null})),...people.map(person=>({id:`person:${person.id}`,personId:person.id,name:person.name,photo:person.photo,character:person.character,ownerId:person.id,ownerName:person.name}))]} traffic={liveTraffic} at={at} running={active&&!closed} speed={1} active={active&&!!snapshot} replay={false} now={now} observations={statusById} selected={selected} inspected={inspected?.id??null} tooltipId={`${id}-agent-tooltip`}
+   <div className="k42-communication-map-stage" data-status-rounds={statusRounds||undefined}><CommunicationMap key={projectId} crowding="focus-active" controlsSlot={controlsSlot} toolbarStart={toolbarStart} nodes={[...liveNodes.map(n=>({...n,ownerId:ownersById.get(n.id)??null,ownerName:ownerNames.get(ownersById.get(n.id)??'')??null})),...people.map(person=>({id:`person:${person.id}`,personId:person.id,name:person.name,photo:person.photo,character:person.character,ownerId:person.id,ownerName:person.name}))]} traffic={liveTraffic} at={at} running={active&&!closed} speed={1} active={active} replay={false} now={now} observations={statusById} selected={selected} inspected={inspected?.id??null} tooltipId={`${id}-agent-tooltip`}
     onInspect={(agentId,anchor,pin)=>{if(pinned.current&&!pin)return;keepTooltip();pinned.current=pin;setInspected({id:agentId,anchor});}} onLeave={leaveTooltip} onDismiss={dismissTooltip}
     onSelect={nodeId=>{if(!nodeId){setSelected(null);return;}const member=people.find(person=>`person:${person.id}`===nodeId);if(member){dismissTooltip();setPerson(member);return;}dismissTooltip();if(document.fullscreenElement===panel.current)void document.exitFullscreen().catch(()=>undefined);setExpanded(false);if(onOpenAgent)onOpenAgent(nodeId);else go(projectRoute(projectId,'agents',nodeId,null));}}
     onEdge={(from,to)=>openConversation(connectionMessageId(traffic,from,to,at))}
     renderEdgePreview={messageId=><ConnectionMessagePreview messageId={messageId} loadMessage={loadEdgeMessage} href={formatRoute(conversationRoute(messageId))} onOpen={()=>openConversation(messageId)}/>}/>
    </div>
    {invite&&<div className="k42-communication-invite"><span className="k42-notice-icon" aria-hidden="true"><CircleAlert size={20}/></span><div><AddAgentPrompt prompt={invite}/></div></div>}
-   {(loading||!invite)&&!nodes.length&&!people.length&&<div className="k42-communication-empty"><strong>{loading?'Loading communication…':'No agents yet'}</strong><p>Agents appear here as soon as someone adds one.</p></div>}
+   {empty&&<div className="k42-communication-empty"><strong>{empty.title}</strong><p>{empty.detail}</p></div>}
    {addAgent&&<div className="k42-communication-add-agent is-map">{addAgent}<span aria-hidden="true">Add agent</span></div>}
   </div>{trafficError&&<p role="status">Recent connections unavailable: {trafficError} <Button onClick={()=>setTrafficRetry(n=>n+1)}>Retry connections</Button></p>}{statusError&&<p role="status">Current agent states are unavailable. Communication history is still shown.</p>}</div></div>
   {peopleError&&<p role="status">Could not refresh people. {peopleError} <Button onClick={()=>setPeopleRetry(n=>n+1)}>Retry people</Button></p>}
   {person&&<PersonProfilePopup key={person.id} person={person} onClose={()=>setPerson(null)}/>}
   {rosterLoading&&!rosterLoaded&&<p role="status" className="muted">Loading agents · {roster.length} loaded</p>}
-  {rosterError&&<p role="status">Showing {nodes.length} loaded agents. {rosterError} <Button onClick={()=>setRosterRetry(n=>n+1)}>Retry agents</Button></p>}
+  {rosterError&&<p role="status">{nodes.length?`Showing ${nodes.length} loaded agents.`:'Could not load agents.'} {rosterError} <Button onClick={()=>setRosterRetry(n=>n+1)}>Retry agents</Button></p>}
   {inspected&&inspectedNode&&<CommunicationAgentTooltip provider={inspectedNode && inspectedNode.provider} id={`${id}-agent-tooltip`} anchor={inspected.anchor} portalContainer={expanded?panel.current??undefined:undefined} name={inspectedNode.name??inspectedNode.id} agentId={inspected.id} ownerId={ownersById.get(inspected.id)} ownerLabel={ownerNames.get(ownersById.get(inspected.id)??'')??(statusById.get(inspected.id)?.mine?'You':undefined)} agent={statusById.get(inspected.id)} now={now} replay={false}
    {...(ownRow?{ownStatus:workerAgentStatus(ownRow,workers!.now).label,actions:<AgentRunActions user={user} projectId={projectId} agent={ownRow} controls={workers!} now={workers!.now} disabled={false} compact/>}:{})} onKeep={keepTooltip} onLeave={leaveTooltip} onDismiss={dismissTooltip} onPin={()=>{keepTooltip();pinned.current=true;}}/>}
  </section>;

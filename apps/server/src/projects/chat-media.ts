@@ -130,7 +130,6 @@ export async function readChatAttachment(projectId: string, personId: string, id
 export function chatMediaRoutes(now: () => number) {
   const router = express.Router();
   const limit = requestLimits.limiter(() => 'chat-attachment-uploads', 12, 60_000);
-  const downloads = requestLimits.limiter(() => 'chat-attachment-downloads', 60, 60_000);
   async function person(req: Request) {
     const token = bearerToken(req.headers.authorization);
     if (!token) throw new Refusal('unauthorized', 'Sign in to use chat attachments.');
@@ -157,11 +156,8 @@ export function chatMediaRoutes(now: () => number) {
   router.get('/:id/attachments/:attachmentId', (req, res) => {
     const projectId = String(req.params.id), attachmentId = String(req.params.attachmentId);
     if (!validProjectId(projectId) || !safeId(attachmentId)) { fail(res, new Refusal('not_found', 'This attachment wasn’t found.')); return; }
-    void person(req).then(operator => {
-      const retry = downloads(JSON.stringify([operator.id, projectId]), now());
-      if (retry) throw new Refusal('rate_limited', 'Wait a moment before downloading another attachment.', Math.ceil(retry / 1000));
-      return readChatAttachment(projectId, operator.id, attachmentId);
-    })
+    // Downloads are reads by the one local owner, so they have no budget.
+    void person(req).then(operator => readChatAttachment(projectId, operator.id, attachmentId))
       .then(result => res.set({ 'Content-Type': result.contentType, 'Content-Length': String(result.size),
         'Content-Disposition': `attachment; filename="download"; filename*=UTF-8''${encodeURIComponent(result.name)}`,
         'X-Content-Type-Options': 'nosniff', 'Cache-Control': 'private, no-store', 'Content-Security-Policy': "sandbox; default-src 'none'" }).send(result.bytes), error => fail(res, error));

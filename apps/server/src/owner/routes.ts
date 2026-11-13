@@ -148,8 +148,9 @@ export function ownerRoutes(now: () => number, { selfHosted = () => deploymentKi
     const input = parse(LOCAL_COMPUTER, req.body);
     return verify(() => connectLocalComputer(input, bearerToken(req.headers.authorization) ?? '', now, personAdmission));
   }));
+  // The owner's browser reads below have no budget: the one local owner's viewing is never refused.
   router.get('/notifications', (req,res)=>answer(res,async()=>{
-    const person=await browserPerson(req);observationAdmission(person.id);
+    const person=await browserPerson(req);
     if(req.get('X-Mlswarm-Profile-Id')!==person.id)throw new Refusal('unauthorized','Your selected account changed.');
     return readNotifications(person.id,req.query);
   }));
@@ -163,10 +164,10 @@ export function ownerRoutes(now: () => number, { selfHosted = () => deploymentKi
     if(req.get('X-Mlswarm-Profile-Id')!==person.id)throw new Refusal('unauthorized','Your selected account changed.');
     return markNotificationRead(person.id,String(req.params.id),now);
   }));
-  router.get('/profile', (req,res) => answer(res, async () => { const person=await browserPerson(req); observationAdmission(person.id); return {profileId:person.id,name:person.name}; }));
+  router.get('/profile', (req,res) => answer(res, async () => { const person=await browserPerson(req); return {profileId:person.id,name:person.name}; }));
   // The web app picks one of this person's computers to queue an agent start on.
   router.get('/computers', (req, res) => answer(res, async () => {
-    const person = await browserPerson(req); observationAdmission(person.id);
+    const person = await browserPerson(req);
     const cursor = req.query.cursor === undefined ? null : requestId(req.query.cursor);
     let query = computerConnections.where('profileId', '==', person.id).orderBy(FieldPath.documentId()).limit(51);
     if (cursor) query = query.startAfter(cursor);
@@ -182,7 +183,7 @@ export function ownerRoutes(now: () => number, { selfHosted = () => deploymentKi
     if(req.get('X-Mlswarm-Profile-Id')!==person.id)throw new Refusal('unauthorized','This computer is now connected to a different MyLittleSwarm account. Check which account you meant, then try again.');
     return createWebAgentStart(person.id,req.body,now);
   }));
-  router.get('/web-agent-starts/:id',(req,res)=>answer(res,async()=>{const person=await browserPerson(req);observationAdmission(person.id);return readWebAgentStart(person.id,String(req.params.id),now);}));
+  router.get('/web-agent-starts/:id',(req,res)=>answer(res,async()=>{const person=await browserPerson(req);return readWebAgentStart(person.id,String(req.params.id),now);}));
   router.use(async (req, res, next) => {
     try {
       const session = await verify(() => ownerFromToken(bearerToken(req.headers.authorization) ?? '', now));

@@ -32,10 +32,12 @@ full messages with the same paging.
 
 ## Preview
 
-The Preview tab shows a page an agent set with `set_project_preview`: a local server it
-started (`http://localhost:PORT/…`) or an `https://` page, in a frame. When the person
-wants to see the project running, ask an agent working on it to start the server and set
-the preview. A localhost preview only works on the computer where that agent runs.
+The Preview tab shows, in a frame, a page an agent set: plain web files MyLittleSwarm
+serves from the agent's working folder with `serve_project_preview`
+(`http://127.0.0.1:PORT/…`, kept running after the agent's run ends), or an `https://` page
+set with `set_project_preview`. When the person wants to see the project running, ask an
+agent working on it to show it in the preview. A local preview only works on the computer
+where that agent runs; when nothing answers there, the tab says the preview isn't running.
 
 ## Projects
 

@@ -94,6 +94,13 @@ export function CommunicationMap(props:Props){
   let dense=false,crowdedOverview=false,shrink=1,outside=-1;const featuredUntil=new Float64Array(positions.length),displayScale=new Float64Array(positions.length).fill(1);
   let world=440,overviewSpan=440,camera={x:0,y:0},fitPending=true,viewportDirty=true,box={width:0,height:0},topInset=0,lastViewBox='',depthOrder:number[]=[];const reduced=matchMedia('(prefers-reduced-motion: reduce)'),index=new Map(positions.map((n,i)=>[n.id,i]));
   const nodeElements=positions.map(n=>element.querySelector('[data-map-id="'+CSS.escape(n.id)+'"] .k42-communication-agent'));
+  const measure=()=>{const rect=element.getBoundingClientRect();box={width:rect.width,height:rect.height};const inside=controlsRef.current&&element.contains(controlsRef.current);topInset=inside?controlsRef.current!.getBoundingClientRect().bottom-rect.top+12:0;viewportDirty=false;};
+  // Nodes render at world coordinates (around the SVG's top-left corner) until a frame places them, and frames need
+  // animation callbacks, which a hidden or background tab never gets. Fit the seed layout now so the map is framed
+  // from its first render.
+  {measure();if(box.width>0&&box.height>0){const projected=projectPoints(display,dimensions,orbit.current.yaw,orbit.current.pitch),start=fitReadableCamera(projected,box.width,box.height,topInset,1.2);
+   lastViewBox=`0 0 ${box.width} ${box.height}`;vector.setAttribute('viewBox',lastViewBox);
+   for(const [i,node] of nodeElements.entries()){const p=screenPoint(projected,i,start,box.width,box.height);node?.setAttribute('transform',`translate(${p.x},${p.y})`);}}}
   const post=(data:MapRequest)=>worker.postMessage(data);
   const fail=(message:string)=>{setFailure(message);ready=false;};setFailure('');
   worker.onmessage=({data}:{data:MapReply})=>{
@@ -121,7 +128,7 @@ export function CommunicationMap(props:Props){
     for(let i=0;i<display.length;i++)display[i]=reduced.matches?target[i]:display[i]+(target[i]-display[i])*blend;
    }
    const projected=projectPoints(display,dimensions,orbit.current.yaw,orbit.current.pitch);
-   if(viewportDirty){const rect=element.getBoundingClientRect();box={width:rect.width,height:rect.height};const inside=controlsRef.current&&element.contains(controlsRef.current);topInset=inside?controlsRef.current!.getBoundingClientRect().bottom-rect.top+12:0;viewportDirty=false;}
+   if(viewportDirty)measure();
    if(box.width<=0||box.height<=0)return;
    const weights=new Map(connectionWeights(c.traffic,at).map(e=>[JSON.stringify([e.from,e.to]),e]));
    const mode=c.crowding??'portraits',featured=new Uint8Array(positions.length);

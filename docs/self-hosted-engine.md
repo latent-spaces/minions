@@ -21,8 +21,10 @@ npm run setup
 
 The command:
 
-1. refuses to continue when the engine port is held by another program, and stops
-   nothing; on a first run it also checks the owner identity (below) before
+1. checks the engine port: on a first run, when another program holds 8787, it uses
+   the next free port up to 8799, says which and keeps it; a saved port or an
+   explicit `MLSWARM_ENGINE_PORT` held by another program is refused, and nothing
+   is stopped. On a first run it also checks the owner identity (below) before
    installing anything;
 2. runs `npm ci` unless npm's record of a finished install
    (`node_modules/.package-lock.json`) is at least as new as `package-lock.json`,
@@ -31,7 +33,8 @@ The command:
    with each package's own `npm run build` script;
 4. initializes the database on the first run, and keeps it on later runs;
 5. starts the engine and opens the local app in your browser;
-6. runs the connector's `setup` for this computer.
+6. runs the connector's `setup` for this computer, then registers the engine's MCP
+   server with Claude Code when its `claude` command is found (below).
 
 Install and build output is shown only when a step fails. The engine's routine
 activity and errors go to `engine.log` in the engine directory; if the engine stops
@@ -56,10 +59,22 @@ computer's connection for the owner, already connected. There is no approval pag
 or code. If the connector fails, the engine keeps running; run `npm run setup`
 again to connect.
 
-The command then prints the connector's `mcp-config` command for registering this
-installation in your coding client, and reminds you to sign in to GitHub with
-`gh auth login` for project work. This separate installation never changes
-coding-client settings or GitHub sign-in on its own.
+When the `claude` command is on PATH, the command then registers this installation's
+MCP server in Claude Code's user settings with `claude mcp add-json`, unless an entry
+with the same address is already there, and says so in one line (owner decision,
+13 November 2026). It runs `claude` without a shell; on Windows an npm `.cmd` shim runs
+its JavaScript entry point with Node. Pass `--no-register` (`npm run setup --
+--no-register`) to skip it; a failed registration is a warning and setup carries on.
+Claude Code loads the tools in its next session. Until then, the summary prints the
+connector's `tool` command, with which a coding agent calls the same tools from a
+terminal (`tool --list`, then `tool TOOL_NAME '{"field":"value"}'`).
+
+The short closing summary gives the local app's address, says the engine runs in the
+background until `npm run stop`, whether Claude Code was registered, the `tool`
+fallback, and the connector's `mcp-config` command only for clients that were not
+registered (Codex or another client, or Claude Code when it was not registered). It
+reminds you to sign in to GitHub with `gh auth login` for project work. Other clients' settings, the
+MyLittleSwarm skill and GitHub sign-in are not changed by this command.
 
 The owner's name and email come from `--owner-name` and `--owner-email`
 (`npm run setup -- --owner-name 'Your Name' --owner-email you@example.com`), or
@@ -71,8 +86,9 @@ prints which identity it used. They are only needed on the first run.
 Engine files and the connector's separate credentials live in one private
 directory: `~/.mlswarm/engine` on macOS and Linux, `%USERPROFILE%\.mlswarm\engine`
 on Windows. Set `MLSWARM_ENGINE_HOME` to an absolute path to choose another, and
-`MLSWARM_ENGINE_PORT` to use a port other than 8787. Keep both settings the same on
-later runs: the connector installation is bound to the engine address.
+`MLSWARM_ENGINE_PORT` to use a port other than 8787 (or the port a first run chose and
+saved). Keep both settings the same on later runs: the connector installation is bound
+to the engine address.
 
 | File | Purpose |
 | --- | --- |

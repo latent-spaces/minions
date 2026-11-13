@@ -119,9 +119,9 @@ only while a view shows it and is dropped when the account changes.
 
 ## Project-management requests
 
-Authenticated project-management reads (GET) use their own 120-per-minute budget per
-person; writes have 60 per minute, and a refusal returns `rate_limited` with
-Retry-After. The web transport (`authorized-request.ts`) shares identical in-flight
+Project-management reads (GET) have no request budget: the engine serves one owner on
+this computer, and reloading or switching tabs must never be refused. Writes have 60 per
+minute per person, and a refusal returns `rate_limited` with Retry-After. The web transport (`authorized-request.ts`) shares identical in-flight
 management GETs for one account, profile and path. After a 429 it holds every management
 read for that account until Retry-After passes (60 seconds when absent, at most 5
 minutes). It caches no completed response and never replays writes. Worker and steering
@@ -383,8 +383,7 @@ The card reads these routes under `/api/view/communication`:
   sizes, refresh times and error messages.
 
 While Updates is shown, the card rereads its frame every five seconds. Every `/api/view`
-request rechecks sign-in and membership and counts against one budget of 60 reads per
-minute per person and project. A 429 on the frame keeps the loaded view, shows "Updates
+request rechecks sign-in and membership; view reads have no request budget. A 429 on the frame keeps the loaded view, shows "Updates
 will resume shortly." and waits for the Retry-After time (60 seconds by default).
 
 `CommunicationMap` draws connections on a canvas and avatars in SVG, and fetches

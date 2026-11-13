@@ -56,6 +56,16 @@ test('Map defaults and unseen updates survive reloads but clear only when visibl
     await panel.locator('.communication-map').waitFor();
     await page.waitForTimeout(500);
     await page.screenshot({path:join(directory,'map-default-unseen-desktop.png')});
+    // The project page is framed (owner, 13 November 2026): the window never scrolls, the header sits above the tab's own
+    // region, and the panel's map fits the space left, shrinking with a shorter window instead of scrolling the panel.
+    const frame=()=>page.evaluate(()=>{const box=document.querySelector('.k42-updates-panel')!, map=box.querySelector('.communication-map')!.getBoundingClientRect(), edge=box.getBoundingClientRect();
+      return {window:document.documentElement.scrollHeight<=innerHeight, panel:edge.bottom<=innerHeight && box.scrollHeight<=box.clientHeight, map:map.bottom<=edge.bottom+1, header:!!document.querySelector('.k42-project-main > .k42-ph') && !document.querySelector('.k42-project-body .k42-ph')};});
+    expect(await frame()).toEqual({window:true,panel:true,map:true,header:true});
+    const tall=(await panel.locator('.communication-map').boundingBox())!.height;
+    await page.setViewportSize({width:1440,height:760});
+    await expect.poll(async()=>(await panel.locator('.communication-map').boundingBox())!.height).toBeLessThan(tall);
+    expect(await frame()).toEqual({window:true,panel:true,map:true,header:true});
+    await page.setViewportSize({width:1440,height:1000});
     await updatesTab.click();
     await panel.getByRole('article',{name:'Review update 2',exact:true}).waitFor();
     await page.waitForFunction(()=>!document.querySelector('.k42-panel-switch .k42-updates-count'));

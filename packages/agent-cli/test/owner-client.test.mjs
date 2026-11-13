@@ -328,3 +328,18 @@ test('owner refusals carry only the fields their callers read', async () => {
   assert.equal(Object.hasOwn(error,'httpStatus'),false);assert.equal(Object.hasOwn(error,'retryAfterSeconds'),false);
  }finally{f.close();}
 });
+
+test('an engine that is not running is named as such; a reply lost after sending stays unconfirmed', async () => {
+ const f=fixture();try{
+  await f.client.connect();
+  const refused=Object.assign(new TypeError('fetch failed'),{cause:Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:8787'),{code:'ECONNREFUSED'})});
+  const down=createOwnerClient({home:f.home,workspace:f.workspace,site,now:()=>1000,fetchImpl:async()=>{throw refused;}});
+  const error=await down.operation('list_my_projects',{}).catch(e=>e);
+  assert.equal(error.unreachable,true);assert.equal(error.code,'engine_unreachable');
+  assert.equal(error.message,`The MyLittleSwarm engine isn’t running at ${site}. Start it with npm run setup.`);
+  assert.notEqual(error.refusal,true);
+  const lost=createOwnerClient({home:f.home,workspace:f.workspace,site,now:()=>1000,fetchImpl:async()=>{throw new TypeError('fetch failed',{cause:Object.assign(new Error('socket hang up'),{code:'ECONNRESET'})});}});
+  const uncertain=await lost.operation('list_my_projects',{}).catch(e=>e);
+  assert.notEqual(uncertain.unreachable,true);assert.match(uncertain.message,/can’t be reached right now/);
+ }finally{f.close();}
+});

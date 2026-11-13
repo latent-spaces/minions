@@ -40,6 +40,24 @@ export function enginePort(env, saved = null) {
   return Number(text);
 }
 
+const FIRST_RUN_PORTS = Array.from({ length: 13 }, (_, index) => 8787 + index);
+
+/**
+ * The ports setup may use, in order. An explicit MLSWARM_ENGINE_PORT or an installation's saved port is the only one,
+ * as is 8787 for an initialized store from before ports were saved, whose connector is bound to that address; a first
+ * run starts at 8787 and, when another program holds it, takes the next free port up to 8799.
+ */
+export function portCandidates(env, saved = null, { initialized = false } = {}) {
+  return env.MLSWARM_ENGINE_PORT === undefined && saved === null && !initialized ? FIRST_RUN_PORTS : [enginePort(env, saved)];
+}
+
+/** Why setup stopped when none of the candidate ports was free. */
+export function occupiedMessage(candidates) {
+  return candidates.length > 1
+    ? `Ports ${candidates[0]}–${candidates.at(-1)} are all occupied. Stop a program using one of them, or choose another port with MLSWARM_ENGINE_PORT. Nothing was started or stopped.`
+    : `Port ${candidates[0]} is occupied. Stop the program using it, or choose another with MLSWARM_ENGINE_PORT. Nothing was started or stopped.`;
+}
+
 /** The saved port from engine-settings.json's text, or null when there is none or it is not a usable port. */
 export function savedPort(text) {
   if (text === null) return null;

@@ -15,7 +15,7 @@ import { installationHome, readInstallation, startDetachedService, statusInstall
 import { composeInstalledRuntime } from './service/bootstrap.mjs';
 import { openPage, canOpenPages } from './system.mjs';
 import { reusableConfiguration, renderReusableConfiguration } from './mcp-configuration.mjs';
-import { connectClients } from './client-setup.mjs';
+import { connectClients, registerWithClaudeCode } from './client-setup.mjs';
 import { execFileSync, spawn } from 'node:child_process';
 import { createSetupScreen, createChatScreen } from './setup-screen.mjs';
 import { GITHUB_LOGIN, keepGitHubLoginInFile, assertGitHubFileStorage } from './service/repository-access.mjs';
@@ -28,12 +28,23 @@ Setup and current-chat mode do not choose or run a model. Your MCP client may us
 Claude, Codex, DeepSeek or another model supported by that client.
 
 Commands:
-  setup [--site WEBSITE] [--wait-seconds N]
+  setup [--site WEBSITE] [--wait-seconds N] [--no-client-hint]
       Connect this computer to the local MyLittleSwarm engine (waiting up to N seconds,
       default 120, for the engine to answer), start its shared local service and connect
       Claude Code and Codex to it, with the MyLittleSwarm skill. Starts no models.
+      --no-client-hint: for a separate installation, leave the coding agents to the
+      caller (npm run setup registers Claude Code itself).
   mcp-config --client claude|codex|other [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
       Print HTTP registration for another client; changes no client settings.
+  register --client claude [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
+      Register this installation's MCP server with Claude Code through its claude
+      command, unless it already is. Exit 0 when registered, 4 when no claude command
+      is found on PATH.
+  tool --list [TOOL_NAME]
+  tool TOOL_NAME ['JSON_ARGUMENTS']
+      Call one of the running shared service's MCP tools, as your coding agent would,
+      and print its JSON result; exit 1 when the tool reports an error. Use it until
+      your coding agent is restarted and loads the MyLittleSwarm tools itself.
   service-start / service-status / service-stop
       Start, inspect or explicitly stop the shared service. Stop ends turns in progress.
   service-stop --after-turns [--wait-minutes N]
@@ -93,7 +104,9 @@ export const specs = {
   'run-diagnostics': runQuerySpec,
   'run-recover': {...runQuerySpec,generation:{type:'string'},'request-id':{type:'string'},action:{type:'string'},reason:{type:'string'},approve:{type:'boolean'},report:{type:'string'},attempts:{type:'string'},'error-code':{type:'string'}},
   'mcp-config': { site: { type: 'string' }, client: { type: 'string' }, 'state-dir': { type: 'string' } },
-  setup: {...stateSpec,site:{type:'string'},'wait-seconds':{type:'string'}},
+  setup: {...stateSpec,site:{type:'string'},'wait-seconds':{type:'string'},'no-client-hint':{type:'boolean'}},
+  register: {...stateSpec,client:{type:'string'}},
+  tool: {...stateSpec,list:{type:'boolean'}},
   'service-start': {...stateSpec,site:{type:'string'}}, 'service-status':stateSpec, 'service-stop':{...stateSpec,'after-turns':{type:'boolean'},'wait-minutes':{type:'string'}}, 'service-run':stateSpec,
   'project-overview': {...stateSpec,project:{type:'string'}},
   'project-configure': {...stateSpec,project:{type:'string'},repo:{type:'string'},revision:{type:'string'},'request-id':{type:'string'},approve:{type:'boolean'}},
@@ -114,7 +127,7 @@ export async function main(args, out = console.log, err = console.error) {
   if (!Object.hasOwn(specs, command)) { err('Unknown command. Run --help for details.'); return 2; }
   try {
     let parsed;
-    try { parsed = parseArgs({ args: rest, options: specs[command], allowPositionals: false, tokens: true }); }
+    try { parsed = parseArgs({ args: rest, options: specs[command], allowPositionals: command === 'tool', tokens: true }); }
     catch { throw new Error('Invalid arguments. Run --help. Codes and tokens are not accepted as arguments.'); }
     const names = parsed.tokens.filter(token => token.kind === 'option').map(token => token.name);
     if (new Set(names).size !== names.length) throw new Error('Supply each option once.');
@@ -127,6 +140,15 @@ export async function main(args, out = console.log, err = console.error) {
       out(values.json ? JSON.stringify(values.section
         ? { guide_revision: BUNDLED_SKILL.guide_revision, section: values.section, sha256: skillTextHash(content), content }
         : { ...BUNDLED_SKILL, content, files: bundledGuideFiles() }, null, 2) : content);
+      return 0;
+    }
+    if (command === 'tool') return await callServiceTool(values, parsed.positionals, out, err);
+    if (command === 'register') {
+      if (values.client !== 'claude') throw new Error('Choose --client claude. For Codex or another client, use mcp-config.');
+      const outcome = registerWithClaudeCode({ home: values['state-dir'] ?? installationHome() });
+      if (outcome.status === 'missing') { out('Claude Code’s claude command was not found on PATH, so nothing was registered.'); return 4; }
+      out(outcome.status === 'current' ? `Claude Code already has MyLittleSwarm (${outcome.name}).`
+        : `Registered MyLittleSwarm (${outcome.name}) with Claude Code. A new Claude Code session loads its tools.`);
       return 0;
     }
     if (command === 'mcp-config') { out(renderReusableConfiguration(reusableConfiguration({ client: values.client, home: values['state-dir'], site: values.site }))); return 0; }
@@ -142,19 +164,23 @@ export async function main(args, out = console.log, err = console.error) {
     };
     if (['setup','service-start'].includes(command)) {
       const site = selectedSite(), owner = createOwnerClient({home:sessionHome(),site});
-      // A person at a terminal sees the setup screen; a coding agent gets the same steps as chat messages to pass on.
-      const screen = command !== 'setup' ? null : process.stdin.isTTY && process.stdout.isTTY ? createSetupScreen() : createChatScreen(out);
+      // A person at a terminal sees the setup screen; a coding agent gets short lines. Under npm run setup, which shows
+      // its own steps and summary (--no-client-hint), only the short lines are shown.
+      const nested = values['no-client-hint'] === true;
+      const screen = command !== 'setup' ? null : !nested && process.stdin.isTTY && process.stdout.isTTY ? createSetupScreen() : createChatScreen(out);
       // This computer connects to the local engine by itself; nobody approves it (owner decision, 13 November 2026).
-      if (screen) { screen.start(); screen.step(1, 'Connecting this computer to MyLittleSwarm'); }
+      if (screen && !nested) { screen.start(); screen.step(1, 'Connecting this computer to MyLittleSwarm'); }
       const account = await connectWhenReady(owner, site, { seconds: waitSeconds });
       if (screen) screen.done(`This computer is connected${account.account_name ? ` for ${account.account_name}` : ''}`);
-      if (screen) screen.step(2, 'Connecting your coding agents');
+      const separate = !!(values['state-dir'] || process.env.MLSWARM_SERVICE_HOME || selfHostedWebsiteOrigin());
+      // A separate installation changes no coding agent here, so there is no step 2 to show.
+      if (screen && !separate) screen.step(2, 'Connecting your coding agents');
       const stop = screen?.waiting();
       let status;
       try { status = await startDetachedService({home,site,entryPoint:fileURLToPath(import.meta.url),args:['service-run']}); } finally { stop?.(); }
       if (command === 'service-start') { out(JSON.stringify(status,null,2)); return 0; }
       // Step 2's spinner covers the service starting; only the coding agents are listed.
-      return await finishSetup(home, site, out, !!(values['state-dir'] || process.env.MLSWARM_SERVICE_HOME || selfHostedWebsiteOrigin()), { screen });
+      return await finishSetup(home, site, out, separate, { screen, clientHint: values['no-client-hint'] !== true });
     }
     if (command === 'service-status') { out(JSON.stringify(await statusInstalledService({home}),null,2));return 0; }
     if (command === 'service-stop') {
@@ -190,15 +216,15 @@ export async function connectWhenReady(owner, site, { seconds, now = Date.now, s
   const until = now() + seconds * 1000;
   for (;;) {
     try { return await owner.connect('MyLittleSwarm shared service', site); }
-    catch (error) { if (!/can’t be reached right now/.test(error.message) || now() >= until) throw error; }
+    catch (error) { if (!(error?.unreachable || /can’t be reached right now/.test(error.message)) || now() >= until) throw error; }
     await sleep(1000);
   }
 }
 // Connects the coding clients, then GitHub, which agents need for project code. Setup signs in to GitHub itself
 // and shows its code, at a terminal or through the coding agent, so the agent never runs gh login commands.
 // A separate installation, such as one for local testing, never replaces the clients' everyday entry.
-export async function finishSetup(home, site, out, separate, {screen, connect = connectClients, execute = execFileSync, signIn = signInToGitHub, githubStorage = {}}) {
-  if (separate) { out(separateInstallationHint(home)); return 0; }
+export async function finishSetup(home, site, out, separate, {screen, clientHint = true, connect = connectClients, execute = execFileSync, signIn = signInToGitHub, githubStorage = {}}) {
+  if (separate) { if (clientHint) out(separateInstallationHint(home)); return 0; }
   const results = connect({ home });
   for (const result of results) {
     if (result.connected) screen.done(`${result.client} is connected${result.note ? `; ${result.note}` : ''}`);
@@ -283,6 +309,35 @@ export function signInToGitHub(screen, { spawnImpl = spawn, processImpl = proces
     // failure message; never wrap arbitrary stderr in trusted chat markers.
     child.on('close', status => finish(status === 0));
   });
+}
+// The service's MCP tools from a terminal, with the service's own credential, for a coding agent whose session started
+// before MyLittleSwarm was registered and so has not loaded the tools yet.
+export async function callServiceTool(values, positionals, out, err, { client = createRuntimeClient } = {}) {
+  const unreachable = 'MyLittleSwarm’s local service didn’t answer. Check it with service-status, or start it with npm run setup. If the tool changes something, check before repeating it.';
+  if (values.list ? positionals.length > 1 : positionals.length < 1 || positionals.length > 2) { err('Use tool --list [TOOL_NAME], or tool TOOL_NAME [\'JSON_ARGUMENTS\'].'); return 2; }
+  let args = {};
+  if (!values.list && positionals[1] !== undefined) {
+    try { args = JSON.parse(positionals[1]); } catch { args = null; }
+    if (!args || typeof args !== 'object' || Array.isArray(args)) { err('The tool arguments must be one JSON object, such as \'{"project_id":"…"}\'.'); return 2; }
+  }
+  const runtime = client({ home: values['state-dir'] });
+  try {
+    if (values.list) {
+      const tools = await runtime.listTools().catch(() => null);
+      if (!tools) { err(unreachable); return 1; }
+      if (positionals[0] === undefined) { out(JSON.stringify(tools.map(({ name, description }) => ({ name, description })), null, 2)); return 0; }
+      const tool = tools.find(item => item.name === positionals[0]);
+      if (!tool) { err(`There is no MyLittleSwarm tool named ${positionals[0]}. Run tool --list to see them.`); return 2; }
+      out(JSON.stringify(tool, null, 2)); return 0;
+    }
+    const reply = await runtime.callTool(positionals[0], args).catch(() => null);
+    if (!reply) { err(unreachable); return 1; }
+    const text = (reply.content ?? []).filter(item => item.type === 'text').map(item => item.text).join('\n');
+    let shown = text;
+    try { shown = JSON.stringify(JSON.parse(text), null, 2); } catch {}
+    (reply.isError ? err : out)(shown);
+    return reply.isError ? 1 : 0;
+  } finally { await runtime.close().catch(() => {}); }
 }
 function managementCall(command, values) {
   if (command === 'run-pause' || command === 'run-resume') {
