@@ -29,3 +29,4 @@
    The shadows paint the panel's background above and below it, so scrolled posts don't show through. */
 .k42-updates-panel > .k42-panel-switch { position:sticky; top:0; z-index:3; box-shadow:0 -16px 0 0 var(--canvas), 0 12px 0 0 var(--canvas), 0 0 0 6px var(--canvas); }
 .k42-panel-switch .k42-task-segment { display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px; padding:5px 12px; }
+.k42-updates-count { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--ink); color:var(--on-ink,#fff); font-size:11px; font-weight:650; font-variant-numeric:tabular-nums; line-height:1; }

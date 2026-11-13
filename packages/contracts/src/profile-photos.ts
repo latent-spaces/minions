@@ -1,6 +1,6 @@
 /** Public managed reference only; never a provider URL or private candidate. */
 export type PublicProfilePhoto = { id: string; url: string };
-export const PERSON_CHARACTERS = ['person-01', 'person-02', 'person-03', 'person-04'] as const;
+export const PERSON_CHARACTERS = ['person-01', 'person-02', 'person-03', 'person-04', 'person-robot', 'person-alien'] as const;
 export type PersonCharacter = typeof PERSON_CHARACTERS[number];
 export type ProfilePhotoCandidate = { id: string; previewPath: string; expiresAt: number; source: 'upload' | 'github' };
 export type MyProfile = { id: string; name: string; bio: string; linkedinProfileUrl: string | null;

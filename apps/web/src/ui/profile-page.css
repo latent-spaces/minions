@@ -8,5 +8,4 @@
 .k42-profile-links svg { flex: 0 0 auto; margin-top: 3px; }
 .k42-person-link { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; overflow-wrap: anywhere; }
 .k42-person-link > span:last-child { min-width: 0; }
-.k42-person-avatar { flex: 0 0 32px; display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%; background: var(--subtle); color: var(--text); font-weight: 600; }
 @media (max-width: 600px) { .k42-profile-summary { padding: 20px; } .k42-profile-identity { gap: 12px; } }

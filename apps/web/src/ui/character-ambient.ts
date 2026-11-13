@@ -1,107 +1,46 @@
-import { stableHash } from './avatar-tone.js';
+import {stableHash} from './avatar-tone.js';
 
-export const RARE_DURATION = 1920;
-export function ambientTiming(id: string) {
-  const hash = stableHash(`character-ambient:${id}`);
-  const gazeDuration = 10_000 + (hash >>> 8) % 5001;
-  return { rareInterval: (180_000 + hash % 240_001) / 2, rareDelay: (60_000 + (hash >>> 2) % 180_001) / 2,
-    gazeInterval: gazeDuration + 2000, gazeDelay: 2000 + (hash >>> 5) % 3001,
-    gazeDuration };
+export function ambientTiming(id:string) {
+  const hash=stableHash(`character-ambient:${id}`),gazeDuration=10_000+(hash>>>8)%5001;
+  // Keep the glance length; a longer start interval gives 15% fewer episodes.
+  return {gazeInterval:Math.round((gazeDuration+2000)/.85),gazeDelay:2000+(hash>>>5)%3001,gazeDuration};
 }
-
-/** One rare flourish on screen at a time, at least thirty seconds between starts. */
-export class RareEffectGate {
-  private next = 0;
-  claim(now: number) { if (now < this.next) return false; this.next = now + 30_000; return true; }
-}
-export const rareEffectGate = new RareEffectGate();
-
-/** Decorative behavior never changes an agent's actual work/connection state. */
+/** Gaze is occasional; wild reactions now come from pokes, never an autonomous timer. */
 export class CharacterAmbient {
-  private nextRare: number;
-  private nextGaze: number;
-  private rareBegan = -Infinity;
-  private gazeBegan = -Infinity;
-  private hadPointer = false;
-  constructor(now: number, private timing = ambientTiming('default')) {
-    this.nextRare = now + timing.rareDelay; this.nextGaze = now + timing.gazeDelay;
-  }
-  sample(now: number, available: boolean, pointer: boolean, claimRare: () => boolean, canStart = true) {
-    if (!available) {
-      this.rareBegan = this.gazeBegan = -Infinity;
-      this.hadPointer = false;
-      // A hidden or interrupted instance does not immediately replay on return.
-      this.nextRare = Math.max(this.nextRare, now + this.timing.rareDelay);
-      this.nextGaze = Math.max(this.nextGaze, now + this.timing.gazeDelay);
-      return { kind: 'none' as const };
-    }
-    if (canStart && now >= this.nextRare && now - this.rareBegan >= RARE_DURATION) {
-      const granted = claimRare();
-      this.nextRare = now + (granted ? this.timing.rareInterval : 7000);
-      if (granted) {
-        this.rareBegan = now; this.gazeBegan = -Infinity;
-      }
-    }
-    const rareElapsed = now - this.rareBegan;
-    if (rareElapsed < RARE_DURATION) return { kind: 'rare' as const,
-      frame: Math.min(11, Math.floor(rareElapsed / 160)),
-      opacity: Math.max(0, Math.min(1, rareElapsed / 160, (RARE_DURATION - rareElapsed) / 160)) };
-    if (!pointer) { this.hadPointer = false; this.gazeBegan = -Infinity; return { kind: 'none' as const }; }
-    if (!this.hadPointer) {
-      this.hadPointer = true;
-      // First cursor activity must not make every overdue avatar glance at once.
-      this.nextGaze = Math.max(this.nextGaze, now + this.timing.gazeDelay);
-    }
-    if (canStart && now >= this.nextGaze) {
-      this.gazeBegan = now;
-      this.nextGaze = now + Math.max(this.timing.gazeInterval, this.timing.gazeDuration + 2000);
-    }
-    const elapsed = now - this.gazeBegan;
-    if (elapsed < this.timing.gazeDuration) return { kind: 'gaze' as const,
-      amount: Math.max(0, Math.min(1, elapsed / 240, (this.timing.gazeDuration - elapsed) / 400)) };
-    return { kind: 'none' as const };
+  private nextGaze:number;
+  private began=-Infinity;
+  private hadPointer=false;
+  constructor(now:number,private timing=ambientTiming('default')){this.nextGaze=now+timing.gazeDelay;}
+  sample(now:number,available:boolean,pointer:boolean,canStart=true):{kind:'none'|'gaze';amount?:number} {
+    if(!available){this.began=-Infinity;this.hadPointer=false;this.nextGaze=Math.max(this.nextGaze,now+this.timing.gazeDelay);return {kind:'none'};}
+    if(!pointer){this.hadPointer=false;this.began=-Infinity;return {kind:'none'};}
+    if(!this.hadPointer){this.hadPointer=true;this.nextGaze=Math.max(this.nextGaze,now+this.timing.gazeDelay);}
+    if(canStart&&now>=this.nextGaze){this.began=now;this.nextGaze=now+Math.max(this.timing.gazeInterval,this.timing.gazeDuration+2000);}
+    const elapsed=now-this.began;
+    return elapsed<this.timing.gazeDuration?{kind:'gaze',amount:Math.max(0,Math.min(1,elapsed/240,(this.timing.gazeDuration-elapsed)/240))}:{kind:'none'};
   }
 }
 
-export function pupilOffset(dx: number, dy: number, amount: number) {
-  const distance = Math.hypot(dx, dy);
-  // A dead zone settles the gaze near the avatar; smooth saturation avoids jitter.
-  const travel = Math.min(8, Math.max(0, distance - 18) / 28) * amount;
-  return distance ? { x: dx / distance * travel, y: dy / distance * travel } : { x: 0, y: 0 };
+// Direction sector selection adapted from page-mascot, Copyright (c) 2026 Kamran Ahmed.
+// MIT license: ./licenses/page-mascot.txt, upstream 76a44ed9180063bf4852b9dd724b656f4a828ac7.
+const sectors=[5,8,7,6,3,0,1,2],sectorAngle=Math.PI/4;
+export function gazeCell(dx:number,dy:number,previous=-1):{cell:number;sector:number} {
+  if(Math.hypot(dx,dy)<70)return {cell:4,sector:-1};
+  const angle=Math.atan2(dy,dx),wrap=(a:number)=>Math.atan2(Math.sin(a),Math.cos(a));
+  const held=previous>=0&&previous<8&&Math.abs(wrap(angle-previous*sectorAngle))<sectorAngle/2+.12;
+  const sector=held?previous:(Math.round(angle/sectorAngle)+8)%8;
+  return {cell:sectors[sector],sector};
 }
 
-let pointer: { x: number; y: number } | null = null;
-const pointerListeners = new Set<() => void>();
-let pointerFrame = 0;
-const publishPointer = () => {
-  if (!pointerFrame) pointerFrame = requestAnimationFrame(() => {
-    pointerFrame = 0; pointerListeners.forEach(listener => listener());
-  });
-};
-const move = (event: MouseEvent) => {
-  if ('pointerType' in event && event.pointerType === 'touch') return;
-  pointer = { x: event.clientX, y: event.clientY }; publishPointer();
-};
-const leave = () => { pointer = null; publishPointer(); };
-export function subscribeCharacterPointer(listener: () => void) {
+let pointer:{x:number;y:number}|null=null;
+const pointerListeners=new Set<()=>void>();
+let pointerFrame=0;
+const publishPointer=()=>{if(!pointerFrame)pointerFrame=requestAnimationFrame(()=>{pointerFrame=0;pointerListeners.forEach(listener=>listener());});};
+const move=(event:MouseEvent)=>{if('pointerType' in event&&event.pointerType==='touch')return;pointer={x:event.clientX,y:event.clientY};publishPointer();};
+const leave=()=>{pointer=null;publishPointer();};
+export function subscribeCharacterPointer(listener:()=>void) {
   pointerListeners.add(listener);
-  if (pointerListeners.size === 1) {
-    window.addEventListener('pointermove', move, { passive: true });
-    window.addEventListener('mousemove', move, { passive: true });
-    window.addEventListener('pointerdown', move, { passive: true });
-    document.documentElement.addEventListener('pointerleave', leave);
-    window.addEventListener('blur', leave);
-  }
-  return () => {
-    pointerListeners.delete(listener);
-    if (!pointerListeners.size) {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('mousemove', move);
-      window.removeEventListener('pointerdown', move);
-      document.documentElement.removeEventListener('pointerleave', leave);
-      window.removeEventListener('blur', leave); pointer = null;
-      cancelAnimationFrame(pointerFrame); pointerFrame = 0;
-    }
-  };
+  if(pointerListeners.size===1){window.addEventListener('pointermove',move,{passive:true});window.addEventListener('mousemove',move,{passive:true});window.addEventListener('pointerdown',move,{passive:true});document.documentElement.addEventListener('pointerleave',leave);window.addEventListener('blur',leave);}
+  return()=>{pointerListeners.delete(listener);if(!pointerListeners.size){window.removeEventListener('pointermove',move);window.removeEventListener('mousemove',move);window.removeEventListener('pointerdown',move);document.documentElement.removeEventListener('pointerleave',leave);window.removeEventListener('blur',leave);pointer=null;cancelAnimationFrame(pointerFrame);pointerFrame=0;}};
 }
-export const characterPointer = () => pointer;
+export const characterPointer=()=>pointer;

@@ -1,86 +1,71 @@
-import { test } from 'node:test';
+import {test} from 'node:test';
 import assert from 'node:assert/strict';
-const expect = (value: unknown) => ({ toEqual: (other: unknown) => assert.deepEqual(value, other), toBe: (other: unknown) => assert.equal(value, other), toHaveLength: (n: number) => assert.equal((value as unknown[]).length, n) });
-import { CharacterMotion, characterTiming } from '../src/ui/character-motion.js';
-import { MessageFlights } from '../src/ui/communication-map/message-flights.js';
+import {CharacterMotion,characterTiming,staticCharacterPose} from '../src/ui/character-motion.js';
+import {CharacterPoke,choosePoke,POKE_WEIGHTS,pokeDuration,RarePokeGate} from '../src/ui/character-poke.js';
+import {MessageFlights} from '../src/ui/communication-map/message-flights.js';
 
-test('message acknowledgments suppress history and deduplicate multi-recipient and project messages', () => {
-  const flights = new MessageFlights();
-  const history = { id: 'old', agentId: 'a', to: ['b'], audience: 'direct', createdAt: 100 };
-  flights.sample([history], 100, 0, false, true);
-  expect(flights.takeStarts()).toEqual([]);
-  const direct = { ...history, id: 'new', to: ['b', 'c'], createdAt: 101 };
-  const project = { ...history, id: 'broadcast', audience: 'project', to: [], createdAt: 102 };
-  expect(flights.sample([history, direct, project], 102, 10, false, true)).toHaveLength(2);
-  expect(flights.takeStarts()).toEqual([{ from: 'a', id: 'new' }, { from: 'a', id: 'broadcast' }]);
-  flights.sample([history, direct, project], 103, 20, false, true);
-  expect(flights.takeStarts()).toEqual([]);
+test('message acknowledgments suppress history and deduplicate multi-recipient and project messages',()=>{
+  const flights=new MessageFlights(),history={id:'old',agentId:'a',to:['b'],audience:'direct',createdAt:100};
+  flights.sample([history],100,0,false,true);assert.deepEqual(flights.takeStarts(),[]);
+  const direct={...history,id:'new',to:['b','c'],createdAt:101},project={...history,id:'broadcast',audience:'project',to:[],createdAt:102};
+  assert.equal(flights.sample([history,direct,project],102,10,false,true).length,2);
+  assert.deepEqual(flights.takeStarts(),[{from:'a',id:'new'},{from:'a',id:'broadcast'}]);
+  flights.sample([history,direct,project],103,20,false,true);assert.deepEqual(flights.takeStarts(),[]);
+});
+test('working takes a pen, alternates writing poses, puts it away once and returns to neutral',()=>{
+  const m=new CharacterMotion('working',0);
+  assert.equal(m.sample(0).clip,'neutral');assert.equal(m.sample(0).interruptible,false);
+  assert.equal(m.sample(160).cell,0);assert.equal(m.sample(260).cell,1);
+  assert.equal(m.sample(560).clip,'work-loop');assert.equal(m.sample(560).cell,2);
+  assert.equal(m.sample(980).cell,3);
+  m.setState('pausing',1000);assert.equal(m.sample(1000).clip,'stop');assert.equal(m.sample(1000).cell,4);
+  m.setState('paused',1100);assert.equal(m.sample(1239).cell,4);assert.equal(m.sample(1240).cell,0);
+  assert.notEqual(m.sample(1400).clip,'stop');
+});
+test('attention and transition owners reject decoration; stale observations immediately settle',()=>{
+  const m=new CharacterMotion('needs_you',0);
+  assert.equal(m.sample(160).cell,5);assert.equal(m.sample(8000).interruptible,false);
+  m.message('ignored',8100);assert.equal(m.sample(8200).clip,'needs-you');
+  m.setState('blocked',8300);assert.equal(m.sample(8460).cell,6);
+  m.setState('offline',9000);assert.equal(m.sample(9500).clip,'neutral');assert.equal(m.sample(9500).interruptible,false);
+  assert.equal(staticCharacterPose('working').cell,2);assert.equal(staticCharacterPose('blocked').cell,6);
+});
+test('message acknowledgment is deduplicated, has a neutral entry and resumes current work',()=>{
+  const m=new CharacterMotion('working',0);m.sample(3000);m.message('m1',3100);
+  assert.equal(m.sample(3100).clip,'neutral');assert.equal(m.sample(3260).cell,7);
+  m.message('m1',3400);assert.equal(m.sample(3500).cell,8);assert.equal(m.sample(3740).clip,'work-loop');
+  m.message('m2',4000);m.settle(4100);assert.equal(m.sample(4100).clip,'work-loop');
+});
+test('blink and writing phases vary by identity while blink timing stays occasional',()=>{
+  const a=new CharacterMotion('idle',0,characterTiming('a')),b=new CharacterMotion('idle',0,characterTiming('b'));
+  assert.notDeepEqual(characterTiming('a'),characterTiming('b'));
+  assert.ok(Array.from({length:750},(_,i)=>i*80+160).some(t=>a.sample(t).cell!==b.sample(t).cell));
+  for(const id of ['a','b','person-01']){const timing=characterTiming(id);assert.ok(timing.interval>=16000&&timing.interval<=26667);}
+  const m=new CharacterMotion('idle',0);assert.equal(m.sample(160).clip,'blink');assert.equal(m.sample(300).clip,'neutral');
+});
+test('weighted poke selection covers its exact boundaries and rejects invalid randomness',()=>{
+  assert.equal(POKE_WEIGHTS.reduce((n,[,weight])=>n+weight,0),100);
+  for(const [n,result] of [[0,'poke'],[.549999,'poke'],[.55,'smile'],[.75,'wink'],[.90,'surprise'],[.97,'rare'],[.999999,'rare']] as const)assert.equal(choosePoke(n),result);
+  for(const invalid of [-.1,1,NaN,Infinity])assert.throws(()=>choosePoke(invalid),RangeError);
+});
+test('one poke owns its whole reward; rapid clicks never reroll, stack or queue',()=>{
+  const p=new CharacterPoke();assert.equal(p.start(100,'rare'),true);assert.equal(p.sample(100)?.cell,1);
+  assert.equal(p.start(101,'wink'),false);assert.equal(p.sample(220)?.cell,6);assert.equal(p.sample(400)?.cell,7);
+  assert.equal(p.sample(1000)?.cell,8);assert.equal(p.sample(1300),null);assert.equal(p.start(1300,'wink'),true);
+  p.cancel();assert.equal(p.sample(1400),null);
+  for(const [reaction] of POKE_WEIGHTS){const q=new CharacterPoke();q.start(0,reaction);assert.ok(q.sample(pokeDuration(reaction)-1));assert.equal(q.sample(pokeDuration(reaction)),null);}
+  const gate=new RarePokeGate();assert.equal(gate.claim(0),true);assert.equal(gate.claim(1199),false);assert.equal(gate.claim(1200),true);
 });
 
-test('working enters from neutral, focuses continuously, stops once and settles', () => {
-  const motion = new CharacterMotion('working', 0);
-  expect(motion.sample(0)).toEqual({ clip: 'neutral', frame: 0 });
-  expect(motion.sample(160)).toEqual({ clip: 'work-enter', frame: 0 });
-  expect(motion.sample(2080)).toEqual({ clip: 'work-loop', frame: 0 });
-  expect(motion.sample(4000)).toEqual({ clip: 'work-loop', frame: 0 });
-  motion.setState('pausing', 4100);
-  expect(motion.sample(4100)).toEqual({ clip: 'stop', frame: 0 });
-  motion.setState('paused', 4500);
-  expect(motion.sample(4500)).toEqual({ clip: 'stop', frame: 2 });
-  expect(motion.sample(6020).clip).toBe('blink');
-});
-
-test('attention gestures hold; stale observations immediately cancel activity', () => {
-  const motion = new CharacterMotion('needs_you', 0);
-  expect(motion.sample(160).clip).toBe('needs-you');
-  expect(motion.sample(8000)).toEqual({ clip: 'needs-you', frame: 11 });
-  motion.message('ignored', 8100);
-  expect(motion.sample(8200).clip).toBe('needs-you');
-  motion.setState('blocked', 8300);
-  expect(motion.sample(12000)).toEqual({ clip: 'blocked', frame: 11 });
-  motion.setState('offline', 13000);
-  expect(motion.sample(20000)).toEqual({ clip: 'neutral', frame: 0 });
-});
-
-test('real message is a deduplicated one-shot and resumes working', () => {
-  const motion = new CharacterMotion('working', 0);
-  motion.sample(3000); motion.message('m1', 3100);
-  expect(motion.sample(3260)).toEqual({ clip: 'message', frame: 0 });
-  motion.message('m1', 3400);
-  expect(motion.sample(3420)).toEqual({ clip: 'message', frame: 1 });
-  expect(motion.sample(5180).clip).toBe('work-loop');
-});
-
-
-// Timing varies by immutable agent ID even when two agents share the same artwork.
-test('loop timing varies per agent while one-shot entrances remain neutral and ordered', () => {
-  const a = new CharacterMotion('working', 0, characterTiming('agent-a'));
-  const b = new CharacterMotion('working', 0, characterTiming('agent-b'));
-  assert.deepEqual(a.sample(0), {clip:'neutral', frame:0});
-  assert.deepEqual(b.sample(0), {clip:'neutral', frame:0});
-  assert.equal(a.sample(160).clip, 'work-enter');
-  assert.equal(b.sample(160).clip, 'work-enter');
-  assert.notDeepEqual(characterTiming('agent-a'), characterTiming('agent-b'));
-  assert.ok(Array.from({length:750}, (_, i) => i * 80 + 2080).some(time => a.sample(time).frame !== b.sample(time).frame));
-  assert.deepEqual(characterTiming('agent-a'), characterTiming('agent-a'));
-  const idleA = new CharacterMotion('idle', 0, characterTiming('agent-a'));
-  const idleB = new CharacterMotion('idle', 0, characterTiming('agent-b'));
-  assert.ok(Array.from({length:750}, (_, i) => i * 80 + 160).some(time => idleA.sample(time).frame !== idleB.sample(time).frame));
-});
-
-
-test('ordinary and working loops hold eyes open between infrequent normal-speed gestures', () => {
-  for (const state of ['idle', 'working'] as const) {
-    const motion = new CharacterMotion(state, 0);
-    const start = state === 'working' ? 2080 : 160;
-    assert.equal(motion.sample(start + 640).frame, 4);
-    for (const elapsed of [2000, 4000, 8000, 12000, 20000]) {
-      assert.equal(motion.sample(start + elapsed).frame, 0);
-    }
-    assert.equal(motion.sample(start + 21333 + 640).frame, 4);
-  }
-  for (const id of ['a', 'b', 'c', 'person-01']) {
-    const {interval} = characterTiming(id);
-    assert.ok(interval >= 16000 && interval <= 26667);
-  }
+test('ordinary blinks wait for gaze ownership to finish, and pokes reset their cadence',()=>{
+  const m=new CharacterMotion('idle',0);
+  assert.equal(m.sample(160,false).clip,'neutral');
+  assert.equal(m.sample(10000,false).clip,'neutral');
+  assert.equal(m.sample(10000,true).clip,'blink');
+  assert.equal(m.sample(10139,false).clip,'blink');
+  assert.equal(m.sample(10140,true).clip,'neutral');
+  m.afterPoke(11000);
+  assert.equal(m.sample(12000,true).clip,'neutral');
+  assert.equal(m.sample(11000+21333,false).clip,'neutral');
+  assert.equal(m.sample(11000+21333,true).clip,'blink');
 });
