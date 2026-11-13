@@ -95,7 +95,7 @@ const files = (dir: string): string[] => readdirSync(dir).flatMap(name => {
 // File → references to the collection (presence() or a literal "presence" path segment), as reviewed at integration.
 const REFERENCES: Record<string, number> = {
   'v2/records.ts': 1, 'v2/runs.ts': 15, 'v2/agent-group.ts': 1,
-  'owner/agents.ts': 2, 'owner/computer-revocation.ts': 1,
+  'owner/agents.ts': 2,
   'onboarding/store.ts': 3, 'onboarding/registration.ts': 2,
   'projects/agent-focus.ts': 2, 'projects/agent-participation.ts': 2,
   'projects/member-cleanup.ts': 1, 'projects/worker-sessions.ts': 3,
@@ -147,6 +147,6 @@ test('every presence write keeps other field groups, and every reference to the 
   // Besides the helper, only the two run starts write the group, whole (mergeFields), in their one presence write.
   expect(groupStarts).toEqual(['v2/runs.ts', 'v2/runs.ts']);
   expect(groupWriters.sort()).toEqual(['onboarding/registration.ts', 'onboarding/store.ts', 'owner/agents.ts',
-    'owner/computer-revocation.ts', 'projects/agent-focus.ts', 'projects/agent-participation.ts', 'projects/member-cleanup.ts',
+    'projects/agent-focus.ts', 'projects/agent-participation.ts', 'projects/member-cleanup.ts',
     'store/account-cleanup.ts']);
 });
