@@ -79,10 +79,14 @@
 .k42-task-inline { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
 .k42-task-inline > select, .k42-task-inline > input { flex: 1; min-width: 0; }
 
-.k42-task-page { max-width: 820px; display: grid; align-content: start; gap: 20px; font-size: 16px; line-height: 1.55; outline: none; }
+/* Like an agent's page: the back link sits on the page, and the task, its subtasks and its activity each read on a white card. */
+.k42-task-page { display: grid; align-content: start; gap: 16px; min-width: 0; font-size: 16px; line-height: 1.55; outline: none; }
+.k42-task-card { display: grid; align-content: start; gap: 16px; }
+.k42-task-card, .k42-task-section { min-width: 0; box-sizing: border-box; padding: 20px 24px; border: var(--card-border); border-radius: var(--surface-radius); background: var(--canvas); }
+@media (max-width: 520px) { .k42-task-card, .k42-task-section { padding: 16px; } }
 .k42-task-back { justify-self: start; display: inline-flex; align-items: center; gap: 6px; padding: 4px 0; border: 0; background: none; font: inherit; font-size: 14px; color: var(--text-muted); cursor: pointer; }
 .k42-task-back:hover { color: var(--ink); }
-.k42-task-page > h2 { margin: -8px 0 0; font-size: 26px; overflow-wrap: anywhere; }
+.k42-task-head > h2 { margin: 0; font-size: 26px; overflow-wrap: anywhere; }
 /* One row of chips under the title: status, owner, agents, priority and links. */
 .k42-task-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: -8px; }
 .k42-task-chips .k42-task-picker-trigger { min-height: 32px; padding: 2px; margin: 0; }
@@ -96,6 +100,9 @@
 .k42-task-add { display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 1px solid transparent; border-radius: 50%; background: none; color: var(--text-muted); cursor: pointer; }
 .k42-task-add:hover, .k42-task-add[aria-expanded="true"] { background: var(--canvas-soft); border-color: var(--hairline-shell); color: var(--ink); }
 .k42-task-section-head .k42-task-add { margin-left: auto; }
+/* An open link form turns the + into a close mark; clicking it again closes the form. */
+.k42-task-add svg { transition: transform .15s; }
+.k42-task-add[aria-expanded="true"] svg { transform: rotate(45deg); }
 .k42-task-feed { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 10px; }
 .k42-task-feed-event { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 14px; color: var(--text-muted); }
 .k42-task-feed-comment { padding: 10px 12px; border-radius: var(--field-radius); background: var(--canvas-soft); }
@@ -127,7 +134,6 @@
 .k42-task-toggle-space { display: inline-block; width: 22px; }
 .k42-tasks-table tr.is-subtask th { font-weight: 400; }
 .k42-task-notice { display: flex; align-items: center; gap: 12px; justify-content: space-between; margin: 0; padding: 10px 12px; border-radius: var(--field-radius); background: var(--pastel-butter); }
-.k42-task-section { border-top: 1px solid var(--hairline-shell); padding-top: 16px; }
 .k42-task-section h3 { margin: 0; font-size: 17px; }
 .k42-task-section-head { display: flex; align-items: center; justify-content: space-between; }
 .k42-task-description { white-space: pre-wrap; overflow-wrap: anywhere; margin: 8px 0 0; }

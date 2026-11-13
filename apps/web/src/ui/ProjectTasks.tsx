@@ -537,6 +537,7 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
   const noOwner = <span className="muted">No owner</span>;
   return <article ref={panel} tabIndex={-1} className="k42-task-page" aria-labelledby={titleId}>
       <button type="button" className="k42-task-back" onClick={() => leave(parent?.id ?? null)}><ArrowLeft size={16} aria-hidden="true" />{parent ? parent.title : 'Back to Tasks'}</button>
+      <div className="k42-task-card k42-task-head">
       <h2 id={titleId}>{task?.title ?? 'Task'}</h2>
       {error && <div role="alert"><p className="error">Could not load this task: {error}</p><Button onClick={() => void reload()}>Try again</Button></div>}
       {!detail && !error && <p className="muted" role="status">Loading…</p>}
@@ -572,7 +573,7 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
                   : { view: 'project', projectId, section: 'conversations', thread: null, agent: null, q: null, message: r.sourceId }}>{v.text}</NavLink>}
               {!readOnly && base && <button type="button" className="k42-task-chip-remove" aria-label={`Remove ${v.label.toLowerCase()}: ${v.text}`} disabled={waiting} onClick={() => void act({ operation: 'remove_reference', ...base, referenceId: r.id })}><X size={14} aria-hidden="true" /></button>}
             </span>; })}
-          {!readOnly && <button type="button" className="k42-task-add" aria-label="Add link" title="Add link" aria-expanded={linkOpen} onClick={() => setLinkOpen(true)}><Plus size={18} aria-hidden="true" /></button>}
+          {!readOnly && <button type="button" className="k42-task-add" aria-label="Add link" title="Add link" aria-expanded={linkOpen} onClick={() => { if (linkOpen) { setLink(''); setLinkLabel(''); } setLinkOpen(!linkOpen); }}><Plus size={18} aria-hidden="true" /></button>}
         </div>
         {!readOnly && (task.status === 'canceled' ? <p className="muted k42-task-hint">Reopen to Backlog to work on it. Canceling doesn’t stop an agent.</p> : !task.assignedAgentId && <p className="muted k42-task-hint">Assign an agent before starting or completing this task.</p>)}
         {task.assignedAgentId && directory.gone(task.assignedAgentId) && <p className="muted k42-task-hint">This agent left the project. The assignment stays until released.</p>}
@@ -582,7 +583,9 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
           <button type="submit" hidden /></form>}
 
         {task.description ? <p className="k42-task-description">{task.description}</p> : <p className="muted">No description.</p>}
-
+      </>}
+      </div>
+      {task && <>
         <Subtasks api={api} parent={task} subtasks={subtasks} directory={directory} readOnly={readOnly || !!task.proposed} onOpen={leave} onCreated={() => void reload()} />
 
         <section className="k42-task-section" aria-label="Activity">
@@ -639,7 +642,7 @@ function Subtasks({ api, parent, subtasks, directory, readOnly, onOpen, onCreate
   if (readOnly && !subtasks.length) return null;
   return <section className="k42-task-section" aria-labelledby={`${inputId}-heading`}>
     <div className="k42-task-section-head"><h3 id={`${inputId}-heading`}>Subtasks</h3>{progress && <SubtaskRing {...progress} />}
-      {!readOnly && <button type="button" className="k42-task-add" aria-label="Add subtask" title="Add subtask" aria-expanded={adding} onClick={() => setAdding(true)}><Plus size={18} aria-hidden="true" /></button>}</div>
+      {!readOnly && <button type="button" className="k42-task-add" aria-label="Add subtask" title="Add subtask" aria-expanded={adding} onClick={() => adding ? close() : setAdding(true)}><Plus size={18} aria-hidden="true" /></button>}</div>
     {subtasks.length ? <ul className="k42-task-subtasks">{subtasks.map(row => <li key={row.id}>
       <button type="button" className="k42-task-open" onClick={() => onOpen(row.id)}>{row.title}</button>
       {row.proposed && <Proposed />}
