@@ -2,7 +2,7 @@ import { constants, openSync, closeSync, fstatSync, fsyncSync, readSync, writeSy
 import { join, resolve } from 'node:path';
 import { validateTarget, validateUuid, validateGeneration, validateExecution, sameTarget } from './service/contracts.mjs';
 
-export const RUN_JOURNAL_LIMITS = Object.freeze({ bytes: 4 * 1024 * 1024, text: 4000, page: 200 });
+const RUN_JOURNAL_LIMITS = Object.freeze({ bytes: 4 * 1024 * 1024, text: 4000, page: 200 });
 const FILE = 'run-evidence.jsonl', RESERVE = 2048;
 const identifier = value => typeof value === 'string' && /^[A-Za-z0-9_:.-]{1,150}$/.test(value);
 const own = stat => (process.platform === 'win32' || !(stat.mode & 0o077)) && (typeof process.getuid !== 'function' || stat.uid === process.getuid());

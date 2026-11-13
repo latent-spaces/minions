@@ -23,7 +23,7 @@ export function createWorkerGuidance({ core, guideRevision, sections }) {
   const body = payload({ guide_revision: guideRevision, core_sha256: skillTextHash(core), sections });
   return validateWorkerGuidance({ ...body, sha256: skillTextHash(JSON.stringify(body)) }, core);
 }
-export function validateWorkerGuidance(value, core) {
+function validateWorkerGuidance(value, core) {
   const snapshot = snapshotSchema.parse(value);
   if (snapshot.core_sha256 !== skillTextHash(core) || snapshot.sha256 !== skillTextHash(JSON.stringify(payload(snapshot))))
     throw new Error('Worker core and workflow snapshot do not match.');

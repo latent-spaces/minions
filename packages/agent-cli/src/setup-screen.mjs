@@ -115,7 +115,7 @@ export function createSetupScreen({ stream = process.stdout, input = process.std
 
 // The same setup for a coding agent that runs it in the background and passes it on: setup writes each message for
 // the person in Markdown, and a message ends wherever the person has something to do. Nothing opens by itself.
-export const MESSAGE_START = '──── Show the person ────', MESSAGE_END = '──── End of message ────';
+const MESSAGE_START = '──── Show the person ────', MESSAGE_END = '──── End of message ────';
 export function createChatScreen(out) {
   let message = '';
   const add = text => { message += text + '\n'; };

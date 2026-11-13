@@ -8,7 +8,7 @@ export const guideFile = section => {
   if (!GUIDE_SECTIONS.includes(section)) throw new Error(`Choose a guide section: ${GUIDE_SECTIONS.join(', ')}.`);
   return `references/${section}.md`;
 };
-export const normalizeSkillText = text => text.replaceAll('\r\n', '\n').trimEnd() + '\n';
+const normalizeSkillText = text => text.replaceAll('\r\n', '\n').trimEnd() + '\n';
 export const skillTextHash = text => createHash('sha256').update(normalizeSkillText(text)).digest('hex');
 export const referenceHash = files => skillTextHash(JSON.stringify(GUIDE_SECTIONS.map(section => [guideFile(section), normalizeSkillText(files[guideFile(section)])])));
 export const readBundledGuide = section => readFileSync(new URL(`../skills/mlswarm/${guideFile(section)}`, import.meta.url), 'utf8');
