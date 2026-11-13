@@ -86,7 +86,7 @@ Receipts describe the historical successful mutation. They are not proof that th
 | Edit comment | Author only at domain boundary | Author only at domain boundary |
 | Change task setting | No task tool | Owner/admin with setting revision and stable request ID |
 
-The eight background task tools are `list_tasks`, `get_task`, `create_task`, `update_task`, `claim_task`, `release_task`, `comment_task`, `link_task`. There is no `assign_task`. The internal `assign` mutation exists for authorized people; it must not be mistaken for an agent capability. Internal comment editing/reference removal are also richer than the eight-tool agent facade: exact schemas are authoritative.
+The eight background task tools are `list_tasks`, `get_task`, `create_task`, `update_task`, `claim_task`, `release_task`, `comment_task`, `link_task`. `claim_task` also returns `teammatesOpen`, the other agents' open top-level tasks, so two agents that took the same piece can see it: the task created first keeps the piece. There is no `assign_task`. The internal `assign` mutation exists for authorized people; it must not be mistaken for an agent capability. Internal comment editing/reference removal are also richer than the eight-tool agent facade: exact schemas are authoritative.
 
 Background calls use `POST /p/{projectId}/v2/mcp`, an agent bearer credential and `X-Pilot-Run`. A tool call rechecks the current run, revocation and membership. An in-chat caller instead uses an already approved, unexpired `participation_ref`; discovery and invocation are explicitly project-scoped. The coordinating owner chat does not need to become a project agent to manage the experiment.
 

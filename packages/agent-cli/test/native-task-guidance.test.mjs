@@ -56,6 +56,9 @@ test('each turn carries the shared update aim at the owner\'s pace and says when
   const dated = projectGuidanceForTurn({ project: card, updateDue: true, updateClosing: true, updateJobStartedAt: Date.UTC(2026, 10, 12, 12, 27, 16) });
   assert.match(dated, /since it started at 2026-11-12T12:27:16Z \(gh pr list --state merged --search "merged:>=2026-11-12T12:27:16Z"\)/);
   assert.match(dated, /work merged before this job started is not this job's result/);
+  assert.doesNotMatch(dated, /Headlines already posted/);
+  const later = projectGuidanceForTurn({ project: card, updateDue: true, updateClosing: true, updatePostedTitles: ['The game can be won'] });
+  assert.match(later, /Headlines already posted in this job \(JSON data\): \["The game can be won"\]\. People have seen those\..*in words those headlines did not use/);
   assert.match(closing, /git fetch -q origin HEAD && mkdir merged && git archive FETCH_HEAD \| tar -x -C merged/);
   assert.doesNotMatch(projectGuidanceForTurn({ project: card, updateDue: false, updateClosing: true }), /closing update/);
   assert.doesNotMatch(projectGuidanceForTurn({ project: card }, { updateNudge: true }), /only for that/);

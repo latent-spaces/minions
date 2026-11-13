@@ -65,19 +65,22 @@ export async function latestUpdateScreenshotId(projectId: string): Promise<strin
 // The first update is due one interval after the job starts, not at its first second, when there is
 // nothing to show. closing: one more is due in the job's last minutes, so what the team finished
 // reaches the feed before its time ends (owner, 12 November 2026).
+// postedTitles: the headlines already posted in this job, oldest first, so the next update can say something new.
 const CLOSING_MS = 120_000;
 export async function readProjectUpdateContext(projectId: string, active: boolean, now: number, agentId: string, job: { startsAt?: number; endsAt?: number } = {}) {
   const [settings, latest] = await Promise.all([
     inProject(projectId, () => effectiveProjectUpdateSettings()),
-    progressUpdates(projectId).orderBy('publishedAt', 'desc').select('publishedAt').limit(1).get(),
+    progressUpdates(projectId).orderBy('publishedAt', 'desc').select('publishedAt', 'title').limit(5).get(),
   ]);
   const lastPublishedAt = (latest.docs[0]?.get('publishedAt') as number | undefined) ?? null;
   const startsAt = job.startsAt ?? 0;
+  const postedTitles = job.startsAt === undefined ? [] : latest.docs.filter(doc => (doc.get('publishedAt') as number) >= startsAt)
+    .map(doc => doc.get('title') as unknown).filter((title): title is string => typeof title === 'string').reverse();
   const closingFrom = job.endsAt === undefined ? null : job.endsAt - Math.min(CLOSING_MS, (job.endsAt - startsAt) / 2);
   const closing = active && closingFrom !== null && now >= closingFrom && (lastPublishedAt ?? 0) < closingFrom;
   const due = active && (now - Math.max(lastPublishedAt ?? 0, startsAt) >= settings.everyMinutes * 60_000 || closing);
   return { ...settings, maxSlides: settings.slides ? L.slides : 1, writingGuidance: writingGuidance(settings), guide: 'get_mlswarm_guide updates-and-help',
-    lastPublishedAt, jobStartedAt: job.startsAt ?? null, due, closing, yours: due && await inProject(projectId, () => takeUpdateTurn(agentId, lastPublishedAt, settings.everyMinutes * 60_000, now)) };
+    lastPublishedAt, jobStartedAt: job.startsAt ?? null, postedTitles, due, closing, yours: due && await inProject(projectId, () => takeUpdateTurn(agentId, lastPublishedAt, settings.everyMinutes * 60_000, now)) };
 }
 
 // The first agent to read a due update is asked for it. Another agent is asked only when the
