@@ -81,11 +81,18 @@ export function subscribeRealtime(user: SessionUser, projectId: string | undefin
   return () => { own.subscribers.delete(receive); if (!own.subscribers.size) { own.close(); connections.delete(key); } };
 }
 
-export function useRealtimeTick(user: SessionUser | null, projectId: string | undefined, topic: RealtimeTopic, active: boolean) {
+// `minMs` spaces the ticks of a busy topic: the first change ticks at once, later ones no sooner than minMs after the
+// last tick, and a change that arrives in between still ticks when that time is up.
+export function useRealtimeTick(user: SessionUser | null, projectId: string | undefined, topic: RealtimeTopic, active: boolean, minMs = 0) {
   const [tick, setTick] = useState(0);
   useEffect(() => {
     if (!user || !active) return;
-    return subscribeRealtime(user, projectId, topics => { if (topics.includes(topic)) setTick(value => value + 1); });
-  }, [user, projectId, topic, active]);
+    let last = 0, timer: ReturnType<typeof setTimeout> | undefined;
+    const stop = subscribeRealtime(user, projectId, topics => {
+      if (!topics.includes(topic) || timer) return;
+      timer = setTimeout(() => { timer = undefined; last = Date.now(); setTick(value => value + 1); }, Math.max(0, minMs - (Date.now() - last)));
+    });
+    return () => { clearTimeout(timer); stop(); };
+  }, [user, projectId, topic, active, minMs]);
   return tick;
 }

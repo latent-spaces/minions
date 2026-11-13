@@ -66,6 +66,7 @@ import { statusTone, toneClass } from './ui/tag-tone';
 
 const REFRESH_MS = 30_000;
 const STALE_MS = 90_000;
+const AGENT_ROWS_LIVE_MS = 15_000;
 
 function workspaceEntry(workspace: Workspace): ProjectEntry {
   return { id: workspace.id, name: workspace.definition.title, summary: workspace.definition.goal,
@@ -432,8 +433,10 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   const communityAgents = currentSection === 'agents';
   const allAgents = communityAgents && !agent;
   const members = usePages<{ id: string; owner?: boolean; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null }>(user, membersPath, tick, visible && !!workspace);
-  const agentStatusTick = useRealtimeTick(user, projectId, 'agents', visible && !!project);
-  const agentNeedsTick = useRealtimeTick(user, projectId, 'needs-you', visible && !!project);
+  // Full agent rows are the page's costliest read and change with every status flip of a busy project, so live
+  // changes refresh them at most every 15 s. The map follows statuses through its own lighter read.
+  const agentStatusTick = useRealtimeTick(user, projectId, 'agents', visible && !!project, AGENT_ROWS_LIVE_MS);
+  const agentNeedsTick = useRealtimeTick(user, projectId, 'needs-you', visible && !!project, AGENT_ROWS_LIVE_MS);
   const teamsTick = useRealtimeTick(user, projectId, 'teams', visible && currentSection === 'teams' && !!project);
   const agentTick = agentStatusTick + agentNeedsTick;
   const agentRows = usePages<AgentRow>(user, agentRowsPath, tick + agentTick, visible && !!project);
