@@ -32,7 +32,10 @@ when your turn ends. Start the preview server so it keeps running, for example
 `nohup npm start >/dev/null 2>&1 &`, on a port you checked is free, and check that the
 address answers with this project's page before you set it. That server is the only
 command you leave running. Your turn prompt says what the Preview tab shows: if your
-server no longer answers, start it again or clear the link.
+server no longer answers, start it again or clear the link. The server keeps running
+while you wait for more time and ends when you are stopped or the project is closed.
+On Windows every command a turn started ends with the turn, so don't start a preview
+server there: say in your update how a person runs it.
 
 ## Tasks
 

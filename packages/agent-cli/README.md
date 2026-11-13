@@ -854,4 +854,7 @@ only works for people on the agent's computer. The record is `settings/preview`.
 Each worker turn says what the tab shows (`previewGuidance`): when it is empty and the
 work runs in a browser, one agent starts the server so it keeps running after its turn
 and sets the link; when it is set, the agent that started the server restarts it or
-clears the link if it no longer answers. Nothing stops that server when the job ends.
+clears the link if it no longer answers. The server carries its job's mark like any
+other process the agent starts: it keeps running while the agent waits for more time, and
+ends when the agent is stopped or the project is closed. On Windows a turn's end stops
+every process the turn started, so the turn tells the agent not to start a server there.

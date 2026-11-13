@@ -40,7 +40,7 @@ test('each turn carries the shared update aim at the owner\'s pace and says when
   assert.match(due, /You are the one agent asked to post the next one/);
   assert.match(due, /before you return WORK_NEXT: waiting/);
   assert.match(due, /Report only this job's work: pull requests and tasks from before it are not news.*Say only what you checked yourself/);
-  assert.match(due, /1\. Get one image.*chromium\.launch\(\{ args: \['--single-process'\] \}\).*End the script with process\.exit\(0\) right after the screenshot.*NODE_PATH=.*node shot\.cjs.*2\. upload_project_image.*clientRequestId.*3\. publish_project_update.*title \(the headline, at most 60 characters\), body \(one sentence, at most 140 characters; count them before you send, a longer one is refused\)/);
+  assert.match(due, /1\. Get one image.*run node \"[^\"]*shot\.cjs\" <address> update\.png.*ends within a minute; if it fails, run it once more.*2\. upload_project_image.*clientRequestId.*3\. publish_project_update.*title \(the headline, at most 60 characters\), body \(one sentence, at most 140 characters; count them before you send, a longer one is refused\)/);
   assert.doesNotMatch(due, /only for that/);
   // Where the project allows slides, a short set to swipe is the normal shape (owner, 12 November 2026).
   const slides = projectGuidanceForTurn({ project: card, updateDue: true, updateSlides: true });
@@ -73,4 +73,9 @@ test('each turn says what the Preview tab shows and asks one agent to fill an em
   assert.match(shown, /Preview tab shows http:\/\/localhost:4173\/\. If you started that server and it no longer answers/);
   assert.doesNotMatch(shown, /Preview tab is empty/);
   assert.equal(previewGuidance(''), previewGuidance(null));
+  assert.match(previewGuidance(null, 'darwin'), /keeps running until you are stopped or the project is closed/);
+  for (const text of [previewGuidance(null, 'win32'), previewGuidance('http://localhost:4173/', 'win32')]) {
+    assert.match(text, /a server you start ends with your turn, so do not start one/);
+    assert.doesNotMatch(text, /nohup|start it again/);
+  }
 });
