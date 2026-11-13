@@ -16,7 +16,12 @@ export function workspaceHome(env = process.env, userHome = homedir()) {
 }
 export const layout = root => ({ root, main: join(root, 'main'), projects: join(root, 'projects') });
 
-const slug = name => String(name ?? '').normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '') || 'project';
+// Windows refuses to create a folder with a device name such as con or aux, so those get a suffix.
+const windowsDeviceName = /^(?:con|prn|aux|nul|com[0-9]|lpt[0-9])$/;
+const slug = name => {
+  const readable = String(name ?? '').normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40).replace(/-+$/, '') || 'project';
+  return windowsDeviceName.test(readable) ? `${readable}-project` : readable;
+};
 
 // A readable folder for the project. A project already placed on this computer keeps its folder,
 // also after a rename; a name another project already uses here gets part of the project ID added.
