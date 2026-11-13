@@ -188,7 +188,7 @@ async function main() {
       if (result !== 'interrupted') await finish(site, result === 'connected', files, connectorEnv, values);
       return;
     }
-    // A first run moves to the next free port and keeps it (saved once the engine starts); a chosen or saved port is never changed.
+    // A first run moves to the next free port and keeps it (saved before the engine starts); a chosen or saved port is never changed.
     let free = null;
     for (const candidate of candidates.slice(1)) if (await portFree(candidate)) { free = candidate; break; }
     if (free === null) throw new Error(occupiedMessage(candidates));
@@ -232,9 +232,10 @@ async function main() {
   }
 
   next('Starting the engine');
-  const url = await startEngine(engineEnv, files);
-  // The next setup or stop finds this engine at the same address.
+  // Saved before the engine starts, so the next setup or stop finds it at the same address even when this run gives up
+  // waiting for it.
   writeFileSync(files.settingsFile, settingsText(port), { mode: 0o600 });
+  const url = await startEngine(engineEnv, files);
   console.info(`The engine is listening on ${url} in the background; its activity log is ${files.engineLog}.`);
   openApp(url);
 

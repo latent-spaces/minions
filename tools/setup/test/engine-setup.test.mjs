@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -91,3 +91,10 @@ test('a first run moves off a busy 8787 to the next free port and says which', w
     beforeInstall(output);
   } finally { if (held) await new Promise(accept => held.close(accept)); }
 }));
+
+test('setup saves the chosen port before waiting for the engine, so a slow start is still found by the next setup and stop', () => {
+  // Running setup to that step needs the full build, so this pins the order in the source.
+  const source = readFileSync(script, 'utf8');
+  const saved = source.indexOf('writeFileSync(files.settingsFile, settingsText(port)'), started = source.indexOf('await startEngine(engineEnv, files)');
+  assert.ok(saved > 0 && started > 0 && saved < started);
+});
