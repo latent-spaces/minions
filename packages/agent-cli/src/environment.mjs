@@ -6,7 +6,6 @@ import { VERSION } from './version.mjs';
 
 const MAX_FILES = 64, MAX_BYTES = 128 * 1024, MAX_DIRS = 200, MAX_DEPTH = 7;
 const OMIT = new Set(['.git', 'node_modules', '.local', '.next', 'dist', 'build', 'vendor', '.venv', 'coverage']);
-export const environmentClient = name => /claude/i.test(name) ? 'claude' : /codex/i.test(name) ? 'codex' : 'unknown';
 
 // Inspect only known instruction names. No shell, native client or model is invoked.
 // Never follow links: even stat/read of a network link can contact another machine.
