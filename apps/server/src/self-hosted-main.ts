@@ -80,7 +80,12 @@ async function stopRunningEngine(origin: string, signingSecret: string, lock: st
   try {
     response = await fetch(`${origin}/api/auth/engine/stop`, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(5_000),
       headers: { authorization: `Bearer ${engineStopKey(signingSecret)}` } });
-  } catch { console.info(`No engine is running at ${origin}.`); return; }
+  } catch {
+    console.info(`No engine is running at ${origin}.`);
+    // A lock no engine holds (for example after a restart) would refuse the next start; say it can go.
+    if (existsSync(lock)) console.info(`If no engine is running on this computer, its lock is left over from an earlier run and is safe to delete: ${lock}`);
+    return;
+  }
   if (response.status !== 202) throw new Error(`The program at ${origin} is not this engine or refused the stop request (HTTP ${response.status}). Nothing was stopped.`);
   for (const deadline = Date.now() + 20_000; Date.now() < deadline;) {
     if (!existsSync(lock)) { console.info(`The engine at ${origin} stopped.`); return; }

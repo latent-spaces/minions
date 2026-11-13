@@ -1,7 +1,9 @@
 // SQLite change listeners are process-local. Refuse a second API/worker, including an init racing startup.
-// A crash or a computer restart leaves this lock behind. When the process it names no longer exists, no engine can be
-// using the store, so the next start replaces it (owner, 13 November 2026); a living or unreadable owner still refuses.
+// A crash or a computer restart leaves this lock behind. When the process it names no longer exists, or the computer
+// has restarted since the lock was written, no engine can be using the store, so the next start replaces it (owner,
+// 13 November 2026). Otherwise it refuses and names the lock file; nothing here ever signals or stops a process.
 import { lstatSync, mkdirSync, realpathSync, unlinkSync } from 'node:fs';
+import { uptime } from 'node:os';
 import { basename, dirname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { createOwnerFile, readOwnerFile, assertPrivateDataFile } from './self-hosted-files.js';
@@ -27,27 +29,44 @@ export function processGone(pid: number, probe: (pid: number, signal: 0) => void
   catch (error) { return (error as NodeJS.ErrnoException).code === 'ESRCH'; }
 }
 
+/** When this computer last started, in wall-clock milliseconds. */
+export const bootTime = (): number => Date.now() - uptime() * 1_000;
+
+/**
+ * A restart since the lock was written. After a restart the lock's PID often belongs to an unrelated process, so the
+ * PID check alone would refuse forever. The margin keeps a wall-clock adjustment from passing for a restart; a restart
+ * within it is still refused, with the lock file named.
+ */
+const RESTART_MARGIN_MS = 5 * 60_000;
+export const restartedSince = (createdAt: number, boot: number): boolean => boot > createdAt + RESTART_MARGIN_MS;
+
 /** The lock's recorded owner, or null when the file cannot be read as one (left for the operator). */
-function lockOwner(lock: string): { pid: number } | null {
+function lockOwner(lock: string): { pid: number; createdAt: number | null } | null {
   try {
     assertPrivateDataFile(lock);
-    const value = JSON.parse(readOwnerFile(lock)) as { pid?: unknown };
-    return typeof value.pid === 'number' ? { pid: value.pid } : null;
+    const value = JSON.parse(readOwnerFile(lock)) as { pid?: unknown; createdAt?: unknown };
+    return typeof value.pid === 'number' ? { pid: value.pid, createdAt: typeof value.createdAt === 'number' ? value.createdAt : null } : null;
   } catch { return null; }
 }
 
-export function lockSelfHostedStore(file: string, gone: (pid: number) => boolean = processGone) {
+/** The refusal names the lock file, so a lock no engine holds (one npm run stop cannot find) can be removed by hand. */
+export function lockedMessage(lock: string): string {
+  return `The standalone database is locked by a running engine. Stop it first (npm run stop). If npm run stop finds no engine, `
+    + `the lock is left over from an earlier run and is safe to delete: ${lock}`;
+}
+
+export function lockSelfHostedStore(file: string, gone: (pid: number) => boolean = processGone, boot: () => number = bootTime) {
   mkdirSync(dirname(file), { recursive: true, mode: 0o700 });
   const canonical = join(realpathSync(dirname(file)), basename(file));
   const lock = `${canonical}.lock`, nonce = randomUUID();
-  const create = () => createOwnerFile(lock, JSON.stringify({ pid: process.pid, nonce }));
+  const create = () => createOwnerFile(lock, JSON.stringify({ pid: process.pid, nonce, createdAt: Date.now() }));
   try { create(); }
   catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
     const owner = lockOwner(lock);
-    if (!owner || owner.pid === process.pid || !gone(owner.pid)) {
-      throw new Error('The standalone database is locked by a running engine. Stop it first (npm run stop).');
-    }
+    const stale = owner !== null && owner.pid !== process.pid
+      && (gone(owner.pid) || (owner.createdAt !== null && restartedSince(owner.createdAt, boot())));
+    if (!stale) throw new Error(lockedMessage(lock));
     // Recovery is not guarded against two starters replacing the same stale lock at once; setup starts one engine.
     unlinkWhenFree(lock); create();
   }

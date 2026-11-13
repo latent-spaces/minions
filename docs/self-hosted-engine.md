@@ -134,16 +134,17 @@ read that file can stop the engine and no web page can. Windows has no graceful
 signal for a detached process, so every platform uses this same request. Shutdown
 drains held HTTP requests and the delivery worker before closing SQLite, then
 removes the `.lock` file; `npm run stop` waits up to 20 seconds for the engine to
-stop answering. A lock left behind by a crash or a computer restart names a process
-that no longer exists, so the next start replaces it; a lock held by a running
-engine is refused. Stopping the engine does not
+stop answering. The next start replaces a lock left behind by a crash or a computer
+restart: one whose process no longer exists, or one written before the computer last
+started (its process ID may now belong to another program). Any other lock is refused.
+Stopping the engine does not
 stop the connector's shared service; use the connector's `service-stop` (below)
 for that.
 
-A second engine on the same database is refused by its `.lock` file. After a
-crash, confirm that no engine is running before explicitly removing that lock;
-startup never guesses that a lock is stale, and the command names the lock file
-when the engine refuses to start because of it. The engine runs its delivery
+A second engine on the same database is refused by its `.lock` file, and the
+refusal names that file. If `npm run stop` then finds no engine, it names the lock
+too: the lock is left over from an earlier run and is safe to delete. Nothing
+stops or signals another process to recover a lock. The engine runs its delivery
 worker in the same process. Live views follow the engine's own writes at once; a write that
 another program commits to the database file reaches them within about a second,
 so make changes through the engine where you can.
