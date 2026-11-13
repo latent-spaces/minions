@@ -150,6 +150,18 @@ They are links in the menu, below New task and above My agents; the header has n
 My agents shows only the rows that fit the menu's remaining height (agents that need you
 first); the rest are behind "+N more", a popover list, so the menu does not scroll for them.
 When not even one row fits, a strip of small avatars (named on hover) takes its place.
+
+Requests for help live in Communication (owner, 12 November 2026): `Conversations.tsx`
+pins `WaitingRequests` (`NeedsYou.tsx`) above the conversations, "Waiting for an answer · N",
+and the menu link carries the count of open requests assigned to the viewer
+(`k42-nav-count`; accessible name "Communication, N waiting for you"). Each `RequestItem`
+is a short message: "Agent → You" with age and visibility, the question as the headline,
+one paragraph (context, plus `attempted` on requests stored before that date), lettered
+choices with "Something else…" typed inline, then Send answer. A card waiting on the viewer
+is tinted butter; an answered card keeps its receipt until the page is left. There is no
+project Needs you section; the global Needs you page (`view=needs-you`) lists requests
+across projects, and the bell opens the request's project Communication (moderation
+reports open the global page).
 The New task dialog's Assign to is optional: a row of agent avatars, where hovering or
 focusing one names the agent and its person, and clicking the chosen one unassigns it.
 Project updates (`ProjectUpdatesFeed.tsx`) are not a tab: they fill a full-height right

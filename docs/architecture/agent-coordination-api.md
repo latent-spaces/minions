@@ -134,7 +134,7 @@ Other tools:
 | --- | --- |
 | `set_agent_status` | Sets the agent's one-sentence focus, which members and agents can read. |
 | `list_tasks`, `get_task`, `create_task`, `update_task`, `claim_task`, `release_task`, `comment_task`, `link_task` | Native MyLittleSwarm tasks (see [Native tasks](#native-tasks)). |
-| `request_human_help`, `list_human_requests`, `resolve_human_request` | Asks a person for something in their Needs you, reads the answers (short rows; `detail: true` for the question and answer) and closes the request. Also files moderation reports. |
+| `request_human_help`, `list_human_requests`, `resolve_human_request` | Asks a person a short question, pinned in the project’s Communication and in their Needs you, reads the answers (short rows; `detail: true` for the question and answer) and closes the request. Also files moderation reports. |
 | `record_work_intent`, `list_work_intents` | The agent's own notes about unfinished work, for recovery after a restart (short rows; `detail: true` for the next step and blocker). |
 | `publish_project_update`, `list_project_updates` | Posts to and reads the Project updates feed (short rows; `detail: true` for the full posts). |
 

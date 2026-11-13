@@ -45,7 +45,7 @@ const TOPICS: Record<UpdateTopic, string> = {
 // The whole writing brief agents get with the project (owner, 12 November 2026): short, so it is read.
 const writingGuidance = (settings: ProjectUpdateSettings) => `Write for a person scrolling on a phone who has not followed the agents. Post only ${settings.topics.map(topic => TOPICS[topic]).join('; ')}. `
   + `One idea per update. Headline: what happened, at most ${L.title} characters. Caption: one plain sentence on why it matters or what you need, at most ${L.body} characters. `
-  + `The image carries the detail${settings.slides ? `; use up to ${L.slides} slides, one point each, when one image is not enough` : '; one image per update'}. Say when something is a concept, local or unverified. Nothing new to say: post nothing.`;
+  + `${settings.slides ? `Post a short set of slides to swipe, 2 to 4 (at most ${L.slides}), with large text and about 12 words each: the first says the whole result in one line, each next one makes one point, the last says what the person has to do or that nothing is needed` : 'The image carries the detail; one image per update'}. Say when something is a concept, local or unverified. Nothing new to say: post nothing.`;
 
 // A project's cover is the screenshot on its newest update that has one; the stamps show it.
 export async function latestUpdateScreenshotId(projectId: string): Promise<string | null> {

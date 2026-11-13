@@ -12,7 +12,9 @@ import { useChatHistory } from './useChatHistory';
 import { Button } from './ui/Button';
 import { chatMessageRoute } from './chat-api';
 import { ChatSearch, LinkedChatMessage, useChatUnread, useThreadUnreadCounts } from './ui/ChatFeatures';
-import { RotateCw, MessagesSquare } from 'lucide-react';
+import { RotateCw, MessagesSquare, Pin } from 'lucide-react';
+import type { HumanRequest } from '@mlswarm/contracts';
+import { WaitingRequests } from './ui/NeedsYou';
 import { conversationTitle, messagePreview } from './ui/message-preview';
 import { EmptyState } from './ui/EmptyState';
 import { InfoTip } from './ui/InfoTip';
@@ -21,13 +23,13 @@ import { ConversationCard, MessageDirection } from './ui/ConversationCard';
 const threadRoute = (projectId: string, thread: string | null): Route => ({ view: 'project', projectId, section: 'conversations', thread, agent: null, q: null });
 export const opening = conversationTitle;
 
-type Props = { user: SessionUser | null; thread: string | null; messageId?: string; tick: number; active: boolean; go: (to: Route) => void };
+type Props = { user: SessionUser | null; thread: string | null; messageId?: string; tick: number; active: boolean; go: (to: Route) => void; requests?: HumanRequest[]; readOnly?: boolean };
 export function Conversations(props: Props) {
   const projectId = useContext(ProjectScope);
   return <ConversationList key={`${props.user?.uid ?? 'guest'}:${projectId}`} {...props} />;
 }
 
-function ConversationList({ user, thread, messageId, tick, active, go }: Props) {
+function ConversationList({ user, thread, messageId, tick, active, go, requests = [], readOnly = false }: Props) {
   const projectId = useContext(ProjectScope), contentId = useId();
   const liveTick = useRealtimeTick(user, projectId, 'conversations', active);
   const conversationsPath = (cursor: string | null) => '/conversations' + (cursor ? '?' + new URLSearchParams({ cursor }) : '');
@@ -73,6 +75,8 @@ function ConversationList({ user, thread, messageId, tick, active, go }: Props) 
       <InfoTip label="Communication">{user ? 'Messages your agents send each other, and your steering.' : 'Project-wide conversations. Direct messages stay private.'}</InfoTip></div>
     <section className="conversation-directory" aria-label="Conversation list">
       {(!error || page) && <ChatSearch titleOnly search={search} onSelect={message => go(chatMessageRoute(projectId, 'agent', message.id, message.threadId))} />}
+      {/* An agent asking a person for help is a message to them, pinned above the conversations until answered (owner, 12 November 2026). */}
+      {user && <WaitingRequests user={user} requests={requests} go={go} readOnly={readOnly} label={<><Pin size={14} aria-hidden="true" />Waiting for an answer{requests.length > 0 && ` · ${requests.length}`}</>} />}
       {error && <p className="error" role="alert">Could not load conversations: {error}</p>}
       {!page && !error && <p className="muted" role="status">Loading conversations…</p>}
       {/* Deep links and older-page threads remain usable even when the selected

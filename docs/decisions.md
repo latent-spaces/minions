@@ -10,6 +10,34 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Needs you becomes a short pinned message in Communication — owner selections, 12 November 2026
+
+The owner found the Needs you screen hard to read, with too many drop-downs, and
+reachable only from notifications. From a coded mockup they selected:
+
+- A request is a short message from the agent ("Agent → You"), pinned and tinted at
+  the top of the project's Communication until it is answered. The project Needs you
+  section is removed; Communication shows a count of requests waiting for you in the
+  project menu. The bell opens the project's Communication; moderation reports and
+  **View all requests** still open the global Needs you page.
+- The card shows one short question, then one paragraph, then lettered choices (A, B,
+  C) with "Something else…" typed inline. The optional note is removed.
+- No Blocked/Tried structure. This reverses the separate Blocked and Tried headings
+  and bodies of [Compact Needs you](#compact-needs-you-and-acknowledgment--owner-selection-24-october-2026);
+  acknowledgment and the receipt stay as they were.
+
+On enforcement the owner answered "Refuse over-limit": the server refuses a request
+over the limits instead of only guiding agents. For a request to a person, the
+`question` is at most 140 characters, `context` is one paragraph of at most 300
+characters saying what is blocked and what was tried, and there are up to three
+`suggested_options` of at most 80 characters each. `attempted`, `blocker_title` and
+`attempted_title` are no longer accepted. Moderation reports keep their limits
+(question 2000, context 1000). Requests stored earlier keep their `attempted` text,
+shown in the same paragraph; their stored headings are no longer returned.
+
+On 13 November 2026 the owner answered "Keep the title": the bell keeps showing the
+agent's short `title` (at most 120 characters); the card's headline is the question.
+
 ## Communication pipes stay longer and preview their latest message — owner request, 12 November 2026
 
 The owner requested longer-lived, thinner pipes on the agent communication map,
@@ -75,6 +103,36 @@ Later runs on the same day, each answered "Yes, fix and run" by the owner:
   tests for their changed files first, and that an unanswered message is not a blocker while
   they still have their own work. In a 15-minute run on this repository one agent spent the
   whole job inside the full agent-cli test suite and another stopped after 90 seconds.
+
+- Each turn says how many minutes of the job are left, and with three or more left that this
+  is time to work in. In the run after the previous fix all three agents stopped with about two
+  thirds of a 15-minute job unused.
+- When the next regular update comes due while an agent is idle, that agent is woken for one
+  turn, the same way as for the closing update, and not again until a turn of its own has
+  passed. In that same run the update was due with no agent awake to post it.
+
+- An agent that ends a turn with three or more minutes of the job left gets another turn that
+  says there is no later run to leave work for and names where to look: what the agent left
+  undone, open tasks, uncovered parts of the mission, and a teammate's open pull request to
+  check and report on by message. Once an agent has had such a turn, a turn of any kind that
+  ends inside half a minute is not followed by another. History, all 12 November 2026: the
+  minutes-left line alone did not work (all three agents stopped inside two minutes and listed
+  files "for the next run"; owner: "Yes, both"). A plain "take the next piece" turn with a
+  half-minute cut-off left agents idle for 7 to 9 of 15 minutes (owner: "Yes, fix both"). A
+  second, more specific turn after each short one ended the idling and tripled the tokens read,
+  a quarter of them in short turns that produced nothing; asked "Cut the cost of the repeated
+  short keep-going turns next?", the owner answered "Yes, cut it", so the two turns became one.
+- Every update reports this job's work only, and only what the agent checked itself. A mid-job
+  update had counted thirteen pull requests from earlier jobs and said each had a test, which
+  was untrue. Owner, 12 November 2026: "Yes, fix both".
+- Where a project allows slides, an update is a short set of 2 to 4 slides to swipe, not one
+  image. The first slide says the whole result in one line, each next one makes one point, the
+  last says what the person has to do or that nothing is needed; about 12 words a slide. This
+  replaces "use slides only when one image is not enough": no agent had posted a second slide
+  in thirteen runs. Owner, the same day: slides are "much better for human they could have less
+  written".
+- A worker woken only because an update came due, when another agent is the one asked, starts
+  no model turn.
 
 Known and not fixed: a server started with a shell `&` outlived its turn and its job in one
 run, and the sandbox stopped the agent from killing it.

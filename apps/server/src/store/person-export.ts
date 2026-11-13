@@ -145,6 +145,7 @@ async function community(out: Collected, personId: string): Promise<string[]> {
   for (const field of ['requesterProfileId','answer.profileId']) {
     for await (const d of pages(db.collection('humanRequests').where(field,'==',personId))) {
       const request=d.data(), own=request.requesterProfileId===personId;
+      // blockerTitle and attemptedTitle remain on requests stored before 12 November 2026.
       const requesterText = ['attempted', 'blockerTitle', 'attemptedTitle'] as const;
       // Moderation is resolved by the human reviewer; ordinary resolutions belong to the requesting agent.
       const ownResolution = request.moderation && request.answer ? request.answer.profileId === personId : own;

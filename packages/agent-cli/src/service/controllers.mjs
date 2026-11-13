@@ -16,6 +16,7 @@ import { RuntimeError, validateCommand, commandFingerprint, sameTarget, RUNTIME_
 export const ON_CHANGE_SPREAD_MS = 0;
 // Tolerated clock difference with the server, as for web starts.
 const CLOCK_SKEW_MS = 30000;
+const KEEP_GOING_MS = 180000, KEEP_GOING_IDLE_MS = 30000;
 const CLOSING_WAKE_MS = 120000;
 export function createRuntimeControllers({ store, adapterFactory, cloudFactory, onReportsReady = () => {}, inspectRecoveryCheckout, stopOrphanedMission, now = Date.now, observeIntervalMs = 20000, random = Math.random, onChangeSpreadMs = ON_CHANGE_SPREAD_MS }) {
   if (!Number.isSafeInteger(observeIntervalMs) || observeIntervalMs < 1) throw new Error('A positive trusted observation interval is required.');
@@ -97,6 +98,19 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
       ctrl.closingWake = true; ctrl.scheduler.requestContinuation(); schedule(ctrl);
     }, wait + 1000);
     ctrl.closingTimer.unref?.();
+  }
+  // A worker that went idle after working is woken once when the team's next regular update comes due, so the
+  // agent the server asks has a turn to post it in. A turn started by this wake does not arm another: an idle
+  // project is not woken every interval (owner, 12 November 2026).
+  function armUpdateWake(ctrl, dueAt) {
+    clearTimeout(ctrl.updateTimer);
+    const wait = dueAt - now(), deadline = ctrl.appliedDeadlineAt ?? ctrl.mission.deadlineAt;
+    if (!Number.isFinite(dueAt) || !(wait > 0) || dueAt >= deadline - CLOSING_WAKE_MS) return;
+    ctrl.updateTimer = setTimeout(() => {
+      if (ctrl.settled || ctrl.cancelled || ctrl.halted) return;
+      ctrl.updateWake = true; ctrl.scheduler.requestContinuation(); schedule(ctrl);
+    }, wait + 1000);
+    ctrl.updateTimer.unref?.();
   }
   const executionHeld = ctrl => ctrl.detached || locallyPaused(ctrl) || ctrl.projectPaused;
   const cloudSession = (ctrl, mission) => ({ missionId: mission.missionId, generation: mission.generation,
@@ -500,16 +514,18 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
     ctrl.abort = new AbortController();
     const notices = pauseUpdate ? [] : ctrl.coordination?.notices ?? [];
     const inbox = { pending: ctrl.news.pending, acknowledged: ctrl.news.acknowledged };
+    const keepGoing = !pauseUpdate && ctrl.keepGoing === true; if (!pauseUpdate) ctrl.keepGoing = false; if (keepGoing) ctrl.keptGoing = true;
     const {prompt,promptSources,steeringMessages}=controllerPrompt({scope:ctrl.mission.scope,
-      deadlineAt:ctrl.mission.deadlineAt,steering:prepared.steering,notices,trigger,inbox});
+      deadlineAt:ctrl.mission.deadlineAt,steering:prepared.steering,notices,trigger,inbox,now:now(),keepGoing});
     const updateNudge = !pauseUpdate && ctrl.updateNudge === true; ctrl.updateNudge = false;
     // A closing wake that arrives during this turn stays set, so the next turn is the one it asks for.
     if (!pauseUpdate) ctrl.closingWake = false;
+    const updateWoken = !pauseUpdate && ctrl.updateWake === true; if (!pauseUpdate) ctrl.updateWake = false;
     let result, guardPid, focus, observedModel;
     let denials = 0; const denialTools = new Set();
     ctrl.nativeInvoked = true; ctrl.nativeCleanupConfirmed = false;
     try {
-      result = await ctrl.adapter.run({ turnId, prompt, promptSources, steeringMessages, signal: ctrl.abort.signal, ...(pauseUpdate ? { pauseUpdate } : {}), ...(updateNudge ? { updateNudge } : {}),
+      result = await ctrl.adapter.run({ turnId, prompt, promptSources, steeringMessages, signal: ctrl.abort.signal, ...(pauseUpdate ? { pauseUpdate } : {}), ...(updateNudge ? { updateNudge } : {}), ...(updateWoken && !keepGoing && !updateNudge && inbox.pending === 0 && prepared.steering.length === 0 && notices.length === 0 ? { onlyIfUpdateDue: true } : {}),
         onGuardStarted: async pid => { guardPid = pid; await store.recordGuard({ ...ref, guardPid: pid }); },
         onGuardClosed: ({ guardPid: closedPid, cleanupConfirmed }) => {
           if (cleanupConfirmed !== true || closedPid !== guardPid) throw new Error('Guard cleanup identity changed.');
@@ -535,12 +551,21 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
     const updatePending = !pauseUpdate && result.updatePending === true && !outcome.failed && !outcome.interrupted;
     ctrl.updateNudge = updatePending && !runnable && ctrl.updateNudged !== true;
     if (ctrl.updateNudge) ctrl.updateNudged = true; else if (!updatePending || runnable) ctrl.updateNudged = false;
+    // The keep-going turn after a woken turn belongs to that wake, so it arms no further one.
+    if (!pauseUpdate) ctrl.updateWakeChain = updateWoken || keepGoing && ctrl.updateWakeChain === true;
+    if (!pauseUpdate && !ctrl.updateWakeChain && !outcome.failed && !outcome.interrupted) armUpdateWake(ctrl, result.updateNextDueAt);
+    // An agent that stops with three or more minutes of the job left gets another turn that says so and names where to
+    // look. Once it has had one, a turn of any kind that ends inside half a minute found nothing to do and is not followed
+    // by another: in one run those short turns, eight of them asked for and eight woken by a message, read four and a
+    // half million tokens and produced nothing (owner, 12 November 2026).
+    ctrl.keepGoing = !pauseUpdate && !runnable && !outcome.failed && !outcome.interrupted && result.skipped !== true && !ctrl.updateNudge
+      && (ctrl.appliedDeadlineAt ?? ctrl.mission.deadlineAt) - now() >= KEEP_GOING_MS && !(ctrl.keptGoing === true && now() - startedAt < KEEP_GOING_IDLE_MS);
     if (!pauseUpdate) ctrl.scheduler.recordOutcome({ kind: outcome.interrupted ? 'interrupted' : outcome.failed ? 'failed' : 'ok', news: ctrl.news,
-      retryable: outcome.retryable, continuation: runnable || ctrl.updateNudge || ctrl.closingWake === true, now: now(),
+      retryable: outcome.retryable, continuation: runnable || ctrl.updateNudge || ctrl.keepGoing || ctrl.closingWake === true || ctrl.updateWake === true, now: now(),
       providerLimited: outcome.failed && !outcome.interrupted && result.failureCode === 'provider_limited', resetAt: result.limitResetAt ?? null });
     // What this turn saw and whether the worker has more to do, so a worker restored after a connector
     // restart continues as it would have, and otherwise runs only for news since then.
-    const handled = !pauseUpdate && !outcome.failed && !outcome.interrupted && Number.isSafeInteger(seenRevision) && seenRevision >= 0;
+    const handled = !pauseUpdate && !outcome.failed && !outcome.interrupted && result.skipped !== true && Number.isSafeInteger(seenRevision) && seenRevision >= 0;
     const { continuation: more, limited } = ctrl.scheduler.status();
     // A provider limit's wait is kept with the turn, so a worker restored after a connector restart still waits for it.
     outcome.seen = { project: seenProject, ...(handled ? { revision: seenRevision } : {}), ...(more ? { more: true } : {}),
@@ -588,7 +613,7 @@ export function createRuntimeControllers({ store, adapterFactory, cloudFactory, 
   function leaveBetweenTurns(ctrl) {
     if (ctrl.settled || ctrl.turnBusy || ctrl.settling || ctrl.cancelled || ctrl.halted || ctrl.cleanupPending) return false;
     ctrl.detached = true; ctrl.settled = true; ctrl.lifetime.abort();
-    clearTimeout(ctrl.retryTimer); clearTimeout(ctrl.closingTimer); clearInterval(ctrl.cloudTimer); return true;
+    clearTimeout(ctrl.retryTimer); clearTimeout(ctrl.closingTimer); clearTimeout(ctrl.updateTimer); clearInterval(ctrl.cloudTimer); return true;
   }
   const drainDone = () => [...controllers.values()].every(ctrl => ctrl.settled || ctrl.halted);
   function createController(mission, { restored = false } = {}) {

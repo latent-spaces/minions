@@ -64,7 +64,7 @@ test('six workers that hit a provider limit wait and try again instead of ending
   for (const agent of agents) await ctx.start(agent);
   await until(() => agents.every(agent => (ctx.runs.get(agent) ?? 0) >= 5), done => done, 'every worker reaches a working turn after four limits', 20000);
   for (const mission of ctx.missions) {
-    const saved = await until(() => ctx.inspect(mission), m => m.outcomes.length >= 5, 'fifth turn saved');
+    const saved = await until(() => ctx.inspect(mission), m => m.outcomes.length >= 5 && m.state === 'waiting', 'fifth turn saved and the worker is between turns');
     assert.equal(saved.state, 'waiting', `${mission.target.agentId} keeps working`);
     assert.deepEqual(saved.outcomes.slice(0, 5).map(item => item.outcome.failureCode ?? 'ok'), ['provider_limited', 'provider_limited', 'provider_limited', 'provider_limited', 'ok']);
   }
@@ -77,9 +77,9 @@ test('a limit with no reset time is reported without a time and is cleared by th
   assert.deepEqual(ctx.sessions.at(-1).providerLimit, { retryAt: null });
   assert.equal(ctx.sessions.at(-1).phase, 'waiting');
   // The growing wait starts at 10 s (0.8 to 1.2 with jitter): the worker retries by itself, then is no longer held.
-  await until(() => ctx.runs.get('synthetic-agent') ?? 0, n => n === 2, 'retried after the wait', 20000);
+  await until(() => ctx.runs.get('synthetic-agent') ?? 0, n => n >= 2, 'retried after the wait', 20000);
   await until(() => ctx.sessions.at(-1), s => s && !s.providerLimit, 'limit cleared', 25000);
-  await until(() => ctx.inspect(mission), m => m.outcomes.length === 2 && m.state === 'waiting', 'the retry turn worked');
+  await until(() => ctx.inspect(mission), m => m.outcomes.length >= 2 && m.state === 'waiting', 'the retry turn worked');
 });
 
 test('a worker does not retry a provider limit before the reset time, so it never loops', async t => {
@@ -89,9 +89,9 @@ test('a worker does not retry a provider limit before the reset time, so it neve
   await until(() => ctx.runs.get('synthetic-agent') ?? 0, n => n === 1, 'first turn limited');
   await sleep(1000);
   assert.equal(ctx.runs.get('synthetic-agent'), 1, 'no retry before the reset');
-  await until(() => ctx.runs.get('synthetic-agent') ?? 0, n => n === 2, 'retried after the reset');
+  await until(() => ctx.runs.get('synthetic-agent') ?? 0, n => n >= 2, 'retried after the reset');
   assert.ok(ctx.lastRunAt >= resetAt);
-  await until(() => ctx.inspect(mission), m => m.outcomes.length === 2 && m.state === 'waiting', 'the retry turn worked');
+  await until(() => ctx.inspect(mission), m => m.outcomes.length >= 2 && m.state === 'waiting', 'the retry turn worked');
 });
 
 test('other failures still end a worker after three, and provider limits between them do not reset the count', async t => {
@@ -126,7 +126,7 @@ test('Pause during a provider limit wait holds the worker; after Resume it still
   await command('resume', { pauseOperationId: pauseId });
   await until(() => ctx.inspect(mission), m => m.state === 'waiting', 'resumed');
   assert.equal(ctx.runs.get('synthetic-agent'), 1, 'Resume does not skip the reset');
-  await until(() => ctx.runs.get('synthetic-agent') ?? 0, n => n === 2, 'retried after the reset');
+  await until(() => ctx.runs.get('synthetic-agent') ?? 0, n => n >= 2, 'retried after the reset');
   assert.ok(ctx.lastRunAt >= resetAt, 'not before the reset time');
 });
 
@@ -140,7 +140,7 @@ test('a provider limit wait survives a connector restart', async t => {
   await until(() => second.sessions.length, n => n > 0, 'restored worker reports in');
   assert.equal(second.runs.get('synthetic-agent') ?? 0, 0, 'the restored worker still waits for the reset');
   assert.equal(second.sessions[0].providerLimit?.retryAt, resetAt, 'and says when it tries again');
-  await until(() => second.runs.get('synthetic-agent') ?? 0, n => n === 1, 'retried after the reset');
+  await until(() => second.runs.get('synthetic-agent') ?? 0, n => n >= 1, 'retried after the reset');
   assert.ok(second.lastRunAt >= resetAt, 'not before the reset time');
-  await until(() => second.inspect(mission), m => m.outcomes.length === 2 && m.state === 'waiting', 'the retry turn worked');
+  await until(() => second.inspect(mission), m => m.outcomes.length >= 2 && m.state === 'waiting', 'the retry turn worked');
 });

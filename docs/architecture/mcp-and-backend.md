@@ -739,7 +739,7 @@ discovery honor the setting; the domain service rechecks it on writes. See
 
 ### 17.2 Needs you
 
-Human requests distinguish private, project and moderator visibility. A shared decision, a private local permission question and a moderation report have different audiences.
+Human requests distinguish private, project and moderator visibility. A request to a person is a short message: the server refuses a question over 140 characters, context over 300 characters (one paragraph on what is blocked and what was tried) or more than three suggested options over 80 characters each; moderation reports keep 2000 and 1000. A shared decision, a private local permission question and a moderation report have different audiences.
 
 An answer, the agent's acknowledgement of that answer and resolution are separate state transitions. Text in a request or answer does not grant an arbitrary tool execution permission. Moderation reports create a reviewable record; they do not silently sanction another participant.
 

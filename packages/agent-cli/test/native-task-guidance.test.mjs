@@ -39,8 +39,13 @@ test('each turn carries the shared update aim at the owner\'s pace and says when
   const due = projectGuidanceForTurn({ project: card, updateDue: true });
   assert.match(due, /You are the one agent asked to post the next one/);
   assert.match(due, /before you return WORK_NEXT: waiting/);
+  assert.match(due, /Report only this job's work: pull requests and tasks from before it are not news.*Say only what you checked yourself/);
   assert.match(due, /1\. Get one image.*chromium\.launch\(\{ args: \['--single-process'\] \}\).*NODE_PATH=.*node shot\.cjs.*2\. upload_project_image.*clientRequestId.*3\. publish_project_update.*title \(the headline, at most 60 characters\), body \(one sentence, at most 140 characters; count them before you send, a longer one is refused\)/);
   assert.doesNotMatch(due, /only for that/);
+  // Where the project allows slides, a short set to swipe is the normal shape (owner, 12 November 2026).
+  const slides = projectGuidanceForTurn({ project: card, updateDue: true, updateSlides: true });
+  assert.match(slides, /1\. Make 2 to 4 slides.*Slide 1 says the whole result in one line.*The last slide says what the person has to do.*2\. upload_project_image once for each slide.*3\. publish_project_update.*the others in moreSlides in reading order/);
+  assert.doesNotMatch(slides, /Get one image/);
   const nudge = projectGuidanceForTurn({ project: card, updateDue: true }, { updateNudge: true });
   assert.match(nudge, /Your last turn ended without the team's update\. This turn is only for that/);
   assert.match(nudge, /Steps: 1\./);

@@ -144,7 +144,9 @@ export class ProjectOperations {
       ? { assignedToYouOpen: value.assignedToYouOpen, unassignedBacklog: value.unassignedBacklog } : null;
     this.participationSnapshot = { project: { name: project.name, mission: project.mission, rules: project.rules, repoUrl: project.repoUrl, mergeApproval: project.mergeApproval, cardVersion: project.cardVersion ?? null, nativeTasksEnabled: value.tasks?.enabled !== false, nativeTeamsEnabled: value.teams?.enabled === true }, persona: structuredClone(persona), capturedAt: context.observedAt, githubAttribution,
       runId: this.control.runId, identity: structuredClone(context.identity), taskCounts: taskCounts(value.tasks?.counts), updateDue: value.projectUpdates?.due === true && value.projectUpdates.yours === true, updateClosing: value.projectUpdates?.closing === true, updateJobStartedAt: Number.isFinite(value.projectUpdates?.jobStartedAt) ? value.projectUpdates.jobStartedAt : null,
-      updateEveryMinutes: [5, 15, 30].includes(value.projectUpdates?.everyMinutes) ? value.projectUpdates.everyMinutes : 5 };
+      updateEveryMinutes: [5, 15, 30].includes(value.projectUpdates?.everyMinutes) ? value.projectUpdates.everyMinutes : 5,
+      updateSlides: Number.isSafeInteger(value.projectUpdates?.maxSlides) && value.projectUpdates.maxSlides > 1,
+      updateLastPublishedAt: Number.isFinite(value.projectUpdates?.lastPublishedAt) ? value.projectUpdates.lastPublishedAt : null };
     return structuredClone(this.participationSnapshot);
   }
   async projectForTurn(rpc) {

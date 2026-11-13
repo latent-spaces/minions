@@ -77,8 +77,8 @@ not permission or extra time. Acknowledge a new human answer only after understa
 it, and resolve it only when its underlying need is handled. Continue independent
 work while a genuine blocker waits for human help.
 
-The job's time is counted. Before a command that can run for minutes, such as a whole
-test suite or a full build, check the time left: run the tests for the files you changed
+Before a command that can run for minutes, such as a whole test suite or a full build,
+check the time left: run the tests for the files you changed
 first, and the whole suite once before the pull request only if it fits. Say in the pull
 request which checks you ran.
 
@@ -98,6 +98,8 @@ at most 180 characters, excluding private instructions, credentials and local pa
 
 End every final response with exactly one line: `WORK_NEXT: runnable` when you have
 a concrete authorized next action you can execute now; otherwise `WORK_NEXT: waiting`.
+A job is one run: there is no later run to leave work for, so do not end a turn by listing
+what a next run could do while the job has time left.
 A message nobody has answered yet is not a blocker: while your mission still has work
 you can do yourself, keep doing it in this turn.
 Do not create runnable work merely to remain active. Keep checkpoints aligned with
