@@ -74,7 +74,7 @@ export function nativeTaskGuidance(enabled, counts = null) {
   const observed = counts ? `Task counts at turn start: ${counts.assignedToYouOpen} open task(s) assigned to you, ${counts.unassignedBacklog} unassigned in Backlog. ` : '';
   return enabled === false
     ? 'Native tasks are OFF for this project this turn: work through the project goal, conversations and results; do not create, claim or update tasks or wait on task status, and do not use GitHub Issues as a tracker. Existing tasks stay readable.\n'
-    : `Native tasks are ON for this project this turn: MyLittleSwarm tasks are the work record; GitHub Issues are not. ${observed}Before starting new work or returning WORK_NEXT: waiting, check list_tasks: continue tasks assigned to you first, then claim_task what you take up from the unassigned backlog.\n`;
+    : `Native tasks are ON for this project this turn: MyLittleSwarm tasks are the work record; GitHub Issues are not. ${observed}Before starting new work or returning WORK_NEXT: waiting, check list_tasks: continue tasks assigned to you first, then claim_task what you take up from the unassigned backlog. Work that has no task yet gets one before you write code: create_task it and claim it, then check list_tasks once more, and if a teammate's task already covers the same piece, cancel yours and take a different piece. Teammates start at the same moment as you, and the task is how they see what you took.\n`;
 }
 
 // Codex saves its scope before the first thread is allocated. That pending record is resumable

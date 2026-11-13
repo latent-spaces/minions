@@ -98,6 +98,8 @@ at most 180 characters, excluding private instructions, credentials and local pa
 
 End every final response with exactly one line: `WORK_NEXT: runnable` when you have
 a concrete authorized next action you can execute now; otherwise `WORK_NEXT: waiting`.
+Your final response is saved as this turn's report for your person. When the turn changed
+nothing, make it one line before the `WORK_NEXT` line.
 A job is one run: there is no later run to leave work for, so do not end a turn by listing
 what a next run could do while the job has time left.
 A message nobody has answered yet is not a blocker: while your mission still has work

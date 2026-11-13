@@ -381,6 +381,8 @@ const agentRowsPath = () => '/agents';
 function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSection, agent, search, onAgent, go, thread, messageId, taskId, tick, refresh, refreshAll, active, onDenied, onFacts }: { suppliedProfileId: string; user: SessionUser; projectId: string; section: Section; chooseSection: (section: Section) => void; agent: string | null; search: string | null; onAgent: (projectId: string, id: string, name: string) => void; go: (to: Route, replace?: boolean) => void; thread: string | null; messageId?: string; taskId: string | null; tick: number; refresh: () => void; refreshAll: () => void; active: boolean; onDenied: (projectId: string, error: Error) => void; onFacts: (facts: ProjectFacts) => void }) {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // A read refused for being over the viewer budget is retried by the next refresh; the loaded view stays.
+  const [held, setHeld] = useState(false);
   const [loadedAt, setLoadedAt] = useState<number | null>(null);
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const headerCover = useProjectCovers(user, workspace ? [{ id: projectId, cover: workspace.cover }] : [])[projectId] ?? null;
@@ -392,6 +394,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   // A refusal of a project that was open means membership was removed or the project deleted.
   const failed = useCallback((e: Error) => {
     if (e instanceof ApiError && [401, 403, 404].includes(e.status)) { setOverview(null); setWorkspace(null); onDenied(projectId, e); }
+    setHeld(e instanceof ApiError && e.status === 429);
     setError(e.message);
   }, [projectId, onDenied]);
 
@@ -401,7 +404,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
     Promise.all([read<Overview>(user, '/overview', projectId), projects<Workspace>(user, `/${projectId}`)]).then(([o, w]) => {
       if (cancelled) return;
       setOverview(o); setWorkspace(w);
-      setError(null); setLoadedAt(Date.now());
+      setError(null); setHeld(false); setLoadedAt(Date.now());
     }, (e: Error) => !cancelled && failed(e));
     return () => { cancelled = true; };
   }, [user, projectId, tick, visible, failed]);
@@ -437,7 +440,10 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   // Task assignees, contributors and comment authors can be anyone in the project, not only the first directory page.
   const tasksOn = !!workspace && nativeTasksEnabled(workspace.nativeTasks);
   const tasksShown = visible && currentSection === 'overview' && tasksOn;
-  const taskLabelRows = useAllPages<TaskAgent>(user, allAgentsPath, 'agents', agentRows.page?.items ?? NO_AGENTS, tick, tasksShown && !!project, REFRESH_MS);
+  // A first page with no next page already is the whole project, so the walk would only repeat it.
+  const moreAgents = !!agentRows.page?.next, morePeople = !!members.page?.next;
+  const walkedAgentLabels = useAllPages<TaskAgent>(user, allAgentsPath, 'agents', agentRows.page?.items ?? NO_AGENTS, tick, tasksShown && !!project && moreAgents, REFRESH_MS);
+  const taskLabelRows = moreAgents ? walkedAgentLabels : agentRows.page?.items ?? NO_AGENTS;
   // Labels carry no live status; agents on the first full page add their state and coding tool to task avatars.
   const firstAgents = agentRows.page?.items ?? NO_AGENTS;
   const liveAgents = useMemo(() => { const at = Date.now(); return firstAgents.map((row): TaskAgent => ({ ...row, state: communicationAgentState(row, at), provider: row.usage?.provider ?? null, focus: row.focus ?? null })); }, [firstAgents, tick]);
@@ -445,7 +451,8 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
     const live = new Map(liveAgents.map(row => [row.id, row]));
     return taskLabelRows.map(agent => { const row = live.get(agent.id); return row ? { ...agent, state: row.state, provider: row.provider, focus: row.focus } : agent; });
   }, [taskLabelRows, liveAgents]);
-  const taskPeople = useAllPages(user, allMembersPath, 'members', members.page?.items ?? NO_PEOPLE, tick, tasksShown, REFRESH_MS);
+  const walkedPeople = useAllPages(user, allMembersPath, 'members', members.page?.items ?? NO_PEOPLE, tick, tasksShown && morePeople, REFRESH_MS);
+  const taskPeople = morePeople ? walkedPeople : members.page?.items ?? NO_PEOPLE;
   // One read labels up to 60 shown actors the paced walks have not reached; it counts once against the viewer budget.
   const taskLabels = useMemo(() => ({
     agents: async (ids: string[]) => (await read<{ agents: TaskAgent[] }>(user, `/agents?view=labels&ids=${ids.map(encodeURIComponent).join(',')}`, projectId)).agents,
@@ -540,7 +547,8 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
     <div className="k42-project-layout">
       <div className="k42-project-main k42-reveal">
         {/* The focused Try again disappears on success, so the viewer's content keeps focus. */}
-        {error && <div role="alert"><p className="error">Could not load: {error}</p><Button onClick={() => { document.getElementById('content')?.focus({ preventScroll: true }); refresh(); }}>Try again</Button></div>}
+        {error && held && overview && <p className="muted" role="status">Updates will resume shortly. Showing the last loaded view.</p>}
+        {error && !(held && overview) && <div role="alert"><p className="error">Could not load: {error}</p><Button onClick={() => { document.getElementById('content')?.focus({ preventScroll: true }); refresh(); }}>Try again</Button></div>}
         {!overview && !error && <p className="muted" role="status">Loading…</p>}
         {overview && <>
           {workspace && <ProjectHeader id={projectId} cover={headerCover} name={project?.name ?? workspace.definition.title} statusPanel={<ProjectStatusPanel workspace={workspace} controls={controls} />}
