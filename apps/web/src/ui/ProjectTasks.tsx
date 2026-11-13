@@ -537,6 +537,7 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
   const noOwner = <span className="muted">No owner</span>;
   return <article ref={panel} tabIndex={-1} className="k42-task-page" aria-labelledby={titleId}>
       <button type="button" className="k42-task-back" onClick={() => leave(parent?.id ?? null)}><ArrowLeft size={16} aria-hidden="true" />{parent ? parent.title : 'Back to Tasks'}</button>
+      <div className="k42-task-card k42-task-head">
       <h2 id={titleId}>{task?.title ?? 'Task'}</h2>
       {error && <div role="alert"><p className="error">Could not load this task: {error}</p><Button onClick={() => void reload()}>Try again</Button></div>}
       {!detail && !error && <p className="muted" role="status">Loading…</p>}
@@ -582,7 +583,9 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
           <button type="submit" hidden /></form>}
 
         {task.description ? <p className="k42-task-description">{task.description}</p> : <p className="muted">No description.</p>}
-
+      </>}
+      </div>
+      {task && <>
         <Subtasks api={api} parent={task} subtasks={subtasks} directory={directory} readOnly={readOnly || !!task.proposed} onOpen={leave} onCreated={() => void reload()} />
 
         <section className="k42-task-section" aria-label="Activity">
