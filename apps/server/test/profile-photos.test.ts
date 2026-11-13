@@ -53,6 +53,12 @@ test('character choice persists publicly, preserves photos, validates IDs and re
   const cleared = await saveMyProfile(actor, { ...save(photo), expected_revision: omitted.revision, character: null }, now);
   expect(cleared).toMatchObject({ character: null, photo: { id: pending.id } });
 });
+test.each(['person-robot', 'person-alien'])('personal choice %s saves and reads through the existing profile API', async character => {
+  const saved = await saveMyProfile(actor, { ...save(null), character }, now);
+  expect(saved).toMatchObject({ character, revision: 1, photo: null });
+  expect(await readMyProfile(actor)).toMatchObject({ character });
+  expect(await (await request('/api/profiles/person')).json()).toMatchObject({ character });
+});
 async function request(path: string, token?: string, profileId?: string, body?: object | Buffer, extra: Record<string, string> = {}) {
   return fetch(base + path, { method: body ? 'POST' : 'GET', headers: {
     ...(token ? { authorization: `Bearer ${token}` } : {}), ...(profileId ? { 'x-mlswarm-profile-id': profileId } : {}),

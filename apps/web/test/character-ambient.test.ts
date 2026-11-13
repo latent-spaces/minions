@@ -1,30 +1,6 @@
-import { test } from 'node:test';
+import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import { CharacterAmbient, RareEffectGate, ambientTiming, pupilOffset, subscribeCharacterPointer, characterPointer } from '../src/ui/character-ambient.js';
-
-test('rare effects are independently delayed and globally spaced, and interruption cancels a one-shot', () => {
-  const gate = new RareEffectGate();
-  const timing = { rareDelay: 60_000, rareInterval: 180_000, gazeDelay: 5000, gazeInterval: 30_000, gazeDuration: 3000 };
-  const a = new CharacterAmbient(0, timing), b = new CharacterAmbient(0, timing);
-  assert.equal(a.sample(59_999, true, false, () => gate.claim(59_999)).kind, 'none');
-  assert.equal(a.sample(60_000, true, false, () => gate.claim(60_000)).kind, 'rare');
-  assert.equal(b.sample(60_000, true, false, () => gate.claim(60_000)).kind, 'none');
-  assert.deepEqual(a.sample(60_640, true, false, () => false), {kind:'rare', frame:4, opacity:1});
-  assert.equal(a.sample(60_800, false, false, () => false).kind, 'none');
-  assert.equal(a.sample(60_900, true, false, () => true).kind, 'none');
-  assert.notDeepEqual(ambientTiming('agent-a'), ambientTiming('agent-b'));
-  for (const id of ['a','b','person-01','small-avatar']) {
-    const timing=ambientTiming(id);
-    assert.ok(timing.rareInterval>=90_000&&timing.rareInterval<=210_000);
-    assert.equal(timing.gazeInterval,timing.gazeDuration+2000);
-    assert.ok(timing.gazeDelay>=2000&&timing.gazeDelay<=5000);
-    assert.ok(timing.gazeDuration>=10_000&&timing.gazeDuration<=15_000);
-  }
-  const cooldown=new RareEffectGate();
-  assert.equal(cooldown.claim(1000),true);
-  assert.equal(cooldown.claim(30_999),false);
-  assert.equal(cooldown.claim(31_000),true);
-});
+import {CharacterAmbient,ambientTiming,gazeCell,subscribeCharacterPointer,characterPointer} from '../src/ui/character-ambient.js';
 
 test('pointer input publishes reactively, supports mouse fallback and cleans up shared subscribers', () => {
   const previous = {window:globalThis.window,document:globalThis.document,requestAnimationFrame:globalThis.requestAnimationFrame,cancelAnimationFrame:globalThis.cancelAnimationFrame};
@@ -47,36 +23,37 @@ test('pointer input publishes reactively, supports mouse fallback and cleans up 
   } finally {stopA();stopB();Object.assign(globalThis,previous);}
 });
 
-test('gaze follows for a few seconds, settles at neutral and yields to unavailable states', () => {
-  const motion = new CharacterAmbient(0, {rareDelay:100_000,rareInterval:180_000,gazeDelay:5000,gazeInterval:30_000,gazeDuration:3200});
-  assert.equal(motion.sample(0,true,true,()=>false).kind, 'none');
-  assert.deepEqual(motion.sample(5000,true,true,()=>false), {kind:'gaze',amount:0});
-  assert.deepEqual(motion.sample(5400,true,true,()=>false), {kind:'gaze',amount:1});
-  assert.equal(motion.sample(8200,true,true,()=>false).kind, 'none');
-  assert.equal(motion.sample(35_000,true,true,()=>false).kind, 'gaze');
-  assert.equal(motion.sample(35_100,false,true,()=>false).kind, 'none');
-  assert.deepEqual(pupilOffset(0,0,1),{x:0,y:0});
-  assert.deepEqual(pupilOffset(10,0,1),{x:0,y:0});
-  assert.deepEqual(pupilOffset(1000,0,1),{x:8,y:0});
-  assert.ok(Math.abs(pupilOffset(-1000,-1000,.5).x) < 4);
+test('gaze remains occasional and independently timed, with no autonomous rare scheduler',()=>{
+  for(const id of ['a','b','person-01']){const t=ambientTiming(id);assert.ok(Math.abs((t.gazeDuration+2000)/t.gazeInterval-.85)<.0001);assert.ok(t.gazeDelay>=2000&&t.gazeDelay<=5000);assert.ok(t.gazeDuration>=10000&&t.gazeDuration<=15000);assert.equal('rareDelay' in t,false);}
+  assert.notDeepEqual(ambientTiming('a'),ambientTiming('b'));
+  const m=new CharacterAmbient(0,{gazeDelay:5000,gazeInterval:30000,gazeDuration:3200});
+  assert.equal(m.sample(0,true,true).kind,'none');assert.equal(m.sample(5000,true,true).kind,'gaze');
+  assert.equal(m.sample(8200,true,true).kind,'none');assert.equal(m.sample(35000,true,true).kind,'gaze');
+  assert.equal(m.sample(35100,false,true).kind,'none');assert.equal(m.sample(35200,true,true).kind,'none');
 });
-
-test('rare, gaze and state acting are mutually exclusive', () => {
-  const motion=new CharacterAmbient(0,{rareDelay:5000,rareInterval:180000,gazeDelay:5000,gazeInterval:30000,gazeDuration:3200});
-  motion.sample(0,true,true,()=>false);
-  assert.equal(motion.sample(5000,true,true,()=>true).kind,'rare');
-  assert.equal(motion.sample(5600,true,true,()=>false).kind,'rare');
-  assert.equal(motion.sample(5800,false,true,()=>false).kind,'none');
-  assert.equal(motion.sample(5900,true,true,()=>false).kind,'none');
-  assert.equal(motion.sample(10900,true,true,()=>false).kind,'gaze');
-  assert.equal(motion.sample(11000,false,true,()=>false).kind,'none');
+test('continuous pointer activity starts about fifteen percent fewer gaze episodes without shortening them',()=>{
+  const t=ambientTiming('person-01');
+  const count=(interval:number)=>{
+    const m=new CharacterAmbient(0,{...t,gazeDelay:0,gazeInterval:interval});let episodes=0,wasLooking=false;
+    for(let at=0;at<3_600_000;at+=100){const looking=m.sample(at,true,true).kind==='gaze';if(looking&&!wasLooking)episodes++;wasLooking=looking;}
+    return episodes;
+  };
+  assert.ok(Math.abs(count(t.gazeInterval)/count(t.gazeDuration+2000)-.85)<.01);
+  const m=new CharacterAmbient(0,{...t,gazeDelay:0});
+  assert.equal(m.sample(0,true,true).kind,'gaze');
+  assert.equal(m.sample(t.gazeDuration-1,true,true).kind,'gaze');
+  assert.equal(m.sample(t.gazeDuration,true,true).kind,'none');
+  assert.equal(m.sample(t.gazeInterval,true,true).kind,'gaze');
 });
-
-test('long glances finish and retain a neutral gap rather than renewing while active', () => {
-  const motion=new CharacterAmbient(0,{rareDelay:100000,rareInterval:180000,gazeDelay:0,gazeInterval:14000,gazeDuration:15000});
-  assert.equal(motion.sample(0,true,true,()=>false).kind,'gaze');
-  assert.equal(motion.sample(14000,true,true,()=>false).kind,'gaze');
-  assert.equal(motion.sample(15000,true,true,()=>false).kind,'none');
-  assert.equal(motion.sample(16999,true,true,()=>false).kind,'none');
-  assert.equal(motion.sample(17000,true,true,()=>false).kind,'gaze');
+test('long glances finish and retain a neutral gap rather than renewing while active',()=>{
+  const m=new CharacterAmbient(0,{gazeDelay:0,gazeInterval:14000,gazeDuration:15000});
+  assert.equal(m.sample(0,true,true).kind,'gaze');assert.equal(m.sample(14000,true,true).kind,'gaze');
+  assert.equal(m.sample(15000,true,true).kind,'none');assert.equal(m.sample(16999,true,true).kind,'none');assert.equal(m.sample(17000,true,true).kind,'gaze');
+});
+test('direction cells follow the cursor and hysteresis prevents sector chatter',()=>{
+  assert.deepEqual(gazeCell(10,10),{cell:4,sector:-1});
+  assert.equal(gazeCell(100,0).cell,5);assert.equal(gazeCell(-100,0).cell,3);assert.equal(gazeCell(0,-100).cell,1);assert.equal(gazeCell(0,100).cell,7);
+  const angle=Math.PI/8+.05;
+  assert.equal(gazeCell(100*Math.cos(angle),100*Math.sin(angle),0).sector,0);
+  assert.equal(gazeCell(100*Math.cos(angle+.15),100*Math.sin(angle+.15),0).sector,1);
 });

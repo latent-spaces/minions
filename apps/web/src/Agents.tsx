@@ -1,5 +1,6 @@
 import { AgentStatusIcon } from './ui/AgentStatusIcon';
 import { CodingAgentAvatar, CodingAgentLabel } from './ui/CodingAgentAvatar';
+import { PokeAvatar } from './ui/AvatarPoke';
 import { personaChoice } from '@mlswarm/contracts';
 import { useRemoveAgent } from './ui/RemoveAgent';
 import { AgentRunActions } from './ui/AgentRunControls';
@@ -85,7 +86,7 @@ function Detail({ user, id, q, onAgent, mine, tick, active, go }: { user: Sessio
     {a && <div className="agent-detail-page">
       <section className="agent-panel">
         <div className="agent-head">
-          <span className="agent-profile-photo"><CodingAgentAvatar state={communicationAgentState(a, now)} provider={a.usage?.provider} name={a.name} id={a.id} ownerId={a.operatorId} persona={a.personaChoice} size={56} decorative />
+          <span className="agent-profile-photo"><PokeAvatar name={a.name}><CodingAgentAvatar state={communicationAgentState(a, now)} provider={a.usage?.provider} name={a.name} id={a.id} ownerId={a.operatorId} persona={a.personaChoice} size={56} decorative /></PokeAvatar>
             <AgentStatusIcon state={runtimeState} overlay /></span>
           <div className="agent-head-text">
             <div className="agent-name-line"><h2 id="agent-title">{a.name}</h2>

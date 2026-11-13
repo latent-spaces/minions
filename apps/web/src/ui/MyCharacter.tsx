@@ -7,6 +7,7 @@ import { PERSON_PORTRAITS } from './character-set';
 import { CharacterAvatar } from './CharacterAvatar';
 import { rememberPersonCharacter } from './person-character-store';
 import { Button } from './Button';
+import { pokeCharacter } from './AvatarPoke';
 import './my-character.css';
 
 export function MyCharacter({ user, active, onSaved }: { user: SessionUser; active: boolean; onSaved: () => void }) {
@@ -47,9 +48,9 @@ export function MyCharacter({ user, active, onSaved }: { user: SessionUser; acti
       {!profile && !error && <p role="status">Loading your character…</p>}
       {profile && <><div className="my-character-choices" role="group" aria-label="Choose my character">
         {PERSON_CHARACTERS.map((id, index) => <button key={id} type="button" aria-pressed={choice === id}
-          aria-label={`Character ${index + 1}`} disabled={busy}
-          onClick={() => { setChoice(id); setPending(null); setError(''); }}>
-          <span className="my-character-preview"><CharacterAvatar character={id} animationKey={`choice:${id}`} src={PERSON_PORTRAITS[id]} /></span><span>Character {index + 1}</span>
+          aria-label={id === 'person-robot' ? 'Robot' : id === 'person-alien' ? 'Alien' : `Character ${index + 1}`} disabled={busy}
+          onClick={event => { pokeCharacter(event.currentTarget); setChoice(id); setPending(null); setError(''); }}>
+          <span className="my-character-preview" data-character-motion-root=""><CharacterAvatar character={id} animationKey={`choice:${id}`} src={PERSON_PORTRAITS[id]} /></span><span>{id === 'person-robot' ? 'Robot' : id === 'person-alien' ? 'Alien' : `Character ${index + 1}`}</span>
         </button>)}
       </div><div className="my-character-save"><Button type="button"
         disabled={busy || !pending && choice === (profile.character ?? null)}

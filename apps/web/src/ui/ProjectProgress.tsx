@@ -21,7 +21,7 @@ export type ProgressReadProps = {
   resolveScreenshot: (screenshot: ProgressScreenshot) => Promise<Blob>;
   go: (route: Route) => void;
 };
-export type ProjectUpdatesProps = ProgressReadProps & { onPendingChange?: (count: number) => void };
+export type ProjectUpdatesProps = ProgressReadProps & { onPendingChange?: (count: number) => void; onSeenLatest?:(item:{id:string;publishedAt:number})=>void };
 const date = (at: number) => new Date(at).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
 // How long ago, as short as a feed shows it; the full date is on hover.
 function ago(at: number) {
@@ -140,10 +140,19 @@ function ScopedProjectUpdates(props: ProjectUpdatesProps) {
   const [head, setHead] = useState<string | null>(items[0]?.id ?? null);
   const [waitingOlder, setWaitingOlder] = useState(false), [historyError, setHistoryError] = useState<string | null>(null);
   const top = useRef<HTMLDivElement>(null), bottom = useRef<HTMLDivElement>(null), heading = useRef<HTMLHeadingElement>(null);
+  const latestPost=useRef<HTMLElement>(null);
   const atTop = useRef(true), loadLock = useRef(false), automaticCursor = useRef<string | null>(null);
   const active = props.active !== false;
   const pending = head ? Math.max(0, items.findIndex(item => item.id === head)) : 0;
   const shown = items.slice(pending);
+  useEffect(()=>{
+    const target=latestPost.current,item=items[0];
+    if(!active||!target||!item||!props.onSeenLatest)return;
+    const seen=()=>{if(!document.hidden)props.onSeenLatest?.({id:item.id,publishedAt:item.publishedAt});};
+    if(typeof IntersectionObserver==='undefined'){if(target.getClientRects().length)seen();return;}
+    const observer=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting))seen();});
+    observer.observe(target);return()=>observer.disconnect();
+  },[active,items[0]?.id,pending,props.onSeenLatest]);
   useEffect(() => { props.onPendingChange?.(pending); }, [pending, props.onPendingChange]);
   useEffect(() => () => { props.onPendingChange?.(0); }, [props.onPendingChange]);
   // Keep the first visible identity stable while someone reads. Polling can add
@@ -186,7 +195,7 @@ function ScopedProjectUpdates(props: ProjectUpdatesProps) {
     }}><ArrowUp size={16} aria-hidden="true" />{pending} new {pending === 1 ? 'update' : 'updates'}</Button></div>}
     {props.error && !historyError && <p className="error" role="alert">{props.error}</p>}
     <div className="k42-progress-posts">
-      {shown.map(item => <article key={item.id} className="k42-progress-update" aria-label={item.title || 'Project update'}>
+      {shown.map(item => <article key={item.id} ref={item.id===items[0]?.id?latestPost:undefined} className="k42-progress-update" aria-label={item.title || 'Project update'}>
         <Author item={item} go={props.go} />
         <Slides item={item} resolve={props.resolveScreenshot} />
         <div className="k42-progress-copy">{item.title && <h3>{item.title}</h3>}<UpdateBody body={item.body} /><Links item={item} /></div>

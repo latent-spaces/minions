@@ -165,8 +165,9 @@ reports open the global page).
 The New task dialog's Assign to is optional: a row of agent avatars, where hovering or
 focusing one names the agent and its person, and clicking the chosen one unassigns it.
 Project updates (`ProjectUpdatesFeed.tsx`) are not a tab: they fill a full-height right
-panel (360–460px, growing with the screen) that runs from the top of the page, beside the header and every section. Below 1200px the panel collapses to an Updates button at the bottom right that
-opens it as a drawer. Old `section=tasks` and `section=updates` links fall back to Tasks.
+panel (360–460px, growing with the screen) that runs from the top of the page, beside the header and every section. Started projects open the panel on Map. The Updates tab counts unseen posts while Map is selected; it clears when the latest post becomes visible, not merely when the panel mounts. The seen marker is browser-local, scoped to the account and project. A trailing + means earlier unread pages have not been loaded. Below 1200px the panel collapses to a button named for the selected view, with the same unseen count, and opens as a drawer. Hidden drawers do not mark updates seen. Waiting rooms retain their updates-only panel. Old `section=tasks` and `section=updates` links fall back to Tasks.
+
+Avatars use transparent pose atlases and code motion. Occasional gaze lasts 10–15 seconds with a neutral gap; blinking remains independently timed. Eligible pokes get a 420ms squash/stretch and select blink/bounce (55%), smile (20%), wink (15%), surprise (7%) or a three-pose cosmic face meltdown (3%, 1.2 seconds). Wild effects now come from pokes. See [the character asset guide](assets/characters/offbeat/README.md).
 Each update is a photo-feed card (`ProjectProgress.tsx`): a small byline with how long ago, the
 image, then a headline and one line of caption, and links as small pills. An update with up to
 five images shows them as slides that swipe sideways, with arrows, a 1/5 counter and dots; every
@@ -399,9 +400,9 @@ nothing. Its layout worker, controls, message passes and data loading are descri
 Avatars share the bundled offbeat 2D animal set (`character-set.ts`) with the
 agent directory. Immutable agent IDs select faces independently of tool/provider;
 owner IDs retain pastel grouping. `CharacterAvatar` renders fixed canonical
-geometry and lossless facial strips; separate persona hats use crown/brim anchors.
+geometry and decoded lossless direction/reaction/action pose atlases; separate persona hats use crown/brim anchors.
 Unknown owners use a neutral background and the same asset pool. People choose
-one of four human characters in Settings, or keep a consented custom photo. State and the latest
+one of four human characters, Robot or Alien in Settings, or keep a consented custom photo. The twelve animal agent identities remain unchanged. State and the latest
 agent-authored focus come from `/api/view/communication/agents/current`, the map's only
 status read: a first read, then the changes since the last one, every 15 seconds (see the
 [map guide](communication-map/README.md#how-the-home-card-feeds-the-map)).

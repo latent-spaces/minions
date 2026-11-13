@@ -509,7 +509,13 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   // Project updates sit in a right panel on every tab; on narrow screens a button opens it.
   const [updatesOpen, setUpdatesOpen] = useState(false);
   // The panel shows either the updates or the agent communication map (owner, 11 November 2026).
-  const [panel, setPanel] = useState<'updates' | 'map'>('updates');
+  const [panel, setPanel] = useState<'updates' | 'map'>('map');
+  const updatesScope=`${user.uid}:${projectId}`;
+  const [updateBadge,setUpdateBadge]=useState({scope:updatesScope,count:0,hasMore:false});
+  const unseen=updateBadge.scope===updatesScope?updateBadge:{count:0,hasMore:false};
+  const unseenLabel=`${unseen.count}${unseen.hasMore?'+':''}`;
+  const recordUnseen=useCallback((count:number,hasMore:boolean)=>setUpdateBadge(previous=>previous.scope===updatesScope&&previous.count===count&&previous.hasMore===hasMore?previous:{scope:updatesScope,count,hasMore}),[updatesScope]);
+  useEffect(()=>{setPanel('map');setUpdatesOpen(false);},[projectId,user.uid]);
   // Detail pages and the sections not in the menu keep their breadcrumb heading; the card's title is then an h2.
   const detail = !allAgents && (!!agent || !['overview', 'preview', 'usage', 'teams', 'conversations', 'control-center'].includes(currentSection));
   // Before a private project starts, only Tasks opens for members other than the owner.
@@ -581,14 +587,14 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
         </>}
       </div>
       {workspace && overview && <>
-        <Button className="k42-updates-toggle" aria-expanded={updatesOpen} aria-controls={`updates-panel-${projectId}`} onClick={() => setUpdatesOpen(open => !open)}><Megaphone size={16} aria-hidden="true" />Updates</Button>
+        <Button className="k42-updates-toggle" aria-expanded={updatesOpen} aria-controls={`updates-panel-${projectId}`} onClick={() => setUpdatesOpen(open => !open)}>{panel==='map'&&!waiting&&project?<Network size={16} aria-hidden="true"/>:<Megaphone size={16} aria-hidden="true"/>}{panel==='map'&&!waiting&&project?'Map':'Updates'}{unseen.count>0&&<span className="k42-updates-count" aria-label={`${unseenLabel} unseen updates`}>{unseenLabel}</span>}</Button>
         <aside id={`updates-panel-${projectId}`} className="k42-updates-panel" data-open={updatesOpen || undefined} aria-label="Project updates and map">
           {updatesOpen && <CloseButton label="Close updates" onClick={() => setUpdatesOpen(false)} />}
           {!waiting && project && <div className="k42-task-segments k42-panel-switch" role="group" aria-label="Panel view">
-            <button type="button" className="k42-task-segment" aria-pressed={panel === 'updates'} onClick={() => setPanel('updates')}><Megaphone size={16} aria-hidden="true" />Updates</button>
+            <button type="button" className="k42-task-segment" aria-pressed={panel === 'updates'} onClick={() => setPanel('updates')}><Megaphone size={16} aria-hidden="true" />Updates{unseen.count>0&&<span className="k42-updates-count" aria-live="polite" aria-label={`${unseenLabel} unseen updates`}>{unseenLabel}</span>}</button>
             <button type="button" className="k42-task-segment" aria-pressed={panel === 'map'} onClick={() => setPanel('map')}><Network size={16} aria-hidden="true" />Map</button>
           </div>}
-          <div hidden={panel === 'map' && !waiting && !!project}><ProjectUpdatesFeed key={`${user.uid}:${projectId}`} projectId={projectId} user={user} tick={tick} active={visible && (panel === 'updates' || waiting || !project)} go={go} /></div>
+          <div hidden={panel === 'map' && !waiting && !!project}><ProjectUpdatesFeed key={`${user.uid}:${projectId}`} projectId={projectId} user={user} tick={tick} observe={visible} active={visible && (panel === 'updates' || waiting || !project)} go={go} onUnseenChange={recordUnseen} /></div>
           {panel === 'map' && !waiting && project && <ProjectActivity user={user} tick={tick} active={visible && panel === 'map'} go={go} projectName={project.name ?? workspace.definition.title} canAddAgent={workspace.role !== 'guest'} readOnly={workspace.execution === 'closed'} pauseRequest={project.paused ? project.pauseRequest : undefined} agentRows={agentRows.page?.items ?? []} onOpenAgent={activateAgent} onCopyLink={copyLink} />}
         </aside>
       </>}

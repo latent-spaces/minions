@@ -8,6 +8,7 @@ import { AgentAvatar } from './AgentAvatar';
 import { ago, time } from '../shared';
 import { COMMUNICATION_AGENT_LABELS, communicationAgentState } from './communication-agent-state';
 import type { PositionedAgent } from './agent-map';
+import { pokeCharacter } from './AvatarPoke';
 
 export function CommunicationAgentNode({ node, agent, now, selected, replay, simulated=false, compact, crowded=false, ownerLabel, tooltipId, inspecting, onInspect, onLeave, onDismiss, onSelect }: {
   node: PositionedAgent & { ownerId?: string | null }; agent?: CommunicationAgent; now: number; selected: boolean; replay: boolean; compact: boolean;
@@ -26,10 +27,10 @@ export function CommunicationAgentNode({ node, agent, now, selected, replay, sim
     className={`k42-communication-agent${!replay || simulated ? ' has-state-bubble' : ''}${selected ? ' selected' : ''}${crowded ? ' is-crowded' : ''}${inspecting ? ' is-inspecting' : ''}`} transform={`translate(${node.x},${node.y})`}
     onMouseEnter={event => onInspect(event.currentTarget)} onMouseLeave={event => { if (document.activeElement !== event.currentTarget) onLeave(); }}
     onFocus={event => onInspect(event.currentTarget)} onBlur={onLeave}
-    onClick={event => { event.currentTarget.focus(); onSelect(); onInspect(event.currentTarget); }}
+    onClick={event => { pokeCharacter(event.currentTarget); event.currentTarget.focus(); onSelect(); onInspect(event.currentTarget); }}
     onKeyDown={event => {
       if (event.key === 'Escape') { event.preventDefault(); onDismiss(); }
-      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onSelect(); onInspect(event.currentTarget); }
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); pokeCharacter(event.currentTarget); onSelect(); onInspect(event.currentTarget); }
     }}>
     <rect className="k42-communication-agent-hit" x="-48" y="-30" width="96" height={focus ? 112 : 96} rx="12" />
     {ownerLabel && <rect className="k42-communication-owner-ring" x="-25" y="-25" width="50" height="50" rx="17" aria-hidden="true"/>}

@@ -56,14 +56,6 @@ test('actual app keeps coding-tool identity separate from model names across sid
     }
     await web.listen();browser=await chromium.launch({headless:true,...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MLSWARM_TEST_BROWSER_EXECUTABLE}:{})});
     const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
-    // Advance presentation time only; server freshness and real model state stay untouched.
-    await context.addInitScript(() => {
-      const testWindow = window as Window & { avatarReviewOffset: number };
-      testWindow.avatarReviewOffset = 0;
-      const now = performance.now.bind(performance), raf = requestAnimationFrame.bind(window);
-      performance.now = () => now() + testWindow.avatarReviewOffset;
-      window.requestAnimationFrame = callback => raf(time => callback(time + testWindow.avatarReviewOffset));
-    });
     await context.route('**/*',(route:any)=>['127.0.0.1','localhost','[::1]'].includes(new URL(route.request().url()).hostname)?route.continue():route.abort());
     page=await context.newPage();page.on('pageerror',(error:Error)=>errors.push(error.message));page.on('console',(msg:any)=>{if(msg.type()==='error')diagnostics.push(msg.text());});page.on('requestfailed',(req:any)=>diagnostics.push(req.url()+': '+req.failure()?.errorText));
     const url=`http://127.0.0.1:${webPort}/?project=${TEST_PROJECT}&section=agents`;
@@ -90,43 +82,35 @@ test('actual app keeps coding-tool identity separate from model names across sid
     await page.emulateMedia({reducedMotion:'no-preference'});
     await directoryView.locator('.k42-directory-card').filter({hasText:'Alpha worker'}).scrollIntoViewIfNeeded();
     await page.waitForFunction(()=>document.querySelector('.k42-directory-card [data-character-avatar]')?.getAttribute('data-motion')==='work-loop');
-    // A transparent animation must replace the still, never composite over it.
+    // Exactly one decoded pose bank replaces neutral. Hidden banks remain mounted.
     await page.waitForFunction(()=>{
       const avatar=document.querySelector('.k42-directory-card [data-character-avatar]');
-      const neutral=avatar?.querySelector('.k42-character-neutral'),strip=avatar?.querySelector('.k42-character-strip');
-      return neutral&&strip&&getComputedStyle(neutral).visibility==='hidden'&&getComputedStyle(strip).opacity==='1';
+      const neutral=avatar?.querySelector('.k42-character-neutral'),actions=avatar?.querySelector('[data-pose-layer="actions"]');
+      return neutral&&actions&&getComputedStyle(neutral).visibility==='hidden'&&getComputedStyle(actions).visibility==='visible';
     });
     await page.screenshot({path:join(directory,'writing.png')});
-    await page.mouse.move(1400, 500);
-    await page.waitForTimeout(120);
-    await page.evaluate(() => { (window as Window & { avatarReviewOffset: number }).avatarReviewOffset += 300_000; });
+    const writing=directoryView.locator('.k42-directory-card').filter({hasText:'Alpha worker'}).locator('[data-character-avatar]');
+    expect(await writing.locator('[data-pose-layer="directions"]').count()).toBe(1);
+    expect(await writing.locator('[data-pose-layer="directions"]').evaluate((layer:HTMLElement)=>getComputedStyle(layer).visibility)).toBe('hidden');
+    expect(await writing.locator('[data-pose-layer="directions"] img').evaluate((image:HTMLImageElement)=>image.complete&&image.naturalWidth===960)).toBe(true);
+    await page.waitForFunction(()=>document.querySelector('.k42-directory-card [data-character-avatar]')?.getAttribute('data-poke-available')==='true');
+    await writing.evaluate((avatar:HTMLElement)=>avatar.dispatchEvent(new CustomEvent('character-poke',{cancelable:true,detail:{reaction:'rare'}})));
     const rare=page.locator('[data-motion="rare"]');
-    await page.waitForFunction(() => document.querySelector('[data-motion="rare"]')?.getAttribute('data-frame') === '4');
+    await page.waitForFunction(()=>document.querySelector('[data-motion="rare"]')?.getAttribute('data-frame')==='7');
     expect(await rare.count()).toBe(1);
-    expect(await rare.locator('.k42-character-rare img').evaluate((image:HTMLImageElement)=>image.complete&&image.naturalWidth===2304)).toBe(true);
-    expect(await rare.locator('.k42-character-neutral').evaluate((image:HTMLImageElement)=>getComputedStyle(image).opacity)).toBe('0');
-    await page.screenshot({path:join(directory,'rare-native.png')});
-    const gaze=page.locator('[data-motion="gaze"]').first();
-    await gaze.waitFor();
+    expect(await rare.locator('[data-pose-layer="reactions"] img').evaluate((image:HTMLImageElement)=>image.complete&&image.naturalWidth===960)).toBe(true);
+    expect(await rare.locator('.k42-character-neutral').evaluate((image:HTMLImageElement)=>getComputedStyle(image).visibility)).toBe('hidden');
+    expect(await rare.locator('[data-pose-layer="actions"]').evaluate((layer:HTMLElement)=>getComputedStyle(layer).visibility)).toBe('hidden');
+    await page.screenshot({path:join(directory,'rare-pose-reward.png')});
+    await page.mouse.move(1400,500);
+    const gaze=page.locator('[data-motion="gaze"]').first();await gaze.waitFor();
     const before=await gaze.boundingBox();
-    const pupils=gaze.locator('.k42-character-gaze img').last();
+    const beforeCell=await gaze.getAttribute('data-frame');
     expect(await gaze.locator('.k42-character-neutral').evaluate((image:HTMLImageElement)=>getComputedStyle(image).visibility)).toBe('hidden');
-    expect(await gaze.locator('.k42-character-stage > .k42-character-strip').evaluate((image:HTMLImageElement)=>getComputedStyle(image).opacity)).toBe('0');
-    expect(await gaze.locator('.k42-character-rare').evaluate((layer:HTMLElement)=>getComputedStyle(layer).opacity)).toBe('0');
-    // A moving CSS transform is insufficient if the extracted sprite is empty.
-    expect(await pupils.evaluate((image:HTMLImageElement)=>{
-      const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
-      const context=canvas.getContext('2d')!;context.drawImage(image,0,0);
-      const pixels=context.getImageData(0,0,canvas.width,canvas.height).data;
-      let visible=0;for(let i=3;i<pixels.length;i+=4)if(pixels[i]>0)visible++;
-      return visible;
-    })).toBeGreaterThan(5);
-    const offset=()=>pupils.evaluate((image:HTMLImageElement)=>new DOMMatrix(getComputedStyle(image).transform).m41);
-    await page.waitForTimeout(150);
-    expect(await offset()).toBeGreaterThan(0);
+    expect(await gaze.locator('[data-pose-layer="directions"]').evaluate((layer:HTMLElement)=>getComputedStyle(layer).visibility)).toBe('visible');
+    expect(await gaze.locator('[data-pose-layer="reactions"]').evaluate((layer:HTMLElement)=>getComputedStyle(layer).visibility)).toBe('hidden');
     await page.mouse.move(1,500);
-    await page.waitForTimeout(200);
-    expect(await offset()).toBeLessThan(0);
+    await page.waitForFunction((cell:string|null)=>document.querySelector('[data-motion="gaze"]')?.getAttribute('data-frame')!==cell,beforeCell);
     expect(await gaze.boundingBox()).toEqual(before);
     await page.screenshot({path:join(directory,'cursor-gaze.png')});
     await page.emulateMedia({reducedMotion:'reduce'});
@@ -154,10 +138,16 @@ test('actual app keeps coding-tool identity separate from model names across sid
     const choices=page.getByRole('group',{name:'Choose my character'});
     await choices.getByRole('button',{name:'Character 4',exact:true}).click();
     await page.getByRole('button',{name:'Save character',exact:true}).click();
-    await page.waitForFunction(()=>document.querySelector('.my-character-save button')?.hasAttribute('disabled'));
+    await page.waitForFunction(()=>{const b=document.querySelector<HTMLButtonElement>('.my-character-save button');return b?.disabled&&b.textContent==='Save character';});
     expect((await profiles.doc(fixture.personIds[0]).get()).data()?.character).toBe('person-04');
+    for(const [label,id] of [['Robot','person-robot'],['Alien','person-alien']] as const){
+      await choices.getByRole('button',{name:label,exact:true}).click();
+      await page.getByRole('button',{name:'Save character',exact:true}).click();
+      await page.waitForFunction(()=>{const b=document.querySelector<HTMLButtonElement>('.my-character-save button');return b?.disabled&&b.textContent==='Save character';});
+      expect((await profiles.doc(fixture.personIds[0]).get()).data()?.character).toBe(id);
+    }
     await page.reload();
-    await page.waitForFunction(()=>document.querySelector('button[aria-label="Character 4"]')?.getAttribute('aria-pressed')==='true');
+    await page.waitForFunction(()=>document.querySelector('button[aria-label="Alien"]')?.getAttribute('aria-pressed')==='true');
     expect(await page.locator('#settings-project-title').count()).toBe(0);
     await page.screenshot({path:join(directory,'settings.png'),fullPage:true,animations:'disabled'});
     await page.setViewportSize({width:1440,height:1000});
@@ -174,16 +164,8 @@ test('actual app keeps coding-tool identity separate from model names across sid
     await pipePreview.getByRole('link',{name:'Open conversation →'}).click();
     await page.waitForFunction((id:string)=>new URL(location.href).searchParams.get('message')===id,pipeMessage.message.id);
     expect(new URL(page.url()).searchParams.get('thread')).toBe(pipeMessage.message.id);
-    // Failed strips keep the consent-free bundled still visible as a fallback.
-    await page.emulateMedia({reducedMotion:'no-preference'});
-    await context.route('**/sprites/*.webp*',(route:any)=>route.request().resourceType()==='image'?route.abort():route.continue());
-    await page.goto(url);
-    await page.waitForFunction(()=>{
-      const avatar=document.querySelector('.k42-directory-card [data-character-avatar]');
-      const neutral=avatar?.querySelector<HTMLImageElement>('.k42-character-neutral'),strip=avatar?.querySelector('.k42-character-strip');
-      return avatar?.getAttribute('data-motion')==='work-loop'&&neutral?.complete&&neutral.naturalWidth>0&&getComputedStyle(neutral).visibility==='visible'&&strip&&getComputedStyle(strip).opacity==='0';
-    });
-    await page.screenshot({path:join(directory,'animation-fallback.png')});
+    // Failed-atlas neutral fallback is covered by web-character-poses.test.tsx
+    // without another full app navigation exhausting this fixture's read budget.
     expect(errors).toEqual([]);console.info(`Full-source card/detail/sidebar/settings acceptance: ${directory}`);
   } catch(error) {if(page)await page.screenshot({path:join(directory,'failure.png'),fullPage:true}).catch(()=>{});console.error(output.slice(-2000),errors,diagnostics,await page?.url());throw error;}
   finally {if(browser)for(const context of browser.contexts())await context.unrouteAll({behavior:'wait'});await browser?.close();await web.close();api.kill('SIGTERM');await new Promise<void>(resolve=>{if(api.exitCode!==null)resolve();else api.once('exit',()=>resolve());});}

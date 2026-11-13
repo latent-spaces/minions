@@ -10,6 +10,39 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Avatar pose sheets and exploratory poking — owner direction, 13 November 2026
+
+The owner selected transparent direction/reaction/action pose sheets with code
+animation for the full cast, replacing the GIF-derived runtime. Occasional gaze
+and blinking stay. Eligible pokes receive a squash/stretch and discover weighted
+reactions: standard blink/bounce 55%, smile 20%, wink 15%, surprise 7% and a rare
+cosmic face meltdown 3%. “Easter egg” means this surreal face effect, never literal
+egg imagery. State/message acting retains priority and effects remain exclusive.
+
+Robot and Alien are additional personal-character choices alongside the original
+four humans; the twelve animal agents and existing default identity assignments
+stay unchanged. Names/profile links and sidebar navigation keep their actions;
+separate accessible poke targets provide local cosmetic feedback. Poking never
+runs workers or sends messages.
+
+The owner accepted the gaze-only aligned hat fit. Direction-based adjustments
+apply during gaze; other poses retain their regular hat anchor. Face and hat share
+the squash motion root, excluding provider/status/presence badges. The renderer
+waits for decoding and keeps banks mounted at handoffs. Source artwork, rejected
+attempts and the old comparison renderer remain outside the app as provenance.
+
+## Map is the default right-panel view — owner request, 13 November 2026
+
+The owner requested the communication map as the default view in the project's
+right panel, with a count of unseen project updates on the Updates tab, and
+slightly more frequent avatar Easter eggs. Started projects now default to Map;
+waiting rooms retain their updates-only panel. The feed continues reading while
+Map is shown. A browser-local marker per account/project advances when the newest
+post is visible; hidden panels and closed phone drawers do not mark it seen.
+Counts with a trailing + are lower bounds while older unread pages remain unloaded.
+Rare-animation opportunities increase by 25%; their art, duration, gaze timing and
+one-effect-at-a-time policy remain as selected.
+
 ## Needs you becomes a short pinned message in Communication — owner selections, 12 November 2026
 
 The owner found the Needs you screen hard to read, with too many drop-downs, and

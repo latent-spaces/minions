@@ -1,109 +1,120 @@
-import { useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import type { CommunicationAgentState } from '@mlswarm/contracts';
-import { CharacterMotion, characterTiming, type CharacterClip } from './character-motion';
-import { CharacterAmbient, ambientTiming, characterPointer, pupilOffset, rareEffectGate, subscribeCharacterPointer } from './character-ambient';
-import rareGeometry from './assets/characters/offbeat/rare-geometry.json';
-import { CharacterPreview } from './character-preview';
+import {useContext,useEffect,useLayoutEffect,useRef,useState,useSyncExternalStore} from 'react';
+import type {CommunicationAgentState} from '@mlswarm/contracts';
+import {CharacterMotion,characterTiming,neutralPose,staticCharacterPose,type CharacterPose,type PoseBank} from './character-motion';
+import {CharacterAmbient,ambientTiming,characterPointer,gazeCell,subscribeCharacterPointer} from './character-ambient';
+import {CharacterPoke,choosePoke,POKE_WEIGHTS,rarePokeGate,SQUASH,SQUASH_MS,type PokeReaction} from './character-poke';
+import {characterAtlas,useDecodedAtlas} from './character-assets';
+import {CharacterPreview} from './character-preview';
 import './character-avatar.css';
 
-const sheets = import.meta.glob<string>('./assets/characters/offbeat/sprites/*.webp', { eager: true, query: '?url', import: 'default' });
-const gazeImages = import.meta.glob<string>('./assets/characters/offbeat/gaze/*.png', { eager: true, query: '?url', import: 'default' });
-const placement = rareGeometry as Record<string, { scale: number; x: number; y: number }>;
-const listeners = new Set<() => void>();
-let clock = 0, frameRequest = 0, lastPublish = 0;
-const tick = (time: number) => {
-  if (time - lastPublish >= 80) { clock = time; lastPublish = time; listeners.forEach(listener => listener()); }
-  if (listeners.size) frameRequest = requestAnimationFrame(tick);
-};
-const subscribe = (listener: () => void) => {
-  listeners.add(listener);
-  if (listeners.size === 1) frameRequest = requestAnimationFrame(tick);
-  return () => { listeners.delete(listener); if (!listeners.size) cancelAnimationFrame(frameRequest); };
-};
-const inactive = () => () => {};
-const now = () => typeof performance === 'undefined' ? 0 : performance.now();
-export function CharacterAvatar({ character, src, state = 'idle', animationKey = character, onError }: { character: string; src: string; animationKey?: string; state?: CommunicationAgentState; onError?: () => void }) {
-  const preview = useContext(CharacterPreview);
-  const element = useRef<HTMLSpanElement>(null);
-  const motion = useRef<CharacterMotion | null>(null);
-  const ambient = useRef<CharacterAmbient | null>(null);
-  if (!motion.current) motion.current = new CharacterMotion(state, now(), characterTiming(animationKey));
-  if (!ambient.current) ambient.current = new CharacterAmbient(now(), ambientTiming(animationKey));
-  const [visible, setVisible] = useState(true), [reduced, setReduced] = useState(false);
-  const [ready, setReady] = useState(''), [, redraw] = useState(0);
-  const [rareReady, setRareReady] = useState(''), [gazeReady, setGazeReady] = useState(''), [fine, setFine] = useState(false);
-  const rareSheet = sheets[`./assets/characters/offbeat/sprites/${character}-rare.webp`];
-  const gaze = ['base', 'pupil-0', 'pupil-1'].map(part => gazeImages[`./assets/characters/offbeat/gaze/${character}-${part}.png`]);
-  const time = useSyncExternalStore(visible && !reduced ? subscribe : inactive, () => clock, () => 0);
-  useEffect(() => {
-    const preference = matchMedia('(prefers-reduced-motion: reduce)');
-    const changed = () => setReduced(preference.matches);
-    changed(); preference.addEventListener('change', changed);
-    let intersects = true;
-    const visibility = () => setVisible(intersects && !document.hidden);
-    const observer = typeof IntersectionObserver === 'undefined' ? null : new IntersectionObserver(entries => { intersects = entries[0].isIntersecting; visibility(); });
-    if (element.current) observer?.observe(element.current);
-    document.addEventListener('visibilitychange', visibility); visibility();
-    return () => { observer?.disconnect(); preference.removeEventListener('change', changed); document.removeEventListener('visibilitychange', visibility); };
-  }, []);
-  useEffect(() => {
-    const preference = matchMedia('(hover: hover) and (pointer: fine)');
-    const changed = () => setFine(preference.matches);
-    changed(); preference.addEventListener('change', changed);
-    return () => preference.removeEventListener('change', changed);
-  }, []);
-  useEffect(() => {
-    let cancelled = false;
-    setGazeReady('');
-    if (gaze.every(Boolean)) Promise.all(gaze.map(src => new Promise<void>((resolve, reject) => {
-      const image = new Image(); image.onload = () => resolve(); image.onerror = reject; image.src = src;
-    }))).then(() => { if (!cancelled) setGazeReady(character); }, () => {});
-    return () => { cancelled = true; };
-  }, [character]);
-  useEffect(() => { motion.current!.setState(state, now()); redraw(n => n + 1); }, [state]);
-  useEffect(() => {
-    const target = element.current;
-    const sent = (event: Event) => {
-      const id = (event as CustomEvent<{ id: string }>).detail?.id;
-      if (id) { motion.current!.message(id, now()); redraw(n => n + 1); }
+const listeners=new Set<()=>void>();
+let clock=0,request=0,published=0;
+const tick=(time:number)=>{if(time-published>=40){clock=time;published=time;listeners.forEach(listener=>listener());}if(listeners.size)request=requestAnimationFrame(tick);};
+const subscribe=(listener:()=>void)=>{listeners.add(listener);if(listeners.size===1)request=requestAnimationFrame(tick);return()=>{listeners.delete(listener);if(!listeners.size)cancelAnimationFrame(request);};};
+const inactive=()=>()=>{};
+const now=()=>typeof performance==='undefined'?0:performance.now();
+const banks:PoseBank[]=['directions','reactions','actions'];
+const isQuiet=(state:CommunicationAgentState)=>['offline','revoked','unknown'].includes(state);
+
+/** One decoded pose bank is visible at a time. Presentation never changes worker state. */
+export function CharacterAvatar({character,src,state='idle',animationKey=character,onError}:{character:string;src:string;animationKey?:string;state?:CommunicationAgentState;onError?:()=>void}) {
+  const preview=useContext(CharacterPreview),element=useRef<HTMLSpanElement>(null);
+  const motion=useRef(new CharacterMotion(state,now(),characterTiming(animationKey)));
+  const ambient=useRef(new CharacterAmbient(now(),ambientTiming(animationKey))),poke=useRef(new CharacterPoke());
+  const squash=useRef<Animation|null>(null),sector=useRef(-1),wasAvailable=useRef(false);
+  const [messageUntil,setMessageUntil]=useState(-Infinity);
+  const [visible,setVisible]=useState(false),[reduced,setReduced]=useState(true),[fine,setFine]=useState(false),[,redraw]=useState(0);
+  const time=useSyncExternalStore(visible&&!reduced?subscribe:inactive,()=>clock,()=>0);
+  const pointer=useSyncExternalStore(visible&&fine&&!reduced?subscribeCharacterPointer:inactive,characterPointer,()=>null);
+  const directionSrc=characterAtlas(character,'directions'),reactionSrc=characterAtlas(character,'reactions'),actionSrc=characterAtlas(character,'actions');
+  const directionsReady=useDecodedAtlas(directionSrc,visible),reactionsReady=useDecodedAtlas(reactionSrc,visible);
+  const wantsActions=visible&&(now()<messageUntil||!['idle','waiting','completed','offline','revoked','unknown','stopped','paused'].includes(state));
+  const actionsReady=useDecodedAtlas(actionSrc,wantsActions);
+  const ready={directions:directionsReady,reactions:reactionsReady,actions:actionsReady};
+  // A mounted hidden <img src> still fetches. Defer the action bank until it is
+  // needed, then retain the decoded layer for subsequent work/stop handoffs.
+  const sources={directions:directionSrc,reactions:reactionSrc,actions:wantsActions||actionsReady?actionSrc:undefined};
+  const current=now();
+  motion.current.setState(state,current);
+  const base=reduced?staticCharacterPose(state):motion.current.sample(time||current,false);
+  const usable=visible&&!reduced&&directionsReady&&reactionsReady&&!isQuiet(state);
+  const pokeSample=usable&&base.interruptible?poke.current.sample(time||current):null;
+  const canPoke=usable&&base.interruptible&&!pokeSample;
+  const ambientAvailable=usable&&!pokeSample&&base.interruptible&&['idle','waiting','working','completed'].includes(state);
+  const scheduled=ambient.current.sample(time||current,ambientAvailable&&!preview,!!pointer,base.clip!=='blink');
+  const looking=ambientAvailable&&!!pointer&&(preview==='gaze'||scheduled.kind==='gaze')&&base.clip!=='blink';
+  const sampled=reduced?base:motion.current.sample(time||current,!looking&&!pokeSample);
+  let shown:CharacterPose=sampled;
+  let kind:string=sampled.clip;
+  if(pokeSample){shown={...neutralPose(),bank:'reactions',cell:pokeSample.cell,frame:pokeSample.cell};kind=pokeSample.reaction==='rare'?'rare':'poke';}
+  else if(looking){
+    const box=element.current?.getBoundingClientRect();
+    const result=box?gazeCell(pointer!.x-box.left-box.width/2,pointer!.y-box.top-box.height/2,sector.current):{cell:4,sector:-1};
+    sector.current=result.sector;
+    shown={...neutralPose(),cell:result.cell,frame:result.cell};kind='gaze';
+  }else sector.current=-1;
+  const shownReady=ready[shown.bank],activeBank=shownReady?shown.bank:null;
+
+  // The optional hat-gaze lab reads this on the same head+hat motion root.
+  // Clear it atomically whenever another owner takes over the face.
+  useLayoutEffect(()=>{
+    const root=element.current?.closest<HTMLElement>('[data-character-motion-root]');
+    if(!root)return;
+    if(kind==='gaze'&&activeBank==='directions'){
+      root.dataset.characterGazeActive='true';root.dataset.characterGazeCell=String(shown.cell);
+    }else{delete root.dataset.characterGazeActive;delete root.dataset.characterGazeCell;}
+    return()=>{delete root.dataset.characterGazeActive;delete root.dataset.characterGazeCell;};
+  },[kind,shown.cell,activeBank]);
+
+  useEffect(()=>{
+    const media=matchMedia('(prefers-reduced-motion: reduce)'),pointerMedia=matchMedia('(hover: hover) and (pointer: fine)');
+    const preference=()=>{setReduced(media.matches);setFine(pointerMedia.matches);};preference();
+    media.addEventListener('change',preference);pointerMedia.addEventListener('change',preference);
+    let intersects=true;
+    const visibility=()=>setVisible(intersects&&!document.hidden);
+    const observer=typeof IntersectionObserver==='undefined'?null:new IntersectionObserver(entries=>{intersects=entries[0].isIntersecting;visibility();});
+    if(element.current)observer?.observe(element.current);
+    document.addEventListener('visibilitychange',visibility);visibility();
+    return()=>{observer?.disconnect();media.removeEventListener('change',preference);pointerMedia.removeEventListener('change',preference);document.removeEventListener('visibilitychange',visibility);};
+  },[]);
+  useLayoutEffect(()=>{poke.current.cancel();squash.current?.cancel();redraw(n=>n+1);},[state]);
+  useLayoutEffect(()=>{
+    if(wasAvailable.current&&(!visible||reduced)){poke.current.cancel();squash.current?.cancel();motion.current.settle(now());sector.current=-1;}
+    wasAvailable.current=visible&&!reduced;
+  },[visible,reduced]);
+  // Keep the latest eligibility in a ref: the DOM event is synchronous, so its
+  // cancellation tells a caller whether this particular poke was accepted.
+  const eligibility=useRef({canPoke,state});eligibility.current={canPoke,state};
+  useEffect(()=>{
+    const target=element.current;
+    const receive=(event:Event)=>{
+      const id=(event as CustomEvent<{id:string}>).detail?.id;
+      if(id){const at=now();motion.current.message(id,at);setMessageUntil(at+640);poke.current.cancel();squash.current?.cancel();redraw(n=>n+1);}
     };
-    target?.addEventListener('character-message', sent);
-    return () => target?.removeEventListener('character-message', sent);
-  }, []);
-  const sampled = reduced ? { clip: state === 'needs_you' ? 'needs-you' : state === 'blocked' ? 'blocked' : 'neutral', frame: 11 } as { clip: CharacterClip; frame: number }
-    : motion.current.sample(time || now());
-  const pointer = useSyncExternalStore(fine && visible && !reduced ? subscribeCharacterPointer : inactive, characterPointer, () => null);
-  const available = visible && !reduced && ['idle', 'waiting', 'working', 'completed'].includes(state)
-    && ['blink', 'work-loop', 'neutral'].includes(sampled.clip);
-  const scheduled = ambient.current.sample(time || now(), available && !preview, !!pointer && gazeReady === character,
-    () => !!rareSheet && rareReady === rareSheet && rareEffectGate.claim(time || now()), sampled.frame === 0);
-  const decoration: ReturnType<CharacterAmbient['sample']> = preview === 'gaze' && visible && !reduced && pointer && gazeReady === character
-    ? { kind: 'gaze', amount: 1 } : scheduled;
-  const rare = decoration.kind === 'rare' && rareReady === rareSheet;
-  const looking = decoration.kind === 'gaze' && gazeReady === character && !!pointer;
-  const box = looking ? element.current?.getBoundingClientRect() : undefined;
-  const offset = looking && box ? pupilOffset(pointer!.x - box.left - box.width / 2, pointer!.y - box.top - box.height / 2, decoration.amount!) : { x: 0, y: 0 };
-  const sheet = sampled.clip === 'neutral' ? undefined : sheets[`./assets/characters/offbeat/sprites/${character}-${sampled.clip}.webp`];
-  const showingAnimation = !!sheet && ready === sheet && !looking && !rare;
-  return <span className="k42-character-avatar" ref={element} data-character-avatar="" data-character={character}
-    data-motion={rare ? 'rare' : looking ? 'gaze' : sampled.clip} data-frame={rare ? decoration.frame : sampled.frame} aria-hidden="true">
+    const boop=(event:Event)=>{
+      if(!eligibility.current.canPoke)return;
+      const at=now(),forced=(event as CustomEvent<{reaction?:PokeReaction}>).detail?.reaction;
+      let reaction=forced&&POKE_WEIGHTS.some(([id])=>id===forced)?forced:choosePoke(Math.random());
+      if(reaction==='rare'&&!rarePokeGate.claim(at))reaction='surprise';
+      if(!poke.current.start(at,reaction))return;
+      eligibility.current.canPoke=false;motion.current.afterPoke(at);event.preventDefault();
+      const root=target?.closest<HTMLElement>('[data-character-motion-root]')??target;
+      squash.current?.cancel();
+      if(root&&typeof root.animate==='function')squash.current=root.animate(SQUASH,{duration:SQUASH_MS,easing:'linear'});
+      redraw(n=>n+1);
+    };
+    target?.addEventListener('character-message',receive);target?.addEventListener('character-poke',boop);
+    return()=>{target?.removeEventListener('character-message',receive);target?.removeEventListener('character-poke',boop);squash.current?.cancel();};
+  },[]);
+
+  return <span className="k42-character-avatar" ref={element} data-character-avatar="" data-character={character} data-poke-available={canPoke?'true':'false'}
+    data-motion={activeBank?kind:'neutral'} data-frame={activeBank?shown.cell:4} data-pose-bank={activeBank??'neutral'} aria-hidden="true">
     <span className="k42-character-stage">
-    <img className="k42-character-neutral" src={src} alt="" decoding="async" onError={onError}
-      style={{ visibility: showingAnimation || looking ? 'hidden' : 'visible', opacity: rare ? 1 - decoration.opacity! : 1 }} />
-    {sheet && <img key={sheet} className="k42-character-strip" src={sheet} alt="" decoding="async"
-      onLoad={() => setReady(sheet)} onError={() => setReady('')}
-      style={{ opacity: showingAnimation ? 1 : 0, transform: `translateX(-${sampled.frame / 12 * 100}%)` }} />}
-    {looking && <span className="k42-character-gaze" style={{maskImage:`url("${src}")`,maskSize:'100% 100%',maskRepeat:'no-repeat'}}>
-      <img src={gaze[0]} alt="" />
-      {gaze.slice(1).map((src, index) => <img key={index} src={src} alt=""
-        style={{ transform: `translate(${offset.x / 192 * 100}%, ${offset.y / 192 * 100}%)` }} />)}
-    </span>}
-    {rareSheet && <span className="k42-character-rare" style={{ opacity: rare ? decoration.opacity : 0,
-      transform: `translate(${placement[character]?.x ?? 0}%, ${placement[character]?.y ?? 0}%) scale(${placement[character]?.scale ?? 1})` }}>
-      <img className="k42-character-strip" src={rareSheet} alt="" decoding="async"
-        onLoad={() => setRareReady(rareSheet)} onError={() => setRareReady('')}
-        style={{ transform: `translateX(-${(rare ? decoration.frame! : 0) / 12 * 100}%)` }} />
-    </span>}
+      <img className="k42-character-neutral" src={src} alt="" decoding="async" onError={onError} style={{visibility:activeBank?'hidden':'visible'}}/>
+      {banks.map(bank=>sources[bank]&&<span key={bank} className={`k42-character-bank k42-character-${bank}`} data-pose-layer={bank} style={{visibility:activeBank===bank?'visible':'hidden'}}>
+        <img className="k42-character-atlas" src={sources[bank]} alt="" decoding="async"
+          style={{transform:`translate(-${(activeBank===bank?shown.cell%3:bank==='directions'?1:0)/3*100}%, -${(activeBank===bank?Math.floor(shown.cell/3):bank==='directions'?1:0)/3*100}%)`}}/>
+      </span>)}
     </span>
   </span>;
 }

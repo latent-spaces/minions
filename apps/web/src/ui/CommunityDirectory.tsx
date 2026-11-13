@@ -9,6 +9,7 @@ import { EmptyState } from './EmptyState';
 import { PersonAvatar } from './PersonAvatar';
 import { CodingAgentAvatar } from './CodingAgentAvatar';
 import { AgentFocus } from './AgentFocus';
+import { AvatarPokeButton } from './AvatarPoke';
 import './community-directory.css';
 
 /** The Community tab: everyone in the project, people (circles) and agents (rounded squares with their owner's badge).
@@ -41,7 +42,7 @@ export function CommunityDirectory({ projectId, members, agents, loading, now, g
     {loading && !shown.length && !(['people', 'agents'] as const).some(lane => (kind === 'all' || kind === lane) && paging?.[lane].error) ? <p className="muted" role="status">Loading people and agents…</p>
       : !shown.length ? <EmptyState icon={query ? Search : Users} size="compact" title={query ? 'No matches on this page.' : 'No entries on this page.'}
         action={query ? <Button type="button" onClick={() => serverSearch ? onAgentQuery?.('') : setSearch('')}>Clear search</Button> : undefined}>{query ? 'Try another name or page.' : 'Change the filter or continue with the page controls when available.'}</EmptyState>
-      : <ul className="k42-directory-list">{shown.map(entry => <li key={`${entry.kind}:${entry.id}`}>
+      : <ul className="k42-directory-list">{shown.map(entry => <li key={`${entry.kind}:${entry.id}`} data-avatar-poke-scope="">
         {/* One card for people and agents alike (owner, 19 October 2026): photo, name, what they are, then a details line. */}
         <NavLink to={entry.kind === 'person' ? projectRoute(projectId, 'agents', null, null) : projectRoute(projectId, 'agents', entry.id, agentQuery || null)} go={go} className="k42-directory-card">
           <span className="k42-directory-photo">{entry.kind === 'person' ? <PersonAvatar id={entry.id} photo={entry.photo} character={entry.character} name={entry.name} /> : <CodingAgentAvatar state={entry.state} provider={entry.provider} name={entry.name} id={entry.id} persona={entry.personaChoice} ownerName={entry.ownerName} ownerId={entry.ownerId} size={56} decorative />}
@@ -53,6 +54,7 @@ export function CommunityDirectory({ projectId, members, agents, loading, now, g
             <AgentFocus focus={agents.find(a => a.id === entry.id)?.focus} now={now} />
           </>}</div>
         </NavLink>
+        <AvatarPokeButton name={entry.name} className="k42-directory-poke" />
         {entry.kind === 'agent' && agentActions?.(entry.id)}
       </li>)}</ul>}
     {(['people', 'agents'] as const).filter(lane => kind === 'all' || kind === lane).map(lane => {

@@ -1,88 +1,74 @@
-# Offbeat 2D characters
+# Offbeat 2D pose characters
 
-Four human heads and twelve animals, selected by the owner on 12 November 2026.
-Source: character-exploration/offbeat-animals-v1/eyes-v3-4x4.png.
-Independent hat sprites: hats-v1-4x4.png, modular-hats/manifest.json.
+Twelve animal agent identities and six personal choices: four original humans,
+Robot and Alien. Robot/Alien are personal choices only. Agent hashing and existing
+people's unsaved four-human defaults stay stable. Consented photos stay supported.
 
-Reproduce normal blink/state assets with animations/all-characters-v1/prepare-features.py, then render.py
---batch 0 through 3 (four characters per pass), and export-app.py. The renderer
-reuses approved deterministic raster operations from expressions-four-v1/stabilize.py.
-Native GIFs supply acting references only. No generated frame colors or silhouettes
-are imported; no additional API calls. Every 192px frame shares canonical alpha
-and exact visible pixels outside explicit eye masks. Lossless horizontal strips
-have twelve slots of 160ms; the app supplies independent identity timing.
+## Assets and export
 
-The head occupies up to 184/192px, with one fixed crop for every state. Hats are
-separate anchored sprites, never baked into animation. See the master RUNBOOK.md
-for the required per-integration visual alignment gate and state semantics.
+The canonical portrait is poses/<id>-neutral.png, 192px with a head contained within
+184px and its original proportions. Each poses/<id>-<bank>.webp is a lossless,
+transparent 960×960 atlas: nine 320px cells. Extra transparent room permits hands
+and cosmic bursts without shrinking the head. A cell is rendered at 166.667%
+around the logical 192px portrait, offset −33.333% in both axes.
 
-## Motion cadence and integration gate
+- Directions: up-left/up/up-right, left/neutral/right, down-left/down/down-right.
+- Reactions: neutral/blink/smile, delight/surprise/wink, cosmic face meltdown
+  anticipation/peak/recovery. Never literal egg imagery.
+- Animal actions: neutral/take pen/write A, write B/put pen/needs-you hand,
+  blocked gesture/message acknowledgment/acknowledgment recovery.
 
-Ordinary and working loops blink once every 16–27 seconds (75% of the initial
-12–20 second cadence), with independent identity phase and normal-speed acting.
-Hold canonical frame 0 between gestures; never stretch closed-eye frames to slow
-the blink. Message/attention entrances remain immediate. Completed/idle/waiting
-share ordinary blinking; offline/revoked/unknown and reduced motion stay still.
+Source sheets, exact built-in imagegen prompts, rejected attempts and metrics live
+outside the app in character-exploration/pose-migration-v1/. Its build.py accepts
+--characters followed by IDs (requires Pillow, NumPy and SciPy). One fixed affine
+scale per source bank matches the original head proportions; per-pose translation
+registers the upper head, excluding hands and new neon accents. No per-frame
+fit-to-bounds resizing. All banks share the identical neutral pose. Production
+WebP and neutral PNG writes use atomic replacement. Original artwork and the old
+renderer are archived outside the app for historical comparisons.
 
-For every set integration, inspect actual app desktop and mobile placements by
-eye: map/crowd/tooltip, sidebar, cards/detail, task list/board/detail, conversations,
-updates, notifications, people/profile and Settings. Maximize the face with one
-fixed crop/scale for all states. Check ears/hair/chin, independent hat anchors,
-frog behind-eye layering, tool/status badge clearance, still-to-strip loading and
-failure fallback, working → stopping → neutral, independent identity timing and
-persisted person choice. Save screenshots and name unavailable/empty surfaces;
-pixel invariants alone do not replace visual review.
+## Renderer and interaction
 
-The local integration review checked 24–96px animals and 28–96px people, desktop
-and 390px app views. The mobile picker uses two columns to keep four full heads
-and labels visible. The owner's live notification list was empty; its shared
-32px component was checked in the production-component review. Custom photo
-framing and the owner's saved choice remain intact. Full evidence and original
-source prompts/native responses remain in the workspace character-exploration
-archive, outside the production bundle.
+CharacterAvatar/character-motion/character-ambient/character-poke/character-assets
+provide one visual owner and permanently mounted, decoded banks. Pending/failed
+sheets show the canonical face. Late decodes from replaced sources cannot change
+the current pose. Decode resources are shared and unused entries bounded; work
+banks are loaded when needed. Actual worker state and badges remain authoritative.
 
+Working writes, stopping puts the pen away, attention gestures stay distinct and
+messages are deduplicated. Completed/idle do not force a celebration. Blinking
+retains independently phased 16–27-second timing. Fine-pointer gaze lasts 10–15
+seconds with a 2–5-second initial delay. Start intervals are about 14.1–20
+seconds (15% fewer episodes than the earlier duration-plus-two-second cadence);
+the neutral gap is about 4.1–5 seconds.
+Direction sectors use a 70px dead zone and 0.12-radian hysteresis. Continuous gaze
+is a lab override. Ordinary blink and gaze finish their own turns without overlap.
 
-## Rare native effects and cursor gaze
+Eligible pokes get a 420ms squash/stretch and choose: standard blink/bounce 55%,
+smile 20%, wink 15%, surprise 7%, cosmic face meltdown 3%. The rare reward uses
+three poses over 1.2 seconds; it is poke-triggered rather than autonomous. Repeated
+pokes do not stack or queue rewards. State/message acting retains priority.
+Reduced motion, hidden/offscreen and quiet states suppress decorative behavior.
+Pokes are local presentation events; they never send messages or run workers.
+Accessible poke targets remain separate from navigation: directory names/cards,
+sidebar chips and map selection/inspection keep their normal actions.
 
-Owner selection, 12 November 2026: keep the wild native effects as-is, without
-cleanup. The sixteen `*-rare.webp` strips preserve visible pixels and alpha from
-four native transparent GIF batches (12 frames, 160ms, 384px 2x2 masters).
-`rare-geometry.json` supplies one fixed neutral placement per character. No
-per-frame fitting, color cleanup, facial mask or reconstruction is applied.
-The rejected masked-cleanup experiment is not an export input. The native
-originals, exact prompts/requests, usage and `export-app.py` remain outside the
-bundle in character-exploration/offbeat-animals-v1/animations/rare-effects-v1/.
+Hats stay independent sprites in hats/ with geometry.json crown/brim anchors.
+Face and hat share the squash transform; provider/status/presence badges remain
+fixed to the UI. Gaze-only hat adjustment is reviewed separately from neutral,
+reaction and work anchors.
 
-The app crossfades briefly at the entrance/exit and schedules independent rare
-one-shots: 30–120 second initial delay, then 90–210 second intervals, with a shared
-30-second start cooldown across visible avatars. Work/message/attention acting
-takes priority; reduced motion, hidden/offscreen and stale/offline states cancel
-ambient effects. Native face distortions remain intentional. Hats remain separate.
+Squash and sector logic adapt page-mascot at commit
+76a44ed9180063bf4852b9dd724b656f4a828ac7, copyright 2026 Kamran Ahmed. The full MIT
+notice is in ui/licenses/page-mascot.txt.
 
-The `gaze/` images contain original pupil pixels and their neutral eye base,
-extracted without new generation. Their zero-offset composition, with the original alpha mask, is verified
-against the canonical image. Each pupil sprite must contain visible pixels;
-near-opaque source pixels are accepted rather than requiring alpha exactly 255. Fine-pointer gaze runs for 10–15 seconds, starting every
-12–17 seconds with independent 2–5 second initial delays, a two-second neutral pause between glances, a shared passive pointer listener,
-bounded 8/192-unit pupil offsets and a smooth neutral return. No head or hat movement.
-The pointer-relative approach was informed by
-[nilbuild/page-mascot](https://github.com/nilbuild/page-mascot/blob/76a44ed9180063bf4852b9dd724b656f4a828ac7/src/mascot.tsx)
-(MIT, Kamran Ahmed); our continuous pupil math is independently implemented and
-uses no directional sprite sheet or package dependency.
+## Integration acceptance
 
-Acceptance includes exact native strip pixels, exact zero-offset gaze pixels,
-web build, unit tests, real browser rare playback and cursor reversal, unchanged
-avatar bounds, reduced-motion suppression, hats, character persistence, fallback,
-and visually inspected desktop/390px app screenshots. The raw Chrome review
-loops for convenience; application cadence is controlled by character-ambient.ts.
-
-The lab enables a CharacterPreview context for continuous gaze inspection; the
-app's default context keeps occasional timing. Pointer updates notify a shared
-external store directly, with mousemove fallback. Browser acceptance checks
-nonempty visible pupil pixels as well as left/right movement; changing a CSS
-transform alone is not sufficient evidence of a working export.
-
-Pupil travel is capped at 8/192 units, with a faster distance response, so small
-avatars visibly look toward the pointer. Effects are mutually exclusive: state
-and message acting take priority; only one of rare, gaze or normal blink is
-visible at a time. Lab-only continuous preview does not change app cadence.
+Review actual app desktop/mobile placements and 24/32/40/64/96px sizes by eye:
+map, sidebar, cards, tasks, messages, profile/popover, settings and shared badges.
+Check maximum face fit, ears/chin, hats, labels, badge clearance, pipe occlusion,
+neutral/state/reward handoffs, delayed/failed loading, reduced motion, keyboard
+poking, navigation and saved personal choices. Mixed-handoff stress checks must
+show one opaque head/bank, no size jump and no stale queued effect. Screenshots
+verify fit; inspect live movement too. Identify unavailable/empty surfaces rather
+than claiming them visually reviewed.
