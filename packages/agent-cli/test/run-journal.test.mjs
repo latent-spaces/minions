@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, realpathSync, rmSync, readFileSync } from 'node:fs';
+import { mkdtempSync, realpathSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -50,4 +50,13 @@ test('journal marks text truncated when redaction pushes it past the limit', () 
   const record = readRunJournal({ directory, identity }).records[1];
   assert.equal(record.text.endsWith('tail'), false);
   assert.equal(record.textTruncated, true);
+}));
+
+test('a JSON null or array header reads as corrupt, not as an I/O failure', () => fixture(directory => {
+  for (const header of ['null', '[]', '"identity"']) {
+    writeFileSync(join(directory, 'run-evidence.jsonl'), `${header}\n`, { mode: 0o600 });
+    const result = readRunJournal({ directory, identity });
+    assert.equal(result.availability, 'corrupt', header);
+    assert.deepEqual(result.faults, ['journal_corrupt_header'], header);
+  }
 }));
