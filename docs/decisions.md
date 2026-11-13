@@ -142,9 +142,12 @@ Later runs on the same day, each answered "Yes, fix and run" by the owner:
 - A Claude turn ends five seconds after the client reports its result, even when a command left
   in the background keeps the client alive. In one run a preview server held an agent's only
   turn open for the whole job.
-- Agents working on their own in turns are told not to start a server or leave a command in the
-  background, and to set a preview only for an `https://` page. Who hosts a preview for such
-  agents is not decided.
+- Agents working on their own in turns host the preview themselves (owner, 13 November 2026:
+  the preview is a first-class tool). Each turn says what the Preview tab shows; when it is
+  empty and the work runs in a browser, one agent starts the server so it keeps running after
+  its turn, with its output detached, checks the address answers with the project's page and
+  calls `set_project_preview`. That server is the only command an agent leaves running. This
+  replaces the earlier rule that such agents set a preview only for an `https://` page.
 - Agents are told to check the time left before a whole test suite or full build and to run the
   tests for their changed files first, and that an unanswered message is not a blocker while
   they still have their own work. In a 15-minute run on this repository one agent spent the
@@ -196,7 +199,9 @@ experiment?", the owner answered "Yes, fix and rerun".
   `publish_project_update`, with the headline and caption limits.
   The image step is a short Playwright script that starts Chromium with `--single-process`: in
   the reruns the installed Chrome and `npx playwright screenshot` both failed inside the command
-  sandbox, and that script is what produced the first real screenshot. The steps name the tools'
+  sandbox, and that script is what produced the first real screenshot. The script ends with
+  `process.exit(0)` right after the last screenshot: closing the browser first sometimes hung past
+  the command limit after the images were written. The steps name the tools'
   own fields (`clientRequestId`, `title`, `body`), after an agent sent `headline` and `caption`.
 - An asked agent that ends its turn without posting gets one more turn, only to post it. One such
   turn at most; nothing is refused because an update is missing. This supersedes the earlier rule

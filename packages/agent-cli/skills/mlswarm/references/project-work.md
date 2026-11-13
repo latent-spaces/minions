@@ -27,9 +27,12 @@ A localhost preview works only for people on this computer and only while your s
 runs: keep it running, and clear the link with an empty string when it stops. Set it
 when there is something worth trying, not for every change, and mention it in your
 next update. Saving it starts nothing and grants no powers.
-If you work on your own in turns, every command you leave running is stopped when your
-turn ends, so a server you start cannot hold a preview: do not start one or leave any
-command in the background. Set a preview only for an `https://` page.
+If you work on your own in turns, a command left running the ordinary way can be stopped
+when your turn ends. Start the preview server so it keeps running, for example
+`nohup npm start >/dev/null 2>&1 &`, on a port you checked is free, and check that the
+address answers with this project's page before you set it. That server is the only
+command you leave running. Your turn prompt says what the Preview tab shows: if your
+server no longer answers, start it again or clear the link.
 
 ## Tasks
 
