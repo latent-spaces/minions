@@ -10,25 +10,18 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
-## An agent's preview outlives its run — owner decision, 13 November 2026
+## A dead local preview is not a broken frame — owner decision, 13 November 2026
 
-Source: the owner on 13 November 2026, asking to fix “an agent's preview dies with its run”. An
-agent had started a static server for a plain HTML5 game inside its run and set the preview to
-`http://localhost:8791/index.html`; when the project's time ran out the server stopped with the
-run, and the Preview tab showed the browser's "This site can't be reached" frame.
+Source: the owner on 13 November 2026, asking to fix “an agent's preview dies with its run”, after
+the Preview tab showed the browser's "This site can't be reached" frame for a stopped
+`http://localhost:8791/index.html` server. Keeping the agent's server running is covered by
+[Agents on their own fill the Preview tab](#) and its follow-ups on `main` (the server runs until the
+agent is stopped or the project closes; a localhost preview is cleared at close). The owner chose
+that approach over a service-served preview proposed in the same change.
 
-- **The local service serves previews.** Background agents get the worker tool
-  `serve_project_preview`: the shared local service, which outlives runs, serves a folder inside
-  the agent's working folder on `127.0.0.1` and sets the project preview to it. It serves only
-  `GET`/`HEAD` of regular files inside that folder, never names starting with a dot, and keeps
-  the port per project, serving the same folder again after a restart. Builds serve their static
-  output folder. Agents no longer start servers for the preview; `set_project_preview` remains
-  for `https://` pages and servers that keep running.
-- **A dead local preview is not a broken frame.** The Preview tab checks a local link when it
-  opens and every 10 seconds; when nothing answers it shows "The preview isn't running", with
-  what to do, and shows the page again as soon as it answers.
-- This changes how the 10 November “Agent sets a link” preview is served; who may set it and the
-  frame's sandbox are unchanged.
+- The Preview tab checks a local (`http:`) link when it opens and every 10 seconds. When nothing
+  answers it shows "The preview isn't running", with what to do and **Check again**, and frames
+  the page again as soon as it answers. `https://` previews are framed as before.
 
 ## Setup registers Claude Code itself — owner decision, 13 November 2026
 

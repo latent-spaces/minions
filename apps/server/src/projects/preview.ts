@@ -16,7 +16,7 @@ export const isPreviewUrl = (value: string) => {
 };
 const PREVIEW_URL = z.string().max(500).refine(isPreviewUrl, 'Use an https:// link, or http://localhost:PORT for a server on this computer.');
 const PREVIEW = z.object({ schemaVersion: z.literal(1), url: PREVIEW_URL.nullable(), updatedBy: z.string().min(1).max(200), updatedAt: z.number().int().nonnegative() }).strict();
-export const PREVIEW_INPUT = { url: z.union([PREVIEW_URL, z.literal('')]).describe('The page to show in Preview: an https:// link, or http://localhost:PORT/… for a server on this computer that keeps running. An empty string removes it.') };
+export const PREVIEW_INPUT = { url: z.union([PREVIEW_URL, z.literal('')]).describe('The page to show in Preview: http://localhost:PORT/… for a server you started on this computer, or an https:// link. An empty string removes it.') };
 export type Preview = z.infer<typeof PREVIEW>;
 
 export const previewDoc = (id: string) => validatedCollection(`${projectSettingsPath(id)}`, value => {

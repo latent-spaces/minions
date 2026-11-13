@@ -597,7 +597,7 @@ export function serverFor(agent: WithId<Agent>, runId: string | undefined, now: 
 
   const progressActor = () => ({ kind: 'agent' as const, agent, runId: runId! });
   server.registerTool('set_project_preview', {
-    description: 'Show live work in the project’s Preview tab: a game, site or app people can try, in a frame. For plain web files (an HTML5 game, a static site, or a build’s output folder) use serve_project_preview instead: MyLittleSwarm serves them and keeps the preview working after your run ends. A server you start yourself stops when your run ends and leaves a dead link, so pass http://localhost:PORT/… only for a server that keeps running after you, and clear the link (empty string) when it stops. An https:// page works for everyone. Set it when there is something worth trying, not for every change. Saving it starts nothing and grants no powers; mention it in your next update.',
+    description: 'Show live work in the project’s Preview tab: a game, site or app people can try. Point it at a server you started on this computer (http://localhost:PORT/…) or an https:// page; the tab shows it in a frame. A localhost preview only works for people on this computer, and only while your server runs, so keep it running and clear the link (empty string) when it stops. Set it when there is something worth trying, not for every change. Saving it starts nothing and grants no powers; mention it in your next update.',
     inputSchema: PREVIEW_INPUT,
   }, input => run(() => setProjectPreview(currentProjectId(), progressActor(), input, now)));
   server.registerTool('publish_project_update', {

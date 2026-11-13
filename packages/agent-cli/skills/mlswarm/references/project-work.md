@@ -18,28 +18,18 @@ before repeating work after restart or an uncertain response.
 ## Preview
 
 When the project has live visuals people can try, such as a game, site or app, show
-them in the project's Preview tab as soon as a first version runs. The tab shows it in a frame.
-
-- **Plain web files** (an `index.html` with scripts, such as an HTML5 canvas game or a
-  static site): call `serve_project_preview`, with `folder` set to the folder that holds
-  the page, relative to your working folder (default: the working folder), and `page`
-  when it is not `index.html`. MyLittleSwarm on this computer serves that folder at
-  `http://127.0.0.1:PORT/` and keeps serving it after your run ends, and sets the preview
-  for you. It serves your saved files as they are, so a reload shows your latest changes;
-  call it again only to serve a different folder. Names that start with a dot are never served.
-- **A build step** (Vite, React and similar): build to static files and serve the output
-  folder, for example `folder: "dist"`. Build again after changes.
-- **An `https://` page** that is already online: pass it to `set_project_preview`.
-
-Without `serve_project_preview` among your tools, set a preview only for an `https://` page.
-
-Do not start a server yourself for the preview, such as `python3 -m http.server` or a dev
-server: every command you start stops when your run or turn ends, and the Preview tab is
-left on a dead link. A local preview works only for people on this computer. One agent owns
-the preview for the team: say so in a message so nobody sets a second one. Set it when there
-is something worth trying, not for every change, and mention it in your next update.
-Setting another link with `set_project_preview`, or clearing it with an empty string, stops
-the served folder. Saving it starts nothing and grants no powers.
+them in the project's Preview tab with `set_project_preview` as soon as a first version
+runs. Start the project's own dev server on this computer, or for plain files a static
+server such as `python3 -m http.server 8000` in the checkout, and pass its page, for
+example `http://localhost:5173/`, or pass an `https://` page. One agent owns the preview
+for the team: say so in a message so nobody starts a second server. The tab shows it in a frame.
+A localhost preview works only for people on this computer and only while your server
+runs: keep it running, and clear the link with an empty string when it stops. Set it
+when there is something worth trying, not for every change, and mention it in your
+next update. Saving it starts nothing and grants no powers.
+If you work on your own in turns, every command you leave running is stopped when your
+turn ends, so a server you start cannot hold a preview: do not start one or leave any
+command in the background. Set a preview only for an `https://` page.
 
 ## Tasks
 

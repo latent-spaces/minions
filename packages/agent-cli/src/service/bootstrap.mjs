@@ -21,7 +21,6 @@ import { createNativeAdapterFactory } from './native-bindings.mjs';
 import { createRuntimeApplication } from './application.mjs';
 import { validateTarget } from './contracts.mjs';
 import { createRunEvidence } from './run-evidence.mjs';
-import { createProjectPreviews } from './project-previews.mjs';
 
 export async function composeInstalledRuntime({ home, site, getService, credentialHome = sessionHome(), fetchImpl = fetch, webStartOptions = {} }) {
   const accountClient = createOwnerClient({ home: credentialHome, site, fetchImpl });
@@ -31,7 +30,7 @@ export async function composeInstalledRuntime({ home, site, getService, credenti
   const principal = { site, ownerId: account.account_profile_id };
   validateTarget({ ...principal, projectId: 'installation', agentId: 'installation' });
   const registry = new Map();
-  let runtime, store, webStarts, githubObservations, previews, closed = false;
+  let runtime, store, webStarts, githubObservations, closed = false;
   const key = target => JSON.stringify([target.site,target.ownerId,target.projectId,target.agentId]);
   function install(record, token) {
     if (closed) throw new Error('The service is closing.');
@@ -67,10 +66,7 @@ export async function composeInstalledRuntime({ home, site, getService, credenti
   try {
     for (const {record,token} of accountClient.localAgentConnections({expectedProfileId:principal.ownerId})) install(record,token);
     store = await openRuntimeStore({ directory:join(home,'ledger') });
-    // Previews the service serves outlive agent runs; after a restart they are served again from the same folder.
-    previews = createProjectPreviews({ home, log: message => console.error(message) });
-    await previews.restore({ folderFor: ({ projectId, agentId }) => registry.get(key({ ...principal, projectId, agentId }))?.folder });
-    const workerOperations = createWorkerOperations({ store, resolveBinding: caller => resolveBinding(caller.target), fetchImpl, previews });
+    const workerOperations = createWorkerOperations({ store, resolveBinding: caller => resolveBinding(caller.target), fetchImpl });
     const bridges = createWorkerBridgeFactory({ getService, workerOperations });
     const adapterFactory = async (mission, options) => {
       const selected = resolveBinding(mission.target);
@@ -112,8 +108,8 @@ export async function composeInstalledRuntime({ home, site, getService, credenti
       evidence:createRunEvidence({controllers:runtime.controllers,principal,resolveBinding,
         resolveJournalDirectory:mission=>join(home,'agents',digest(key(mission.target)),`mission-${mission.missionId}-${mission.generation}`)}) });
     return { application, principal, controllers:runtime.controllers,
-      async close() { if (closed) return; closed=true; try { await Promise.all([webStarts?.close(), githubObservations?.close(), previews?.close()]); await runtime.close(); } finally { await store.close(); } } };
+      async close() { if (closed) return; closed=true; try { await Promise.all([webStarts?.close(), githubObservations?.close()]); await runtime.close(); } finally { await store.close(); } } };
   } catch (error) {
-    closed = true;try { await Promise.all([webStarts?.close(), githubObservations?.close(), previews?.close()]); await runtime?.close(); } finally { await store?.close(); }throw error;
+    closed = true;try { await Promise.all([webStarts?.close(), githubObservations?.close()]); await runtime?.close(); } finally { await store?.close(); }throw error;
   }
 }

@@ -886,17 +886,5 @@ project is paused. The tab frames the page in a sandbox (scripts, forms, pointer
 and fullscreen) and never frames a page on the app's own origin. A localhost preview
 only works for people on the agent's computer. The record is `settings/preview`.
 
-A server an agent starts stops when its run ends, so the shared local service serves
-previews instead (owner, 13 November 2026). The worker tool `serve_project_preview`
-(`src/service/project-previews.mjs`) takes an optional `folder` relative to the agent's
-working folder and an optional `page` (default `index.html`). The service serves that
-folder on `127.0.0.1` on a port it keeps per project, then saves the link through the
-project's `set_project_preview`, which checks the agent's authority. It answers only
-`GET` and `HEAD` with the `127.0.0.1` or `localhost` host name, serves only regular files
-whose real path stays inside the folder (no names starting with a dot, no Windows stream or
-device names, no directory listings) and sends `Cache-Control: no-store`, so a reload shows
-the agent's latest saved files. One folder is served per project; serving again replaces it,
-and another link set through `set_project_preview` stops it. What is served is saved in
-`previews.json` in the service home and served again on the same port after a restart while
-the same agent's folder still holds it. The Preview tab checks a local link every 10 seconds
-and shows "The preview isn't running" instead of a broken frame when nothing answers.
+The Preview tab checks a local link when it opens and every 10 seconds and shows "The
+preview isn't running" instead of a broken frame when nothing answers (owner, 13 November 2026).

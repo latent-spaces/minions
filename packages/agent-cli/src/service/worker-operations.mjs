@@ -8,7 +8,6 @@ import { ensureHome, physicalPath, assertStateOutsideWorkspace, digest } from '.
 import { RuntimeError, sameTarget, validateTarget, validateUuid, validateGeneration } from './contracts.mjs';
 import { projectToolResult } from './project-tool-result.mjs';
 import { readWorkerGuidance, WORKER_GUIDE_TOOL } from '../worker-guidance.mjs';
-import { PREVIEW_TOOL } from './project-previews.mjs';
 
 const failure = (code, message) => { throw new RuntimeError(code, message); };
 const resultValue = reply => {
@@ -16,11 +15,10 @@ const resultValue = reply => {
   try { return JSON.parse(reply.result.content.find(item => item.type === 'text').text); }
   catch { failure('invalid_reply', 'Project context could not be verified.'); }
 };
-// `previews` is the service's preview server (project-previews.mjs); without it serve_project_preview is not offered.
-export function createWorkerOperations({ store, resolveBinding, fetchImpl = fetch, previews = null }) {
+export function createWorkerOperations({ store, resolveBinding, fetchImpl = fetch }) {
   if (!store || typeof resolveBinding !== 'function') throw new TypeError('A store and trusted worker binding resolver are required.');
   const generated = JSON.parse(verifyBundle().files['project-tools.json'].toString('utf8')).tools;
-  const catalog = [...generated, PROJECT_IMAGE_TOOL, WORKER_GUIDE_TOOL, ...(previews ? [PREVIEW_TOOL] : [])].map(tool => ({ ...structuredClone(tool), inputSchema: { type: 'object', properties: {}, ...structuredClone(tool.inputSchema ?? {}), additionalProperties: false } }));
+  const catalog = [...generated, PROJECT_IMAGE_TOOL, WORKER_GUIDE_TOOL].map(tool => ({ ...structuredClone(tool), inputSchema: { type: 'object', properties: {}, ...structuredClone(tool.inputSchema ?? {}), additionalProperties: false } }));
   const schemas = new Map(catalog.map(tool => [tool.name, z.fromJSONSchema(tool.inputSchema)]));
   const contexts = new Map();
   const keyFor = caller => {
@@ -48,7 +46,7 @@ export function createWorkerOperations({ store, resolveBinding, fetchImpl = fetc
         ensureHome(stateDir); assertStateOutsideWorkspace(stateDir, folder);
         const control = { url: binding.url, token: binding.token, runId: caller.missionId, closed: false, fatal: null, abort: new AbortController(), news: null, pollSeconds: 20 };
         const bridge = new ProjectOperations(control, join(stateDir, `sends-${digest(JSON.stringify([caller.missionId, caller.generation]))}.json`), { folder, fetchImpl, verifyProject: value => verifyIdentity(caller, value) });
-        return { control, bridge, stateDir, folder, verifiedTurn: null, lane: Promise.resolve() };
+        return { control, bridge, stateDir, verifiedTurn: null, lane: Promise.resolve() };
       }).catch(error => { contexts.delete(key); throw error; });
       contexts.set(key, pending);
     }
@@ -112,9 +110,7 @@ export function createWorkerOperations({ store, resolveBinding, fetchImpl = fetc
         if (reply?.error || !Array.isArray(reply?.result?.tools))
           failure('project_unavailable', 'Current project tools could not be verified.');
         const available = new Set(reply.result.tools.map(tool => tool.name));
-        // The service serves a preview only where the project offers set_project_preview to this agent.
-        const offered = tool => tool.name === WORKER_GUIDE_TOOL.name || available.has(tool.name) || tool.name === PREVIEW_TOOL.name && available.has('set_project_preview');
-        const tools = structuredClone(catalog.filter(offered));
+        const tools = structuredClone(catalog.filter(tool => tool.name === WORKER_GUIDE_TOOL.name || available.has(tool.name)));
         context.bridge.recordContext(measurement, { method: 'tools/list' }, { result: { tools } });
         return tools;
       });
@@ -136,19 +132,10 @@ export function createWorkerOperations({ store, resolveBinding, fetchImpl = fetc
           if (!guides) failure('guide_unavailable', 'This earlier mission has no workflow snapshot. Keep its original instructions; do not substitute the current package guide.');
           return measured({ content: [{ type: 'text', text: `MyLittleSwarm background-agent workflow (guide ${guides.guide_revision}, snapshot ${guides.sha256}). Apply only background-agent paths; owner/in-chat management is unavailable.\n\n${guides.sections[input.section]}` }] });
         }
-        if (name === PREVIEW_TOOL.name) {
-          // Serve first, then save the link through the project's own tool, which checks this agent's authority.
-          const served = await previews.serve({ projectId: caller.target.projectId, agentId: caller.target.agentId, folder: context.folder, root: input.folder ?? '', page: input.page ?? 'index.html' });
-          const reply = await context.bridge.call({ jsonrpc: '2.0', id: randomUUID(), method: 'tools/call', params: { name: 'set_project_preview', arguments: { url: served.url } } });
-          return measured(projectToolResult(reply, context.control.token));
-        }
         // A failed refresh may throw inside the prepared persona snapshot before
         // returning a reply. Revoke prior verification before that boundary.
         if (name === 'get_project') context.verifiedTurn = null;
         const reply = await context.bridge.call({ jsonrpc: '2.0', id: randomUUID(), method: 'tools/call', params: { name, arguments: input } });
-        // A different preview link replaces the one this service serves: stop serving it.
-        if (name === 'set_project_preview' && previews && reply?.result && !reply.result.isError && input.url !== previews.servedUrl(caller.target.projectId))
-          await previews.stop(caller.target.projectId);
         if (name === 'get_project') {
           const value = resultValue(reply); verifyIdentity(caller, value);
           context.control.news = { project: { started: value.project?.started === true, paused: value.project?.paused === true, closed: value.project?.completedAt != null } };

@@ -8,7 +8,7 @@ import {verifyBundle} from '../src/system.mjs';
 import {CONTEXT_TOOL_NAMES as CONTRACT_TOOL_NAMES} from '@mlswarm/contracts';
 
 test('canonical context counters cover every compiled and local worker tool',()=>{
- const names=JSON.parse(verifyBundle().files['project-tools.json']).tools.map(t=>t.name).concat(['upload_project_image','serve_project_preview','get_mlswarm_guide']);
+ const names=JSON.parse(verifyBundle().files['project-tools.json']).tools.map(t=>t.name).concat(['upload_project_image','get_mlswarm_guide']);
  assert.deepEqual([...CONTEXT_TOOL_NAMES].sort(),names.sort());
  assert.deepEqual([...CONTRACT_TOOL_NAMES],CONTEXT_TOOL_NAMES);
 });

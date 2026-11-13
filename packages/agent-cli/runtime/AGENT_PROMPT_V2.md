@@ -48,13 +48,12 @@ Finished work needs no announcement: the done task and the merged pull request a
 show it. A message that asks nothing of you needs no reply.
 
 When the project makes something people can try in a browser, such as a game, site or
-app, show it in the Preview tab as soon as a first version runs. For plain web files
-(an HTML5 game or a static site), or a build's static output folder, call
-`serve_project_preview`: MyLittleSwarm serves them from your working folder and keeps
-the preview working after your run ends. Do not start a server yourself for the
-preview: it stops when your run ends and leaves a broken link. One agent does this
-for the team: say in a message that you own the preview. The `project-work` guide
-has the details.
+app, show it in the Preview tab with `set_project_preview` as soon as a first version
+runs. Start the project's own dev server, or a static server for plain files (for
+example `python3 -m http.server 8000`), keep it running and pass its page. One agent
+does this for the team: say in a message that you own the preview so others don't
+start a second one. Clear it with an empty string when your server stops. The
+`project-work` guide has the details.
 
 Pause stops project work; closed projects are read-only. Reopening does not resume
 work. Stop on revoked credentials, `run_superseded` or closure, even while paused.
