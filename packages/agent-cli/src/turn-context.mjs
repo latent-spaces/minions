@@ -23,7 +23,7 @@ const KEEP_GOING = deadlineAt => 'Your last turn ended with the minutes above st
   + 'deduplicated: true or intent_conflict in the reply means it was already asked: do not ask again. The owner\'s answer comes back to you: acknowledge it, pass it on with send_message to the teammates it concerns, and do your part. '
   + 'Then say what you checked in one line and end the turn; you are not asked again until something changes.\n';
 // Every line of someone else's text is quoted, so a heading or instruction inside it stays inside the quote.
-const quoted = text => String(text).split(/\r?\n/).map(line => `> ${line}`).join('\n');
+export const quoted = text => String(text).split(/\r?\n/).map(line => `> ${line}`).join('\n');
 const inboxLine = ({ pending, acknowledged }) => `${pending} delivered ${pending === 1 ? 'item is' : 'items are'} not acknowledged yet; ${acknowledged} acknowledged so far.`;
 // The turn prompt is Markdown, so a person reading an agent's turn can follow it (owner decision, 14 November 2026).
 // The owner's steering and other people's text stay quoted data under their own headings.

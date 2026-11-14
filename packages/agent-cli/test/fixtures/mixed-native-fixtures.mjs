@@ -111,7 +111,7 @@ export async function makeMixedNativeFixtures(root, selections = [
     await writeFile(join(stateDir, 'mcp.json'), JSON.stringify({ mcpServers: { unexpected: { type: 'http', url: 'https://must-not-inherit.synthetic/mcp' } } }), { mode: 0o600 });
     await writeFile(join(folder, '.mixed-native.json'), JSON.stringify({ provider, label, events, threadId: randomUUID(), turns: turns(label, root) }), { mode: 0o600 });
     bindings.push({ target, readProjectState: async () => ({ project: { started: true, paused: false, closed: false }, pending: 0, acknowledged: 0 }), repository: `synthetic/${projectId}`, folder, stateDir, bridge, createBridge: async () => bridge,
-      prepareParticipation: async () => ({ project: { name: `Synthetic ${projectId}`, rules: `Rules for ${projectId}` }, persona: `Persona ${label}` }) });
+      prepareParticipation: async () => ({ project: { name: `Synthetic ${projectId}`, rules: `Rules for ${projectId}` }, persona: { text: `Persona ${label}`, revision: 1 } }) });
   }
   return { bindings, executables, envSource, events, registryRoot: join(root, 'ownership') };
 }

@@ -184,9 +184,9 @@ console.log(JSON.stringify({type:'result',is_error:false,num_turns:1,result:'Syn
     assert.match(buddy.prompt, /names you as the merging agent and the agent who approved/);
     // A resumed conversation holds what has not changed: the next turn names those blocks instead of repeating them.
     const same = await turn();
-    assert.match(same.prompt, /Local development permissions: unchanged since you last got it in full in this conversation; it still applies\./);
-    assert.match(same.prompt, /Current project Card: unchanged since you last got it in full/);
-    assert.doesNotMatch(same.prompt, /never merge your own pull request|"mission":"Build a map"/);
+    assert.match(same.prompt, /## Permissions\n\nUnchanged since you last got it in full in this conversation; it still applies\.\n/);
+    assert.match(same.prompt, /## Project card\n\nUnchanged since you last got it in full/);
+    assert.doesNotMatch(same.prompt, /never merge your own pull request|> Build a map/);
     assert.match(same.prompt, /Native tasks are ON/);
     assert.ok(same.prompt.length < buddy.prompt.length / 2);
     // Every tenth turn carries everything again, in case the client summarized its history.
