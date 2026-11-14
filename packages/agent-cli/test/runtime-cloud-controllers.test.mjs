@@ -101,7 +101,7 @@ test('an inbox retry explains the pending handoff and becomes idle after actual 
       // Reproduce the experiment: finished implementation, but two inbox items
       // remain unread/unacknowledged when the first turn returns waiting.
       if (ctx.frames.length === 1) return result();
-      assert.match(frame.options.prompt, /TURN_CONTEXT_JSON: {"trigger":"retry","inbox":{"pending":2,"acknowledged":5}}/);
+      assert.match(frame.options.prompt, /This turn started for: `retry`\. 2 delivered items are not acknowledged yet; 5 acknowledged so far\./);
       assert.match(frame.options.prompt, /Even if your implementation is finished/);
       assert.match(frame.options.prompt, /ack equal to the actual returned position/);
       assert.match(frame.options.prompt, /Do not infer an acknowledgment position/);
