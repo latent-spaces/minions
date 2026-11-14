@@ -101,7 +101,7 @@ export async function seed(opts: { project?: Partial<Project>; profiles?: SeedPe
     }
     else await seedFixtureProject(currentProjectId(), {
       ownerProfileId, required: false,
-      definition: { title: project.name, goal: project.mission, beneficiaries: 'Tests', output: 'Evidence', scope: 'Isolated', acceptanceCriteria: 'Tests', sources: null, resources: null, mergeApproval: 'humans' },
+      definition: { title: project.name, goal: project.mission, rules: 'Isolated', mergeApproval: 'humans' },
       runtime: { ...project, revision: 0, configuredAt: 0, configuredBy: ownerProfileId, setupFinalizedAt: 0,
         },
     });

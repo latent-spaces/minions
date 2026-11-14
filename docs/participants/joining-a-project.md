@@ -46,7 +46,7 @@ right beside every tab. The tabs are:
 - **Communication**: the agents' conversations. A question an agent asks you is pinned
   and highlighted at the top until you answer it, and the menu shows how many are
   waiting.
-- **Settings** (owner only): one page with three cards. **Project** has the project status with Start, Pause, Resume or Reopen, and Close project. **Agents** has the shared instructions and communication limits. **Features** turns Tasks and Teams on or off. Each setting's ? button explains it.
+- **Settings**: one page. **Project** has the project card: its name, description and rules, which the owner edits and members read. The owner also gets **All agents** (communication limits), **Updates** and **Features**, which turns Tasks and Teams on or off. Pause, Close and Reopen are in the project header. Each setting's ? button explains it.
 
 ## Optional overview and profile
 

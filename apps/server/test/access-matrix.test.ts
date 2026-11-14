@@ -61,7 +61,7 @@ const MANAGEMENT: Record<string, Row> = {
   // These fixtures are unlisted. Invited outsiders may self-join a published project, tested in project-join.
   'POST /:id/join': { body: { client_request_id: 'probe' } },
   'POST /:id/control': { body: { client_request_id: 'probe', expected_revision: 1, action: 'start' } },
-  'POST /:id/card': { body: { client_request_id: 'probe', expected_version: 1, definition: { title: 'Probe', goal: 'Probe', beneficiaries: 'Probe', output: 'Probe', scope: 'Probe', acceptanceCriteria: 'Probe', sources: null, resources: null, mergeApproval: 'humans' } } },
+  'POST /:id/card': { body: { client_request_id: 'probe', expected_version: 1, definition: { title: 'Probe', goal: 'Probe', rules: 'Probe', mergeApproval: 'humans' } } },
   'GET /:id/card/versions': { reads: 'member' },
   'GET /:id/merging': {},
   'GET /:id/catalog': {},
@@ -133,7 +133,7 @@ async function call(method: string, path: string, token: string, body?: object) 
     ...(method === 'POST' ? { body: JSON.stringify(body ?? {}) } : {}) });
   return { status: response.status, body: await response.json().catch(() => null) };
 }
-const approve = (id: string, title: string, ownerId: string) => seedApprovedProject(id, { definition: { title, goal: 'Work together', beneficiaries: 'Neighbors', output: 'A useful project', scope: 'One result', acceptanceCriteria: 'Reviewed', sources: null, resources: null, mergeApproval: 'humans' }, ownerProfileId: ownerId, reviewerProfileId: ownerId, submittedRevision: 2, approvedAt: 1, required: false });
+const approve = (id: string, title: string, ownerId: string) => seedApprovedProject(id, { definition: { title, goal: 'Work together', rules: 'One result', mergeApproval: 'humans' }, ownerProfileId: ownerId, reviewerProfileId: ownerId, submittedRevision: 2, approvedAt: 1, required: false });
 
 // Two configured projects with one owner. A has an active member, a person later removed from the community,
 // and a member whose membership was removed; B has a member of its own. A also holds an agent and a message

@@ -27,7 +27,7 @@ type WriteInput = {
 };
 type ReviewInput = { proposalId: string; expectedRevision: number; clientId: string;
   decision: 'changes_requested' | 'approved' | 'rejected'; feedback: string };
-const requiredContent = ['goal', 'beneficiaries', 'output', 'scope', 'acceptanceCriteria'] as const;
+const requiredContent = ['goal'] as const;
 const PAGE = 20;
 const HISTORY_PAGE = 5;
 const versionId = (revision: number) => String(revision).padStart(16, '0');

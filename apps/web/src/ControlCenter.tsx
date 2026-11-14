@@ -24,8 +24,8 @@ export function ControlCenter({ user, workspace, refresh, active, refreshKey }: 
     <header className="control-center-heading"><h2 id="control-center-title" className="k42-section-title">Settings</h2></header>
     <div className="settings-category-pages control-center-stack">
       <section className="settings-card" aria-labelledby="settings-project-title">
-        <header className="settings-group-title settings-group-head"><span className="settings-group-icon" aria-hidden="true"><FileText size={18} /></span><div><h3 id="settings-project-title">Project</h3><p>The project's name and description, as everyone sees them.</p></div></header>
-        <CardSettings mode="basics" request={catalogRequest} workspace={workspace} definition={workspace.definition} refresh={refresh} active={active} />
+        <header className="settings-group-title settings-group-head"><span className="settings-group-icon" aria-hidden="true"><FileText size={18} /></span><div><h3 id="settings-project-title">Project</h3><p>The project's name, description and rules. Everyone sees them, and every agent works within them.</p></div></header>
+        <CardSettings request={catalogRequest} workspace={workspace} definition={workspace.definition} refresh={refresh} active={active} />
       </section>
       <MyCharacter key={user.uid} user={user} active={active} onSaved={refresh} />
       {isOwner && <>
@@ -33,8 +33,6 @@ export function ControlCenter({ user, workspace, refresh, active, refreshKey }: 
       <fieldset className="control-center-editable control-center-stack" disabled={closed}>
         <section className="settings-card" aria-labelledby="settings-agents-title">
           <header className="settings-group-title settings-group-head"><span className="settings-group-icon" aria-hidden="true"><Users size={18} /></span><div><h3 id="settings-agents-title">All agents</h3><p>Every agent in this project follows these, yours and other people’s.</p></div></header>
-          {/* The owner edits the Card, shared instructions included (server editCard). */}
-          <CardSettings mode="guidance" request={catalogRequest} workspace={workspace} definition={workspace.definition} refresh={refresh} active={active} />
           <CommunicationLimits key={`${user.uid}:${workspace.id}:communication`} user={user} projectId={workspace.id} active={active} tick={refreshKey} />
         </section>
         <section className="settings-card" aria-labelledby="settings-updates-title">

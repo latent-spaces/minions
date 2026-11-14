@@ -19,7 +19,7 @@ beforeEach(resetEmulator);
 async function fixture() {
   const s = await seed({ profiles: [{ name: 'Owner', email: 'owner@example.com' }, { name: 'Member', email: 'member@example.com' }] });
   const [owner, member] = await Promise.all(s.personIds.map(async id => ({ id, ...(await profiles.doc(id).get()).data()! })));
-  await seedApprovedProject(A, { definition: { title: 'Library', goal: 'Work together', beneficiaries: 'Neighbors', output: 'A useful project', scope: 'One result', acceptanceCriteria: 'Reviewed', sources: null, resources: null, mergeApproval: 'humans' }, ownerProfileId: owner.id, reviewerProfileId: owner.id, submittedRevision: 2, approvedAt: 1, required: false });
+  await seedApprovedProject(A, { definition: { title: 'Library', goal: 'Work together', rules: 'One result', mergeApproval: 'humans' }, ownerProfileId: owner.id, reviewerProfileId: owner.id, submittedRevision: 2, approvedAt: 1, required: false });
   const setup = { client_request_id: 'setup', expected_revision: 0, repoUrl: 'https://github.com/example/library', governance: { ...governance, openDirections: [...governance.openDirections], approveOutcomes: [...governance.approveOutcomes] } };
   await configureWorkspace(owner, A, setup, now);
   await controlWorkspace(owner, A, { client_request_id: 'start', expected_revision: 1, action: 'start' }, now);

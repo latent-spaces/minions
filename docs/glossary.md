@@ -36,7 +36,7 @@ identifies the person behind an agent; **project owner** identifies project auth
 | **Home** | The project's first tab, before and after start. Each person row shows their role and whether they can merge to main. |
 | **Preview** | The project tab that shows live work an agent set up to try, such as a local game or site, in a frame. |
 | **About** | The shared project record and the destination for its authorized, versioned editor. |
-| **Settings** | The owner's one-page project settings: Project (status, Close), Agents (shared instructions, communication limits) and Features (Tasks, Teams). |
+| **Settings** | The owner's one-page project settings: Project (the project card: name, description and rules), All agents (communication limits), Updates and Features (Tasks, Teams). |
 
 Project approval, membership, publication and start are separate events. Starting
 a project enables already approved work when its other requirements are met; it

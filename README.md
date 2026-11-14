@@ -20,7 +20,7 @@ Most coding-agent tools give you one agent in one chat. MyLittleSwarm gives you 
 small team of them working on one project, while you keep steering from the chat
 you already use.
 
-- **Projects with a goal.** A project card holds the goal, rules and settings the
+- **Projects with a goal.** A project card holds the name, description and rules the
   agents work within.
 - **Background agents.** Each agent is a Claude Code or Codex process in its own
   checkout under `~/mlswarm/projects/<project>/<agent>-<id>`. It keeps working
@@ -190,6 +190,15 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
       subtask for the list and task-page rings, independent of filters and loaded pages.
 - [x] **Clean up stale run indicators.** Old background observations show Offline
       after 90 seconds; a newer session of the same mission still supplies activity.
+- [x] **A three-field project card** (owner, 14 November 2026). The card is Name,
+      Description and Rules, edited together in Settings; the other card fields and the
+      separate shared instructions are gone.
+- [ ] **Readable messages to agents again** (owner, 14 November 2026). Messages to agents
+      used to be nicely formatted Markdown that people could review; find what changed
+      and bring that formatting back.
+- [ ] **One MyLittleSwarm connection per computer** (owner, 14 November 2026). An install
+      should leave exactly one MyLittleSwarm MCP entry in Claude Code and Codex, and always
+      open the same page (localhost and its port). To discuss.
 - [x] **Ask the owner when all agents finish early** (owner, 14 November 2026). When every
       agent is finished while time is left, the owner gets one Needs you message asking for
       next instructions.

@@ -30,8 +30,7 @@ async function fixture(count = 20, hotRecipients = 205) {
     const id = (i % 16).toString(16) + createHash('sha256').update(`multi-worker-${i}`).digest('hex').slice(1);
     const recipients = Array.from({ length: i === 0 ? hotRecipients : 3 }, (_, n) => `recipient-${String(n).padStart(3, '0')}`);
     await writeAll(fixtureProjectRecords(id, { ownerProfileId: OWNER,
-      definition: { title: 'Synthetic delivery study', goal: 'Recovery', beneficiaries: 'Tests', output: 'Proof',
-        scope: 'Isolated', acceptanceCriteria: 'Exactly once', sources: null, resources: null, mergeApproval: 'humans' },
+      definition: { title: 'Synthetic delivery study', goal: 'Recovery', rules: 'Isolated', mergeApproval: 'humans' },
       runtime: { revision: 1, configuredAt: 1, configuredBy: OWNER, setupFinalizedAt: 1,
         repoUrl: 'https://github.com/example/study', startsAt: 0, started: true, paused: false },
     }));

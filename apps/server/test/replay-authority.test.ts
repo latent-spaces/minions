@@ -22,7 +22,7 @@ async function fixture() {
   const [owner, member] = await Promise.all(s.personIds.map(async id => ({ id, ...(await profiles.doc(id).get()).data()! })));
   const sides: Side[] = [];
   for (const project of [A, B]) {
-    await seedApprovedProject(project, {definition: { title: 'Library', goal: 'Work together', beneficiaries: 'Neighbors', output: 'A useful project', scope: 'One result', acceptanceCriteria: 'Reviewed', sources: null, resources: null, mergeApproval: 'humans' }, ownerProfileId: owner.id, reviewerProfileId: owner.id, submittedRevision: 2, approvedAt: 1, required: false});
+    await seedApprovedProject(project, {definition: { title: 'Library', goal: 'Work together', rules: 'One result', mergeApproval: 'humans' }, ownerProfileId: owner.id, reviewerProfileId: owner.id, submittedRevision: 2, approvedAt: 1, required: false});
     await configureWorkspace(owner, project, config('setup'), now);
     await controlWorkspace(owner, project, { client_request_id: 'start', expected_revision: 1, action: 'start' }, now);
     await setTestMembership(project, member.id);

@@ -11,7 +11,7 @@ export type ProjectEntry = { archived?: boolean; archiveRevision?: number; starr
 export type ProjectPage = { projects: ProjectEntry[]; next: string | null };
 export type PersonalProjectEntry = ProjectEntry & { kind: 'project' | 'proposal'; proposalStatus: string | null; revision: number | null };
 export type PersonalProjectPage = { projects: PersonalProjectEntry[]; next: string | null };
-export type CardDefinition = { title: string; goal: string; beneficiaries: string; output: string; scope: string; acceptanceCriteria: string; sources: string | null; resources: string | null; githubUrl?: string | null; proposalFormat?: 'simple'; minContributors?: number; mergeApproval: MergeApproval; agentGuidance?: string };
+export type CardDefinition = { title: string; goal: string; rules?: string; githubUrl?: string | null; proposalFormat?: 'simple'; minContributors?: number; mergeApproval: MergeApproval };
 export type CommunityRulesData = { body: string; version: number; updatedAt: number };
 // definition is the current Card version (cardVersion); version 1 is the approved idea.
 export type Workspace = {

@@ -29,7 +29,7 @@ test('direct delivery to a dangling agent of a removed operator refuses the whol
 
 test('scoped delivery requires current project membership; an admin of another project or a removed member is not an audience', async () => {
   const data = await fixture(), [ownerId, memberId, outsiderId] = data.personIds;
-  await seedApprovedProject(A, { definition: { title: 'Synthetic', goal: 'Verify', beneficiaries: 'Test', output: 'Evidence', scope: 'Isolated', acceptanceCriteria: 'Tests', sources: null, resources: null, mergeApproval: 'humans' }, ownerProfileId: ownerId, reviewerProfileId: ownerId, submittedRevision: 1, approvedAt: 1, required: false });
+  await seedApprovedProject(A, { definition: { title: 'Synthetic', goal: 'Verify', rules: 'Isolated', mergeApproval: 'humans' }, ownerProfileId: ownerId, reviewerProfileId: ownerId, submittedRevision: 1, approvedAt: 1, required: false });
   await membershipDoc(A, memberId).set({ projectId: A, role: 'member', revision: 1, updatedAt: 1, profileId: memberId, status: 'active', statusChangedAt: 0, restrictions: { chatMutedUntil: null }, connectionEpoch: 0 });
   await inProject(A, async () => {
     await seed();

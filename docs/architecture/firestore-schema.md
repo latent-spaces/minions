@@ -178,7 +178,9 @@ setup; `setup.configuredAt` being null means no runtime configuration. Parent
 existence does not start work or grant execution readiness.
 
 Original approval is immutable in `approval/original`. The current project
-definition is `card/current`, with `cardVersions` history. Agent instructions derive
+definition is `card/current`, with `cardVersions` history. The card is a name (`title`),
+a description (`goal`) and optional `rules`; cards saved earlier keep their rules, and their
+scope and shared instructions are read as rules. Agent instructions derive
 from the current Card; the parent does not duplicate that text. Configuration and
 execution updates preserve ownership, approval and publication. Card version,
 control revision and publication revision are separate conflict fences.

@@ -13,7 +13,7 @@ const idOf = (name: string) => createHash('sha256').update(name).digest('hex');
 function records(name: string, deadline = new Date(due).toISOString()) {
   const id = idOf(name);
   const entries = fixtureProjectRecords(id, { ownerProfileId: owner.id,
-    definition: { title: name, goal: 'Scheduled collaboration', beneficiaries: 'Tests', output: 'Evidence', scope: 'Isolated', acceptanceCriteria: 'Focused checks', sources: null, resources: null, mergeApproval: 'humans' },
+    definition: { title: name, goal: 'Scheduled collaboration', rules: 'Isolated', mergeApproval: 'humans' },
     runtime: { revision: 1, configuredAt: due - 1000, configuredBy: owner.id, setupFinalizedAt: due - 1000,
       repoUrl: 'https://github.com/example/schedule', startsAt: 0,
       started: false, paused: true, awaitingKickoff: true,

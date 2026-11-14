@@ -10,6 +10,23 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## The project card is Name, Description and Rules — owner decision, 14 November 2026
+
+Source: the owner on 14 November 2026, asked to rethink the project card: “Name Description
+(instead of goal) and Rules that's it clean the reset”.
+
+- **Three fields.** The card is a name, a description and optional rules (up to 3,000
+  characters). Settings edits all three in the Project card, and every agent reads the
+  description as the project's mission and the rules with the merge rule.
+- **The rest is gone**: who it helps, expected output, scope, acceptance criteria,
+  sources, resources and the separate shared instructions in the All agents card.
+- **Old cards keep their meaning.** A card saved earlier is read with its scope and shared
+  instructions joined into its rules, unless it already had rules; the other fields are
+  dropped. Nothing is rewritten on disk until the next save.
+- **Storage keeps `goal`.** The description is still stored as `goal` and sent to agents as
+  `mission`, so no data migration is needed. The repository link, proposal format and
+  contributor minimum stay as project settings outside the card.
+
 ## A new task carries a message from its person — owner decision, 14 November 2026
 
 Source: the owner on 14 November 2026: “when a new task is created it needs a message from

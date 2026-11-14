@@ -21,10 +21,9 @@ export const CARD_EDIT = z.object({
   definition: PROPOSAL_CONTENT.refine(content => content.setupPlan === undefined, 'Setup plan belongs to project setup.'),
 }).strict();
 
-export function cardDefinition({ title, goal, beneficiaries, output, scope, acceptanceCriteria, sources, resources,
-  githubUrl, proposalFormat, minContributors, mergeApproval, agentGuidance }: ProposalContent): CardDefinition {
+export function cardDefinition({ title, goal, rules, githubUrl, proposalFormat, minContributors, mergeApproval }: ProposalContent): CardDefinition {
   // Stored definitions can contain additional metadata. Only Card fields may reach the public reader.
-  return { title, goal, beneficiaries, output, scope, acceptanceCriteria, sources, resources, mergeApproval, ...(agentGuidance !== undefined ? { agentGuidance } : {}),
+  return { title, goal, mergeApproval, ...(rules !== undefined ? { rules } : {}),
     ...(githubUrl !== undefined ? { githubUrl } : {}), ...(proposalFormat !== undefined ? { proposalFormat } : {}),
     ...(minContributors !== undefined ? { minContributors } : {}) };
 }
@@ -54,4 +53,4 @@ const MERGING: Record<MergeApproval, string> = {
 // The Card text agents read in get_project, derived again from the current version on every read.
 export const agentText = (definition: CardDefinition) => ({ name: definition.title, mission: definition.goal,
   mergeApproval: definition.mergeApproval,
-  rules: `Outcome: ${definition.output}\nRules: ${definition.scope}\nAcceptance: ${definition.acceptanceCriteria}\nMerging: ${MERGING[definition.mergeApproval]}${definition.agentGuidance ? `\nProject guidance: ${definition.agentGuidance}` : ''}` });
+  rules: `${definition.rules ? `Rules: ${definition.rules}\n` : ''}Merging: ${MERGING[definition.mergeApproval]}` });

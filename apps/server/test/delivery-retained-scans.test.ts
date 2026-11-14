@@ -51,7 +51,7 @@ test('scheduled starts are not delayed by retained started projects whose deadli
   const ownerId = 'scheduled-owner';
   const id = createHash('sha256').update('fresh-schedule').digest('hex');
   const entries = fixtureProjectRecords(id, { ownerProfileId: ownerId,
-    definition: { title: 'Fresh', goal: 'Scheduled collaboration', beneficiaries: 'Tests', output: 'Evidence', scope: 'Isolated', acceptanceCriteria: 'Focused checks', sources: null, resources: null, mergeApproval: 'humans' },
+    definition: { title: 'Fresh', goal: 'Scheduled collaboration', rules: 'Isolated', mergeApproval: 'humans' },
     runtime: { revision: 1, configuredAt: due - 1000, configuredBy: ownerId, setupFinalizedAt: due - 1000,
       repoUrl: 'https://github.com/example/schedule', startsAt: 0, started: false, paused: true, awaitingKickoff: true,
       minContributors: 20, startDeadline: new Date(due).toISOString() } });
@@ -324,7 +324,7 @@ async function seedScheduled(count: number, due: number) {
   for (let i = 0; i < count; i++) {
     const id = createHash('sha256').update(`burst${i}`).digest('hex');
     const records = fixtureProjectRecords(id, { ownerProfileId: 'burst-owner',
-      definition: { title: `Burst ${i}`, goal: 'Scheduled collaboration', beneficiaries: 'Tests', output: 'Evidence', scope: 'Isolated', acceptanceCriteria: 'Focused checks', sources: null, resources: null, mergeApproval: 'humans' },
+      definition: { title: `Burst ${i}`, goal: 'Scheduled collaboration', rules: 'Isolated', mergeApproval: 'humans' },
       runtime: { revision: 1, configuredAt: due - 1000, configuredBy: 'burst-owner', setupFinalizedAt: due - 1000,
         repoUrl: 'https://github.com/example/burst', startsAt: 0, started: false, paused: true, awaitingKickoff: true,
         minContributors: 20, startDeadline: new Date(due).toISOString() } });

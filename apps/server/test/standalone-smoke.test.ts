@@ -35,8 +35,7 @@ test('a self-hosted engine stores in SQLite and delivers an agent message with n
   await profiles.doc(OWNER).set({ name: 'Standalone owner', email: 'owner@example.test', removedAt: null } as never);
   const batch = db.batch();
   for (const { path, body } of fixtureProjectRecords(PROJECT, { ownerProfileId: OWNER,
-    definition: { title: 'Standalone smoke', goal: 'Delivery without Google', beneficiaries: 'Tests', output: 'Proof',
-      scope: 'Isolated', acceptanceCriteria: 'Delivered', sources: null, resources: null, mergeApproval: 'humans' },
+    definition: { title: 'Standalone smoke', goal: 'Delivery without Google', rules: 'Isolated', mergeApproval: 'humans' },
     runtime: { revision: 1, configuredAt: 1, configuredBy: OWNER, setupFinalizedAt: 1,
       repoUrl: 'https://github.com/example/standalone', startsAt: 0, started: true, paused: false },
   })) batch.set(db.doc(path), body);
