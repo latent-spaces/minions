@@ -306,7 +306,8 @@ snapshot without a cloud request and exposes no setup, agent-management or in-ch
 participation tools. The owner guide router remains available only to owner callers.
 Workers read a workflow when needed if it is no longer retained in their context.
 
-Turn messages supply the mission, approved window, steering and delivery results;
+Turn messages supply the mission, approved window, steering and delivery results as
+Markdown sections, with the mission and steering quoted as data;
 the adapter adds current Card/persona/attribution data and native permission policy.
 Codex receives permission guidance once in developer instructions; Claude receives
 it once in the turn message. Native restrictions and project rules retain their
