@@ -20,6 +20,20 @@ The host passes in:
 - how to handle a crowded map (`crowding`, see [Crowded maps](#crowded-maps));
 - callbacks for hovering an agent, selecting an agent and clicking a connection.
 
+The 2D map normalizes projected positions into its actual usable rectangle, with
+screen-space gutters for portraits, state bubbles and names. Each axis fits
+independently; distances and angles are visual, not a measure of collaboration.
+The worker's world coordinates and connection identities remain unchanged. Manual
+pan and zoom operate on the same projection, and Fit map restores the bounds.
+The lab can pass `viewportLayout={null}` to compare the earlier camera fitting.
+The 3D camera retains its existing projection.
+
+People have 50px portraits against 40px agent portraits (1.25×). Rings, connector
+masks and hit targets scale together; label type remains 12px. The compact overview
+shows state bubbles and names, hiding names that overlap another portrait or name.
+Status and focus text stay in inspection; hover, focus or selection reveals text.
+Accessible names and keyboard targets remain available when visual labels hide.
+
 The map owns its camera and its layout worker. It does not fetch data, sign anyone in or control agents. The
 host decides what selecting an agent or a connection does.
 
@@ -64,7 +78,7 @@ questions never create connections.
 
 ## Crowded maps
 
-Avatars keep a fixed 40px size, so many agents in a small pane overlap. The host picks
+Agents keep a fixed 40px size and people 50px, so dense rosters can still overlap. The host picks
 a `crowding` option; the default is `portraits`. Home uses `focus-active`.
 
 - **When it counts as crowded.** The map checks, on a 44px grid, what share of avatars
@@ -77,7 +91,9 @@ a `crowding` option; the default is `portraits`. Home uses `focus-active`.
 - **`shrink`**: other agents shrink with the space available, down to 40%.
 - **`dots`**: when crowded, other agents become small dots in their owner's color
   (30% size; people 45%). A dot's hover target stays about 42px wide.
-- **`focus-active`**: dots, and when the fit-everyone view is crowded, the camera fits
+- **`focus-active`**: dots. With the default bounds projection, every node stays
+  in the overview. In the earlier camera comparison (`viewportLayout={null}`),
+  when the fit-everyone view is crowded, the camera fits
   the featured agents instead, easing toward them with a 2.5-second time constant in
   both directions. A paused map holds its camera still. A line at the bottom right says
   "+N agents outside view · Show all"; **Show all** fits every agent until **Fit map**

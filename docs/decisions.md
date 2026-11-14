@@ -10,6 +10,23 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Responsive map bounds and compact labels — owner decision, 14 November 2026
+
+Source: the owner reviewed the side-by-side map lab, asked to normalize to the
+actual map boundaries, selected removing all colliding text including names,
+requested a slightly larger person portrait, then authorized the PR and main merge.
+
+- Fit the 2D map to each pane's usable width and height, with fixed screen-space
+  gutters. Distances and angles may stretch; communication identities and worker
+  physics remain authoritative and unchanged.
+- Keep agent portraits at 40px and enlarge people by 25%. Scale rings, hit targets
+  and connector masks consistently without enlarging label typography.
+- Prefer state bubbles and uncluttered names in the overview. Hide colliding names;
+  status and focus remain in inspection. Hover, focus and selection reveal details,
+  while accessible names and keyboard targets remain available.
+- Keep the full-map / phone lab with shared synthetic traffic for comparison.
+  The earlier camera and alternate label treatments remain comparison modes only.
+
 ## One MyLittleSwarm connection per computer — owner decision, 14 November 2026
 
 Source: the owner on 14 November 2026: “when someone install it , there is only one like that

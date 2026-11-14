@@ -30,11 +30,16 @@ const [mode, file] = process.argv.slice(2);
 if (mode === 'grandchild') {
   process.on('SIGINT', () => {}); process.on('SIGTERM', () => {});
   writeFileSync(file, JSON.stringify({ child: process.ppid, grandchild: process.pid }));
+  process.send?.('ready');
   setInterval(() => {}, 1000);
 } else {
-  const grandchild = spawn(process.execPath, [process.argv[1], 'grandchild', file], { stdio: 'ignore' });
+  const grandchild = spawn(process.execPath, [process.argv[1], 'grandchild', file], { stdio: ['ignore', 'ignore', 'ignore', 'ipc'] });
   process.on('SIGINT', () => {}); process.on('SIGTERM', () => {});
-  if (mode === 'failure') setTimeout(() => process.exit(7), 300);
+  if (mode === 'failure') {
+    // Exercise cleanup after the descendant exists, rather than racing its startup.
+    const timeout = setTimeout(() => process.exit(8), 4000);
+    grandchild.once('message', () => { clearTimeout(timeout); process.exit(7); });
+  }
   else setInterval(() => {}, 1000);
 }
 `;

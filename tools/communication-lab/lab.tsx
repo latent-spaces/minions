@@ -1,51 +1,51 @@
-import {useEffect,useRef,useState} from 'react';
-import {CommunicationMap,type ConnectorStyle} from '../../apps/web/src/ui/communication-map/CommunicationMap';
+import {useCallback,useEffect,useRef,useState} from 'react';
+import {Maximize2,Minimize2} from 'lucide-react';
+import {CommunicationMap} from '../../apps/web/src/ui/communication-map/CommunicationMap';
+import {CommunicationAgentTooltip} from '../../apps/web/src/ui/CommunicationAgentNode';
 import {ConnectionMessagePreview} from '../../apps/web/src/ui/communication-map/ConnectionMessagePreview';
-import {agentCharacter} from '../../apps/web/src/ui/character-set';
-import type {Traffic} from '../../apps/web/src/ui/communication-map/layout';
 import '../../apps/web/src/styles.css';
 import '../../apps/web/src/ui/theme.css';
 import '../../apps/web/src/ui/project-communication.css';
 import '../../apps/web/src/ui/profile-page.css';
+import '../../apps/web/src/ui/project-home.css';
+import '../../apps/web/src/ui/application-shell.css';
+import '../../apps/web/src/ui/segments.css';
+import Review,{type Treatment} from './review';
+import {normalizeToViewport} from '../../apps/web/src/ui/communication-map/viewport-layout';
+import {sampleNodes as nodes,sampleCount,useSample} from './sample';
 import './lab.css';
-const styles:{id:ConnectorStyle;name:string;detail:string}[]=[
- {id:'current',name:'Current ink',detail:'The existing straight line and single message dot.'},
- {id:'lavender',name:'Soft lavender',detail:'Thinner, muted line with a smaller message dot.'},
- {id:'packet-trail',name:'Small dot trail',detail:'Thin straight line with three small dots per message.'},
- {id:'envelope',name:'Tiny envelope',detail:'A small outlined paper envelope, only while a message travels.'},
- {id:'tube',name:'Soft tube',detail:'A thin, rounded tube with a small traveling swell.'},
- {id:'round-tube',name:'Round bulge',detail:'A softer pill-shaped bulge around a small warm bead.'},
- {id:'rubber-tube',name:'Rubber tube',detail:'A thin rubber tube with a small rounded traveling swell.'},
-];
-const identityFor=(animal:string)=>{let i=0;while(agentCharacter(`lab-agent-${i}`).id!==animal)i++;return `lab-agent-${i}`;};
-const nodes=[
- {id:'person:demo',personId:'demo',character:'person-03' as const,name:'You',ownerId:'demo',ownerName:'You'},
- {id:identityFor('fox'),name:'Builder',ownerId:'demo',ownerName:'You'},
- {id:identityFor('owl'),name:'Reviewer',ownerId:'demo',ownerName:'You'},
- {id:identityFor('frog'),name:'Explorer',ownerId:'demo',ownerName:'You'},
-];
-const pairs=[[nodes[0].id,nodes[1].id],[nodes[1].id,nodes[2].id],[nodes[2].id,nodes[3].id]];
-const observations=new Map();
-const noop=()=>{};
-const loadSample=async(id:string)=>'The revised map is ready for review. I kept the connectors thin and the characters clearly visible, and linked this recent exchange to its conversation. '+id+' Extra detail remains in the full conversation rather than the small preview.';
-const start=Date.now();
-const message=(index:number,at:number):Traffic=>({id:`demo-${index}`,agentId:pairs[index%pairs.length][0],to:[pairs[index%pairs.length][1]],audience:'direct',createdAt:at});
-export default function Lab(){
- const [view,setView]=useState<ConnectorStyle|'all'|'tubes'>('rubber-tube');
- const [playing,setPlaying]=useState(true),[at,setAt]=useState(start);
- const [messages,setMessages]=useState<Traffic[]>(pairs.map((_,i)=>message(i,start-60_000)));
- const [sequence,setSequence]=useState(3),[autoSend,setAutoSend]=useState(false),[opened,setOpened]=useState('');
- const clock=useRef(at);clock.current=at;
- useEffect(()=>{if(!playing)return;let previous=performance.now();const timer=setInterval(()=>{const now=performance.now(),elapsed=now-previous;previous=now;if(!document.hidden)setAt(value=>value+elapsed);},100);return()=>clearInterval(timer);},[playing]);
- // New events are optional: old connections continue to replay visual pulses.
- const send=()=>{setMessages(rows=>[...rows.slice(-19),message(sequence,clock.current+1)]);setSequence(value=>value+1);setAt(value=>value+1);};
- useEffect(()=>{if(!playing||!autoSend)return;const timer=setInterval(send,4000);return()=>clearInterval(timer);},[playing,sequence,autoSend]);
- return <main className="connector-lab"><h1>Communication connectors</h1>
-  <p>Straight connector experiments on the existing map. Four synthetic characters; no live data or agents.</p>
-  <div className="connector-controls"><button onClick={()=>setPlaying(value=>!value)}>{playing?'Pause':'Play'}</button><button disabled={!playing} onClick={send}>Send sample message</button><label>View <select aria-label="View" value={view} onChange={e=>setView(e.target.value as ConnectorStyle|'all'|'tubes')}><option value="tubes">Compare tubes</option><option value="all">Compare all</option>{styles.map(style=><option key={style.id} value={style.id}>{style.name}</option>)}</select></label><label><input type="checkbox" checked={autoSend} onChange={e=>setAutoSend(e.target.checked)}/>New sample messages</label><span>Existing traffic repeats visually · hover a pipe for its latest message</span></div>
-  {opened&&<p role="status">{opened}</p>}
-  <div className={`connector-options${view==='tubes'?' is-tubes':view!=='all'?' is-focused':''}`}>{styles.filter(style=>view==='all'||(view==='tubes'?style.id.includes('tube'):style.id===view)).map(style=><section key={style.id}><h2>{style.name}</h2><p>{style.detail}</p>
-   <CommunicationMap connectorStyle={style.id} nodes={nodes} traffic={messages} at={at} now={at} running={playing} active replay={false} speed={1} observations={observations} selected={null} inspected={null} tooltipId={`lab-${style.id}`} onInspect={noop} onLeave={noop} onDismiss={noop} onSelect={noop} onEdge={(_from,_to)=>setOpened('Synthetic conversation opened')} renderEdgePreview={messageId=><ConnectionMessagePreview messageId={messageId} loadMessage={loadSample} href={'#conversation-'+messageId} onOpen={()=>setOpened('Synthetic conversation '+messageId+' opened')}/>}/>
-  </section>)}</div>
- </main>;
+
+const params=new URLSearchParams(location.search);
+/** Read-only synthetic host; every map pixel still comes from the production component. */
+function Simulation(){
+ const {at,playing,messages,observations,send,setPlaying,receive}=useSample(!params.has('embedded'));
+ const [treatment,setTreatment]=useState<Treatment>('current');
+ const [selected,setSelected]=useState<string|null>(null),[inspection,setInspection]=useState<{id:string;anchor:SVGGElement}|null>(null),[opened,setOpened]=useState<{from:string;to:string}|null>(null);
+ const leaveTimer=useRef<ReturnType<typeof setTimeout>|null>(null);
+ const keep=()=>{if(leaveTimer.current)clearTimeout(leaveTimer.current);};
+ const leave=()=>{keep();leaveTimer.current=setTimeout(()=>setInspection(null),180);};
+ useEffect(()=>()=>keep(),[]);
+ useEffect(()=>{if(!params.has('embedded'))return;const message=(event:MessageEvent)=>{if(event.origin!==location.origin||event.source!==parent||event.data?.type!=='lab-snapshot')return;receive(event.data.snapshot);setTreatment(event.data.treatment);};window.addEventListener('message',message);parent.postMessage({type:'lab-ready'},location.origin);return()=>window.removeEventListener('message',message);},[receive]);
+ const loadSample=useCallback(async(id:string)=>messages.find(message=>message.id===id)?.body??'Sample message no longer retained.',[messages]);
+ const openConversation=(from:string,to:string)=>{setInspection(null);setOpened({from,to});};
+ const nodeName=(id:string)=>nodes.find(node=>node.id===id)?.name??id;
+ const agent=inspection?observations.get(inspection.id):undefined;
+ const [expanded,setExpanded]=useState(params.get('device')==='fullscreen'),[controlsSlot,setControlsSlot]=useState<HTMLDivElement|null>(null);
+ const [measurement,setMeasurement]=useState('Measuring…');
+ useEffect(()=>{const map=document.querySelector('.communication-map');if(!map)return;const measure=()=>{const r=map.getBoundingClientRect();setMeasurement(`Viewport ${innerWidth} × ${innerHeight} · map ${Math.round(r.width)} × ${Math.round(r.height)} CSS px · 100% scale`);};const observer=new ResizeObserver(measure);observer.observe(map);window.addEventListener('resize',measure);measure();return()=>{observer.disconnect();window.removeEventListener('resize',measure);};},[expanded]);
+ const communication=<section className={`k42-swarm-panel k42-communication${expanded?' is-expanded':''}`}>
+  <div className="k42-activity-heading"><div ref={setControlsSlot} className="k42-communication-controls-slot"/><button className="k42-communication-fullscreen" aria-label={params.get('device')==='fullscreen'?'Full screen':expanded?'Exit full screen':'Full screen'} onClick={()=>{if(params.get('device')==='fullscreen'){if(document.fullscreenElement)void document.exitFullscreen();else void document.documentElement.requestFullscreen();}else setExpanded(value=>!value);}}>{expanded?<Minimize2 size={18}/>:<Maximize2 size={18}/>}</button></div>
+  <p className="k42-communication-refresh-status" aria-label="Refresh status"/>
+  <div className="k42-communication-body"><div className="k42-communication-network"><div className="k42-communication-graph"><div className="k42-communication-map-stage">
+  <CommunicationMap labelMode={treatment==='fill'||treatment==='smart'?'compact':treatment==='inspect'?'inspect':'full'} personScale={1.25} viewportLayout={treatment==='fill'?normalizeToViewport:null} controlsSlot={controlsSlot} toolbarStart={<span className="k42-map-counts">1 person · {sampleCount-1} agents shown</span>} crowding="focus-active" nodes={nodes} traffic={messages} at={at} now={at} running={playing} active replay={false} simulatedStates speed={1} observations={observations} selected={selected} inspected={inspection?.id??null} tooltipId="lab-agent-detail" onInspect={(id,anchor)=>{keep();setInspection({id,anchor});}} onLeave={leave} onDismiss={()=>{keep();setInspection(null);}} onSelect={setSelected} onEdge={openConversation} renderEdgePreview={messageId=><ConnectionMessagePreview messageId={messageId} loadMessage={loadSample} href="#sample-conversation" onOpen={()=>{const message=messages.find(row=>row.id===messageId);if(message)openConversation(message.agentId,message.to[0]);}}/>}/>
+  </div></div></div></div>
+ </section>;
+ return <div className="lab-simulation" data-treatment={treatment}><div className="lab-measurement">{measurement}<span>Synthetic data</span>{!params.has('embedded')&&<><button onClick={()=>setPlaying(value=>!value)}>{playing?'Pause':'Play'}</button><button onClick={send}>Send sample message</button><span role="status">{messages.filter(message=>message.id.startsWith('new-')).length} new messages · {playing?'Sending every 4s':'Paused'}</span></>}</div>
+ <div className="page workspace"><div className="workspace-layout"><aside className="project-sidebar lab-shell-sidebar"><strong>MyLittleSwarm</strong><p>Synthetic project</p><p>Tasks</p><p>Agents</p><p>Conversations</p></aside><div className="workspace-column"><main className="workspace-content"><div className="k42-project-layout"><div className="k42-project-main"><h1>Sample project</h1><p>Synthetic workspace · production layout CSS</p><div className="lab-message-log"><h2>Sample messages</h2><p>No live messages or agents.</p><ol>{messages.slice(-12).reverse().map(message=><li key={message.id}><button onClick={()=>openConversation(message.agentId,message.to[0])}><strong>{nodeName(message.agentId)} → {nodeName(message.to[0])}</strong><span>{message.body}</span></button></li>)}</ol></div></div><aside className="k42-updates-panel" data-open aria-label="Project updates and map"><div className="k42-task-segments k42-panel-switch"><button className="k42-task-segment" disabled>Updates</button><button className="k42-task-segment" aria-pressed="true">Map</button></div>{!expanded&&communication}</aside></div></main></div></div></div>
+ {expanded&&communication}
+  {inspection&&agent&&<CommunicationAgentTooltip id="lab-agent-detail" anchor={inspection.anchor} name={agent.name} agentId={agent.id} ownerLabel="Sample person" ownerId="demo" agent={agent} now={at} replay={false} simulated onKeep={keep} onLeave={leave} onDismiss={()=>setInspection(null)}/>}
+  {opened&&<div className="lab-conversation" role="dialog" aria-modal="true" aria-label="Synthetic conversation" onKeyDown={event=>{if(event.key==='Escape')setOpened(null);}}><header><h2>{nodeName(opened.from)} ↔ {nodeName(opened.to)}</h2><button autoFocus onClick={()=>setOpened(null)}>Close conversation</button></header><p>Synthetic conversation · no live agents</p><ol>{messages.filter(message=>message.agentId===opened.from&&message.to.includes(opened.to)||message.agentId===opened.to&&message.to.includes(opened.from)).map(message=><li key={message.id}><strong>{nodeName(message.agentId)}</strong><p>{message.body}</p></li>)}</ol></div>}
+ </div>;
 }
+
+export default function Lab(){return params.has('embedded')?<Simulation/>:<Review/>;}
