@@ -105,6 +105,8 @@ test('real communication card supports avatars, live states, hover, keyboard and
     await vite.listen();
     browser = await chromium.launch({ headless: true, ...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MLSWARM_TEST_BROWSER_EXECUTABLE } : {}) });
     const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } });
+    // Install before navigation so the application's polling timers are tracked.
+    await page.clock.install();
     await page.route('**/*', (route: any) => ['127.0.0.1','localhost'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
     const errors: string[] = []; page.on('pageerror', (e: Error) => errors.push(e.message));
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/__communication.html`);
@@ -253,7 +255,9 @@ test('real communication card supports avatars, live states, hover, keyboard and
     expect(await page.getByRole('tooltip').innerText()).toContain('Additional agent 66');
     expect(await page.getByRole('button',{name:/Select agent Additional agent 66/}).count()).toBe(1);
     // Rate limiting preserves the graph without bringing back the removed preview.
-    await page.clock.install();
+    // The remaining assertions cover polling/recovery, after visual acceptance.
+    // Freeze presentation frames while retaining every polling timer and request.
+    await page.evaluate(()=>{window.requestAnimationFrame=()=>0;});
     serverNow+=60001;
     const lastNodes=await page.locator('.communication-map .k42-communication-agent:not(.k42-communication-person) [data-character-avatar]').count();
     // The refresh notice must not move or resize the graph, even on mobile.
@@ -272,7 +276,13 @@ test('real communication card supports avatars, live states, hover, keyboard and
     // Frame reconciliation runs every 60 seconds. A tick during the 60-second
     // Retry-After hold is skipped, so recovery may need the following full interval.
     // Cover both bounds without weakening the no-extra-request assertion above.
-    await page.clock.fastForward(60000);await page.clock.fastForward(60000);await rateNotice.waitFor({state:'detached'});
+    // Advance the server clock too and yield for real HTTP / React work between
+    // ticks; a bulk browser-only jump can leave a new request's timer unpumped.
+    for(let elapsed=0;elapsed<120000&&await rateNotice.count();elapsed+=1000){
+      serverNow+=1000;await page.clock.runFor(1000);
+      await new Promise(resolve=>setTimeout(resolve,10));
+    }
+    await rateNotice.waitFor({state:'detached',timeout:5000});
     expect(await mapBounds()).toEqual(beforeNotice);
     expect(errors).toEqual([]);
   } finally {
