@@ -13,7 +13,7 @@ const pose=(clip:CharacterClip,bank:PoseBank,cell:number,interruptible=false):Ch
 export const neutralPose=()=>pose('neutral','directions',4,true);
 export function staticCharacterPose(state:CommunicationAgentState):CharacterPose {
   return state==='needs_you'?pose('needs-you','actions',5):state==='blocked'?pose('blocked','actions',6)
-    :state==='working'?pose('work-loop','actions',2):neutralPose();
+    :state==='working'?pose('work-loop','actions',2):state==='talking'?pose('message','actions',7):neutralPose();
 }
 
 /** One semantic owner. These poses never change the actual worker state. */
@@ -31,13 +31,13 @@ export class CharacterMotion {
     const working=this.state==='working'||this.phase==='work-enter'||this.phase==='work-loop';
     this.state=state;
     if(quiet(state)){this.phase='base';this.began=now;return;}
-    if(this.phase==='stop'&&['pausing','paused','stopped','completed','idle','waiting','pause_unconfirmed'].includes(state))return;
+    if(this.phase==='stop'&&['pausing','paused','stopped','completed','idle','talking','waiting','pause_unconfirmed'].includes(state))return;
     this.phase=working&&state!=='working'&&!['needs_you','blocked'].includes(state)?'stop':'entry';this.began=now;
   }
   message(id:string,now:number) {
     if(id===this.lastMessage)return;
     this.lastMessage=id;
-    if(!['working','idle','waiting','completed'].includes(this.state))return;
+    if(!['working','talking','idle','waiting','completed'].includes(this.state))return;
     this.phase='message';this.began=now;
   }
   afterPoke(now:number){this.blinkBegan=-Infinity;this.nextBlink=now+this.timing.interval;}
@@ -68,6 +68,8 @@ export class CharacterMotion {
     if(this.phase==='needs-you')return pose('needs-you','actions',5);
     if(this.phase==='blocked')return pose('blocked','actions',6);
     if(this.phase==='work-loop')return pose('work-loop','actions',2+Math.floor((elapsed+this.timing.offset)*this.timing.rate/420)%2,true);
+    // Talking: a short speaking pose every few seconds, otherwise the resting face.
+    if(this.state==='talking'){const beat=((elapsed+this.timing.offset)*this.timing.rate)%2600;if(beat<520)return pose('message','actions',beat<260?7:8,true);}
     // A due blink waits for gaze/reward ownership to finish. Advancing its
     // deadline only when it actually starts avoids dropping or replaying blinks.
     if(now-this.blinkBegan<140)return pose('blink','reactions',1,true);

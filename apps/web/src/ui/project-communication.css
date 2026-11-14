@@ -20,7 +20,7 @@
 .k42-communication-agent .k42-communication-initials { font-size:12px; font-weight:600; }
 .k42-communication-name { font-size:12px; font-weight:600; }
 .k42-communication-agent .k42-communication-state { font-size:12px; fill:var(--muted); }
-.k42-communication-agent .k42-communication-state:is(.state-working,.state-needs_you) { fill:var(--ink); font-weight:600; }
+.k42-communication-agent .k42-communication-state:is(.state-working,.state-talking,.state-needs_you) { fill:var(--ink); font-weight:600; }
 .k42-communication-agent-tooltip { position:fixed; z-index:80; width:min(280px,calc(100vw - 24px)); padding:16px; border:1px solid var(--hairline); border-radius:16px; color:var(--ink); background:var(--canvas); font-size:14px; line-height:1.43; overflow-wrap:anywhere; }
 .k42-communication-tooltip-identity { display:flex; align-items:center; gap:12px; padding-right:20px; }
 .k42-communication-tooltip-who { min-width:0; }

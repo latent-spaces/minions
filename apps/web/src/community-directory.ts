@@ -9,7 +9,8 @@ export type DirectoryAgent = { id: string; name: string; operatorId: string | nu
   usage?: { provider?: string } | null;
   state: CommunicationAgentState; freshUntil: number | null;
   personaChoice?: import('@mlswarm/contracts').PersonaChoice | null;
-  focus?: import('@mlswarm/contracts').AgentFocus | null };
+  focus?: import('@mlswarm/contracts').AgentFocus | null;
+  task?: import('./api').AgentRow['task'] };
 export type DirectoryKind = 'all' | 'people' | 'agents';
 export type DirectoryEntry =
   | { kind: 'person'; id: string; name: string; photo?: PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null; owner: boolean; agents: number }

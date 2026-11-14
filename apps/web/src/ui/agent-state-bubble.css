@@ -1,6 +1,7 @@
-.communication-map { --agent-state-working:#0066ff; --agent-state-waiting:#9a5b00; --agent-state-attention:#b42318; }
+.communication-map { --agent-state-working:#0066ff; --agent-state-talking:#6d3fd6; --agent-state-waiting:#9a5b00; --agent-state-attention:#b42318; }
 .agent-state-bubble { color:var(--text-muted,#6b6b6b); pointer-events:none; }
 .agent-state-bubble.state-working { color:var(--agent-state-working,#0066ff); }
+.agent-state-bubble.state-talking { color:var(--agent-state-talking,#6d3fd6); }
 .agent-state-bubble.state-waiting { color:var(--agent-state-waiting,#9a5b00); }
 .agent-state-bubble.state-pausing,.agent-state-bubble.state-pause_unconfirmed { color:var(--agent-state-waiting,#9a5b00); }
 .agent-state-bubble.state-needs_you { color:var(--agent-state-attention,#b42318); }
@@ -11,6 +12,7 @@
 .agent-state-bubble-alert { fill:none; stroke:currentColor; stroke-width:1.5; }
 .agent-state-bubble-symbol-motion,.agent-state-bubble-alert { transform-box:fill-box; transform-origin:center; }
 .state-working .agent-state-bubble-symbol-motion { animation:agent-state-turn 12s linear infinite; }
+.state-talking .agent-state-bubble-symbol-motion { transform-origin:center 80%; animation:agent-state-chat 1.6s ease-in-out infinite; }
 .state-waiting .agent-state-bubble-symbol-motion { animation:agent-state-wait 4s ease-in-out infinite; }
 .state-idle .agent-state-bubble-symbol-motion { animation:agent-state-breathe 5s ease-in-out infinite; }
 .state-needs_you .agent-state-bubble-symbol-motion { transform-origin:center 80%; animation:agent-state-attention 2s ease-in-out infinite; }
@@ -18,11 +20,13 @@
 .communication-map[data-state-motion="false"] .agent-state-bubble * { animation-play-state:paused; }
 .communication-map .has-state-bubble .k42-communication-state { fill:var(--text-muted,#6b6b6b); font-weight:500; }
 .communication-map .has-state-bubble .k42-communication-state.state-working { fill:var(--agent-state-working,#0066ff); }
+.communication-map .has-state-bubble .k42-communication-state.state-talking { fill:var(--agent-state-talking,#6d3fd6); }
 .communication-map .has-state-bubble .k42-communication-state.state-waiting { fill:var(--agent-state-waiting,#9a5b00); }
 .communication-map .has-state-bubble .k42-communication-state.state-pausing,.communication-map .has-state-bubble .k42-communication-state.state-pause_unconfirmed { fill:var(--agent-state-waiting,#9a5b00); }
 .communication-map .has-state-bubble .k42-communication-state.state-needs_you { fill:var(--agent-state-attention,#b42318); font-weight:700; }
 .communication-map .has-state-bubble .k42-communication-state.state-blocked { fill:var(--agent-state-waiting,#9a5b00); }
 @keyframes agent-state-turn { to { transform:rotate(360deg); } }
+@keyframes agent-state-chat { 0%,60%,100% { transform:translateY(0) scale(1); } 15% { transform:translateY(-1.5px) scale(1.06); } 30% { transform:translateY(0) scale(1); } 45% { transform:translateY(-1px) scale(1.04); } }
 @keyframes agent-state-wait { 0%,30% { transform:rotate(0); } 50%,80% { transform:rotate(180deg); } 100% { transform:rotate(360deg); } }
 @keyframes agent-state-breathe { 0%,100% { transform:scale(.88); opacity:.7; } 50% { transform:scale(1); opacity:1; } }
 @keyframes agent-state-attention { 0%,40%,100% { transform:rotate(0); } 8%,24% { transform:rotate(-12deg); } 16%,32% { transform:rotate(12deg); } }
@@ -33,6 +37,7 @@
 .k42-agent-status-icon { display:inline-flex; flex:none; align-items:center; justify-content:center; width:20px; height:20px; vertical-align:middle; color:var(--text-muted); }
 .k42-agent-status-icon > .agent-state-bubble-symbol-motion { display:flex; align-items:center; justify-content:center; }
 .k42-agent-status-icon.state-working { color:var(--agent-state-working,#0066ff); }
+.k42-agent-status-icon.state-talking { color:var(--agent-state-talking,#6d3fd6); }
 .k42-agent-status-icon:is(.state-waiting,.state-pausing,.state-pause_unconfirmed,.state-blocked) { color:var(--agent-state-waiting,#9a5b00); }
 .k42-agent-status-icon.state-needs_you { color:var(--agent-state-attention,#b42318); }
 .k42-agent-status-icon.is-overlay { position:absolute; top:-4px; right:-4px; z-index:3; border:1px solid currentColor; border-radius:50%; background:var(--canvas); box-sizing:border-box; }

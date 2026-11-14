@@ -1,4 +1,4 @@
-import { Circle, CircleHelp, Hand, Hourglass, Pause, Settings, Square, Check, WifiOff, Ban } from 'lucide-react';
+import { Circle, MessageCircle, CircleHelp, Hand, Hourglass, Pause, Settings, Square, Check, WifiOff, Ban } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 import type { CommunicationAgentState } from '@mlswarm/contracts';
 import { COMMUNICATION_AGENT_LABELS } from './communication-agent-state';
@@ -7,7 +7,7 @@ import './agent-state-bubble.css';
 
 /** Shared by the SVG map bubble and compact HTML status indicators. */
 export function AgentStateSymbol({ state, ...props }: LucideProps & { state: CommunicationAgentState }) {
-  const Icon = state === 'working' ? Settings : state === 'waiting' || state === 'pausing' ? Hourglass
+  const Icon = state === 'working' ? Settings : state === 'talking' ? MessageCircle : state === 'waiting' || state === 'pausing' ? Hourglass
     : state === 'needs_you' || state === 'blocked' ? Hand : state === 'idle' ? Circle
     : state === 'paused' ? Pause : state === 'completed' ? Check
     : state === 'offline' ? WifiOff : state === 'revoked' ? Ban

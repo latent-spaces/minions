@@ -10,6 +10,24 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Talking state, no gaze while busy, clearer agent cards — owner decisions, 14 November 2026
+
+Source: owner in the experiment-waves chat, answering three proposals with "1 ok",
+"2 ok server side" and "3 ok tasks should be only the current one or last one, no need
+for card design".
+
+- **No gaze while busy.** An avatar follows the pointer only while Idle, Waiting or Finished.
+  A Working or Talking agent keeps its own motion.
+- **Talking.** An agent between turns that sent an agent message in the last 90 seconds
+  is Talking, not Idle. The server works this out from the send times already kept on the
+  agent record, so the map, the Agents page, the sidebar and MCP `find_agents` agree.
+  Working, Needs you, Waiting and pause states win over Talking. It shows a speech bubble
+  in violet, and the character speaks in short beats.
+- **Agent cards.** Each card shows a status chip, then the agent's focus as the headline
+  (dimmed as "Last focus" once the agent is not running), then one task: the task in
+  progress, or else the most recently changed task assigned to it. No new card concepts
+  were made; the owner said none were needed.
+
 ## What “no expiry, no revoke” means for connections — owner decision, 13 November 2026
 
 Source: the owner's 13 November 2026 decision in [No computer approval: setup connects this computer by itself](#no-computer-approval-setup-connects-this-computer-by-itself--owner-decision-13-november-2026),

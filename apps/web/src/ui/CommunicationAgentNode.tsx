@@ -21,7 +21,7 @@ export function CommunicationAgentNode({ node, agent, now, selected, replay, sim
   const character = agentCharacter(node.id);
   const hat = agentHat(agent?.personaChoice, character.id);
   // A working agent shows what it is on right now (owner, from the 19 October onboarding test); the full line is in its title and tooltip.
-  const focus = !replay && state === 'working' ? agent?.focus?.text?.trim() ?? '' : '', focusCharacters = [...focus], focusLimit = compact ? 16 : 26;
+  const focus = !replay && (state === 'working' || state === 'talking') ? agent?.focus?.text?.trim() ?? '' : '', focusCharacters = [...focus], focusLimit = compact ? 16 : 26;
   return <g role="button" tabIndex={0} aria-label={`Select agent ${name}. ${simulated ? 'Simulated status' : 'Current status'}: ${label}.${ownerLabel ? ` Agent of: ${ownerLabel}.` : ''}${hat ? ` Persona: ${hat.label}.` : ''}${focus ? ` Focus: ${focus}` : ''}`}
     aria-pressed={selected} aria-describedby={inspecting ? tooltipId : undefined}
     className={`k42-communication-agent${!replay || simulated ? ' has-state-bubble' : ''}${selected ? ' selected' : ''}${crowded ? ' is-crowded' : ''}${inspecting ? ' is-inspecting' : ''}`} transform={`translate(${node.x},${node.y})`}

@@ -69,3 +69,10 @@ test('ordinary blinks wait for gaze ownership to finish, and pokes reset their c
   assert.equal(m.sample(11000+21333,false).clip,'neutral');
   assert.equal(m.sample(11000+21333,true).clip,'blink');
 });
+
+test('talking speaks in short beats between resting faces, and its still pose is the speaking one',()=>{
+  const motion=new CharacterMotion('talking',0,{interval:1e9,offset:0,rate:1});
+  const clips=[100,300,1200,2900].map(t=>motion.sample(t,false).clip);
+  assert.deepEqual(clips,['neutral','message','neutral','message']);
+  assert.equal(staticCharacterPose('talking').clip,'message');
+});

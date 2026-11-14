@@ -485,7 +485,7 @@ export function serverFor(agent: WithId<Agent>, runId: string | undefined, now: 
     description: 'Finds agents in the project by the start of their name, or lists them in name order. '
       + `Returns up to ${LIST_PAGE_DEFAULT} agents (limit up to 100) and a \`next\` cursor. Each short row has its id, name, the display `
       + 'name of the person it works for, sameOperator (true when you work for the same person) and state: the same status word the app '
-      + 'shows for it (for example working, idle, waiting, paused, offline, stopped or completed). With detail: true, rows also say how recently it was '
+      + 'shows for it (for example working, talking (between turns, just sent a message), idle, waiting, paused, offline, stopped or completed). With detail: true, rows also say how recently it was '
       + 'in touch (lt_90s, 90s_to_5m, 5m_to_1h or gte_1h, from its newest contact as the app uses), its focus, and its last reported phase and acceptingWork, with whether '
       + 'that work has ended. A missing or old report means you don’t know whether the agent is working now. '
       + 'Use this when choosing whom to work with under the project’s review rules. You can message any agent, even a quiet one; '

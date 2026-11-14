@@ -1,4 +1,4 @@
-import { AgentStatusIcon } from './AgentStatusIcon';
+import { AgentStateSymbol, AgentStatusIcon } from './AgentStatusIcon';
 import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Search, Users } from 'lucide-react';
 import { directoryCounts, directoryEntries, filterDirectory, type DirectoryAgent, type DirectoryKind, type DirectoryMember } from '../community-directory';
@@ -8,8 +8,11 @@ import { Button } from './Button';
 import { EmptyState } from './EmptyState';
 import { PersonAvatar } from './PersonAvatar';
 import { CodingAgentAvatar } from './CodingAgentAvatar';
-import { AgentFocus } from './AgentFocus';
+import { ago, time } from '../observation-time';
+import { statusLabel } from '../task-model';
+import type { CommunicationAgentState } from '@mlswarm/contracts';
 import { AvatarPokeButton } from './AvatarPoke';
+import './project-tasks.css';
 import './community-directory.css';
 
 /** The Community tab: everyone in the project, people (circles) and agents (rounded squares with their owner's badge).
@@ -49,10 +52,8 @@ export function CommunityDirectory({ projectId, members, agents, loading, now, g
             {entry.kind === 'agent' && <AgentStatusIcon state={entry.state} overlay />}</span>
           <span className="k42-directory-text"><strong>{entry.name}</strong>
             <small>{entry.kind === 'person' ? entry.owner ? 'Owner' : 'Member' : entry.ownerName ? `Agent of ${entry.ownerName}` : 'Agent'}</small></span>
-          <div className="k42-directory-meta">{entry.kind === 'person' ? `${entry.agents} loaded ${entry.agents === 1 ? 'agent' : 'agents'}` : <>
-            <span>{entry.status}</span>
-            <AgentFocus focus={agents.find(a => a.id === entry.id)?.focus} now={now} />
-          </>}</div>
+          {entry.kind === 'person' ? <div className="k42-directory-meta">{`${entry.agents} loaded ${entry.agents === 1 ? 'agent' : 'agents'}`}</div>
+            : <AgentCardDetails state={entry.state} status={entry.status} agent={agents.find(a => a.id === entry.id)} now={now} />}
         </NavLink>
         <AvatarPokeButton name={entry.name} className="k42-directory-poke" />
         {entry.kind === 'agent' && agentActions?.(entry.id)}
@@ -65,4 +66,18 @@ export function CommunityDirectory({ projectId, members, agents, loading, now, g
       </nav> : null;
     })}
   </section>;
+}
+
+const LIVE: CommunicationAgentState[] = ['working', 'talking', 'idle', 'waiting', 'needs_you', 'blocked', 'pausing', 'pause_unconfirmed'];
+/** An agent card's footer (owner, 14 November 2026): its status, its own focus as the headline, then its current or last task. */
+function AgentCardDetails({ state, status, agent, now }: { state: CommunicationAgentState; status: string; agent?: DirectoryAgent; now: number }) {
+  const focus = agent?.focus, task = agent?.task, live = LIVE.includes(state);
+  return <div className="k42-directory-meta is-agent">
+    <span className={`k42-agent-chip state-${state}`}><AgentStateSymbol state={state} size={13} strokeWidth={2.2} aria-hidden="true" />{status}</span>
+    {focus ? <p className={`k42-directory-focus${live ? '' : ' is-stale'}`} title={focus.text}>{focus.text}</p>
+      : <p className="k42-directory-focus is-empty">No focus reported yet</p>}
+    {focus && <small className="k42-directory-when">{live ? 'Focus' : 'Last focus'} · {ago(focus.updatedAt, now) ?? time(focus.updatedAt, false)}</small>}
+    {task && <p className="k42-directory-task" title={task.title}><span className="k42-directory-task-kind">{task.status === 'in_progress' ? 'Current task' : 'Last task'}</span>
+      <span className="k42-directory-task-title">{task.title}</span><span className={`k42-task-status is-${task.status}`}>{statusLabel(task.status)}</span></p>}
+  </div>;
 }

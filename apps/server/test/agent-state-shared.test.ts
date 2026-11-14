@@ -126,6 +126,17 @@ test('clock-only transitions: the same sources give a new state later, with no w
   expect(deriveAgentState(between, now + 29_500).state).toBe('pause_unconfirmed');
 });
 
+test('between turns, an agent that sent a message in the last 90 s is talking; working, needs you and pause win', () => {
+  const now = 1_000_000, worker = { runId: 'r', phase: 'waiting', lastContactAt: now - 1_000, deadlineAt: now + 3_600_000, projectPauseRevision: null } as never;
+  const sent = (at: number) => ({ revokedAt: null, recentSends: [now - 600_000, at] }) as never;
+  expect(deriveAgentState(base({ worker, agent: sent(now - 10_000) }), now).state).toBe('talking');
+  expect(deriveAgentState(base({ worker, agent: sent(now - 90_000) }), now).state).toBe('idle');
+  expect(deriveAgentState(base({ worker }), now).state).toBe('idle');
+  expect(deriveAgentState(base({ worker: { ...(worker as object), phase: 'working' } as never, agent: sent(now - 10_000) }), now).state).toBe('working');
+  expect(deriveAgentState(base({ worker, agent: sent(now - 10_000), needsYou: true }), now).state).toBe('needs_you');
+  expect(deriveAgentState(base({ worker, agent: sent(now - 10_000), pause: { revision: 1, requestedAt: now - 1_000 } }), now).state).toBe('pausing');
+});
+
 test('precedence is the same everywhere: revoked > needs you > waiting > stopped > worker end > fresh worker > fresh presence', () => {
   const now = 1_000_000, worker = { runId: 'r', phase: 'idle', lastContactAt: now - 1_000, deadlineAt: now + 1, projectPauseRevision: null } as never;
   expect(deriveAgentState(base({ allowed: false, needsYou: true, worker }), now).state).toBe('revoked');
