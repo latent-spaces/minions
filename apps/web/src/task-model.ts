@@ -115,7 +115,9 @@ export function nestTasks(tasks: NativeTask[], collapsed: ReadonlySet<string>): 
   const ids = new Set(tasks.map(task => task.id)), children = new Map<string, NativeTask[]>();
   for (const task of tasks) if (task.parentId && task.parentId !== task.id && ids.has(task.parentId)) children.set(task.parentId, [...children.get(task.parentId) ?? [], task]);
   for (const kids of children.values()) kids.sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
-  const roots = tasks.filter(task => !task.parentId || task.parentId === task.id || !ids.has(task.parentId));
+  // Top-level tasks show the most recently updated first (owner, 14 November 2026); subtasks keep their creation order.
+  const newest = (a: NativeTask, b: NativeTask) => b.updatedAt - a.updatedAt || a.id.localeCompare(b.id);
+  const roots = tasks.filter(task => !task.parentId || task.parentId === task.id || !ids.has(task.parentId)).sort(newest);
   // A corrupt parent cycle has no root; those rows show flat rather than disappear.
   const reached = new Set<string>();
   const reach = (task: NativeTask) => { if (reached.has(task.id)) return; reached.add(task.id); for (const kid of children.get(task.id) ?? []) reach(kid); };
@@ -127,7 +129,7 @@ export function nestTasks(tasks: NativeTask[], collapsed: ReadonlySet<string>): 
     rows.push({ task, depth, children: kids });
     if (!collapsed.has(task.id)) for (const kid of kids) walk(kid, depth + 1);
   };
-  for (const task of [...roots, ...tasks.filter(task => !reached.has(task.id))]) walk(task, 0);
+  for (const task of [...roots, ...tasks.filter(task => !reached.has(task.id)).sort(newest)]) walk(task, 0);
   return rows;
 }
 

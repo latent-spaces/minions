@@ -12,10 +12,16 @@ const task = (id: string, parentId?: string, extra: Partial<NativeTask> = {}): N
 test('list rows nest subtasks under a loaded parent, oldest first, and a collapsed parent hides its whole branch', () => {
   const rows = [task('c2', 'root'), task('root'), task('g', 'c1'), task('c1', 'root'), task('orphan', 'missing')];
   rows[3].createdAt = 0; // c1 before c2
-  assert.deepEqual(nestTasks(rows, new Set()).map(r => [r.task.id, r.depth]), [['root', 0], ['c1', 1], ['g', 2], ['c2', 1], ['orphan', 0]]);
-  assert.deepEqual(nestTasks(rows, new Set(['root'])).map(r => r.task.id), ['root', 'orphan']);
-  assert.deepEqual(nestTasks(rows, new Set(['c1'])).map(r => r.task.id), ['root', 'c1', 'c2', 'orphan']);
+  assert.deepEqual(nestTasks(rows, new Set()).map(r => [r.task.id, r.depth]), [['orphan', 0], ['root', 0], ['c1', 1], ['g', 2], ['c2', 1]]);
+  assert.deepEqual(nestTasks(rows, new Set(['root'])).map(r => r.task.id), ['orphan', 'root']);
+  assert.deepEqual(nestTasks(rows, new Set(['c1'])).map(r => r.task.id), ['orphan', 'root', 'c1', 'c2']);
   assert.deepEqual(nestTasks(rows, new Set()).find(r => r.task.id === 'root')!.children.map(c => c.id), ['c1', 'c2']);
+});
+
+test('top-level tasks show the most recently updated first', () => {
+  const rows = [task('old'), task('new'), task('middle')];
+  rows[0].updatedAt = 10; rows[1].updatedAt = 30; rows[2].updatedAt = 20;
+  assert.deepEqual(nestTasks(rows, new Set()).map(r => r.task.id), ['new', 'middle', 'old']);
 });
 
 test('a corrupt parent cycle still shows its rows', () => {

@@ -10,6 +10,15 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Tasks list newest first, Communication above Preview — owner decision, 14 November 2026
+
+Source: the owner on 14 November 2026: “Updated in the tasks list should be the sorting by”,
+then “Yes, newest first”; and “in the sidebar communication should come before preview”.
+
+- **The Tasks list shows the most recently updated tasks first.** Subtasks stay under their
+  parent in the order they were created.
+- **The project sidebar is Tasks, Communication, Preview, Teams, Agents, Usage, Settings.**
+
 ## The project card is Name, Description and Rules — owner decision, 14 November 2026
 
 Source: the owner on 14 November 2026, asked to rethink the project card: “Name Description
