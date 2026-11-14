@@ -10,6 +10,23 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## One MyLittleSwarm connection per computer — owner decision, 14 November 2026
+
+Source: the owner on 14 November 2026: “when someone install it , there is only one like that
+(mcp) and it opens the same chrome page always ,(localhsot + port)” and “also check for codex”;
+then, choosing among options, “One `mlswarm`”, “Register Codex too” and “Always 8787”.
+
+- **One entry.** Every installation's MCP entry is named `mlswarm`. Setup writes it and removes
+  the older per-engine `mlswarm-<8 hex>` entries and their `mcp__mlswarm-<8 hex>` permissions.
+  This supersedes the per-site MCP names below.
+- **Codex too.** `npm run setup` (the connector's `register`) writes the same entry into
+  Codex's `config.toml` when Codex is installed, beside Claude Code's.
+- **Test engines.** An engine in its own `MLSWARM_ENGINE_HOME` registers no coding agent, so
+  it never replaces the computer's entry; setup prints the manual `mcp-config` command.
+- **Always 8787.** Setup no longer moves off a busy 8787 to another port. When another program
+  holds it, setup stops and names that program. A port saved by an earlier run or set with
+  `MLSWARM_ENGINE_PORT` is still used. This supersedes the first-run port rule of 13 November.
+
 ## Tasks list newest first, Communication above Preview — owner decision, 14 November 2026
 
 Source: the owner on 14 November 2026: “Updated in the tasks list should be the sorting by”,

@@ -57,7 +57,7 @@ test('enrolled origins work across setup, browser, discovery and attribution wit
     assert.equal(installation.site, site);
     const configs = ['claude', 'codex', 'other'].map(client => reusableConfiguration({ client, home }));
     const name = configs[0].name;
-    assert.match(name, /^mlswarm-[a-f0-9]{8}$/);
+    assert.equal(name, 'mlswarm');
     for (const tool of OWNER_TOOLS) assert.ok(`mcp__${name}__${tool.name}`.length <= 64, tool.name);
     for (const config of configs) {
       assert.equal(config.site, site);
@@ -65,7 +65,6 @@ test('enrolled origins work across setup, browser, discovery and attribution wit
       assert.deepEqual(Object.keys(config.generic.mcpServers), [name]);
       assert.ok(config.toml.startsWith(`[mcp_servers.${name}]`));
       const printed = renderReusableConfiguration(config);
-      assert.ok(!printed.includes('replacing only the mlswarm table'));
       if (config.client === 'claude') {
         assert.ok(printed.includes(`mcp__${name}`));
         if (config.command) assert.ok(config.command.includes(`'${name}'`));

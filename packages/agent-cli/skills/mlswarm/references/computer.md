@@ -28,9 +28,9 @@ prints how to register it. `service-start` starts the service without starting a
 Clients read the service's private key through a helper: never print its output, put keys
 in settings, or replace other entries or permissions. Still ask in chat before each important action, and name it.
 
-`npm run setup` in the checkout starts the local engine in the background (on 8787, or the
-next free port it names on a first run) and registers it with Claude Code by itself when
-the `claude` command is found; Codex and other clients use the `mcp-config` command it prints.
+`npm run setup` in the checkout starts the local engine in the background at
+`http://127.0.0.1:8787/` and registers it as `mlswarm` with Claude Code and Codex by itself
+when they are installed; other clients use the `mcp-config` command it prints.
 A coding agent loads MyLittleSwarm's tools only when a session starts. Until then, call
 them from a terminal with the same service and credential: `node packages/agent-cli/src/cli.mjs
 tool --list`, `tool --list TOOL_NAME` for one tool's arguments, and `tool TOOL_NAME
