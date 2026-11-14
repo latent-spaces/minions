@@ -167,7 +167,7 @@ focusing one names the agent and its person, and clicking the chosen one unassig
 Project updates (`ProjectUpdatesFeed.tsx`) are not a tab: they fill a full-height right
 panel (360–460px, growing with the screen) that runs from the top of the page, beside the header and every section. Started projects open the panel on Map. The Updates tab counts unseen posts while Map is selected; it clears when the latest post becomes visible, not merely when the panel mounts. The seen marker is browser-local, scoped to the account and project. A trailing + means earlier unread pages have not been loaded. Below 1200px the panel collapses to a button named for the selected view, with the same unseen count, and opens as a drawer. Hidden drawers do not mark updates seen. Waiting rooms retain their updates-only panel. Old `section=tasks` and `section=updates` links fall back to Tasks.
 
-Avatars use transparent pose atlases and code motion. Occasional gaze lasts 10–15 seconds with a neutral gap; blinking remains independently timed. Eligible pokes get a 420ms squash/stretch and select blink/bounce (55%), smile (20%), wink (15%), surprise (7%) or a three-pose cosmic face meltdown (3%, 1.2 seconds). Wild effects now come from pokes. See [the character asset guide](assets/characters/offbeat/README.md).
+Avatars use transparent pose atlases and code motion. Occasional gaze lasts 10–15 seconds with a neutral gap, only while Idle, Waiting or Finished; a Working agent writes and a Talking agent speaks in short beats instead; blinking remains independently timed. Eligible pokes get a 420ms squash/stretch and select blink/bounce (55%), smile (20%), wink (15%), surprise (7%) or a three-pose cosmic face meltdown (3%, 1.2 seconds). Wild effects now come from pokes. See [the character asset guide](assets/characters/offbeat/README.md).
 Each update is a photo-feed card (`ProjectProgress.tsx`): a small byline with how long ago, the
 image, then a headline and one line of caption, and links as small pills. An update with up to
 five images shows them as slides that swipe sideways, with arrows, a 1/5 counter and dots; every
@@ -249,7 +249,9 @@ with agents only; there is no separate My agents view. Above the cards the owner
 time left with **+ 30 min**, and the token cap with Set cap or Change cap and its exact-number
 editor; the longer explanations are the values' hover text. Each of your own agent cards
 has an icon-only Start, Pause or Resume in its corner (`AgentCardRun`), not in a closed
-project or while the whole project is paused. Each card shows the agent's status. Removed
+project or while the whole project is paused. Each card shows a status chip, the agent's focus as
+the headline ("Last focus", dimmed, once it is not running) and one task: the one in progress,
+else the most recently changed one assigned to it (the `/agents` row's `task`). Removed
 agents are excluded, and the search matches name prefixes across the directory and is kept
 in `q`. A card, or an agent link from conversations, updates or Needs you, opens the agent's
 page. An agent that works with you in a chat shows Wake, Add time and End on its page

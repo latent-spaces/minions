@@ -6,7 +6,7 @@ export const AGENT_GROUPS = ['Needs you', 'Working', 'Idle', 'Paused or starting
 export type AgentGroup = typeof AGENT_GROUPS[number];
 export function agentGroup(status: string, needsYou = false): AgentGroup {
   if (needsYou) return 'Needs you';
-  if (status === 'Working') return 'Working';
+  if (status === 'Working' || status === 'Talking') return 'Working';
   if (status === 'Idle') return 'Idle';
   if (['Paused', 'Waiting', 'Backoff', 'Starting', 'Pausing'].includes(status)) return 'Paused or starting';
   return ['Stopped', 'Completed', 'Finished', 'Failed', 'Revoked'].includes(status) ? 'Ended' : 'Check status';
@@ -145,5 +145,5 @@ export function workerAvatarState(agent: AgentObservation, now: number, needsYou
     Pausing:'pausing', 'Pause unconfirmed':'pause_unconfirmed', Unknown:'unknown',
   };
   const state = states[label];
-  return needsYou && ['working','idle','waiting'].includes(state) ? 'needs_you' : state;
+  return needsYou && ['working','talking','idle','waiting'].includes(state) ? 'needs_you' : state;
 }

@@ -65,6 +65,7 @@ export type AgentStateSources = {
 };
 export type DerivedAgentState = Pick<CommunicationAgent, 'state' | 'projectPause' | 'reportedAt' | 'lastContactAt' | 'freshUntil'>;
 
+export const TALKING_MS = 90_000;
 export function deriveAgentState(s: AgentStateSources, now: number): DerivedAgentState {
   const fresh = (at: number | undefined) => typeof at === 'number' && at <= now && at > now - V2_LIMITS.runActiveSeconds * 1000;
   const { agent, run, contact, pause } = s;
@@ -88,6 +89,8 @@ export function deriveAgentState(s: AgentStateSources, now: number): DerivedAgen
     freshUntil = seen.lastContactAt + V2_LIMITS.runActiveSeconds * 1000;
     state = ({ turn: 'working', idle: 'idle', backoff: 'waiting', paused: 'paused', stopping: 'stopped' } as const)[seen.phase] ?? 'unknown';
   } else if (seen || worker) state = 'offline';
+  // Between turns right after sending a message, an agent is in a discussion, not idle (owner, 14 November 2026).
+  if (state === 'idle' && (agent.recentSends ?? []).some(at => at <= now && now - at < TALKING_MS)) state = 'talking';
   let projectPause: CommunicationAgent['projectPause'];
   if (pause && run?.endedAt === null && !['revoked','stopped','completed'].includes(state) && !s.queued) {
     const confirmed = worker?.phase === 'paused' && worker.projectPauseRevision === pause.revision && fresh(worker.lastContactAt);

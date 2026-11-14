@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {CharacterAmbient,ambientTiming,gazeCell,subscribeCharacterPointer,characterPointer} from '../src/ui/character-ambient.js';
+import {CharacterAmbient,GAZE_STATES,ambientTiming,gazeCell,subscribeCharacterPointer,characterPointer} from '../src/ui/character-ambient.js';
 
 test('pointer input publishes reactively, supports mouse fallback and cleans up shared subscribers', () => {
   const previous = {window:globalThis.window,document:globalThis.document,requestAnimationFrame:globalThis.requestAnimationFrame,cancelAnimationFrame:globalThis.cancelAnimationFrame};
@@ -56,4 +56,8 @@ test('direction cells follow the cursor and hysteresis prevents sector chatter',
   const angle=Math.PI/8+.05;
   assert.equal(gazeCell(100*Math.cos(angle),100*Math.sin(angle),0).sector,0);
   assert.equal(gazeCell(100*Math.cos(angle+.15),100*Math.sin(angle+.15),0).sector,1);
+});
+
+test('a working or talking agent does not follow the pointer; a free one still can',()=>{
+  assert.deepEqual([...GAZE_STATES].sort(),['completed','idle','waiting']);
 });

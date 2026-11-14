@@ -1,7 +1,7 @@
 import {useContext,useEffect,useLayoutEffect,useRef,useState,useSyncExternalStore} from 'react';
 import type {CommunicationAgentState} from '@mlswarm/contracts';
 import {CharacterMotion,characterTiming,neutralPose,staticCharacterPose,type CharacterPose,type PoseBank} from './character-motion';
-import {CharacterAmbient,ambientTiming,characterPointer,gazeCell,subscribeCharacterPointer} from './character-ambient';
+import {CharacterAmbient,GAZE_STATES,ambientTiming,characterPointer,gazeCell,subscribeCharacterPointer} from './character-ambient';
 import {CharacterPoke,choosePoke,POKE_WEIGHTS,rarePokeGate,SQUASH,SQUASH_MS,type PokeReaction} from './character-poke';
 import {characterAtlas,useDecodedAtlas} from './character-assets';
 import {CharacterPreview} from './character-preview';
@@ -40,7 +40,7 @@ export function CharacterAvatar({character,src,state='idle',animationKey=charact
   const usable=visible&&!reduced&&directionsReady&&reactionsReady&&!isQuiet(state);
   const pokeSample=usable&&base.interruptible?poke.current.sample(time||current):null;
   const canPoke=usable&&base.interruptible&&!pokeSample;
-  const ambientAvailable=usable&&!pokeSample&&base.interruptible&&['idle','waiting','working','completed'].includes(state);
+  const ambientAvailable=usable&&!pokeSample&&base.interruptible&&GAZE_STATES.includes(state);
   const scheduled=ambient.current.sample(time||current,ambientAvailable&&!preview,!!pointer,base.clip!=='blink');
   const looking=ambientAvailable&&!!pointer&&(preview==='gaze'||scheduled.kind==='gaze')&&base.clip!=='blink';
   const sampled=reduced?base:motion.current.sample(time||current,!looking&&!pokeSample);

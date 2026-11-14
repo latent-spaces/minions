@@ -5,6 +5,8 @@ export function ambientTiming(id:string) {
   // Keep the glance length; a longer start interval gives 15% fewer episodes.
   return {gazeInterval:Math.round((gazeDuration+2000)/.85),gazeDelay:2000+(hash>>>5)%3001,gazeDuration};
 }
+/** Gaze follows the pointer only when an agent is not busy: a working or talking agent keeps its own motion (owner, 14 November 2026). */
+export const GAZE_STATES:readonly string[]=['idle','waiting','completed'];
 /** Gaze is occasional; wild reactions now come from pokes, never an autonomous timer. */
 export class CharacterAmbient {
   private nextGaze:number;

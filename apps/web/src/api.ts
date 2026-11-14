@@ -38,6 +38,8 @@ export type AgentRow = {
   // The agent's status, computed once on the server for every screen; freshUntil is when a live status goes stale.
   state: import('@mlswarm/contracts').CommunicationAgentState;
   freshUntil: number | null;
+  /** The agent's task in progress, else its most recently changed one. */
+  task?: { id: string; title: string; status: import('@mlswarm/contracts').NativeTaskStatus; updatedAt: number } | null;
 };
 
 // A native task assigned to this person's agent, independent of the agent's runtime state.

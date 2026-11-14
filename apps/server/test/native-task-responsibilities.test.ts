@@ -36,6 +36,27 @@ test('personal responsibility reads native assignments and ignores retired Issue
 });
 
 
+test('the agents page shows each agent its task in progress, else its most recently changed task', async () => {
+  const fixture = await seed({ profiles: [{ name: 'A', email: 'a@example.test', role: 'owner' }], agents: [{ person: 0, name: 'scout' }, { person: 0, name: 'owl' }, { person: 0, name: 'yak' }] });
+  const token = await idTokenFor('a@example.test');
+  await inProject(TEST_PROJECT, async () => {
+    const actor = { kind: 'person' as const, person: { id: fixture.personIds[0], ...(await profiles.doc(fixture.personIds[0]).get()).data()! } };
+    const give = async (title: string, agent: number, status?: 'in_progress' | 'done') => {
+      const { task } = await mutateNativeTask(actor, { operation: 'create', clientRequestId: randomUUID(), title });
+      const assigned = (await mutateNativeTask(actor, { operation: 'assign', clientRequestId: randomUUID(), taskId: task.id, expectedRevision: task.revision, assignedAgentId: fixture.agents[agent].agentId })).task;
+      if (status) await mutateNativeTask(actor, { operation: 'update', clientRequestId: randomUUID(), taskId: task.id, expectedRevision: assigned.revision, status });
+    };
+    await give('Started first', 0, 'in_progress'); await give('Waiting later', 0);
+    await give('Older done', 1, 'done'); await give('Newer done', 1, 'done');
+  });
+  const reply = await fetch(`${base}/agents`, { headers: { authorization: `Bearer ${token}` } });
+  expect(reply.status).toBe(200);
+  const rows = Object.fromEntries((await reply.json()).agents.map((a: { name: string; task: unknown }) => [a.name, a.task]));
+  expect(rows.scout).toMatchObject({ title: 'Started first', status: 'in_progress' });
+  expect(rows.owl).toMatchObject({ title: 'Newer done', status: 'done' });
+  expect(rows.yak).toBeNull();
+});
+
 test('published project readers expose no retired GitHub Issue board or native task access', () => {
   const routes = publicProjectRoutes(Date.now).stack.flatMap(layer => layer.route ? [layer.route.path] : []);
   expect(routes).not.toContain('/issues');

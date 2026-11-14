@@ -44,3 +44,19 @@
 .k42-directory-card > :first-child, .k42-directory-card .k42-directory-photo { align-self:center; }
 .k42-directory-text { align-self:center; }
 .k42-directory-meta { align-self:stretch; min-height:calc(3 * 1.5em); line-height:1.5; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+
+/* Agent cards (owner, 14 November 2026): status chip, the agent's focus as the headline, then its current or last task. */
+.k42-directory-meta.is-agent { display:flex; flex-direction:column; align-items:flex-start; gap:6px; min-height:0; -webkit-line-clamp:unset; overflow:visible; font-size:13px; }
+.k42-agent-chip { display:inline-flex; align-items:center; gap:5px; padding:2px 9px 2px 7px; border-radius:var(--pill-radius); font-size:12px; font-weight:600; color:var(--text-muted); background:var(--canvas-soft); }
+.k42-agent-chip.state-working { color:#0057d9; background:#e8f0ff; }
+.k42-agent-chip.state-talking { color:#5a2fc2; background:#f0eaff; }
+.k42-agent-chip:is(.state-waiting,.state-pausing,.state-pause_unconfirmed,.state-blocked) { color:#8a5200; background:#fff3df; }
+.k42-agent-chip.state-needs_you { color:#fff; background:#b42318; }
+.k42-directory-focus { margin:2px 0 0; color:var(--ink); font-size:15px; font-weight:500; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.k42-directory-focus.is-stale { color:var(--text-muted); font-weight:400; }
+.k42-directory-focus.is-empty { color:var(--text-muted); font-size:13px; font-weight:400; font-style:italic; }
+.k42-directory-when { font-size:12px; color:var(--text-muted); }
+.k42-directory-task { display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:8px; align-items:center; width:100%; margin:4px 0 0; padding-top:8px; border-top:1px dashed var(--line); }
+.k42-directory-task-kind { grid-column:1 / -1; font-size:11px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--text-muted); }
+.k42-directory-task-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink); }
+.k42-directory-task .k42-task-status { font-size:12px; padding:1px 8px; }

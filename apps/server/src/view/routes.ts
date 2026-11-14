@@ -20,6 +20,7 @@ import { assertMembership, projectRole } from '../projects/access.js';
 import { projects } from '../community/records.js';
 import { agents, currentProjectId, projectCollection, db, profiles, type Agent, type Profile } from '../firestore.js';
 import { nativeTasks } from '../projects/native-tasks.js';
+import type { NativeTask, NativeTaskStatus } from '@mlswarm/contracts';
 import { encodeCursor } from '../cursor.js';
 import { runnerUsage } from '../v2/records.js';
 import { searchConversationMessages } from '../projects/chat-search.js';
@@ -293,7 +294,7 @@ async function agentRows(docs: DocumentSnapshot<Agent>[], profileId: string, at:
     readReadyCanonicalContacts(ids),
     ids.length === 0 ? [] : db.getAll(...ids.map((id) => runnerUsage().doc(id))),
   ]);
-  const states = await readCanonicalAgentStates(docs, profileId, at, seen);
+  const [states, tasks] = await Promise.all([readCanonicalAgentStates(docs, profileId, at, seen), currentTasks(ids)]);
   return docs.map((d, i) => {
     const agent = d.data()!;
     const v2 = seen.docs[i]?.data();
@@ -309,8 +310,26 @@ async function agentRows(docs: DocumentSnapshot<Agent>[], profileId: string, at:
       activity: v2?.activity ?? null,
       usage: usage[i]?.data() ? { ...usage[i].data(), runId: undefined, aggregated: undefined } : null,
       personaChoice: states[i].personaChoice, state: states[i].state, freshUntil: states[i].freshUntil,
+      task: tasks.get(d.id) ?? null,
     };
   });
+}
+
+// Each agent's task in progress, else its most recently changed task (owner, 14 November 2026), for the Agents page.
+// One query per 30 agents; proposed subtasks are not the agent's yet.
+async function currentTasks(ids: string[]) {
+  const best = new Map<string, { id: string; title: string; status: NativeTaskStatus; updatedAt: number }>();
+  for (let i = 0; i < ids.length; i += 30) {
+    const rows = await nativeTasks().where('assignedAgentId', 'in', ids.slice(i, i + 30)).select('title', 'status', 'assignedAgentId', 'updatedAt', 'proposed').get();
+    for (const row of rows.docs) {
+      const task = row.data() as Pick<NativeTask, 'title' | 'status' | 'assignedAgentId' | 'updatedAt' | 'proposed'>;
+      if (task.proposed || !task.assignedAgentId) continue;
+      const held = best.get(task.assignedAgentId), started = (status: string) => status === 'in_progress';
+      if (!held || started(task.status) > started(held.status) || (started(task.status) === started(held.status) && task.updatedAt > held.updatedAt))
+        best.set(task.assignedAgentId, { id: row.id, title: task.title, status: task.status, updatedAt: task.updatedAt });
+    }
+  }
+  return best;
 }
 
 // One screen of labels: up to 60 different ids, and no other query, so a lookup never pages or filters.

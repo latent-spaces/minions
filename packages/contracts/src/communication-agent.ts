@@ -1,7 +1,8 @@
 import type { AgentFocus } from './agent-focus.js';
 
 /** Current member-visible observations, separate from the communication replay. */
-export type CommunicationAgentState = 'working' | 'idle' | 'waiting' | 'needs_you' | 'blocked'
+/** Talking: between turns, with an agent message sent in the last 90 seconds (owner, 14 November 2026). */
+export type CommunicationAgentState = 'working' | 'talking' | 'idle' | 'waiting' | 'needs_you' | 'blocked'
   | 'pausing' | 'pause_unconfirmed' | 'paused' | 'stopped' | 'completed' | 'offline' | 'revoked' | 'unknown';
 export type CommunicationAgent = {
   id: string; name: string; mine: boolean; state: CommunicationAgentState;
