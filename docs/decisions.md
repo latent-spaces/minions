@@ -10,6 +10,29 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## The team asks for next instructions when it finishes early — owner decision, 14 November 2026
+
+Source: owner, "if all agents are finished before the time is done they should send a
+message to the user for next instructions".
+
+Before this, an agent that stopped with three or more minutes left got one keep-going turn,
+and when that found nothing it went idle until a message, an update wake or the closing wake.
+Nothing told the owner that the whole team had finished.
+
+- **When.** In that keep-going turn, an agent that finds nothing to do calls `find_agents`. If
+  every other agent is idle, completed, stopped or offline (none working, talking, waiting,
+  paused or needing the owner), the team has finished early.
+- **One message.** The agent then sends one `project` Needs you request, assigned to the
+  owner, with input the turn gives word for word: `dedupe_key` `team-finished-<job end time>`,
+  a fixed title, question and context. The server already deduplicates `project` requests
+  across agents by key, so a teammate that asks too reaches the same request. The owner gets
+  one message per job end time; time the owner adds starts a new round.
+- **The answer.** It wakes the agent that asked, which acknowledges it and passes it on to the
+  teammates it concerns with `send_message`.
+- **Why not server-side detection.** The server cannot tell finished from between turns: a
+  worker reports `waiting` after every turn. Detecting it there would need a new worker-session
+  field and reads of every teammate's session on each idle heartbeat. Only the connector knows
+  that the agent found nothing.
 ## The Project card is back in Settings — owner decision, 14 November 2026
 
 Source: owner, "we don't have the project card now, we need to add it to the settings".

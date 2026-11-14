@@ -526,6 +526,12 @@ run to leave work for: an agent that ends a turn with three or more minutes left
 turn that says so and names where to look (work it left undone, open tasks, uncovered parts of
 the mission, a teammate's open pull request to check). After that, a turn that ends inside half
 a minute is not followed by another until something else starts a turn.
+When that turn finds nothing, the agent checks its teammates with `find_agents`. If every other
+agent is idle, completed, stopped or offline, the whole team has finished early, and the agent
+asks the owner for next instructions with one `project` Needs you request. The turn gives the
+exact input, with `dedupe_key` `team-finished-<job end time>`, so a teammate that asks too
+reaches the same request: the owner gets one message per job end time, and added time starts a
+new round. The answer wakes the agent that asked, which passes it on to the teammates it concerns.
 Uncertain execution, failed cleanup or a service restart during a turn requires
 recovery rather than Resume. A worker paused or waiting when the service restarted
 stays paused or waiting; Resume, added time or a raised cap continues it. Project Pause lets the running background turn finish, then holds new ones (the held

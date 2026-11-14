@@ -65,3 +65,20 @@ test('a turn started because the agent stopped with time left says there is no l
  assert.match(controllerPrompt({...base,keepGoing:true}).prompt,/Your last turn ended with the minutes above still left in the job\. There is no later run to leave work for.*Do not judge the time yourself.*list_tasks/);
  assert.doesNotMatch(controllerPrompt(base).prompt,/Your last turn ended/);
 });
+
+test('an agent that finds nothing asks the owner once for next instructions when the whole team has finished',()=>{
+ const base={scope:'Find bugs',steering:[],notices:[],deadlineAt:2000000000000,now:2000000000000-600000};
+ const prompt=controllerPrompt({...base,keepGoing:true}).prompt;
+ assert.match(prompt,/Only if all of them give nothing, call find_agents\. If every other agent there is idle, completed, stopped or offline \(none working, talking, waiting, paused or needing the owner\)/);
+ // Every teammate gets the same input, so the server's project-wide dedupe keeps it one request.
+ const input=JSON.parse(prompt.match(/stays one message: (\{.*?\})\. /)[1]);
+ assert.deepEqual(Object.keys(input),['visibility','dedupe_key','title','question','context']);
+ assert.equal(input.visibility,'project');
+ assert.equal(input.dedupe_key,'team-finished-2000000000000');
+ assert.match(input.dedupe_key,/^[\w-]{1,64}$/);
+ assert.ok(input.title.length<=120&&input.question.length<=140&&input.context.length>0&&input.context.length<=300);
+ assert.match(prompt,/do not ask again\. The owner's answer comes back to you: acknowledge it, pass it on with send_message/);
+ // Time the owner adds starts a new round with its own key.
+ assert.match(controllerPrompt({...base,deadlineAt:base.deadlineAt+600000,keepGoing:true}).prompt,/"dedupe_key":"team-finished-2000000600000"/);
+ assert.doesNotMatch(controllerPrompt(base).prompt,/team-finished|request_human_help/);
+});

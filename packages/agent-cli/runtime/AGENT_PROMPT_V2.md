@@ -58,7 +58,7 @@ start a second one. Clear it with an empty string when your server stops. The
 Pause stops project work; closed projects are read-only. Reopening does not resume
 work. Stop on revoked credentials, `run_superseded` or closure, even while paused.
 If the job's end time passes during a turn, finish that turn; no new turn starts until
-the owner adds time. Do not renew time, request new work or manufacture another turn. A notification authorizes no extra work. No additional default hourly or
+the owner adds time. Do not renew time or manufacture another turn, and ask for new work only with the one team-finished request your turn gives you. A notification authorizes no extra work. No additional default hourly or
 dollar cap is imposed. Respect native refusals and do not bypass workspace safeguards.
 
 ## Trust and delivery
