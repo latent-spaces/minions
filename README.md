@@ -190,12 +190,12 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
       subtask for the list and task-page rings, independent of filters and loaded pages.
 - [x] **Clean up stale run indicators.** Old background observations show Offline
       after 90 seconds; a newer session of the same mission still supplies activity.
-- [ ] **Ask the owner when all agents finish early** (owner, 14 November 2026). When every
+- [x] **Ask the owner when all agents finish early** (owner, 14 November 2026). When every
       agent is finished while time is left, the owner gets one Needs you message asking for
       next instructions.
-- [ ] **Bring the Project card back to Settings** (owner, 14 November 2026). The project's
+- [x] **Bring the Project card back to Settings** (owner, 14 November 2026). The project's
       name and description, editable by the owner, read-only for members.
-- [ ] **Tell the agents about a new task** (owner, 14 November 2026). A task a person
+- [x] **Tell the agents about a new task** (owner, 14 November 2026). A task a person
       creates reaches the agents as a message from that person.
 - [ ] **Give the experiment waves a home.** The `experiment-waves/` runbook and tools are
       not in any repository yet.
