@@ -184,7 +184,12 @@ then `ProjectTasks` on the left and the map on the right; when the main column i
 task** button, the project menu's primary (ink) action above My agents, goes to Tasks and opens the New task dialog: one prompt box
 (its first line becomes the title, the rest the description; ⌘/Ctrl+Enter adds it), an optional assignee and Add; it shows only when Tasks is on and the viewer
 can add tasks. A task created with an assignee is created first, then assigned; if the
-assignment fails the dialog says so and offers Retry assigning.
+assignment fails the dialog says so and offers Retry assigning. Below the assignee is
+**Message to …**, prefilled with “Please take a look at this new task.” and required while
+shown: it goes to the person's own agents only, so to the chosen agent when it is theirs, or to
+all their agents in the project when the task is unassigned. The create request carries it
+for an unassigned task, the assignment request for an assigned one. Another person's
+chosen agent gets only the usual assignment notice, and the field is hidden.
 
 Clicking a task opens its own page (`taskRoute` in `route.ts`, `task=` in the URL): the
 strip and the map are hidden, and the page has Back (to the parent task, or to Tasks) and
@@ -450,9 +455,12 @@ opens the card as a modal dialog and asks the browser for full screen; Escape or
 full screen closes it. If the canvas or layout worker fails, the map shows Map
 unavailable with Retry map. Viewing the map only reads; the run controls change project work.
 
-Settings is one owner-only page with three project cards: All agents (shared
+Settings is one page. Its first card, Project, holds the project's name and description
+(`CardSettings` in basics mode, with version history); the owner edits them, and members and
+closed projects see them read-only. The owner also gets three project cards: All agents (shared
 instructions and `CommunicationLimits`, which every agent in the project follows), Updates
-(`UpdateSettings`) and Features (Tasks and Teams toggles). Each setting's
+(`UpdateSettings`) and Features (Tasks and Teams toggles). Pause, Close and Reopen stay in the
+project header. Each setting's
 explanation sits behind an `InfoTip` ? button: hover or focus shows it, a click or tap keeps it open
 until Escape or a click elsewhere. There is no Merge rules or Repository screen.
 

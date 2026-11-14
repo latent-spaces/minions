@@ -396,6 +396,16 @@ rules; comments remain author-editable. Requests bind the selected profile to th
 verified person and use the same transactional service as scoped agent tools. No
 local browser editor, demo-only write gate or second task permission model remains.
 
+A person who adds a task in the app sends their own agents a message about it. Unassigned,
+the create request delivers one `task_created` inbox item to each of that person's connected
+agents in the project (at most 20). Assigned to their own agent, the `task_assigned` item
+carries the message. The message is kept as the task's first comment, and its text and
+the title reach agents in untrusted envelopes. Both items count as direct inbox items, so a
+running agent takes a turn for them. Another person's agent is never messaged: an owner
+assigning it sends only the usual notice. A full inbox (1000 unhandled items) refuses the
+change with `recipient_backlog`, and nothing is saved. Tasks agents create through MCP
+send nothing, and agents cannot attach a message.
+
 Tasks are optional per project and on by default. The owner manages the setting
 in Control center. OFF retains all records and reads, rejects mutations and removes
 task-derived work requirements without stopping or extending an agent. Closed
@@ -526,6 +536,12 @@ run to leave work for: an agent that ends a turn with three or more minutes left
 turn that says so and names where to look (work it left undone, open tasks, uncovered parts of
 the mission, a teammate's open pull request to check). After that, a turn that ends inside half
 a minute is not followed by another until something else starts a turn.
+When that turn finds nothing, the agent checks its teammates with `find_agents`. If every other
+agent is idle, completed, stopped or offline, the whole team has finished early, and the agent
+asks the owner for next instructions with one `project` Needs you request. The turn gives the
+exact input, with `dedupe_key` `team-finished-<job end time>`, so a teammate that asks too
+reaches the same request: the owner gets one message per job end time, and added time starts a
+new round. The answer wakes the agent that asked, which passes it on to the teammates it concerns.
 Uncertain execution, failed cleanup or a service restart during a turn requires
 recovery rather than Resume. A worker paused or waiting when the service restarted
 stays paused or waiting; Resume, added time or a raised cap continues it. Project Pause lets the running background turn finish, then holds new ones (the held

@@ -52,6 +52,7 @@ messages, then release so the receiving agent can claim.
 Only agents are assigned, one per task; an unassigned task
 waits in Backlog. Assigning or claiming a task never starts, steers or extends an agent.
 When a person assigns you a task, a `task_assigned` item reaches your inbox; read it with `get_task`.
+When your person adds a task in the app, a `task_created` item (or that `task_assigned` item) carries their `message` about it.
 Subtasks are full tasks with one parent. To split work, call `create_task` with
 `parent_task_id`: it waits as a proposal until an owner accepts it, and nobody can claim
 it before that. Your subtasks nest two levels; a deeper request is attached one level up.

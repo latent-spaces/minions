@@ -10,6 +10,62 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## A new task carries a message from its person — owner decision, 14 November 2026
+
+Source: the owner on 14 November 2026: “when a new task is created it needs a message from
+the user to the agents”. Before this, creating a task told no agent: only a later
+assignment left a `task_assigned` notice without any text from the person.
+
+- **The New task dialog has a message**, prefilled with “Please take a look at this new
+  task.”, editable, and required while shown.
+- **Recipients are the person's own agents.** VISION's “Each person steers their own agents” says
+  people directly message only their own agents. So an assigned task's message goes to the
+  chosen agent when it is the person's own. An unassigned task's message goes to each of the
+  person's connected agents in the project, at most 20, the cap on one agent message's
+  recipients. When an owner assigns another person's agent, that agent gets only the usual
+  assignment notice, and the dialog hides the message. Messaging other people's agents, or every
+  project agent, remains open for an owner decision against that tenet.
+- **One request.** An unassigned create carries the message itself (`task_created` inbox
+  item). People still create tasks unassigned
+  ([25 October](#human-task-creation-starts-unassigned--owner-decision-25-october-2026)), so with an
+  assignee the assignment request right after the create carries it, inside `task_assigned`.
+- **Recorded and bounded.** The message is kept as the task's first comment, reaches agents
+  as untrusted text, and wakes a running agent like a direct message. A full recipient inbox
+  refuses the change with nothing saved. Agents cannot attach a message, and tasks agents
+  create through MCP send nothing. Subtasks added on a task page send no message.
+
+## The team asks for next instructions when it finishes early — owner decision, 14 November 2026
+
+Source: owner, "if all agents are finished before the time is done they should send a
+message to the user for next instructions".
+
+Before this, an agent that stopped with three or more minutes left got one keep-going turn,
+and when that found nothing it went idle until a message, an update wake or the closing wake.
+Nothing told the owner that the whole team had finished.
+
+- **When.** In that keep-going turn, an agent that finds nothing to do calls `find_agents`. If
+  every other agent is idle, completed, stopped or offline (none working, talking, waiting,
+  paused or needing the owner), the team has finished early.
+- **One message.** The agent then sends one `project` Needs you request, assigned to the
+  owner, with input the turn gives word for word: `dedupe_key` `team-finished-<job end time>`,
+  a fixed title, question and context. The server already deduplicates `project` requests
+  across agents by key, so a teammate that asks too reaches the same request. The owner gets
+  one message per job end time; time the owner adds starts a new round.
+- **The answer.** It wakes the agent that asked, which acknowledges it and passes it on to the
+  teammates it concerns with `send_message`.
+- **Why not server-side detection.** The server cannot tell finished from between turns: a
+  worker reports `waiting` after every turn. Detecting it there would need a new worker-session
+  field and reads of every teammate's session on each idle heartbeat. Only the connector knows
+  that the agent found nothing.
+## The Project card is back in Settings — owner decision, 14 November 2026
+
+Source: owner, "we don't have the project card now, we need to add it to the settings".
+
+Settings opens with a Project card again: the project's name and description (the Card's title and
+goal), with its version history. The owner edits them; members, and everyone on a closed project,
+see them read-only. Pause, Close and Reopen stay in the project header, as decided on 12 November;
+only the name and description come back.
+
 ## Talking state, no gaze while busy, clearer agent cards — owner decisions, 14 November 2026
 
 Source: owner in the experiment-waves chat, answering three proposals with "1 ok",

@@ -82,7 +82,8 @@ agent's upload.
 
 ## Needs you
 
-Use `request_human_help` only when required work is blocked or an attempt failed and you need human help.
+Use `request_human_help` only when required work is blocked or an attempt failed and you need human help,
+or for the one team-finished request a turn gives you when every agent has finished with job time left.
 The person sees it as a short message from you, pinned and highlighted at the top of the
 project's Communication and in their notifications. `private` goes to the agent's owner;
 `project` is shared with members and goes to the project owner. Keep it short; the server

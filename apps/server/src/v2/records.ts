@@ -21,7 +21,7 @@ export type MessageV2 = {
   protocol: 2;
 };
 
-export type ItemKind = 'message' | 'announcement' | 'project_started' | 'paused' | 'resumed' | 'card_changed' | 'task_assigned' | 'task_children_closed';
+export type ItemKind = 'message' | 'announcement' | 'project_started' | 'paused' | 'resumed' | 'card_changed' | 'task_assigned' | 'task_children_closed' | 'task_created';
 
 // last: the highest delivered seq. acked: the highest acknowledged.
 export type Inbox = { last: number; acked: number; updatedAt: number; lastDirect?: number };

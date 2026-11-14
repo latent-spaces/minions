@@ -36,10 +36,12 @@ export interface NativeTaskActivity {
   fields?: (keyof NativeTask)[];
 }
 export type NativeTaskMutation = { clientRequestId: string } & (
-  | { operation: 'create'; title: string; description?: string; assignedAgentId?: null; priority?: NativeTaskPriority; parentId?: string }
+  /** `message` (people only): a note to the person's own agents, kept as the task's first comment. */
+  | { operation: 'create'; title: string; description?: string; assignedAgentId?: null; priority?: NativeTaskPriority; parentId?: string; message?: string }
   | { operation: 'update'; taskId: string; expectedRevision: number; title?: string; description?: string; status?: NativeTaskStatus; priority?: NativeTaskPriority; contributors?: NativeTaskContributor[] }
   | { operation: 'claim' | 'release'; taskId: string; expectedRevision: number }
-  | { operation: 'assign'; taskId: string; expectedRevision: number; assignedAgentId: string }
+  /** `message` (people only, to their own agent): rides on the task_assigned item and is kept as a task comment. */
+  | { operation: 'assign'; taskId: string; expectedRevision: number; assignedAgentId: string; message?: string }
   | { operation: 'comment'; taskId: string; expectedRevision: number; body: string }
   | { operation: 'edit_comment'; taskId: string; expectedRevision: number; commentId: string; body: string }
   | { operation: 'add_reference'; taskId: string; expectedRevision: number; reference: NativeTaskReference }
