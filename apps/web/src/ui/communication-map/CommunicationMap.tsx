@@ -1,3 +1,5 @@
+import {normalizeToViewport} from './viewport-layout';
+import {updateMapLabels} from './label-collisions';
 import {occludeAvatars} from './avatar-occlusion';
 import {drawTubeConnector} from './tube-connector';
 import {connectionWeights,repeatingConnectionFlights} from './connection-presentation';
@@ -34,7 +36,14 @@ const connectorStyles={
 } as const;
 
 const focusMode=(mode:Crowding)=>mode==='focus-active'||mode==='focus-ring';
-type Props={connectorStyle?:ConnectorStyle;crowding?:Crowding;simulatedStates?:boolean;initialDimensions?:2|3;controlsSlot?:HTMLElement|null;toolbarStart?:ReactNode;nodes:MapNode[];traffic:Traffic[];at:number;running:boolean;speed:number;active:boolean;replay:boolean;now:number;
+type Props={
+ /** Screen-space person emphasis; agents keep their normal scale. */
+ personScale?:number;
+ labelMode?:'full'|'compact'|'inspect';
+ /** Optional presentation projection for viewport layout experiments. Returned
+  * coordinates are relative to the viewport centre, in CSS pixels at 1×. */
+ viewportLayout?:((points:Float64Array,width:number,height:number,topInset:number)=>Float64Array)|null;
+ connectorStyle?:ConnectorStyle;crowding?:Crowding;simulatedStates?:boolean;initialDimensions?:2|3;controlsSlot?:HTMLElement|null;toolbarStart?:ReactNode;nodes:MapNode[];traffic:Traffic[];at:number;running:boolean;speed:number;active:boolean;replay:boolean;now:number;
  observations:Map<string,CommunicationAgent>;selected:string|null;inspected:string|null;tooltipId:string;
  onInspect:(id:string,anchor:SVGGElement,pin:boolean)=>void;onLeave:()=>void;onDismiss:()=>void;
  onSelect:(id:string|null)=>void;onEdge:(from:string,to:string)=>void;
@@ -58,7 +67,7 @@ export function CommunicationMap(props:Props){
  const hoveredMessage=edgeHover?connectionMessageId(props.traffic,edgeHover.from,edgeHover.to,props.at):null;
  const controlsRef=useRef<HTMLDivElement>(null);
  const root=useRef<HTMLDivElement>(null),svg=useRef<SVGSVGElement>(null),canvas=useRef<HTMLCanvasElement>(null),gridCanvas=useRef<HTMLCanvasElement>(null);
- const dimensions=props.initialDimensions??2,[zoom,setZoom]=useState(1),[failure,setFailure]=useState(''),[retry,setRetry]=useState(0);
+ const dimensions=props.initialDimensions??2,viewportLayout=props.viewportLayout===undefined&&dimensions===2?normalizeToViewport:props.viewportLayout,[zoom,setZoom]=useState(1),[failure,setFailure]=useState(''),[retry,setRetry]=useState(0);
  useEffect(()=>{
   const element=root.current;if(!element)return;let inView=true;
   const update=()=>{element.dataset.stateMotion=String(props.running&&props.active&&inView&&!document.hidden);};
@@ -71,8 +80,8 @@ export function CommunicationMap(props:Props){
  const highlightedOwner=props.nodes.find(node=>node.id===(props.inspected??props.selected))?.ownerId||'';
  const crowded=props.nodes.length>24;
  const fitting=useRef(true),orbit=useRef({yaw:.55,pitch:-.35});
- const control=useRef({...props,zoom,dimensions,highlightedOwner,received:performance.now()});
- useLayoutEffect(()=>{control.current={...props,zoom,dimensions,highlightedOwner,received:performance.now()};});
+ const control=useRef({...props,viewportLayout,zoom,dimensions,highlightedOwner,received:performance.now()});
+ useLayoutEffect(()=>{control.current={...props,viewportLayout,zoom,dimensions,highlightedOwner,received:performance.now()};});
  const peopleRing=props.crowding==='focus-ring',showAll=useRef(false),outsideRef=useRef<HTMLParagraphElement>(null);
  const key=JSON.stringify([dimensions,peopleRing,props.nodes.map(n=>[n.id,n.ownerId??null])]);
  const positions=useMemo(()=>{const seed=dimensions===3?initialPositions3D(props.nodes.length):initialPositions(props.nodes.length);return props.nodes.map((n,i)=>({...n,x:seed[i*dimensions],y:seed[i*dimensions+1]}));},[key]);
@@ -92,15 +101,15 @@ export function CommunicationMap(props:Props){
   let display:Float64Array=dimensions===3?initialPositions3D(positions.length):initialPositions(positions.length),target:Float64Array=display.slice(),ready=false,pending=false,sequence=0,accepted=0,raf=0,lastStep=-Infinity,lastDraw=0,dirty=true,needsStep=true;
   const flights=new MessageFlights(),edgeAppearance=new EdgeAppearance();let animationClock=0,floorY=0,gridRadius=1000;
   let dense=false,crowdedOverview=false,shrink=1,outside=-1;const featuredUntil=new Float64Array(positions.length),displayScale=new Float64Array(positions.length).fill(1);
-  let world=440,overviewSpan=440,camera={x:0,y:0},fitPending=true,viewportDirty=true,box={width:0,height:0},topInset=0,lastViewBox='',depthOrder:number[]=[];const reduced=matchMedia('(prefers-reduced-motion: reduce)'),index=new Map(positions.map((n,i)=>[n.id,i]));
+  let world=440,overviewSpan=440,camera={x:0,y:0},fitPending=true,viewportDirty=true,box={width:0,height:0},topInset=0,lastViewBox='',lastLabelUpdate=-Infinity,depthOrder:number[]=[];const reduced=matchMedia('(prefers-reduced-motion: reduce)'),index=new Map(positions.map((n,i)=>[n.id,i]));
   const nodeElements=positions.map(n=>element.querySelector('[data-map-id="'+CSS.escape(n.id)+'"] .k42-communication-agent'));
   const measure=()=>{const rect=element.getBoundingClientRect();box={width:rect.width,height:rect.height};const inside=controlsRef.current&&element.contains(controlsRef.current);topInset=inside?controlsRef.current!.getBoundingClientRect().bottom-rect.top+12:0;viewportDirty=false;};
   // Nodes render at world coordinates (around the SVG's top-left corner) until a frame places them, and frames need
   // animation callbacks, which a hidden or background tab never gets. Fit the seed layout now so the map is framed
   // from its first render.
-  {measure();if(box.width>0&&box.height>0){const projected=projectPoints(display,dimensions,orbit.current.yaw,orbit.current.pitch),start=fitReadableCamera(projected,box.width,box.height,topInset,1.2);
+  {measure();if(box.width>0&&box.height>0){const raw=projectPoints(display,dimensions,orbit.current.yaw,orbit.current.pitch),projected=viewportLayout?viewportLayout(raw,box.width,box.height,topInset):raw,start=viewportLayout?{x:0,y:0,span:box.height}:fitReadableCamera(projected,box.width,box.height,topInset,1.2);
    lastViewBox=`0 0 ${box.width} ${box.height}`;vector.setAttribute('viewBox',lastViewBox);
-   for(const [i,node] of nodeElements.entries()){const p=screenPoint(projected,i,start,box.width,box.height);node?.setAttribute('transform',`translate(${p.x},${p.y})`);}}}
+   for(const [i,node] of nodeElements.entries()){const p=screenPoint(projected,i,start,box.width,box.height),scale=positions[i].personId?(props.personScale??1.25):1;node?.setAttribute('transform',`translate(${p.x},${p.y}) scale(${scale})`);}}}
   const post=(data:MapRequest)=>worker.postMessage(data);
   const fail=(message:string)=>{setFailure(message);ready=false;};setFailure('');
   worker.onmessage=({data}:{data:MapReply})=>{
@@ -127,9 +136,10 @@ export function CommunicationMap(props:Props){
     const blend=1-Math.exp(-dt/120);
     for(let i=0;i<display.length;i++)display[i]=reduced.matches?target[i]:display[i]+(target[i]-display[i])*blend;
    }
-   const projected=projectPoints(display,dimensions,orbit.current.yaw,orbit.current.pitch);
+   const worldPoints=projectPoints(display,dimensions,orbit.current.yaw,orbit.current.pitch);
    if(viewportDirty)measure();
    if(box.width<=0||box.height<=0)return;
+   const projected=c.viewportLayout?c.viewportLayout(worldPoints,box.width,box.height,topInset):worldPoints;
    const weights=new Map(connectionWeights(c.traffic,at).map(e=>[JSON.stringify([e.from,e.to]),e]));
    const mode=c.crowding??'portraits',featured=new Uint8Array(positions.length);
    if(mode!=='portraits'){
@@ -140,9 +150,11 @@ export function CommunicationMap(props:Props){
    }
    // Fit to the agents in live conversations when that option is chosen.
    if(focusMode(mode)){const all=fitReadableCamera(projected,box.width,box.height,topInset);crowdedOverview=crowdedOverview?overlapShare(positions.map((_,i)=>screenPoint(projected,i,all,box.width,box.height)))>.03:overlapShare(positions.map((_,i)=>screenPoint(projected,i,all,box.width,box.height)))>.1;}
-   const focused=focusMode(mode)&&crowdedOverview&&!showAll.current&&featured.some(Boolean),fitTo=focused?projected.filter((_,k)=>featured[Math.floor(k/3)]===1):projected;
+   const focused=!c.viewportLayout&&focusMode(mode)&&crowdedOverview&&!showAll.current&&featured.some(Boolean),fitTo=focused?projected.filter((_,k)=>featured[Math.floor(k/3)]===1):projected;
    if(fitting.current){
-    if(fitPending){
+    if(c.viewportLayout){
+     world=overviewSpan=box.height;camera={x:0,y:0};fitPending=false;
+    }else if(fitPending){
      const next=fitReadableCamera(fitTo,box.width,box.height,topInset,focused?2:1.2);
      world=overviewSpan=next.span;camera={x:next.x,y:next.y};fitPending=false;
     }else if(focused){
@@ -170,11 +182,12 @@ export function CommunicationMap(props:Props){
    element.dataset.mapDense=String(dense);element.dataset.mapFocused=String(focused);
    // Agents grow and shrink over about 300 ms instead of snapping.
    const scaleBlend=reduced.matches?1:1-Math.exp(-dt/100);
-   const scales=screen.map((_,i)=>{const target=mode==='shrink'?(featured[i]?1:shrink):(mode==='dots'||focusMode(mode))&&dense&&!featured[i]?(positions[i].personId?.45:.3):1;displayScale[i]+=(target-displayScale[i])*scaleBlend;if(Math.abs(target-displayScale[i])<.005)displayScale[i]=target;if(target!==displayScale[i])dirty=true;return displayScale[i];});
+   const scales=screen.map((_,i)=>{const target=mode==='shrink'?(featured[i]?1:shrink):(mode==='dots'||focusMode(mode))&&dense&&!featured[i]?(positions[i].personId?.45:.3):1;displayScale[i]+=(target-displayScale[i])*scaleBlend;if(Math.abs(target-displayScale[i])<.005)displayScale[i]=target;if(target!==displayScale[i])dirty=true;return displayScale[i]*(positions[i].personId?(c.personScale??1.25):1);});
    for(const [i,node] of nodeElements.entries()){
     const transform=`translate(${screen[i].x},${screen[i].y})${scales[i]===1?'':` scale(${scales[i].toFixed(3)})`}`;if(node&&node.getAttribute('transform')!==transform)node.setAttribute('transform',transform);
     const wrapper=node?.parentElement;if(wrapper)wrapper.classList.toggle('is-dot',scales[i]<.6);
    }
+   if((c.labelMode??'compact')==='compact'&&(!c.running||time-lastLabelUpdate>=100)){updateMapLabels(nodeElements,screen,scales);lastLabelUpdate=time;}
    // Fit to active can leave quiet agents outside the view; say how many.
    const hidden=focused?screen.filter(p=>p.x<0||p.x>box.width||p.y<topInset||p.y>height).length:0;
    if(hidden!==outside&&outsideRef.current){outside=hidden;outsideRef.current.hidden=!hidden;outsideRef.current.firstElementChild!.textContent=`+${hidden} ${hidden===1?'agent':'agents'} outside view`;element.dataset.mapOutside=String(hidden);}
@@ -255,15 +268,15 @@ export function CommunicationMap(props:Props){
   return()=>{cancelAnimationFrame(raf);worker.onmessage=null;worker.onerror=null;worker.terminate();resize.disconnect();element.removeEventListener('map-frame',invalidate);element.removeEventListener('map-traffic',updateTraffic);element.removeEventListener('map-fit',fit);element.removeEventListener('pointerdown',down);element.removeEventListener('pointermove',move);element.removeEventListener('pointerup',up);element.removeEventListener('pointercancel',up);element.removeEventListener('keydown',keyboard);};
  },[key,retry]);
  useEffect(()=>{root.current?.dispatchEvent(new CustomEvent('map-traffic',{detail:props.traffic}));},[props.traffic]);
- useLayoutEffect(()=>{root.current?.dispatchEvent(new Event('map-frame'));},[props.at,props.running,props.speed,props.traffic,props.active,zoom,highlightedOwner,props.crowding,props.inspected]);
- useEffect(()=>{if(fitting.current)root.current?.dispatchEvent(new Event('map-fit'));},[props.crowding]);
+ useLayoutEffect(()=>{root.current?.dispatchEvent(new Event('map-frame'));},[props.at,props.running,props.speed,props.traffic,props.active,zoom,highlightedOwner,props.crowding,props.inspected,props.personScale,props.labelMode]);
+ useEffect(()=>{if(fitting.current)root.current?.dispatchEvent(new Event('map-fit'));},[props.crowding,viewportLayout]);
  const controlsBlock=<>
   <div ref={controlsRef} className="communication-map-controls" role="group" aria-label="Map controls">
    {props.toolbarStart}
    <span className="communication-map-zoom"><button type="button" aria-label="Zoom out" onClick={()=>zoomBy(1/1.4)}>−</button><button type="button" onClick={home}>Fit map</button><button type="button" aria-label="Zoom in" onClick={()=>zoomBy(1.4)}>+</button></span>
   </div>
  </>;
- return <div className="communication-map" ref={root} tabIndex={0} onClick={event=>{if((event.target as Element).closest('button,select,.communication-map-controls,.k42-communication-agent,[data-map-edge],.k42-connection-popover'))return;props.onSelect(null);props.onDismiss();}} data-map-connector={props.connectorStyle??'rubber-tube'} data-map-dimensions={dimensions} data-state-motion={props.running&&props.active} data-owner-highlight={highlightedOwner} data-crowded={crowded} aria-label={dimensions===3?"3D communication map. Drag or use arrow keys to orbit; Shift plus drag or arrow keys to pan; plus and minus to zoom.":"Communication map. Drag to pan; arrow keys to move; plus and minus to zoom."}>
+ return <div className="communication-map" ref={root} tabIndex={0} onClick={event=>{if((event.target as Element).closest('button,select,.communication-map-controls,.k42-communication-agent,[data-map-edge],.k42-connection-popover'))return;props.onSelect(null);props.onDismiss();}} data-map-labels={props.labelMode??'compact'} data-map-connector={props.connectorStyle??'rubber-tube'} data-map-dimensions={dimensions} data-state-motion={props.running&&props.active} data-owner-highlight={highlightedOwner} data-crowded={crowded} aria-label={dimensions===3?"3D communication map. Drag or use arrow keys to orbit; Shift plus drag or arrow keys to pan; plus and minus to zoom.":"Communication map. Drag to pan; arrow keys to move; plus and minus to zoom."}>
   <canvas ref={gridCanvas} data-map-layer="grid" aria-hidden="true"/>
   <canvas ref={canvas} data-map-layer="connectors" aria-hidden="true"/>
   <svg ref={svg} data-map-layer="avatars" width="100%" height="100%" role="group" aria-label="Agent communication graph">

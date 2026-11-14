@@ -105,6 +105,8 @@ test('real communication card supports avatars, live states, hover, keyboard and
     await vite.listen();
     browser = await chromium.launch({ headless: true, ...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MLSWARM_TEST_BROWSER_EXECUTABLE } : {}) });
     const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } });
+    // Install before navigation so the application's polling timers are tracked.
+    await page.clock.install();
     await page.route('**/*', (route: any) => ['127.0.0.1','localhost'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
     const errors: string[] = []; page.on('pageerror', (e: Error) => errors.push(e.message));
     await page.goto(`http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/__communication.html`);
@@ -131,7 +133,7 @@ test('real communication card supports avatars, live states, hover, keyboard and
       await person.press('Escape');
       await expect.poll(() => page.locator('.communication-map').getAttribute('data-owner-highlight')).toBe('');
     }
-    expect(await page.locator('.k42-communication-avatar').count()).toBe(activeAgentCount);
+    expect(await page.locator('.communication-map .k42-communication-agent:not(.k42-communication-person) [data-character-avatar]').count()).toBe(activeAgentCount);
     expect(await page.locator('.agent-state-bubble').count()).toBe(activeAgentCount);
     expect(await page.locator('.k42-communication-state-marker').count()).toBe(0);
     const urgent=page.locator('.agent-state-bubble.state-needs_you .agent-state-bubble-surface');
@@ -140,6 +142,8 @@ test('real communication card supports avatars, live states, hover, keyboard and
     expect(await page.locator('.agent-state-bubble.state-working').evaluate((node:Element)=>getComputedStyle(node).color)).toBe('rgb(0, 102, 255)');
     expect(await page.getByRole('button',{name:'2D',exact:true}).count()).toBe(0);
     expect(await page.locator('.communication-map').getAttribute('data-map-dimensions')).toBe('2');
+    expect(await page.locator('.communication-map').getAttribute('data-map-labels')).toBe('compact');
+    expect(await person.locator('foreignObject').evaluate((node:Element)=>node.getBoundingClientRect().width)).toBeCloseTo(50,0);
     // Native fullscreen and CSS fallback both retain tooltip content inside the panel.
     await page.getByRole('button',{name:'Full screen',exact:true}).click();
     await page.locator('.k42-communication.is-expanded').waitFor({state:'visible'});
@@ -159,7 +163,7 @@ test('real communication card supports avatars, live states, hover, keyboard and
     await expect.poll(()=>page.getByRole('button',{name:'Full screen',exact:true}).evaluate((node:Element)=>node===document.activeElement)).toBe(true);
     await fox.hover(); const tooltip = page.getByRole('tooltip'); await tooltip.waitFor({ state: 'visible' });
     expect(await tooltip.innerText()).toContain('Synthetic focus: Demo Fox is checking the map controls.');
-    expect(await tooltip.locator('img').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+    expect(await tooltip.locator('.k42-character-neutral').evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
     await page.screenshot({ path: join(screenshots, 'desktop.png') });
     await page.keyboard.press('Escape'); await tooltip.waitFor({ state: 'detached' });
     await fox.focus(); await tooltip.waitFor({ state: 'visible' }); await fox.press('Enter'); expect(await page.getByText('Opened agent: '+f.agents[0].agentId,{exact:true}).isVisible()).toBe(true);
@@ -180,7 +184,7 @@ test('real communication card supports avatars, live states, hover, keyboard and
     await resetHighlightFromMap();
     // Tap the visible portrait; neighboring transparent hit areas must not
     // intercept it in the compact fitted mobile overview.
-    await fox.locator('.k42-communication-avatar').click(); await tooltip.waitFor({ state: 'visible' });
+    await fox.locator('[data-character-avatar]').click(); await tooltip.waitFor({ state: 'visible' });
     expect(await page.locator('.k42-communication-spotlight').count()).toBe(0);
     await fox.focus(); await tooltip.waitFor({ state: 'visible' });
     const box = await tooltip.boundingBox(); expect(box.x).toBeGreaterThanOrEqual(12); expect(box.x+box.width).toBeLessThanOrEqual(378);
@@ -189,13 +193,13 @@ test('real communication card supports avatars, live states, hover, keyboard and
     const frameBeforeFocus=await page.locator('.communication-map').getAttribute('data-map-frames');
     await expect.poll(async()=>Number(await page.locator('.communication-map').getAttribute('data-map-frames')),{timeout:15000}).toBeGreaterThan(Number(frameBeforeFocus)+3);
     await fox.focus();
-    await expect.poll(async()=> (await page.locator('.k42-communication-avatar').first().boundingBox()).width).toBeGreaterThanOrEqual(38);
+    await expect.poll(async()=> (await page.locator('.communication-map .k42-communication-agent:not(.k42-communication-person) [data-character-avatar]').first().boundingBox()).width).toBeGreaterThanOrEqual(38);
     expect(await page.locator('.state-working .agent-state-bubble-symbol-motion').evaluate((node: Element) => getComputedStyle(node).animationName)).toBe('none');
     await page.screenshot({ path: join(screenshots, 'mobile.png') });
     // The status read (the current-state endpoint, the only one) fails: the map shows the error and no invented states.
     await page.route('**/communication/agents/current*', (route: any) => route.fulfill({ status: 503, contentType: 'application/json', body: JSON.stringify({ message: 'Status unavailable' }) }));
     await page.reload(); await page.getByText('Current agent states are unavailable. Communication history is still shown.').waitFor({ state: 'visible' });
-    expect(await page.locator('.k42-communication-avatar').count()).toBe(activeAgentCount);
+    expect(await page.locator('.communication-map .k42-communication-agent:not(.k42-communication-person) [data-character-avatar]').count()).toBe(activeAgentCount);
     expect(await page.getByRole('button', { name: /^Select agent Demo Dog\./ }).count()).toBe(0);
     expect(await page.locator('.k42-map-crowd [data-tip="Demo Dog"]').count()).toBe(0);
     await humanEdge.waitFor({ state: 'visible' });
@@ -243,7 +247,7 @@ test('real communication card supports avatars, live states, hover, keyboard and
       await batch.commit();
     });
     await page.reload();
-    await expect.poll(()=>page.locator('.k42-communication-avatar').count()).toBe(activeAgentCount+67);
+    await expect.poll(()=>page.locator('.communication-map .k42-communication-agent:not(.k42-communication-person) [data-character-avatar]').count()).toBe(activeAgentCount+67);
     const lastOwn=page.getByRole('button',{name:/Select agent Additional agent 66/});
     await lastOwn.waitFor();
     await lastOwn.focus();
@@ -251,9 +255,11 @@ test('real communication card supports avatars, live states, hover, keyboard and
     expect(await page.getByRole('tooltip').innerText()).toContain('Additional agent 66');
     expect(await page.getByRole('button',{name:/Select agent Additional agent 66/}).count()).toBe(1);
     // Rate limiting preserves the graph without bringing back the removed preview.
-    await page.clock.install();
+    // The remaining assertions cover polling/recovery, after visual acceptance.
+    // Freeze presentation frames while retaining every polling timer and request.
+    await page.evaluate(()=>{window.requestAnimationFrame=()=>0;});
     serverNow+=60001;
-    const lastNodes=await page.locator('.k42-communication-avatar').count();
+    const lastNodes=await page.locator('.communication-map .k42-communication-agent:not(.k42-communication-person) [data-character-avatar]').count();
     // The refresh notice must not move or resize the graph, even on mobile.
     await page.getByRole('button',{name:'Fit map',exact:true}).click();
     const mapBounds=()=>page.locator('.communication-map').evaluate((node:Element)=>{const r=node.getBoundingClientRect();return {y:r.y,width:r.width,height:r.height};});
@@ -264,13 +270,19 @@ test('real communication card supports avatars, live states, hover, keyboard and
     const rateNotice=page.getByText('Updates will resume shortly. Showing the last loaded view.',{exact:true});
     await rateNotice.waitFor({state:'visible'});
     expect(await mapBounds()).toEqual(beforeNotice);
-    expect(await page.locator('.k42-communication-avatar').count()).toBe(lastNodes);
+    expect(await page.locator('.communication-map .k42-communication-agent:not(.k42-communication-person) [data-character-avatar]').count()).toBe(lastNodes);
     await page.clock.runFor(20000);expect(rateCalls).toBe(1);
     await page.unroute('**/api/view/communication?*');
     // Frame reconciliation runs every 60 seconds. A tick during the 60-second
     // Retry-After hold is skipped, so recovery may need the following full interval.
     // Cover both bounds without weakening the no-extra-request assertion above.
-    await page.clock.runFor(60000+60000);await rateNotice.waitFor({state:'detached'});
+    // Advance the server clock too and yield for real HTTP / React work between
+    // ticks; a bulk browser-only jump can leave a new request's timer unpumped.
+    for(let elapsed=0;elapsed<120000&&await rateNotice.count();elapsed+=1000){
+      serverNow+=1000;await page.clock.runFor(1000);
+      await new Promise(resolve=>setTimeout(resolve,10));
+    }
+    await rateNotice.waitFor({state:'detached',timeout:5000});
     expect(await mapBounds()).toEqual(beforeNotice);
     expect(errors).toEqual([]);
   } finally {

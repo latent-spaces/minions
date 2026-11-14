@@ -46,3 +46,11 @@
 .k42-connection-excerpt { margin:0; overflow-wrap:anywhere; white-space:normal; }
 .k42-connection-popover > a { display:block; padding:8px 0 2px; color:inherit; text-underline-offset:3px; }
 .k42-connection-popover > a:focus-visible { outline:2px solid var(--ink,#141414); outline-offset:3px; border-radius:3px; }
+
+/* State bubbles carry the compact overview; inspection reveals full text. */
+.communication-map[data-map-labels="compact"] :is(.k42-communication-state,.k42-communication-focus),
+.communication-map[data-map-labels="compact"] .has-label-collision .k42-communication-name,
+.communication-map[data-map-labels="inspect"] :is(.k42-communication-name,.k42-communication-state,.k42-communication-focus) { visibility:hidden; }
+.communication-map[data-map-labels] .k42-communication-agent:is(:hover,:focus-visible,.selected,.is-inspecting) :is(.k42-communication-name,.k42-communication-state,.k42-communication-focus) { visibility:visible; paint-order:stroke; stroke:var(--canvas); stroke-width:4; stroke-linejoin:round; }
+/* People are 25% larger; counter-scale their type to keep the same reading size. */
+.communication-map .k42-communication-person :is(.k42-communication-name,.k42-communication-state) { font-size:9.6px; }
