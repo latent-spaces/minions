@@ -22,6 +22,10 @@ should have been the controller not?”; then, choosing among options, “Contro
 - **Quoted data.** The mission and each steering message are quoted line by line, so a heading
   or instruction inside them stays inside the quote. Steering is marked as data, not a change to
   the rules. Deferred-send results stay exact JSON, one per list item.
+- **The whole turn.** The sections the adapter adds are Markdown too: Permissions, Project card
+  (name, mission and rules quoted, settings as exact values), Tasks, Teams, Project updates,
+  Preview, Persona (quoted) and GitHub attribution footer (in a fenced block). A section that
+  has not changed in a resumed conversation keeps its heading and says so.
 - **Same measurements.** Each section is still counted under its prompt source.
 ## Responsive map bounds and compact labels — owner decision, 14 November 2026
 
