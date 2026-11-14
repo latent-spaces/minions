@@ -354,7 +354,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
 
 // The project's sections, listed in the menu above My agents (owner, 11 November 2026; Agents added under Communication 12 November).
 type ProjectTab = { id: Section; label: string; icon: typeof Activity };
-const PROJECT_TABS: ProjectTab[] = [{ id:'overview', label:'Tasks', icon:ListTodo }, { id:'preview', label:'Preview', icon:MonitorPlay }, { id:'teams', label:'Teams', icon:Users }, { id:'conversations', label:'Communication', icon:MessageSquare }, { id:'agents', label:'Agents', icon:Bot }, { id:'usage', label:'Usage', icon:Activity },
+const PROJECT_TABS: ProjectTab[] = [{ id:'overview', label:'Tasks', icon:ListTodo }, { id:'conversations', label:'Communication', icon:MessageSquare }, { id:'preview', label:'Preview', icon:MonitorPlay }, { id:'teams', label:'Teams', icon:Users }, { id:'agents', label:'Agents', icon:Bot }, { id:'usage', label:'Usage', icon:Activity },
   { id:'control-center', label:'Settings', icon:Settings }];
 // Sharing a link preserves the server's existing admission and project-access rules.
 async function shareProjectLink(projectId: string) {

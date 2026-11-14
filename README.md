@@ -193,6 +193,9 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
 - [x] **A three-field project card** (owner, 14 November 2026). The card is Name,
       Description and Rules, edited together in Settings; the other card fields and the
       separate shared instructions are gone.
+- [x] **Tasks list newest first** (owner, 14 November 2026). The list shows the most
+      recently updated tasks first.
+- [x] **Communication above Preview in the sidebar** (owner, 14 November 2026).
 - [ ] **Readable messages to agents again** (owner, 14 November 2026). Messages to agents
       used to be nicely formatted Markdown that people could review; find what changed
       and bring that formatting back.
