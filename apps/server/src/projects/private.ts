@@ -17,7 +17,7 @@ import { createCommunityDefaults } from './community-schema.js';
 import { membershipDoc, membershipFenceDoc, membershipsOf, membershipEpoch, type Membership } from './access.js';
 import { membershipCleanup, continueMembershipCleanup } from './member-cleanup.js';
 
-export const CREATE_PRIVATE = z.object({ client_request_id: z.string().uuid(), title: z.string().trim().min(1).max(120), goal: z.string().trim().min(1).max(1500), githubUrl: z.string().max(300).refine(url => githubRepositoryUrl(url) !== null, 'Enter a GitHub repository URL, such as https://github.com/owner/repository.').transform(url => githubRepositoryUrl(url)!), agentGuidance: z.string().trim().max(1500).optional(), setupPlan: SETUP_PLAN.optional() }).strict();
+export const CREATE_PRIVATE = z.object({ client_request_id: z.string().uuid(), title: z.string().trim().min(1).max(120), goal: z.string().trim().min(1).max(1500), githubUrl: z.string().max(300).refine(url => githubRepositoryUrl(url) !== null, 'Enter a GitHub repository URL, such as https://github.com/owner/repository.').transform(url => githubRepositoryUrl(url)!), rules: z.string().trim().max(3000).optional(), setupPlan: SETUP_PLAN.optional() }).strict();
 const operations = collection<{ actorProfileId: string; fingerprint: string; result: object }>('privateProjectOperations');
 const active = (profile: Profile | undefined) => !!profile && profile.removedAt === null;
 
@@ -67,8 +67,8 @@ export async function leavePrivateProject(actor: WithId<Profile>, id: string, re
   return result;
 }
 
-function writePrivateProject(tx: Transaction, id: string, actorId: string, input: Pick<z.infer<typeof CREATE_PRIVATE>, 'title' | 'goal' | 'githubUrl' | 'agentGuidance' | 'setupPlan'>, at: number) {
-  const definition = PROPOSAL_CONTENT.parse({ title: input.title, goal: input.goal, proposalFormat: 'simple', mergeApproval: 'anyone', githubUrl: input.githubUrl, ...(input.agentGuidance ? { agentGuidance: input.agentGuidance } : {}) });
+function writePrivateProject(tx: Transaction, id: string, actorId: string, input: Pick<z.infer<typeof CREATE_PRIVATE>, 'title' | 'goal' | 'githubUrl' | 'rules' | 'setupPlan'>, at: number) {
+  const definition = PROPOSAL_CONTENT.parse({ title: input.title, goal: input.goal, proposalFormat: 'simple', mergeApproval: 'anyone', githubUrl: input.githubUrl, ...(input.rules ? { rules: input.rules } : {}) });
   const record = PROJECT_RECORD.parse({ schemaVersion: 1, workspaceId: DEFAULT_WORKSPACE_ID, ownerProfileId: actorId, approval: null, ...(input.setupPlan ? { setupPlan: input.setupPlan } : {}),
       privacy: { visibility: 'private', messageProtection: 'server_readable_v1', createdAt: at },
       setup: { required: false, configuredAt: at, configuredByProfileId: actorId, finalizedAt: null, repoUrl: input.githubUrl, minContributors: null, startDeadline: null },

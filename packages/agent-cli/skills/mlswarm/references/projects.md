@@ -44,13 +44,14 @@ tools. `list_my_projects` covers owned and joined projects and proposals; a filt
 can be empty while its cursor still leads to more, so follow the cursor.
 `list_my_proposals` and `get_my_proposal` have the full review status and feedback.
 
-- `create_private_project`: once the person approves the name, goal and GitHub
-  repository, pass a new UUID as the request ID (keep it for retries) and `approved:
+- `create_private_project`: once the person approves the name, description, any rules
+  and GitHub repository, pass a new UUID as the request ID (keep it for retries) and `approved:
   true`. No review or agent is needed. Chat works right away. Projects are created only
   here: the website has no create screen. When the person has no repository yet, offer to
   create a private one with `gh repo create <owner>/<name> --private --add-readme` and run it
   after their yes, then use its URL.
 - `get_project_overview` has the full project card (`definition`) and its `cardVersion`.
+  The card is a name (`title`), a description (`goal`) and optional `rules`.
   Save the agreed card with `update_project_card`, keeping unchanged fields.
   `set_project_repository` saves the agreed repository. Listing in Explore needs an
   approved proposal and then `publish_to_explore`. For an existing private project,

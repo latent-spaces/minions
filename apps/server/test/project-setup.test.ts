@@ -19,7 +19,7 @@ test('public setup remains a proposal until approval, initializes limits once an
   const actor = { kind: 'person' as const, operatorId: owner.id };
   const draft = await writeProposal(actor, { action: 'draft', clientId: randomUUID(), content: {
     title: 'Public setup', goal: 'Build together', githubUrl: 'https://github.com/example/public', proposalFormat: 'simple', minContributors: 1,
-    agentGuidance: 'Explain outputs.', setupPlan,
+    rules: 'Explain outputs.', setupPlan,
   } }, Date.now);
   const id = draft.proposal.id;
   const submitted = await writeProposal(actor, { action: 'submit', proposalId: id, expectedRevision: draft.proposal.revision, clientId: randomUUID() }, Date.now);
@@ -28,7 +28,7 @@ test('public setup remains a proposal until approval, initializes limits once an
   await reviewProposal({ kind: 'person', operatorId: reviewer.id, adminAuthenticated: true }, approval, Date.now);
   await reviewProposal({ kind: 'person', operatorId: reviewer.id, adminAuthenticated: true }, approval, Date.now);
   expect((await projects.doc(id).get()).data()).toMatchObject({ setupPlan, publication: { listed: false }, execution: { started: false, paused: true } });
-  expect((await cardDoc(id).get()).data()!.definition).toMatchObject({ agentGuidance: 'Explain outputs.' });
+  expect((await cardDoc(id).get()).data()!.definition).toMatchObject({ rules: 'Explain outputs.' });
   expect((await cardDoc(id).get()).data()!.definition).not.toHaveProperty('setupPlan');
   expect((await readWorkspace(owner, id)).setupPlan).toEqual(setupPlan);
   expect(await inProject(id, () => readCommunication(owner.id))).toMatchObject({ effective: { sendsPerHour: 25, sharedBroadcastsPerHour: 4, projectRevision: 1 } });

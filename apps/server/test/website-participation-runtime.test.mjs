@@ -48,7 +48,7 @@ async function fixture() {
   const f = await seed({ profiles:[{name:'Synthetic owner',email:'owner@example.test'}], agents:[{person:0,name:'Synthetic Claude chat'}] });
   const ownerId=f.personIds[0], firebase=await idTokenFor('owner@example.test');
   await seedApprovedProject(secondProject,{ownerProfileId:ownerId,required:false,
-    definition:{title:'Synthetic second project',goal:'Test isolation',beneficiaries:'Tests',output:'Evidence',scope:'No models',acceptanceCriteria:'Assertions',sources:null,resources:null,mergeApproval:'humans'}});
+    definition:{title:'Synthetic second project',goal:'Test isolation',rules: 'No models',mergeApproval:'humans'}});
   const second=await inProject(secondProject,()=>addAgent(ownerId,'Synthetic Codex chat',Date.now));
   const fetchImpl=(url,options)=>{const original=new URL(url);if(original.origin!==site)throw new Error('Unexpected transport origin'); return fetch(base+original.pathname+original.search,options);};
   // This test server has no local-owner session route, so the owner's test sign-in stands in for it.

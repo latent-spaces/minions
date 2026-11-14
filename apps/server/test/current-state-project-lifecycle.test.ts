@@ -40,8 +40,7 @@ afterEach(async () => {
 async function makeProject(n: number, owner = owners[0]!) {
   const id = projectId(n);
   await seedApprovedProject(id, { ownerProfileId: owner, required: false,
-    definition: { title: `Lifecycle ${n}`, goal: 'Test current-state isolation', beneficiaries: 'Tests', output: 'Evidence',
-      scope: 'Isolated', acceptanceCriteria: 'Tests', sources: null, resources: null, mergeApproval: 'humans' },
+    definition: { title: `Lifecycle ${n}`, goal: 'Test current-state isolation', rules: 'Isolated', mergeApproval: 'humans' },
     runtime: { ...testProject, revision: 0, configuredAt: 0, configuredBy: owner, setupFinalizedAt: 0 },
   });
   return id;

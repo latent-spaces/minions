@@ -43,8 +43,7 @@ test.skipIf(!config)('5000 agents at 15s: quiet and busy canonical writers, 1/4 
       owner = f.personIds[0]!;
       for (const project of [...small, HOT]) {
         await seedApprovedProject(project, { ownerProfileId: owner, required: false,
-          definition: { title: 'Synthetic cadence project', goal: 'Validate canonical status', beneficiaries: 'Tests', output: 'Evidence',
-            scope: 'Disposable emulator', acceptanceCriteria: 'All reads/writes counted', sources: null, resources: null, mergeApproval: 'humans' },
+          definition: { title: 'Synthetic cadence project', goal: 'Validate canonical status', rules: 'Disposable emulator', mergeApproval: 'humans' },
           runtime: { ...testProject, revision: 0, configuredAt: 0, configuredBy: owner, setupFinalizedAt: 0 } });
         await inProject(project, async () => {
           const total = project === HOT ? 5000 : 5;

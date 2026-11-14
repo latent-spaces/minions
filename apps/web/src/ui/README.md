@@ -455,10 +455,10 @@ opens the card as a modal dialog and asks the browser for full screen; Escape or
 full screen closes it. If the canvas or layout worker fails, the map shows Map
 unavailable with Retry map. Viewing the map only reads; the run controls change project work.
 
-Settings is one page. Its first card, Project, holds the project's name and description
-(`CardSettings` in basics mode, with version history); the owner edits them, and members and
-closed projects see them read-only. The owner also gets three project cards: All agents (shared
-instructions and `CommunicationLimits`, which every agent in the project follows), Updates
+Settings is one page. Its first card, Project, holds the project card: name, description and
+rules (`CardSettings`, with version history). The owner edits them, and members and closed
+projects see them read-only. The owner also gets three more cards: All agents
+(`CommunicationLimits`, which every agent in the project follows), Updates
 (`UpdateSettings`) and Features (Tasks and Teams toggles). Pause, Close and Reopen stay in the
 project header. Each setting's
 explanation sits behind an `InfoTip` ? button: hover or focus shows it, a click or tap keeps it open

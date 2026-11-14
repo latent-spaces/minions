@@ -5,7 +5,7 @@ import type { ProjectLifecycle } from '@mlswarm/contracts';
 export type CommunityRequest = <T>(path: string, body?: object) => Promise<T>;
 export type CommunityAccount = { person: {id: string; name: string; photo?: PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null}; canReviewProposals: boolean; canAdminPlatform?: boolean; canInvite?: boolean };
 export type ProposalSummary = { id: string; title: string; status: string; revision: number; submittedRevision: number | null; updatedAt: number; projectId: string | null; projectStatus?: ProjectReviewStatus | null };
-export type ProposalContent = { title: string; goal: string; beneficiaries: string; output: string; scope: string; acceptanceCriteria: string; sources: string | null; resources: string | null; githubUrl?: string | null; proposalFormat?: 'simple'; minContributors?: number; mergeApproval: MergeApproval; agentGuidance?: string; setupPlan?: ProjectSetupPlan };
+export type ProposalContent = { title: string; goal: string; rules?: string; githubUrl?: string | null; proposalFormat?: 'simple'; minContributors?: number; mergeApproval: MergeApproval; setupPlan?: ProjectSetupPlan };
 // A version is written by the proposer, a signed-in person.
 export type ProposalAuthor = { kind: 'person'; id: string };
 export type ProposalDetail = { proposal: Omit<ProposalSummary, 'title'> & { operatorId: string; createdBy: ProposalAuthor; lastWrittenBy: ProposalAuthor;

@@ -20,7 +20,7 @@ beforeAll(async () => {
 afterAll(async () => { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); });
 beforeEach(resetEmulator);
 async function listed(name: string, offset: number, options: { category?: 'games' | 'research'; publishedAt?: number; started?: boolean; closed?: boolean; unlisted?: boolean } = {}) {
-  const id = idFor(name), definition = { title: name, goal: 'Shared goal', beneficiaries: '', output: '', scope: '', acceptanceCriteria: '', sources: null, resources: null, mergeApproval: 'humans' as const, minContributors: 5 };
+  const id = idFor(name), definition = { title: name, goal: 'Shared goal', rules: '', mergeApproval: 'humans' as const, minContributors: 5 };
   const base = createProjectRecord('owner', 'reviewer', id, 1, definition, 1);
   const record = { ...base, setup: { ...base.setup, configuredAt: 1, configuredByProfileId: 'owner', repoUrl: 'https://github.com/example/work', finalizedAt: 1, startDeadline: new Date(now + offset).toISOString() },
     publication: { listed: !options.unlisted, revision: 1 }, execution: { ...base.execution, started: options.started ?? false, awaitingKickoff: !options.started, paused: !options.started, startsAt: options.started ? 2 : 0, completedAt: options.closed ? 3 : null } };

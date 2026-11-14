@@ -16,7 +16,7 @@ beforeEach(resetEmulator);
 async function fixture(agents=[{person:0,name:'reviewer'}]) {
  const result=await seed({profiles:[{name:'Owner',email:'owner@example.test'},{name:'Member',email:'member@example.test'}],agents});
  const people=await Promise.all(result.personIds.map(async id=>({id,...(await profiles.doc(id).get()).data()!})));
- await seedApprovedProject(TEST_PROJECT,{ownerProfileId:people[0].id,required:false,definition:{title:'Lifecycle',goal:'Test lifecycle',beneficiaries:'Team',output:'Tests',scope:'Local',acceptanceCriteria:'Verified',sources:null,resources:null,mergeApproval:'humans'}});
+ await seedApprovedProject(TEST_PROJECT,{ownerProfileId:people[0].id,required:false,definition:{title:'Lifecycle',goal:'Test lifecycle',rules: 'Local',mergeApproval:'humans'}});
  await configureWorkspace(people[0],TEST_PROJECT,{client_request_id:'configure',expected_revision:0,repoUrl:'https://github.com/example/review'},now);
  return {people,agent:await loadAgent(result.agents[0].agentId),agentIds:result.agents.map(a=>a.agentId)};
 }

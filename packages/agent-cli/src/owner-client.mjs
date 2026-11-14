@@ -167,8 +167,8 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
       return request(path, { method:'POST', body, token:account.token, profileId:account.personId });
     });
     if (name === 'create_private_project') {
-      if (args.approved !== true || typeof args.title !== 'string' || !args.title.trim() || args.title.trim().length > 120 || typeof args.goal !== 'string' || !args.goal.trim() || args.goal.trim().length > 1500 || typeof args.repoUrl !== 'string' || !isGithubRepositoryUrl(args.repoUrl) || !UUID.test(args.client_request_id ?? '')) throw new Error('Owner private creation requires approval of the name, purpose and GitHub repository and the original request UUID.');
-      const body = { client_request_id: args.client_request_id, title: args.title.trim(), goal: args.goal.trim(), githubUrl: args.repoUrl, approved: true };
+      if (args.approved !== true || typeof args.title !== 'string' || !args.title.trim() || args.title.trim().length > 120 || typeof args.goal !== 'string' || !args.goal.trim() || args.goal.trim().length > 1500 || (args.rules !== undefined && (typeof args.rules !== 'string' || args.rules.trim().length > 3000)) || typeof args.repoUrl !== 'string' || !isGithubRepositoryUrl(args.repoUrl) || !UUID.test(args.client_request_id ?? '')) throw new Error('Owner private creation requires approval of the name, purpose and GitHub repository and the original request UUID.');
+      const body = { client_request_id: args.client_request_id, title: args.title.trim(), goal: args.goal.trim(), ...(args.rules?.trim() ? { rules: args.rules.trim() } : {}), githubUrl: args.repoUrl, approved: true };
       // Save before contact, so an uncertain write never becomes another person's
       // project after this computer is connected under a different account.
       return withOperationLock(directory(), async () => {
@@ -179,7 +179,7 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
         const fingerprint = hash(JSON.stringify(body));
         const saved = lstatExists(path) ? readPrivate(path, true) : null;
         if (saved && (saved.schema !== 'mlswarm-private-creation-1' || saved.fingerprint !== fingerprint || saved.profileId !== account.personId)) throw new Error('Owner private creation must retain its original account, name, purpose, repository and request UUID. Review that original request; do not replace it automatically.');
-        if (!saved) writePrivate(path, { schema: 'mlswarm-private-creation-1', profileId: account.personId, fingerprint, input: { client_request_id: body.client_request_id, title: body.title, goal: body.goal, repoUrl: body.githubUrl } });
+        if (!saved) writePrivate(path, { schema: 'mlswarm-private-creation-1', profileId: account.personId, fingerprint, input: { client_request_id: body.client_request_id, title: body.title, goal: body.goal, ...(body.rules ? { rules: body.rules } : {}), repoUrl: body.githubUrl } });
         const created = await request('/projects/private', { method: 'POST', body, token: account.token, profileId: account.personId });
         if (!ID.test(created.id ?? '') || created.projectId !== created.id || created.startsAgents !== false || created.messageProtection !== 'server_readable_v1') throw new Error('Owner service returned an invalid private creation response. Retry the same request.');
         return { ...created, project_page_url: siteUrl(created.projectPagePath) ?? new URL(`/?project=${created.id}`, origin).href };

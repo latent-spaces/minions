@@ -113,7 +113,7 @@ test('owner access does not expire, refuses a disabled account and a connection 
 test('only owned projects can be started; a member cannot start them', async () => {
   const f = await fixture();
   const person = { id: f.personIds[0], ...(await profiles.doc(f.personIds[0]).get()).data()! };
-  await seedApprovedProject(PROJECT, { definition: { title: 'Garden', goal: 'Grow together', beneficiaries: 'People', output: 'Garden', scope: 'Small', acceptanceCriteria: 'Review', sources: null, resources: null, mergeApproval: 'humans' }, ownerProfileId: person.id, reviewerProfileId: person.id, submittedRevision: 2, approvedAt: 1, required: false });
+  await seedApprovedProject(PROJECT, { definition: { title: 'Garden', goal: 'Grow together', rules: 'Small', mergeApproval: 'humans' }, ownerProfileId: person.id, reviewerProfileId: person.id, submittedRevision: 2, approvedAt: 1, required: false });
   await configureWorkspace(person, PROJECT, { client_request_id: 'configure', expected_revision: 0, repoUrl: 'https://github.com/example/garden' }, now);
   const overview = await http(`/projects/${PROJECT}/overview`, f.token); expect(overview.body.status).toMatchObject({ status: 'not_published', canStart: true, contributorsNeeded: null, startsAgents: false });
   const start = { client_request_id: 'start', expected_revision: 1, action: 'start', approved: true };
@@ -128,7 +128,7 @@ test('only owned projects can be started; a member cannot start them', async () 
 });
 async function teamFixture() {
   const f = await fixture();
-  await seedApprovedProject(PROJECT, { definition: { title:'Team',goal:'Build',beneficiaries:'People',output:'App',scope:'Small',acceptanceCriteria:'Review',sources:null,resources:null,mergeApproval:'humans' }, ownerProfileId: f.personIds[0], reviewerProfileId: f.personIds[0], submittedRevision: 1, approvedAt: 1, required: false });
+  await seedApprovedProject(PROJECT, { definition: { title:'Team',goal:'Build',rules: 'Small',mergeApproval:'humans' }, ownerProfileId: f.personIds[0], reviewerProfileId: f.personIds[0], submittedRevision: 1, approvedAt: 1, required: false });
   return f;
 }
 test('team creation cannot impersonate another owner and validates explicit approval',async()=>{
@@ -204,7 +204,7 @@ test('human MCP Needs you uses the approved account and explicit answer contract
 test('project listing includes only existing owned/joined memberships, with explicit filters and no owner setup leak', async () => {
  const f=await fixture();
  const owner=f.personIds[0], other=f.personIds[1], joined='b'.repeat(64), admin='c'.repeat(64), outsider='d'.repeat(64);
- const definition={title:'Shared work',goal:'Build',beneficiaries:'People',output:'App',scope:'Small',acceptanceCriteria:'Review',sources:null,resources:null,mergeApproval:'humans' as const};
+ const definition={title:'Shared work',goal:'Build',rules: 'Small',mergeApproval:'humans' as const};
  for(const id of [PROJECT,joined,admin,outsider])await seedApprovedProject(id,{definition,ownerProfileId:id===PROJECT?owner:other,reviewerProfileId:owner,submittedRevision:1,approvedAt:1,required:false});
  for(const [projectId,role] of [[joined,'member'],[admin,'admin']] as const) {
   const member={projectId,role,revision:1,updatedAt:at,connectionEpoch:0,profileId:owner,status:'active' as const,statusChangedAt:0,restrictions:{chatMutedUntil:null}};
