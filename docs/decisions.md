@@ -10,6 +10,15 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## The Project card is back in Settings — owner decision, 14 November 2026
+
+Source: owner, "we don't have the project card now, we need to add it to the settings".
+
+Settings opens with a Project card again: the project's name and description (the Card's title and
+goal), with its version history. The owner edits them; members, and everyone on a closed project,
+see them read-only. Pause, Close and Reopen stay in the project header, as decided on 12 November;
+only the name and description come back.
+
 ## Talking state, no gaze while busy, clearer agent cards — owner decisions, 14 November 2026
 
 Source: owner in the experiment-waves chat, answering three proposals with "1 ok",

@@ -1,4 +1,4 @@
-import { Megaphone, Users } from 'lucide-react';
+import { FileText, Megaphone, Users } from 'lucide-react';
 import { UpdateSettings } from './ui/UpdateSettings';
 import { CommunicationLimits } from './ui/CommunicationLimits';
 import { NativeTeamSettings } from './ui/NativeTeamSettings';
@@ -13,7 +13,8 @@ import type { Workspace } from './project-api';
 import './ui/control-center.css';
 import { MyCharacter } from './ui/MyCharacter';
 
-// Settings is one page (owner decision, 11 November 2026): Agents, Updates and Features, each explained behind a ? note.
+// Settings is one page (owner decision, 11 November 2026): Project, All agents, Updates and Features, each explained behind a ? note.
+// The Project card (name and description) came back on 14 November 2026; members see it read-only.
 // Pause, Close and Reopen moved to the project header (owner, 12 November 2026).
 export function ControlCenter({ user, workspace, refresh, active, refreshKey }: { refreshKey: number; user: SessionUser; workspace: Workspace; refresh: () => void; active: boolean }) {
   const catalogRequest = useCallback(<T,>(path: string, body?: object) => projects<T>(user, path, body), [user]);
@@ -22,6 +23,10 @@ export function ControlCenter({ user, workspace, refresh, active, refreshKey }: 
   return <section className={`project-settings control-center${active ? ' is-active' : ''}`} aria-labelledby="control-center-title">
     <header className="control-center-heading"><h2 id="control-center-title" className="k42-section-title">Settings</h2></header>
     <div className="settings-category-pages control-center-stack">
+      <section className="settings-card" aria-labelledby="settings-project-title">
+        <header className="settings-group-title settings-group-head"><span className="settings-group-icon" aria-hidden="true"><FileText size={18} /></span><div><h3 id="settings-project-title">Project</h3><p>The project's name and description, as everyone sees them.</p></div></header>
+        <CardSettings mode="basics" request={catalogRequest} workspace={workspace} definition={workspace.definition} refresh={refresh} active={active} />
+      </section>
       <MyCharacter key={user.uid} user={user} active={active} onSaved={refresh} />
       {isOwner && <>
       {closed && <p className="muted">This project is closed. Reopen it from the project header to edit these settings.</p>}
