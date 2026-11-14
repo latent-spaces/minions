@@ -2,7 +2,8 @@
 // a fake claude command. Neither touches a live engine, service or Claude Code configuration.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, realpath, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { startRuntimeService } from '../src/service/mcp-service.mjs';
@@ -72,33 +73,46 @@ test('tool says the local service did not answer when it is not running', { time
   } finally { await rm(home, { recursive: true, force: true }); }
 });
 
-test('Claude Code registration adds the entry once, through the claude command, and replaces one with an old address', async () => {
+test('Claude Code registration adds the mlswarm entry once, through the claude command, replaces one with an old address and removes the retired per-engine ones', async () => {
   const home = await realpath(await mkdtemp(join(tmpdir(), 'mlswarm register ')));
   try {
     await ensureInstallation({ home, site: principal.site });
+    // A separate user folder: registration reads ~/.claude.json and allows the tools in ~/.claude/settings.json.
+    const userHome = join(home, 'user');
+    await mkdir(join(userHome, '.claude'), { recursive: true });
+    await writeFile(join(userHome, '.claude.json'), JSON.stringify({ mcpServers: { 'mlswarm-b1a61bf2': {}, karma42: {} } }));
+    await writeFile(join(userHome, '.claude', 'settings.json'), JSON.stringify({ permissions: { allow: ['Bash(ls)', 'mcp__mlswarm-b1a61bf2'] } }));
     const registry = new Map(), runs = [];
     // A fake claude command: the real one is never run.
     const run = args => {
       runs.push(args);
       const [, action] = args;
       if (action === 'get') return registry.has(args[2]) ? { status: 0, stdout: `${args[2]}:\n  URL: ${JSON.parse(registry.get(args[2])).url}\n`, stderr: '' } : { status: 1, stdout: '', stderr: 'No MCP server found' };
-      if (action === 'remove') { registry.delete(args.at(-1)); return { status: 0, stdout: '', stderr: '' }; }
+      if (action === 'remove') {
+        registry.delete(args.at(-1));
+        // As the real command does, removing a user entry drops it from ~/.claude.json.
+        const file = join(userHome, '.claude.json'), saved = JSON.parse(readFileSync(file, 'utf8'));
+        delete saved.mcpServers[args.at(-1)]; writeFileSync(file, JSON.stringify(saved));
+        return { status: 0, stdout: '', stderr: '' };
+      }
       if (action === 'add-json') { registry.set(args[4], args[5]); return { status: 0, stdout: '', stderr: '' }; }
       throw new Error('unexpected');
     };
-    const first = registerWithClaudeCode({ home, run });
-    assert.equal(first.status, 'registered'); assert.match(first.name, /^mlswarm-[0-9a-f]{8}$/);
+    const first = registerWithClaudeCode({ home, userHome, run });
+    assert.equal(first.status, 'registered'); assert.equal(first.name, 'mlswarm');
+    assert.deepEqual(runs.find(args => args[1] === 'remove'), ['mcp', 'remove', '--scope', 'user', 'mlswarm-b1a61bf2']);
+    assert.deepEqual(JSON.parse(await readFile(join(userHome, '.claude', 'settings.json'), 'utf8')).permissions.allow, ['Bash(ls)', 'mcp__mlswarm']);
     assert.deepEqual(runs.at(-1).slice(0, 5), ['mcp', 'add-json', '--scope', 'user', first.name]);
     const entry = JSON.parse(registry.get(first.name));
     assert.equal(entry.type, 'http'); assert.match(entry.url, /^http:\/\/127\.0\.0\.1:\d+\/mcp$/); assert.match(entry.headersHelper, /headers\.mjs/);
     const count = runs.length;
-    assert.equal(registerWithClaudeCode({ home, run }).status, 'current');
+    assert.equal(registerWithClaudeCode({ home, userHome, run }).status, 'current');
     assert.equal(runs.length, count + 1);
     registry.set(first.name, JSON.stringify({ ...entry, url: 'http://127.0.0.1:1/mcp' }));
-    assert.equal(registerWithClaudeCode({ home, run }).status, 'registered');
-    assert.deepEqual(runs.find(args => args[1] === 'remove'), ['mcp', 'remove', '--scope', 'user', first.name]);
+    assert.equal(registerWithClaudeCode({ home, userHome, run }).status, 'registered');
+    assert.deepEqual(runs.findLast(args => args[1] === 'remove'), ['mcp', 'remove', '--scope', 'user', first.name]);
     assert.equal(JSON.parse(registry.get(first.name)).url, entry.url);
-    assert.equal(registerWithClaudeCode({ home, run: () => null }).status, 'missing');
-    assert.throws(() => registerWithClaudeCode({ home, run: args => args[1] === 'get' ? { status: 1, stdout: '', stderr: '' } : { status: 1, stdout: '', stderr: 'bad entry' } }), /add-json failed: bad entry/);
+    assert.equal(registerWithClaudeCode({ home, userHome, run: () => null }).status, 'missing');
+    assert.throws(() => registerWithClaudeCode({ home, userHome, run: args => args[1] === 'get' ? { status: 1, stdout: '', stderr: '' } : { status: 1, stdout: '', stderr: 'bad entry' } }), /add-json failed: bad entry/);
   } finally { await rm(home, { recursive: true, force: true }); }
 });

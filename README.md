@@ -46,12 +46,12 @@ npm run setup     # install, build, start the engine in the background, connect 
 npm run stop      # stop the engine; npm run setup starts it again
 ```
 
-`npm run setup` starts the engine at `http://127.0.0.1:8787/` (or the next free port
-when 8787 is taken; later runs keep that address) and opens it in your browser, with
-no sign-in: the app is yours on this computer. The engine keeps running in the
-background after the command, the terminal or your coding chat ends. Setup connects
-this computer and registers MyLittleSwarm with Claude Code by itself; it starts no
-model. Details are in [Run the standalone engine locally](docs/self-hosted-engine.md).
+`npm run setup` starts the engine at `http://127.0.0.1:8787/`, always the same
+address, and opens it in your browser, with no sign-in: the app is yours on this
+computer. When another program holds port 8787, setup stops and names it. The engine
+keeps running in the background after the command, the terminal or your coding chat
+ends. Setup connects this computer and registers one `mlswarm` connection with Claude
+Code and Codex by itself; it starts no model. Details are in [Run the standalone engine locally](docs/self-hosted-engine.md).
 
 Then, in Claude Code or Codex, ask for what you want, for example:
 
@@ -199,9 +199,9 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
 - [ ] **Readable messages to agents again** (owner, 14 November 2026). Messages to agents
       used to be nicely formatted Markdown that people could review; find what changed
       and bring that formatting back.
-- [ ] **One MyLittleSwarm connection per computer** (owner, 14 November 2026). An install
-      should leave exactly one MyLittleSwarm MCP entry in Claude Code and Codex, and always
-      open the same page (localhost and its port). To discuss.
+- [x] **One MyLittleSwarm connection per computer** (owner, 14 November 2026). Setup leaves
+      one `mlswarm` MCP entry in Claude Code and Codex, removes the older per-engine ones,
+      and always uses `http://127.0.0.1:8787/`.
 - [x] **Ask the owner when all agents finish early** (owner, 14 November 2026). When every
       agent is finished while time is left, the owner gets one Needs you message asking for
       next instructions.
@@ -209,6 +209,8 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
       name and description, editable by the owner, read-only for members.
 - [x] **Tell the agents about a new task** (owner, 14 November 2026). A task a person
       creates reaches the agents as a message from that person.
+- [ ] **Recommended option first in Needs you** (owner, 14 November 2026). A Needs you
+      question with choices lists the best option first, marked "(recommended)".
 - [ ] **Give the experiment waves a home.** The `experiment-waves/` runbook and tools are
       not in any repository yet.
 

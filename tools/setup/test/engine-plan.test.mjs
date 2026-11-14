@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { childEnvironment, connectorCommand, connectorEnvironment, engineEnvironment, engineHome, enginePaths, enginePort, engineUrl,
-  initializationState, interruptedByUser, needsInstall, occupiedMessage, ownerIdentity, pageOpener, portCandidates, requireNode24, savedPort, settingsText, startupHint } from '../engine-plan.mjs';
+  initializationState, interruptedByUser, needsInstall, holderFromLsof, occupiedMessage, ownerIdentity, pageOpener, pidFromNetstat, requireNode24, savedPort, settingsText, startupHint } from '../engine-plan.mjs';
 
 test('the engine needs Node.js 24 or newer', () => {
   assert.throws(() => requireNode24('v22.20.0'), /Node\.js 24/);
@@ -34,15 +34,14 @@ test('a restarted engine keeps the port it last ran on unless MLSWARM_ENGINE_POR
   assert.equal(enginePort({}, savedPort('{"port":80}')), 8787);
 });
 
-test('only a first run may move off a busy 8787, to the next port up to 8799; a chosen or saved port is the only one', () => {
-  const first = portCandidates({}, null);
-  assert.equal(first[0], 8787); assert.equal(first.at(-1), 8799); assert.equal(first.length, 13);
-  assert.deepEqual(portCandidates({}, 8790), [8790]);
-  assert.deepEqual(portCandidates({}, null, { initialized: true }), [8787]);
-  assert.deepEqual(portCandidates({ MLSWARM_ENGINE_PORT: '8787' }, null), [8787]);
-  assert.deepEqual(portCandidates({ MLSWARM_ENGINE_PORT: '9000' }, 8790), [9000]);
-  assert.match(occupiedMessage(first), /^Ports 8787–8799 are all occupied\..*MLSWARM_ENGINE_PORT.*Nothing was started or stopped/);
-  assert.match(occupiedMessage([9000]), /^Port 9000 is occupied\..*Nothing was started or stopped/);
+test('a busy port is never swapped for another; the message names the program holding it', () => {
+  assert.match(occupiedMessage(8787, 'node (process 4242)'), /^Port 8787 is used by node \(process 4242\), so the engine could not start there\..*MLSWARM_ENGINE_PORT.*Nothing was started or stopped/);
+  assert.match(occupiedMessage(9000), /^Port 9000 is used by another program/);
+  assert.equal(holderFromLsof('p4242\ncnode\n'), 'node (process 4242)');
+  assert.equal(holderFromLsof(''), null);
+  const netstat = '  Proto  Local Address  Foreign Address  State  PID\r\n  TCP  0.0.0.0:18787  0.0.0.0:0  LISTENING  11\r\n  TCP  127.0.0.1:8787  0.0.0.0:0  LISTENING  4242\r\n';
+  assert.equal(pidFromNetstat(netstat, 8787), '4242');
+  assert.equal(pidFromNetstat(netstat, 8788), null);
 });
 
 test('children get one PATH led by the selected Node and no test-session or enrolled-origin settings', () => {

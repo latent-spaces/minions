@@ -42,8 +42,8 @@ and this checkout's `src/cli.mjs` by absolute path, so moving the checkout needs
 again.
 
 Setup connects this computer to the engine with no human step, starts its shared service
-and connects every Claude Code and Codex it finds: it replaces only this website's own
-`mlswarm-<8 hex>` entry, leaving any other entry as it is (including an everyday
+and connects every Claude Code and Codex it finds: it writes the one `mlswarm` entry and
+removes older per-engine `mlswarm-<8 hex>` entries and their permissions, leaving any other entry as it is (including an everyday
 Karma42 install's `karma42` entry), allows
 MyLittleSwarm's tools once and installs the bundled skill, keeping a skill the person changed.
 Codex's `config.toml` is read with a TOML parser and edited line by line, so comments and
@@ -88,11 +88,12 @@ References: [Claude MCP authentication](https://code.claude.com/docs/en/mcp#use-
 
 For a separate installation (`--state-dir`, `MLSWARM_SERVICE_HOME` or an enrolled origin)
 setup changes no client and prints the `mcp-config` command instead; `--no-client-hint`
-leaves that to its caller. `npm run setup` passes it and then runs `register --client
-claude`, which registers the installation through Claude Code's own `claude mcp add-json`
+leaves that to its caller. `npm run setup` passes it and then runs `register`, which
+registers the installation as `mlswarm` through Claude Code's own `claude mcp add-json`
 (spawned without a shell; an npm `.cmd` shim on Windows runs its JavaScript entry point with
 Node) unless an entry with the same address exists, replaces an entry with an older
-address, and exits 4 when no `claude` command is on PATH.
+address, removes older `mlswarm-<8 hex>` entries, and writes the same entry into Codex's
+`config.toml` when Codex is installed. It exits 4 when neither client is found.
 
 A client loads MCP tools only when its session starts. Until then, `tool --list [TOOL_NAME]`
 lists the running service's tools (one tool's full schema with a name), and
@@ -131,12 +132,10 @@ The connector selects that origin by default and uses separate private defaults
 under `~/.mlswarm/instances/<origin-hash>/service` and
 `~/.mlswarm/instances/<origin-hash>/mcp`. Each instance has its own owner session and
 computer connection. Setup prints registration instructions for this
-separate installation under the MCP name `mlswarm-<8-hex-origin-hash>` instead of
-replacing the everyday coding-client entry. The folder hash is the first 24 hexadecimal
-characters of SHA-256 of the exact origin; the MCP name uses only the first 8 to
-leave room for tool names within client limits. The local engine and other loopback
-websites also use their own `mlswarm-<8 hex>` MCP name, so no installation replaces another's
-`mlswarm` entry. Default project workspaces live under
+separate installation instead of changing a coding client. The folder hash is the first 24
+hexadecimal characters of SHA-256 of the exact origin. Every installation's MCP name is
+`mlswarm`: a computer keeps one MyLittleSwarm entry, and registering one installation
+replaces another's. Default project workspaces live under
 `~/mlswarm/instances/<origin-hash>` so identically named projects on different
 sites stay separate. When set, `MLSWARM_SITE_URL` and `--site` must match the enrolled
 origin; conflicting settings fail before setup saves a credential.

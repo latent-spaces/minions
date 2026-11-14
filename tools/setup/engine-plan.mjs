@@ -40,22 +40,27 @@ export function enginePort(env, saved = null) {
   return Number(text);
 }
 
-const FIRST_RUN_PORTS = Array.from({ length: 13 }, (_, index) => 8787 + index);
-
 /**
- * The ports setup may use, in order. An explicit MLSWARM_ENGINE_PORT or an installation's saved port is the only one,
- * as is 8787 for an initialized store from before ports were saved, whose connector is bound to that address; a first
- * run starts at 8787 and, when another program holds it, takes the next free port up to 8799.
+ * Why setup stopped when the engine's port is held by another program. Setup always uses the same address and never
+ * moves to another port (owner decision, 14 November 2026); holder names that program when it could be found.
  */
-export function portCandidates(env, saved = null, { initialized = false } = {}) {
-  return env.MLSWARM_ENGINE_PORT === undefined && saved === null && !initialized ? FIRST_RUN_PORTS : [enginePort(env, saved)];
+export function occupiedMessage(port, holder = null) {
+  return `Port ${port} is used by ${holder ?? 'another program'}, so the engine could not start there. Stop that program and run npm run setup again, or choose another port with MLSWARM_ENGINE_PORT. Nothing was started or stopped.`;
 }
 
-/** Why setup stopped when none of the candidate ports was free. */
-export function occupiedMessage(candidates) {
-  return candidates.length > 1
-    ? `Ports ${candidates[0]}–${candidates.at(-1)} are all occupied. Stop a program using one of them, or choose another port with MLSWARM_ENGINE_PORT. Nothing was started or stopped.`
-    : `Port ${candidates[0]} is occupied. Stop the program using it, or choose another with MLSWARM_ENGINE_PORT. Nothing was started or stopped.`;
+/** The program listening, from lsof -Fpc output: "node (process 1234)", or null. */
+export function holderFromLsof(text) {
+  const pid = /^p(\d+)$/m.exec(text)?.[1], name = /^c(.+)$/m.exec(text)?.[1];
+  return pid ? `${name ?? 'a program'} (process ${pid})` : null;
+}
+
+/** The process listening on port, from Windows netstat -ano output, or null. */
+export function pidFromNetstat(text, port) {
+  for (const line of text.split(/\r?\n/)) {
+    const [protocol, local, , state, pid] = line.trim().split(/\s+/);
+    if (protocol === 'TCP' && state === 'LISTENING' && local?.endsWith(`:${port}`) && /^\d+$/.test(pid ?? '')) return pid;
+  }
+  return null;
 }
 
 /** The saved port from engine-settings.json's text, or null when there is none or it is not a usable port. */

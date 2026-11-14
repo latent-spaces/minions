@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { existsSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { connectClients, withCodexEntry } from '../src/client-setup.mjs';
+import { connectClients, registerWithCodex, withCodexEntry } from '../src/client-setup.mjs';
 import { ensureInstallation, readInstallation } from '../src/service/installation.mjs';
 import { reusableConfiguration } from '../src/mcp-configuration.mjs';
 
@@ -16,17 +16,17 @@ async function computer(t) {
   mkdirSync(join(userHome, '.codex'), { recursive: true });
   return { home, userHome, env: {} };
 }
-// Each site has its own entry name, so another installation's mlswarm entry is never replaced.
+// One mlswarm entry per computer; setup replaces the retired per-engine mlswarm-xxxxxxxx entries.
 const entryName = home => reusableConfiguration({ client: 'claude', home }).name;
 
-test('setup replaces only this site\'s entries, keeps the everyday karma42 install\'s entry, the person\'s settings and edited skill, and writes no key', async t => {
+test('setup leaves one mlswarm entry, removes the retired per-engine ones, keeps the everyday karma42 install\'s entry, the person\'s settings and edited skill, and writes no key', async t => {
   const where = await computer(t), { userHome } = where, name = entryName(where.home);
-  assert.match(name, /^mlswarm-[a-f0-9]{8}$/);
-  writeFileSync(join(userHome, '.claude.json'), JSON.stringify({ theme: 'dark', mcpServers: { other: { url: 'x' }, karma42: { url: 'everyday' }, [name]: { command: 'old' } } }));
-  writeFileSync(join(userHome, '.claude', 'settings.json'), JSON.stringify({ permissions: { allow: ['Bash(ls)'] } }));
+  assert.equal(name, 'mlswarm');
+  writeFileSync(join(userHome, '.claude.json'), JSON.stringify({ theme: 'dark', mcpServers: { other: { url: 'x' }, karma42: { url: 'everyday' }, [name]: { command: 'old' }, 'mlswarm-7430fdef': { url: 'test engine' } } }));
+  writeFileSync(join(userHome, '.claude', 'settings.json'), JSON.stringify({ permissions: { allow: ['Bash(ls)', 'mcp__mlswarm-7430fdef'] } }));
   const edited = '---\nname: mlswarm\n---\nmy notes\n';
   writeFileSync(join(userHome, '.claude', 'skills', 'mlswarm', 'SKILL.md'), edited);
-  writeFileSync(join(userHome, '.codex', 'config.toml'), `model = "o3"\n\n[mcp_servers.karma42]\nurl = "everyday"\n\n[mcp_servers.${name}]\ncommand = "old"\n\n[mcp_servers.${name}.env]\nA = "1"\n\n[mcp_servers.other]\nurl = "y"\n`);
+  writeFileSync(join(userHome, '.codex', 'config.toml'), `model = "o3"\n\n[mcp_servers.karma42]\nurl = "everyday"\n\n[mcp_servers.${name}]\ncommand = "old"\n\n[mcp_servers.${name}.env]\nA = "1"\n\n[mcp_servers.mlswarm-b1a61bf2]\nurl = "earlier engine"\n\n[mcp_servers.other]\nurl = "y"\n`);
 
   const results = connectClients(where);
   assert.deepEqual(results.map(r => [r.client, r.connected]), [['Claude Code', true], ['Codex', true]]);
@@ -35,6 +35,7 @@ test('setup replaces only this site\'s entries, keeps the everyday karma42 insta
   assert.deepEqual(claude.mcpServers.other, { url: 'x' });
   assert.deepEqual(claude.mcpServers.karma42, { url: 'everyday' });
   assert.equal(claude.mcpServers[name].type, 'http');
+  assert.deepEqual(Object.keys(claude.mcpServers).filter(key => key.startsWith('mlswarm')), ['mlswarm']);
   assert.deepEqual(JSON.parse(readFileSync(join(userHome, '.claude', 'settings.json'), 'utf8')).permissions.allow, ['Bash(ls)', `mcp__${name}`]);
   assert.equal(readFileSync(join(userHome, '.claude', 'skills', 'mlswarm', 'SKILL.md'), 'utf8'), edited);
   assert.match(results[0].note, /kept your own MyLittleSwarm skill/);
@@ -42,7 +43,7 @@ test('setup replaces only this site\'s entries, keeps the everyday karma42 insta
   assert.match(toml, /model = "o3"/);
   assert.match(toml, /\[mcp_servers\.other\]\nurl = "y"/);
   assert.match(toml, /\[mcp_servers\.karma42\]\nurl = "everyday"/);
-  assert.doesNotMatch(toml, /command = "old"|A = "1"/);
+  assert.doesNotMatch(toml, /command = "old"|A = "1"|earlier engine|mcp_servers\.mlswarm-/);
   assert.match(toml, /http_headers_helper/);
   assert.match(readFileSync(join(userHome, '.agents', 'skills', 'mlswarm', 'SKILL.md'), 'utf8'), /name: mlswarm/);
   const token = readInstallation(where.home).token;
@@ -72,7 +73,7 @@ test('a settings file linked from a dotfiles folder is updated where it lives an
   catch (error) { if (error.code === 'EPERM') return t.skip('creating symbolic links needs extra rights here'); throw error; }
   assert.deepEqual(connectClients(where).find(r => r.client === 'Codex').connected, true);
   assert.ok(lstatSync(join(userHome, '.codex', 'config.toml')).isSymbolicLink());
-  assert.match(readFileSync(join(dotfiles, 'config.toml'), 'utf8'), /model = "o3"[\s\S]*\[mcp_servers\.mlswarm-[a-f0-9]{8}\]/);
+  assert.match(readFileSync(join(dotfiles, 'config.toml'), 'utf8'), /model = "o3"[\s\S]*\[mcp_servers\.mlswarm\]/);
   if (process.platform !== 'win32') assert.equal(statSync(join(dotfiles, 'config.toml')).mode & 0o777, 0o640);
 });
 
@@ -92,4 +93,17 @@ test('Claude settings saved with a byte order mark are still read', async t => {
   writeFileSync(join(userHome, '.claude', 'settings.json'), '\uFEFF' + JSON.stringify({ permissions: { allow: ['Bash(ls)'] } }));
   assert.equal(connectClients(where).find(r => r.client === 'Claude Code').connected, true);
   assert.deepEqual(JSON.parse(readFileSync(join(userHome, '.claude', 'settings.json'), 'utf8')).permissions.allow, ['Bash(ls)', `mcp__${entryName(where.home)}`]);
+});
+
+test('Codex registration writes the one mlswarm table where Codex is installed, and only once', async t => {
+  const where = await computer(t), { home, userHome } = where, path = join(userHome, '.codex', 'config.toml');
+  writeFileSync(path, 'model = "o3"\n\n[mcp_servers.mlswarm-7430fdef]\nurl = "test engine"\n');
+  assert.deepEqual(registerWithCodex({ home, userHome, env: {} }), { status: 'registered', name: 'mlswarm' });
+  const toml = readFileSync(path, 'utf8');
+  assert.match(toml, /^model = "o3"\n\n\[mcp_servers\.mlswarm\]\nurl = "http:\/\/127\.0\.0\.1:\d+\/mcp"/);
+  assert.doesNotMatch(toml, /mlswarm-7430fdef/);
+  assert.equal(registerWithCodex({ home, userHome, env: {} }).status, 'current');
+  rmSync(join(userHome, '.codex'), { recursive: true });
+  assert.equal(registerWithCodex({ home, userHome, env: {} }).status, 'missing');
+  assert.equal(existsSync(join(userHome, '.codex')), false);
 });

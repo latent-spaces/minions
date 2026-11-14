@@ -7,7 +7,7 @@ import { parse as parseToml } from 'smol-toml';
 // TOML integers are 64-bit; those past 2^53 read as BigInt instead of being refused.
 const parse = text => parseToml(text, { integersAsBigInt: 'asNeeded' });
 import { spawnSync } from 'node:child_process';
-import { reusableConfiguration } from './mcp-configuration.mjs';
+import { reusableConfiguration, RETIRED_NAME } from './mcp-configuration.mjs';
 import { resolveWindowsCommand } from './windows-command.mjs';
 import { replaceFile } from './state.mjs';
 import { BUNDLED_SKILL, bundledGuideFiles, installedSkill, readInstalledGuideFile, skillTextHash } from './skill-bundle.mjs';
@@ -42,17 +42,19 @@ function readJson(path) {
 }
 
 function parses(text) { try { parse(text); return true; } catch { return false; } }
-// The settings without this installation's entry, as plain objects to compare; an mcp_servers left empty counts as
-// absent, as in a file that never had it.
+const replaced = name => entry => entry === name || RETIRED_NAME.test(entry);
+// The settings without the mlswarm entry and the retired per-engine ones, as plain objects to compare; an mcp_servers
+// left empty counts as absent, as in a file that never had it.
 function withoutEntry(settings, name) {
   settings = structuredClone(settings);
   const { mcp_servers: servers, ...rest } = settings;
   if (!servers || typeof servers !== 'object' || Array.isArray(servers)) return settings;
-  const { [name]: _entry, ...others } = servers;
+  const others = Object.fromEntries(Object.entries(servers).filter(([entry]) => !replaced(name)(entry)));
   return Object.keys(others).length ? { ...rest, mcp_servers: others } : rest;
 }
-// Only the table's own entry and its subtables are replaced, line by line so comments and layout are kept. The result
-// must parse to the same settings with only the new entry changed; anything else is left for the person.
+// Only the table's own entry, the retired per-engine entries and their subtables are replaced, line by line so
+// comments and layout are kept. The result must parse to the same settings with only those entries changed; anything
+// else is left for the person.
 export function withCodexEntry(text, table) {
   const [name] = Object.keys(parse(table).mcp_servers);
   let settings;
@@ -64,7 +66,7 @@ export function withCodexEntry(text, table) {
     // lines so far parse on their own.
     if (/^\s*\[/.test(lines[i]) && parses(lines.slice(0, i).join('\n'))) {
       const was = inside;
-      inside = Object.hasOwn(parse(lines[i]).mcp_servers ?? {}, name);
+      inside = Object.keys(parse(lines[i]).mcp_servers ?? {}).some(replaced(name));
       // Comments and blank lines right above the next table belong to it, not to this entry.
       if (was && !inside) kept.push(...pending);
       pending = [];
@@ -108,28 +110,53 @@ function installSkill(path) {
 
 function connectClaude({ home, userHome }) {
   const config = reusableConfiguration({ client: 'claude', home });
-  const registry = join(userHome, '.claude.json'), settingsPath = join(userHome, '.claude', 'settings.json');
-  const servers = readJson(registry);
-  // The entry has this site's own name, so another installation's mlswarm entry stays as it is.
-  if (!isDeepStrictEqual(servers.mcpServers?.[config.name], config.entry)) replace(registry, `${JSON.stringify({ ...servers, mcpServers: { ...servers.mcpServers, [config.name]: config.entry } }, null, 2)}\n`);
-  // MyLittleSwarm asks the person in chat before important actions, so Claude Code need not ask again for each tool.
-  const settings = readJson(settingsPath), allow = settings.permissions?.allow ?? [], permission = `mcp__${config.name}`;
-  if (!allow.includes(permission)) replace(settingsPath, `${JSON.stringify({ ...settings, permissions: { ...settings.permissions, allow: [...allow, permission] } }, null, 2)}\n`);
+  const registry = join(userHome, '.claude.json');
+  const servers = readJson(registry), current = servers.mcpServers ?? {};
+  const kept = Object.fromEntries(Object.entries(current).filter(([name]) => !RETIRED_NAME.test(name)));
+  if (!isDeepStrictEqual(current[config.name], config.entry) || Object.keys(kept).length !== Object.keys(current).length)
+    replace(registry, `${JSON.stringify({ ...servers, mcpServers: { ...kept, [config.name]: config.entry } }, null, 2)}\n`);
+  allowTools(userHome, config.name);
   return installSkill(join(userHome, '.claude', 'skills', 'mlswarm', 'SKILL.md'));
 }
 
-function connectCodex({ home, userHome, codexHome }) {
+// MyLittleSwarm asks the person in chat before important actions, so Claude Code need not ask again for each tool.
+// The retired per-engine permissions go with their entries.
+function allowTools(userHome, name) {
+  const path = join(userHome, '.claude', 'settings.json'), settings = readJson(path), allow = settings.permissions?.allow ?? [];
+  const permission = `mcp__${name}`, retired = entry => typeof entry === 'string' && RETIRED_NAME.test(entry.replace(/^mcp__/, ''));
+  if (allow.includes(permission) && !allow.some(retired)) return;
+  replace(path, `${JSON.stringify({ ...settings, permissions: { ...settings.permissions, allow: [...allow.filter(entry => !retired(entry) && entry !== permission), permission] } }, null, 2)}\n`);
+}
+
+function writeCodexEntry({ home, codexHome }) {
   const config = reusableConfiguration({ client: 'codex', home }), path = join(codexHome, 'config.toml');
   let text = '';
   try { text = readFileSync(path, 'utf8'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-  replace(path, withCodexEntry(text, config.toml));
+  const written = withCodexEntry(text, config.toml);
+  if (written === text) return { status: 'current', name: config.name };
+  replace(path, written);
+  return { status: 'registered', name: config.name };
+}
+
+function connectCodex({ home, userHome, codexHome }) {
+  writeCodexEntry({ home, codexHome });
   return installSkill(join(userHome, '.agents', 'skills', 'mlswarm', 'SKILL.md'));
+}
+
+const codexFolder = (userHome, env) => isAbsolute(env.CODEX_HOME ?? '') ? env.CODEX_HOME : join(userHome, '.codex');
+
+// Writes the mlswarm table into Codex's user config.toml when Codex is on this computer, replacing the retired
+// per-engine tables (owner decision, 14 November 2026). Returns missing, current or registered.
+export function registerWithCodex({ home, userHome = homedir(), env = process.env } = {}) {
+  const codexHome = codexFolder(userHome, env);
+  if (!existsSync(codexHome)) return { status: 'missing', name: 'mlswarm' };
+  return writeCodexEntry({ home, codexHome });
 }
 
 // Connects every coding client found on this computer to the shared service: its registration, its
 // permission for MyLittleSwarm's tools and the bundled skill. A skill the person changed is kept.
 export function connectClients({ home, userHome = homedir(), env = process.env } = {}) {
-  const codexHome = isAbsolute(env.CODEX_HOME ?? '') ? env.CODEX_HOME : join(userHome, '.codex');
+  const codexHome = codexFolder(userHome, env);
   const clients = [
     { name: 'Claude Code', found: existsSync(join(userHome, '.claude')) || existsSync(join(userHome, '.claude.json')), connect: connectClaude },
     { name: 'Codex', found: existsSync(codexHome), connect: connectCodex },
@@ -156,11 +183,16 @@ function claudeCommand(args, { env = process.env, platform = process.platform } 
 
 // Registers this installation's HTTP entry in Claude Code's user settings through the claude command, the way
 // mcp-config tells a person to (owner decision, 13 November 2026). An entry with this installation's address is left
-// as it is; one with another address, from an earlier service, is replaced. Returns missing, current or registered.
-export function registerWithClaudeCode({ home, run = claudeCommand } = {}) {
+// as it is; one with another address, from an earlier service, is replaced. The retired per-engine entries are
+// removed, so the computer keeps one mlswarm entry (owner decision, 14 November 2026). Returns missing, current or
+// registered.
+export function registerWithClaudeCode({ home, userHome = homedir(), run = claudeCommand } = {}) {
   const config = reusableConfiguration({ client: 'claude', home });
   const existing = run(['mcp', 'get', config.name]);
   if (existing === null) return { status: 'missing', name: config.name };
+  for (const name of Object.keys(readJson(join(userHome, '.claude.json')).mcpServers ?? {}).filter(name => RETIRED_NAME.test(name)))
+    run(['mcp', 'remove', '--scope', 'user', name]);
+  allowTools(userHome, config.name);
   if (existing.status === 0 && existing.stdout.includes(config.entry.url)) return { status: 'current', name: config.name };
   if (existing.status === 0) run(['mcp', 'remove', '--scope', 'user', config.name]);
   const added = run(['mcp', 'add-json', '--scope', 'user', config.name, JSON.stringify(config.entry)]);

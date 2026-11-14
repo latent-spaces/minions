@@ -2,7 +2,6 @@ import { isAbsolute } from 'node:path';
 import { VERSION, GUIDE_REVISION } from './version.mjs';
 import { trustedWebsiteUrl } from './website-origin.mjs';
 import { installationHome, readInstallation, installationHeaderHelper } from './service/installation.mjs';
-import { siteInstanceId } from './site-state.mjs';
 import { connectorCommand } from './connector-command.mjs';
 
 const quote = value => "'" + value.replaceAll("'", "'\\''") + "'";
@@ -10,6 +9,9 @@ const quoteWindows = value => /^[\w.:/=+-]+$/.test(value) ? value : `"${value}"`
 
 // Registration describes one existing installation. Reading it cannot start a
 // second service, import credentials into a client config, or select a model.
+// Entries named per engine before 14 November 2026, which setup removes.
+export const RETIRED_NAME = /^mlswarm-[0-9a-f]{8}$/;
+
 export function reusableConfiguration({ client, home = installationHome(), site } = {}) {
   if (!['claude', 'codex', 'other'].includes(client)) throw new Error('Choose --client claude, codex or other. This selects your MCP client, not your model.');
   if (typeof home !== 'string' || !isAbsolute(home) || /[\x00-\x1f\x7f-\x9f]/.test(home)) throw new Error('Choose an absolute private service directory.');
@@ -22,9 +24,9 @@ export function reusableConfiguration({ client, home = installationHome(), site 
   if (windows && /["%$`]/.test(home + process.execPath)) throw new Error('Choose a private service directory without quotes, percent, dollar or backtick characters.');
   const helperCommand = [process.execPath, helper].map(windows ? quoteWindows : quote).join(' ');
   const url = `http://127.0.0.1:${installation.port}/mcp`;
-  // Every site has its own name, so this never replaces another installation's mlswarm entry.
-  // Clients qualify tool names with this prefix; leave room for the tool name.
-  const name = `mlswarm-${siteInstanceId(website.origin).slice(0, 8)}`;
+  // One entry per computer, named mlswarm (owner decision, 14 November 2026). Setup replaces the older
+  // per-engine mlswarm-xxxxxxxx entries; RETIRED_NAME matches them.
+  const name = 'mlswarm';
   const entry = client === 'codex' ? { url, http_headers_helper: helperCommand }
     : { type: 'http', url, headersHelper: helperCommand };
   const toml = `[mcp_servers.${name}]\nurl = ${JSON.stringify(url)}\nhttp_headers_helper = ${JSON.stringify(helperCommand)}\ndefault_tools_approval_mode = "approve"`;
@@ -41,9 +43,9 @@ export function renderReusableConfiguration(config) {
     '',
     `Website: ${config.site}${new URL(config.site).protocol === 'http:' ? ' (local development only)' : ''}.`,
     'Run setup first to connect this computer and start its shared service. Claude, Codex and CLI connect to that same service; reconnecting starts no model and adds no time.',
-    `Inspect an existing ${config.name} entry before replacing it. Remove its retired command/args/env fields and use this HTTP entry. Preserve other connections and native permissions.`,
+    `Inspect an existing ${config.name} entry before replacing it. Remove its retired command/args/env fields and use this HTTP entry. Remove older mlswarm-… entries (one per engine, from before 14 November 2026) and their permissions. Preserve other connections and native permissions.`,
     'Approve adding or replacing the entry unless already authorized. Defer maintenance until affected work/client sessions are idle; never stop or restart running agents for an update.',
-    config.client === 'codex' ? `Put this table in your user-level ~/.codex/config.toml, replacing only the ${config.name} table:`
+    config.client === 'codex' ? `Put this table in your user-level ~/.codex/config.toml, replacing only the ${config.name} table and older mlswarm-… tables:`
       : config.client === 'claude' ? 'Register the existing service in Claude Code’s user-level MCP settings (on Windows, use the JSON entry in the settings editor):'
       : 'This describes the shared HTTP service. Use your client’s documented HTTP and dynamic-header-helper format. If it has no private-file helper support, report that limit; do not use a stdio runtime fallback.',
     config.client === 'codex' ? config.toml : config.command ?? JSON.stringify(config.generic, null, 2),

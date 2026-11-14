@@ -15,7 +15,7 @@ import { installationHome, readInstallation, startDetachedService, statusInstall
 import { composeInstalledRuntime } from './service/bootstrap.mjs';
 import { openPage, canOpenPages } from './system.mjs';
 import { reusableConfiguration, renderReusableConfiguration } from './mcp-configuration.mjs';
-import { connectClients, registerWithClaudeCode } from './client-setup.mjs';
+import { connectClients, registerWithClaudeCode, registerWithCodex } from './client-setup.mjs';
 import { execFileSync, spawn } from 'node:child_process';
 import { createSetupScreen, createChatScreen } from './setup-screen.mjs';
 import { GITHUB_LOGIN, keepGitHubLoginInFile, assertGitHubFileStorage } from './service/repository-access.mjs';
@@ -33,13 +33,14 @@ Commands:
       default 120, for the engine to answer), start its shared local service and connect
       Claude Code and Codex to it, with the MyLittleSwarm skill. Starts no models.
       --no-client-hint: for a separate installation, leave the coding agents to the
-      caller (npm run setup registers Claude Code itself).
+      caller (npm run setup registers them itself).
   mcp-config --client claude|codex|other [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
       Print HTTP registration for another client; changes no client settings.
-  register --client claude [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
-      Register this installation's MCP server with Claude Code through its claude
-      command, unless it already is. Exit 0 when registered, 4 when no claude command
-      is found on PATH.
+  register [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
+      Register this installation's MCP server as mlswarm with Claude Code (through its
+      claude command) and Codex (in its config.toml), replacing older mlswarm-…
+      entries. Exit 0 when at least one is registered, 4 when neither is found, 2 when
+      a registration failed.
   tool --list [TOOL_NAME]
   tool TOOL_NAME ['JSON_ARGUMENTS']
       Call one of the running shared service's MCP tools, as your coding agent would,
@@ -105,7 +106,7 @@ export const specs = {
   'run-recover': {...runQuerySpec,generation:{type:'string'},'request-id':{type:'string'},action:{type:'string'},reason:{type:'string'},approve:{type:'boolean'},report:{type:'string'},attempts:{type:'string'},'error-code':{type:'string'}},
   'mcp-config': { site: { type: 'string' }, client: { type: 'string' }, 'state-dir': { type: 'string' } },
   setup: {...stateSpec,site:{type:'string'},'wait-seconds':{type:'string'},'no-client-hint':{type:'boolean'}},
-  register: {...stateSpec,client:{type:'string'}},
+  register: {...stateSpec},
   tool: {...stateSpec,list:{type:'boolean'}},
   'service-start': {...stateSpec,site:{type:'string'}}, 'service-status':stateSpec, 'service-stop':{...stateSpec,'after-turns':{type:'boolean'},'wait-minutes':{type:'string'}}, 'service-run':stateSpec,
   'project-overview': {...stateSpec,project:{type:'string'}},
@@ -144,12 +145,17 @@ export async function main(args, out = console.log, err = console.error) {
     }
     if (command === 'tool') return await callServiceTool(values, parsed.positionals, out, err);
     if (command === 'register') {
-      if (values.client !== 'claude') throw new Error('Choose --client claude. For Codex or another client, use mcp-config.');
-      const outcome = registerWithClaudeCode({ home: values['state-dir'] ?? installationHome() });
-      if (outcome.status === 'missing') { out('Claude Code’s claude command was not found on PATH, so nothing was registered.'); return 4; }
-      out(outcome.status === 'current' ? `Claude Code already has MyLittleSwarm (${outcome.name}).`
-        : `Registered MyLittleSwarm (${outcome.name}) with Claude Code. A new Claude Code session loads its tools.`);
-      return 0;
+      const home = values['state-dir'] ?? installationHome();
+      let found = false, failed = false;
+      for (const [client, register] of [['Claude Code', registerWithClaudeCode], ['Codex', registerWithCodex]]) {
+        let outcome;
+        try { outcome = register({ home }); } catch (error) { failed = true; out(`${client} could not be registered: ${error.message}`); continue; }
+        if (outcome.status === 'missing') { out(`${client} was not found, so it was not registered.`); continue; }
+        found = true;
+        out(outcome.status === 'current' ? `${client} already has MyLittleSwarm (${outcome.name}).`
+          : `Registered MyLittleSwarm (${outcome.name}) with ${client}. A new ${client} session loads its tools.`);
+      }
+      return failed ? 2 : found ? 0 : 4;
     }
     if (command === 'mcp-config') { out(renderReusableConfiguration(reusableConfiguration({ client: values.client, home: values['state-dir'], site: values.site }))); return 0; }
     const home = values['state-dir'] ?? installationHome();

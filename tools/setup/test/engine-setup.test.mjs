@@ -71,23 +71,20 @@ test('a chosen port held by another program is refused, and that program is left
   try {
     const { code, output } = await setup({ MLSWARM_ENGINE_HOME: home, MLSWARM_ENGINE_PORT: String(server.address().port) });
     assert.equal(code, 1);
-    assert.match(output, /is occupied.*Nothing was started or stopped/);
+    assert.match(output, /is used by .*so the engine could not start there.*Nothing was started or stopped/);
     beforeInstall(output);
     assert.equal(server.listening, true);
   } finally { await new Promise(accept => server.close(accept)); }
 }));
 
-test('a first run moves off a busy 8787 to the next free port and says which', withHome(async home => {
+test('a first run with 8787 held stops and names the holder instead of moving to another port', withHome(async home => {
   // 8787 is held here, or already by another program on this computer; either way it is not this new engine.
   const held = await listen(8787).catch(() => null);
   try {
-    const empty = join(home, '..', 'empty.gitconfig');
-    writeFileSync(empty, '');
-    // Stops at the missing owner email, after the port is chosen and before anything is installed.
-    const { code, output } = await setup({ MLSWARM_ENGINE_PORT: undefined, MLSWARM_ENGINE_HOME: home, GIT_CONFIG_GLOBAL: empty, GIT_CONFIG_NOSYSTEM: '1' }, ['--owner-name', 'Ana Lee']);
+    const { code, output } = await setup({ MLSWARM_ENGINE_PORT: undefined, MLSWARM_ENGINE_HOME: home });
     assert.equal(code, 1);
-    assert.match(output, /Port 8787 is used by another program, so the engine uses port (87(8[89]|9\d))\. Later runs keep \1\./);
-    assert.match(output, /--owner-email/);
+    assert.match(output, /Port 8787 is used by .*so the engine could not start there/);
+    if (held && process.platform !== 'win32') assert.match(output, new RegExp(`process ${process.pid}\\)`));
     beforeInstall(output);
   } finally { if (held) await new Promise(accept => held.close(accept)); }
 }));

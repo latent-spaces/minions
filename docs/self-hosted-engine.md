@@ -21,10 +21,9 @@ npm run setup
 
 The command:
 
-1. checks the engine port: on a first run, when another program holds 8787, it uses
-   the next free port up to 8799, says which and keeps it; a saved port or an
-   explicit `MLSWARM_ENGINE_PORT` held by another program is refused, and nothing
-   is stopped. On a first run it also checks the owner identity (below) before
+1. checks the engine port: 8787 (or a port saved by an earlier run, or an explicit
+   `MLSWARM_ENGINE_PORT`). When another program holds it, setup stops, names that
+   program and stops nothing; it never moves to another port. On a first run it also checks the owner identity (below) before
    installing anything;
 2. runs `npm ci` unless npm's record of a finished install
    (`node_modules/.package-lock.json`) is at least as new as `package-lock.json`,
@@ -182,7 +181,8 @@ node packages/agent-cli/src/cli.mjs mcp-config --client claude
 ```
 
 Use `--client codex` or `--client other` as appropriate and follow the printed
-instructions to add the separate `mlswarm-<origin-hash>` connection. Preserve your
+instructions to add the `mlswarm` connection (a test engine in its own
+`MLSWARM_ENGINE_HOME` is not registered by setup, so this replaces your everyday one). Preserve your
 other connections, including an everyday Karma42 install's `karma42` entry, and never
 copy credential-file contents into client settings. Client registration does not approve a background mission; model
 execution still requires its own approval. `service-status` and `service-stop`

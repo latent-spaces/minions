@@ -3,16 +3,16 @@
 `npm run setup` takes a fresh clone to a running standalone engine with this
 computer connected, as [the engine instructions](../../docs/self-hosted-engine.md)
 describe: dependencies, builds, database initialization, engine start, opening
-the local app, the connector's `setup` and, when the `claude` command is on PATH,
-the connector's `register --client claude` (skipped with `--no-register`; a failure
-is a warning). The engine runs detached in the
+the local app, the connector's `setup` and the connector's `register`, which
+registers one `mlswarm` entry with Claude Code and Codex where they are installed
+(skipped with `--no-register` or for a test engine in its own `MLSWARM_ENGINE_HOME`;
+a failure is a warning). The engine runs detached in the
 background, with its output in `engine.log`, so it keeps running after the
 command, the terminal or the coding session that ran it ends; `npm run stop`
 ([engine-stop.mjs](engine-stop.mjs)) stops it. The port it ran on is saved in
 `engine-settings.json` and reused by later `setup` and `stop` runs unless
-`MLSWARM_ENGINE_PORT` names another. A first run (no saved port and no
-`MLSWARM_ENGINE_PORT`) whose 8787 is held by another program takes the next free
-port up to 8799 and says which; a saved or explicit port is never moved. The summary
+`MLSWARM_ENGINE_PORT` names another; otherwise it is 8787. When another program
+holds the port, setup stops and names that program; it never moves to another port. The summary
 names the connector's `tool` command, which calls the service's MCP tools until the
 coding agent is restarted and loads them. It reuses the existing engine CLI (`apps/server/dist/self-hosted-main.js`),
 the connector CLI (`packages/agent-cli/src/cli.mjs`), each package's own build

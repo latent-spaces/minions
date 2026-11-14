@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { npmCli } from './npm-cli.mjs';
 import { childEnvironment, connectorCommand, connectorEnvironment, engineEnvironment, engineHome, enginePaths, engineUrl, initializationState,
-  interruptedByUser, needsInstall, occupiedMessage, ownerIdentity, pageOpener, portCandidates, requireNode24, savedPort, settingsText, startupHint } from './engine-plan.mjs';
+  enginePort, holderFromLsof, interruptedByUser, needsInstall, occupiedMessage, ownerIdentity, pageOpener, pidFromNetstat, requireNode24, savedPort, settingsText, startupHint } from './engine-plan.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const at = (...parts) => join(repository, ...parts);
@@ -46,6 +46,16 @@ function answers(port) {
  * Free only when nothing answers there and 127.0.0.1 can be bound. Binding alone is not enough: macOS lets a program
  * bind 127.0.0.1 on a port another program holds on all addresses (0.0.0.0), and both would then share the port.
  */
+/** The program listening on port, as "name (process 1234)", or null when it cannot be found. */
+function portHolder(port) {
+  const output = (command, args) => spawnSync(command, args, { encoding: 'utf8', shell: false, windowsHide: true, timeout: 10_000 }).stdout ?? '';
+  if (process.platform !== 'win32') return holderFromLsof(output('lsof', ['-nP', `-iTCP:${port}`, '-sTCP:LISTEN', '-Fpc']));
+  const pid = pidFromNetstat(output('netstat', ['-ano', '-p', 'TCP']), port);
+  if (!pid) return null;
+  const name = /^"([^"]+)"/.exec(output('tasklist', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH']).trim())?.[1];
+  return `${name ?? 'a program'} (process ${pid})`;
+}
+
 async function portFree(port) {
   if (await answers(port)) return false;
   return new Promise(accept => {
@@ -117,45 +127,44 @@ async function connectComputer(url, env) {
 }
 
 /**
- * Registers the MCP server with Claude Code through its claude command when it is on PATH and not registered yet
- * (owner decision, 13 November 2026): 'registered' (now or before), 'missing' (no claude command) or 'failed'. The
- * summary reports it; a failure's output is shown as a warning and setup carries on.
+ * Registers the MCP server as mlswarm with Claude Code and Codex, where they are on this computer, replacing older
+ * mlswarm-… entries (owner decisions, 13 and 14 November 2026). Resolves to the register command's lines and whether
+ * anything was registered; a failure is reported and setup carries on.
  */
-function registerClaudeCode(env) {
+function registerClients(env) {
   return new Promise(accept => {
-    const child = spawn(process.execPath, [at('packages/agent-cli/src/cli.mjs'), 'register', '--client', 'claude'],
+    const child = spawn(process.execPath, [at('packages/agent-cli/src/cli.mjs'), 'register'],
       { cwd: repository, env, stdio: ['ignore', 'pipe', 'pipe'], shell: false, windowsHide: true });
     let output = '';
     for (const stream of [child.stdout, child.stderr]) stream.on('data', chunk => { output += chunk; });
-    child.once('error', error => { console.error(`Claude Code registration failed: ${error.message}`); accept('failed'); });
-    child.once('exit', code => {
-      if (code === 0) return accept('registered');
-      if (code === 4) return accept('missing');
-      console.error(`Claude Code registration failed${output.trim() ? `: ${output.trim()}` : '.'} Setup carries on.`);
-      accept('failed');
-    });
+    child.once('error', error => accept({ registered: false, lines: `Registration failed: ${error.message}` }));
+    child.once('exit', code => accept({ registered: code === 0, lines: output.trim() || (code === 0 ? '' : 'Registration failed.') }));
   });
 }
 
-const CLAUDE_NOT_REGISTERED = { missing: 'no claude command was found', skipped: 'skipped with --no-register', failed: 'registration failed', unconnected: 'this computer is not connected yet' };
-
-function summary(url, connected, files, claude) {
+function summary(url, connected, files, registration) {
   const connector = args => connectorCommand(process.platform, { node: process.execPath, cli: at('packages/agent-cli/src/cli.mjs'),
     serviceHome: files.serviceHome, credentialHome: files.credentialHome, args });
-  const registered = claude === 'registered';
+  const manual = `To register it yourself, run (--client claude, codex or other): ${connector(['mcp-config', '--client', 'claude'])}`;
   say(`${connected ? 'Done' : 'The engine is running; this computer is not connected yet'}. The local app is at ${url}/.
 The engine runs in the background; npm run stop stops it.
-${registered
-    ? `Claude Code is registered and loads the MyLittleSwarm tools in its next session. Until then, call them with: ${connector(['tool', '--list'])} (then tool NAME '{...}').
-For Codex or another coding agent (--client other), run: ${connector(['mcp-config', '--client', 'codex'])}`
-    : `Claude Code is not registered (${CLAUDE_NOT_REGISTERED[claude]}). To register a coding agent, run (--client claude, codex or other): ${connector(['mcp-config', '--client', 'claude'])}`}
+${registration.lines}
+${registration.registered
+    ? `Until a new session loads the MyLittleSwarm tools, call them with: ${connector(['tool', '--list'])} (then tool NAME '{...}').`
+    : manual}
 For agents that work on repositories, sign in to GitHub with gh auth login.`);
 }
 
-/** After the connector's own setup: registers Claude Code unless --no-register, then prints the summary. */
+/**
+ * After the connector's own setup: registers the coding agents, then prints the summary. A test engine in its own
+ * MLSWARM_ENGINE_HOME never replaces the computer's mlswarm entry (owner decision, 14 November 2026).
+ */
 async function finish(url, connected, files, connectorEnv, values) {
-  const claude = !connected ? 'unconnected' : values['no-register'] ? 'skipped' : await registerClaudeCode(connectorEnv);
-  summary(url, connected, files, claude);
+  const registration = !connected ? { registered: false, lines: 'No coding agent was registered: this computer is not connected yet.' }
+    : values['no-register'] ? { registered: false, lines: 'No coding agent was registered (--no-register).' }
+    : process.env.MLSWARM_ENGINE_HOME ? { registered: false, lines: 'This is a test engine (MLSWARM_ENGINE_HOME), so no coding agent was registered.' }
+    : await registerClients(connectorEnv);
+  summary(url, connected, files, registration);
 }
 
 async function main() {
@@ -174,8 +183,8 @@ async function main() {
   if (state === 'incomplete') {
     throw new Error(`An earlier first run stopped before initialization finished: ${home} holds only one of engine.sqlite and owner.json. Nothing was changed. If nothing there needs keeping, remove that directory (or choose a new MLSWARM_ENGINE_HOME) and run npm run setup again.`);
   }
-  const candidates = portCandidates(process.env, savedPort(readText(files.settingsFile)), { initialized: state === 'existing' });
-  let port = candidates[0];
+  // Always the same address: 8787, unless MLSWARM_ENGINE_PORT or an earlier run's saved port says otherwise.
+  const port = enginePort(process.env, savedPort(readText(files.settingsFile)));
   if (!await portFree(port)) {
     // Only an engine started with this owner file signs sessions with its secret, so a verified session proves the port is this engine.
     const ours = state === 'existing' && existsSync(engineMain)
@@ -188,12 +197,7 @@ async function main() {
       if (result !== 'interrupted') await finish(site, result === 'connected', files, connectorEnv, values);
       return;
     }
-    // A first run moves to the next free port and keeps it (saved before the engine starts); a chosen or saved port is never changed.
-    let free = null;
-    for (const candidate of candidates.slice(1)) if (await portFree(candidate)) { free = candidate; break; }
-    if (free === null) throw new Error(occupiedMessage(candidates));
-    say(`Port ${port} is used by another program, so the engine uses port ${free}. Later runs keep ${free}.`);
-    port = free;
+    throw new Error(occupiedMessage(port, portHolder(port)));
   }
   const engineEnv = engineEnvironment(base, { home, port });
   const connectorEnv = connectorEnvironment(base, { home, port });
