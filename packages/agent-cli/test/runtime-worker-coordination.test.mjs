@@ -62,8 +62,7 @@ test('pending sends gate native work; coordination retry resolves them and suppl
   await until(() => ctx.inspect(mission), value => value.outcomes.length === 1, 'result after send confirmation');
   await until(() => ctx.state.acknowledgements.length, value => value === 1, 'durable notice acknowledgement');
   assert.equal(ctx.state.runs.length, 1);
-  assert.ok(ctx.state.runs[0].includes(JSON.stringify([notice])));
-  assert.match(ctx.state.runs[0], /already processed; do not republish/);
+  assert.ok(ctx.state.runs[0].includes(`## Messages already sent\n\nThese deferred sends were already processed; do not send them again.\n\n- \`${JSON.stringify(notice)}\``));
   assert.deepEqual(ctx.state.acknowledgements, [[notice]]);
   assert.deepEqual(ctx.state.notices, []);
   await sleep(70);

@@ -1,11 +1,16 @@
 // Test-only synthetic adapter. Production controllers know no fixture protocol.
 import { StringDecoder } from 'node:string_decoder';
 import { prepareSupervisedModel } from '../../src/model-guard.mjs';
+// Reads the owner's quoted steering back from the Markdown turn prompt.
+function steeringFrom(prompt) {
+  const section = prompt.split('\n## Steering from the owner\n\n')[1]?.split('\n## ')[0].trim() ?? '';
+  return section.split('\n\n').filter(block => block.startsWith('> ')).map(block => ({ message: block.split('\n').map(line => line.replace(/^> ?/, '')).join('\n') }));
+}
 export function createFakeAdapterFactory(adapter) {
   return async mission => ({
     async observe() { return { project: { started: true, paused: false }, pending: 0, acknowledged: 0 }; },
     async run({ prompt, signal, onGuardStarted, onGuardClosed, onPromptSubmitted, onTurnStarted }) {
-      const steering = JSON.parse(prompt.match(/STEERING_JSON: (.*)/)?.[1] ?? '[]');
+      const steering = steeringFrom(prompt);
       const guard = prepareSupervisedModel({ cwd: adapter.cwd, env: adapter.env, stdio: ['pipe', 'pipe', 'pipe'], deadline: Date.now() + 120000 });
       let result, pending = '', bytes = 0, failure, acknowledged = false, cleanupEvidence = false, writes = Promise.resolve();
       const decoder = new StringDecoder('utf8');

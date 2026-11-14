@@ -10,6 +10,19 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## The turn prompt is Markdown — owner decision, 14 November 2026
+
+Source: the owner on 14 November 2026: “we had a nice formatting of the message to the agents in
+markdown so we can review this as humans what happend to this” and “i mean agent messages it
+should have been the controller not?”; then, choosing among options, “Controller in Markdown”.
+
+- **Readable sections.** The prompt the controller gives an agent each turn is Markdown:
+  Mission, Time (or Pause), Keep going, Inbox, Steering from the owner and Messages already sent.
+  It replaces the prose with `TURN_CONTEXT_JSON:` and `STEERING_JSON:` lines.
+- **Quoted data.** The mission and each steering message are quoted line by line, so a heading
+  or instruction inside them stays inside the quote. Steering is marked as data, not a change to
+  the rules. Deferred-send results stay exact JSON, one per list item.
+- **Same measurements.** Each section is still counted under its prompt source.
 ## Responsive map bounds and compact labels — owner decision, 14 November 2026
 
 Source: the owner reviewed the side-by-side map lab, asked to normalize to the

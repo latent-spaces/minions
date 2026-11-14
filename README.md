@@ -196,9 +196,9 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
 - [x] **Tasks list newest first** (owner, 14 November 2026). The list shows the most
       recently updated tasks first.
 - [x] **Communication above Preview in the sidebar** (owner, 14 November 2026).
-- [ ] **Readable messages to agents again** (owner, 14 November 2026). Messages to agents
-      used to be nicely formatted Markdown that people could review; find what changed
-      and bring that formatting back.
+- [x] **Readable turn prompts for agents** (owner, 14 November 2026). The prompt the
+      controller gives an agent each turn is Markdown with quoted steering, so people can
+      review what an agent was told.
 - [x] **One MyLittleSwarm connection per computer** (owner, 14 November 2026). Setup leaves
       one `mlswarm` MCP entry in Claude Code and Codex, removes the older per-engine ones,
       and always uses `http://127.0.0.1:8787/`.
