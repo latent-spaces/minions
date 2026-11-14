@@ -265,7 +265,7 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
     </div>
     {disabledNotice ? <p className="muted" role="status">Tasks are off. Existing tasks are read-only.</p>
       : readOnly && <p className="muted">This view is read-only.</p>}
-    {creating && !readOnly && <NewTask api={api} agents={assignable.filter(agent => manager || (!!selfId && agent.operatorId === selfId))}
+    {creating && !readOnly && <NewTask api={api} agents={assignable.filter(agent => manager || (!!selfId && agent.operatorId === selfId))} selfId={selfId}
       onCancel={() => setCreating(false)} onCreated={task => { replace(task); setCreating(false); setOpenId(task.id); }} />}
     {error && <div role="alert" className="k42-tasks-error"><p>Could not load tasks: {error}</p><Button onClick={load}>Try again</Button></div>}
     {!tasks && !error && <p className="muted" role="status">Loading tasks…</p>}
@@ -301,25 +301,32 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
   </section>;
 }
 
-function NewTask({ api, agents, onCreated, onCancel }: { api: TasksApi; agents: TaskAgent[]; onCreated: (task: NativeTask) => void; onCancel: () => void }) {
+function NewTask({ api, agents, selfId, onCreated, onCancel }: { api: TasksApi; agents: TaskAgent[]; selfId: string | null; onCreated: (task: NativeTask) => void; onCancel: () => void }) {
   const [text, setText] = useState(''), [agentId, setAgentId] = useState('');
+  // The person's message to their agents about the new task (owner, 14 November 2026), prefilled and editable.
+  const [note, setNote] = useState('Please take a look at this new task.');
   const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null), [uncertain, setUncertain] = useState(false);
   // One request ID per draft: retrying after an uncertain response cannot create a second task.
-  const requestId = useRef(crypto.randomUUID()), titleId = useId(), textId = useId(), agentFieldId = useId();
+  const requestId = useRef(crypto.randomUUID()), titleId = useId(), textId = useId(), agentFieldId = useId(), noteId = useId();
   const created = useRef<NativeTask | null>(null), dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { if (dialog.current && !dialog.current.open) dialog.current.showModal(); }, []);
+  // People message only their own agents: the chosen agent when it is theirs, otherwise all of their agents here.
+  const own = agents.filter(agent => !!selfId && agent.operatorId === selfId), chosen = agents.find(agent => agent.id === agentId);
+  const recipients = chosen ? own.filter(agent => agent.id === chosen.id) : own;
+  const message = recipients.length ? note.trim() : '';
   // A task created before a failed assignment still shows in the list when the dialog closes.
   const close = () => { if (busy) return; if (created.current) onCreated(created.current); else onCancel(); };
   // Assigning is a second step on the created task; if it fails the task stays, unassigned in Backlog.
-  const assign = (task: NativeTask) => api.mutate(taskMutation({ operation: 'assign', taskId: task.id, expectedRevision: task.revision, assignedAgentId: agentId }))
+  const assign = (task: NativeTask) => api.mutate(taskMutation({ operation: 'assign', taskId: task.id, expectedRevision: task.revision, assignedAgentId: agentId, ...message ? { message } : {} }))
     .then(result => onCreated(result.task), e => { setError(`The task was created, but it could not be assigned: ${errorText(e)}`); setBusy(false); });
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!text.trim() || busy) return;
+    if (!text.trim() || busy || (recipients.length && !message)) return;
     setBusy(true); setError(null);
     if (created.current) { void assign(created.current); return; }
     const { title, description } = taskFromPrompt(text);
-    api.mutate(taskMutation({ operation: 'create', title, ...description ? { description } : {} }, requestId.current))
+    // Unassigned, the create carries the message; with an assignee, the assignment that follows does.
+    api.mutate(taskMutation({ operation: 'create', title, ...description ? { description } : {}, ...message && !agentId ? { message } : {} }, requestId.current))
       .then(result => { created.current = result.task; if (agentId) void assign(result.task); else onCreated(result.task); }, e => {
         // A refused create may be corrected and sent as a new request; an unknown outcome is retried unchanged.
         const settled = isSettledRefusal(e);
@@ -349,9 +356,14 @@ function NewTask({ api, agents, onCreated, onCancel }: { api: TasksApi; agents: 
           </button>;
         })}</div>
       </fieldset>}
-      <p className="muted" id={agentFieldId}>{agentId ? `${agents.find(agent => agent.id === agentId)?.name ?? 'The agent'} finds it in Backlog, assigned to it.` : 'New tasks start unassigned in Backlog.'}</p>
+      <p className="muted" id={agentFieldId}>{agentId ? `${agents.find(agent => agent.id === agentId)?.name ?? 'The agent'} finds it in Backlog, assigned to it.` : 'New tasks start unassigned in Backlog.'}
+        {chosen && !recipients.length && ' It gets an assignment notice; your message goes only to your own agents.'}</p>
+      {recipients.length > 0 && <>
+        <label htmlFor={noteId}>Message to {recipients.map(agent => agent.name).join(', ')}</label>
+        <textarea id={noteId} className="k42-task-textarea" value={note} readOnly={locked} onChange={e => setNote(e.target.value)} required maxLength={2000} rows={2} />
+      </>}
       {error && <p role="alert" className="error">{error}</p>}
-      <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || !text.trim()}>{busy ? 'Adding…' : created.current ? 'Retry assigning' : uncertain ? 'Retry' : 'Add'}</Button><Button type="button" onClick={close} disabled={busy}>Cancel</Button></div>
+      <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || !text.trim() || (recipients.length > 0 && !message)}>{busy ? 'Adding…' : created.current ? 'Retry assigning' : uncertain ? 'Retry' : 'Add'}</Button><Button type="button" onClick={close} disabled={busy}>Cancel</Button></div>
     </form>
   </Dialog>;
 }

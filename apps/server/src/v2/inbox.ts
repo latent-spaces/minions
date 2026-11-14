@@ -38,7 +38,7 @@ export function deliver(tx: Transaction, targets: Target[], delivery: Delivery, 
     });
     tx.set(sourceMarkers(agentId).doc(delivery.sourceId), { seq });
     tx.set(inboxes().doc(agentId), { last: seq, acked: inbox.acked, updatedAt: at,
-      lastDirect: delivery.kind === 'message' || delivery.kind === 'task_assigned' || delivery.kind === 'task_children_closed' ? seq : (inbox.lastDirect ?? inbox.last) });
+      lastDirect: delivery.kind === 'message' || delivery.kind === 'task_assigned' || delivery.kind === 'task_children_closed' || delivery.kind === 'task_created' ? seq : (inbox.lastDirect ?? inbox.last) });
     count++;
   }
   return count;
@@ -54,12 +54,14 @@ export async function readInbox(agentId: string): Promise<Inbox> {
 
 type PublicItem = Pick<InboxItem, 'seq' | 'kind' | 'deliveredAt' | 'payload'>;
 
-// Message bodies, direction titles and assigned task titles reach the agent inside untrusted envelopes. The project card
-// in card_changed is approved project context and stays as it is.
+// Message bodies, direction titles, task titles and a person's task message reach the agent inside untrusted envelopes.
+// The project card in card_changed is approved project context and stays as it is.
 function publicPayload(payload: InboxItem['payload']): InboxItem['payload'] {
   if (typeof payload.body === 'string') return messageWithSource(payload as { agentId: string; agentName?: string; body: string });
   if (payload.type === 'direction_opened') return { ...payload, title: untrusted(actorSource(payload.openedBy), payload.title) };
-  if (payload.type === 'task_assigned' || payload.type === 'task_children_closed') return { ...payload, title: untrusted(actorSource(payload.titleAuthor), payload.title) };
+  if (payload.type === 'task_assigned' || payload.type === 'task_children_closed' || payload.type === 'task_created') return { ...payload,
+    title: untrusted(actorSource(payload.titleAuthor), payload.title),
+    ...(typeof payload.message === 'string' ? { message: untrusted(actorSource(payload.createdBy ?? payload.assignedBy), payload.message) } : {}) };
   return payload;
 }
 

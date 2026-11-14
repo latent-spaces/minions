@@ -6,9 +6,10 @@ import { z } from 'zod';
 import type { NativeTask, NativeTaskAncestor, NativeTaskSummary, NativeTaskActor, NativeTaskMutationResult, NativeTaskPage, NativeTaskDetail, NativeTaskComment, NativeTaskActivity, NativeTaskReference, NativeTaskPermissions } from '@mlswarm/contracts';
 import { agents, currentProjectId, db, projectCollection } from '../firestore.js';
 import { Refusal } from '../errors.js';
-import { assertAgentMembership, assertMembership, assertProjectWritable, type ProjectRole } from './access.js';
+import { assertAgentMembership, assertMembership, assertProjectWritable, currentConnectionEpoch, type ProjectRole } from './access.js';
 import { assertRunInTransaction } from '../v2/runs.js';
-import { deliver, readTargets, type Target } from '../v2/inbox.js';
+import { backlog, deliver, readTargets, type Target } from '../v2/inbox.js';
+import { LIMITS, V2_LIMITS } from '../config.js';
 import { assertNewProgressAction, type ProgressActor } from './progress-authority.js';
 import { conversationEntries } from './steering.js';
 import { projects, runtimeOf } from './records.js';
@@ -29,12 +30,14 @@ const REFERENCE = z.discriminatedUnion('kind', [
 ]);
 const base = { clientRequestId: z.string().uuid() };
 const edit = { ...base, taskId: ID, expectedRevision: z.number().int().positive().max(Number.MAX_SAFE_INTEGER - 1) };
+// A person's note to their own agents about a new task, as long as an agent message may be.
+const TASK_MESSAGE = z.string().trim().min(1).max(LIMITS.messageMaxChars).optional();
 export const NATIVE_TASK_MUTATION = z.discriminatedUnion('operation', [
-  z.object({ ...base, operation: z.literal('create'), title: z.string().trim().min(1).max(300), description: z.string().max(10000).optional(), assignedAgentId: z.null().optional(), priority: PRIORITY.optional(), parentId: ID.optional() }).strict(),
+  z.object({ ...base, operation: z.literal('create'), title: z.string().trim().min(1).max(300), description: z.string().max(10000).optional(), assignedAgentId: z.null().optional(), priority: PRIORITY.optional(), parentId: ID.optional(), message: TASK_MESSAGE }).strict(),
   z.object({ ...edit, operation: z.literal('update'), title: z.string().trim().min(1).max(300).optional(), description: z.string().max(10000).optional(), status: STATUS.optional(), priority: PRIORITY.optional(), contributors: z.array(CONTRIBUTOR).max(30).optional() }).strict(),
   z.object({ ...edit, operation: z.literal('claim') }).strict(),
   z.object({ ...edit, operation: z.literal('release') }).strict(),
-  z.object({ ...edit, operation: z.literal('assign'), assignedAgentId: ID }).strict(),
+  z.object({ ...edit, operation: z.literal('assign'), assignedAgentId: ID, message: TASK_MESSAGE }).strict(),
   z.object({ ...edit, operation: z.literal('comment'), body: z.string().trim().min(1).max(6000) }).strict(),
   z.object({ ...edit, operation: z.literal('edit_comment'), commentId: ID, body: z.string().trim().min(1).max(6000) }).strict(),
   z.object({ ...edit, operation: z.literal('add_reference'), reference: REFERENCE }).strict(),
@@ -77,6 +80,19 @@ async function assignmentTarget(tx: Transaction, id: string) {
   const target = (await tx.get(agents().doc(id))).data()!;
   if (target.tokenIssuedAt === null) throw new Refusal('bad_input', 'Assign a connected project agent.');
   return target;
+}
+// People message only their own agents (VISION, “Each person steers their own agents”): a person's task message goes to
+// their connected agents in this project, at most as many as one agent message may name.
+async function ownAgentIds(tx: Transaction, personId: string): Promise<string[]> {
+  const epoch = await currentConnectionEpoch(tx, personId);
+  const rows = await tx.get(agents().where('ownerProfileId', '==', personId).where('revokedAt', '==', null)
+    .where('connectionEpoch', '==', epoch).limit(V2_LIMITS.recipientsMax));
+  return rows.docs.filter(row => row.data().tokenIssuedAt !== null).map(row => row.id);
+}
+// The same inbox limit as an agent message: a full inbox refuses the whole change, so nothing is saved.
+function assertInboxRoom(targets: Target[]) {
+  for (const target of targets) if (backlog(target.inbox) >= V2_LIMITS.backlogMax)
+    throw new Refusal('recipient_backlog', `Agent ${target.agentId} has ${backlog(target.inbox)} messages it hasn’t handled yet, so it can’t take more right now. Nothing was saved. Try again later, or leave out the message.`, 60);
 }
 async function mayControl(tx: Transaction, actor: ProgressActor, task: NativeTask, role: ProjectRole) {
   if (actor.kind === 'agent') {
@@ -326,6 +342,9 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
     const role = await authorize(tx, actor, now);
     if (actor.kind === 'agent' && input.operation === 'assign')
       throw new Refusal('forbidden', 'Agents create unassigned tasks, claim for themselves and release only their own tasks.');
+    // Only people's new tasks carry a message; agents talk with send_message.
+    const message = input.operation === 'create' || input.operation === 'assign' ? input.message : undefined;
+    if (actor.kind === 'agent' && message !== undefined) throw new Refusal('forbidden', 'Agents send messages with send_message, not with tasks.');
     await assertNativeTasksEnabled(tx);
     const receipt = (await tx.get(receipts().doc(key))).data();
     if (receipt) {
@@ -336,7 +355,7 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
     else await assertProjectWritable(tx);
     const at = now();
     let task: NativeTask, before: NativeTask | undefined, comment: NativeTaskComment | undefined, notice: Target[] = [];
-    let closedParent: NativeTask | undefined, closedNotice: Target[] = [];
+    let closedParent: NativeTask | undefined, closedNotice: Target[] = [], created: Target[] = [];
     if (input.operation === 'create') {
       let parentId: string | undefined;
       if (input.parentId) {
@@ -351,6 +370,12 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
         contributors: [], priority: input.priority ?? 'normal', references: [], createdBy: author, titleAuthor: author, descriptionAuthor: author, referenceAuthors: {}, createdAt: at, updatedAt: at, revision: 1,
         // An agent's subtask is a proposal until an owner accepts it.
         ...(parentId ? { parentId, ...(actor.kind === 'agent' ? { proposed: true } : {}) } : {}) };
+      // A person's message about a new task reaches their own agents in the same commit, and stays as its first comment.
+      if (message !== undefined && actor.kind === 'person') {
+        created = await readTargets(tx, await ownAgentIds(tx, actor.person.id), `task-created-${task.id}`);
+        assertInboxRoom(created);
+        comment = { id: `comment_${String(task.revision).padStart(16, '0')}_${key}`, taskId: task.id, author, body: message, createdAt: at, updatedAt: at };
+      }
     } else {
       const stored = (await tx.get(nativeTasks().doc(input.taskId))).data();
       if (!stored) throw new Refusal('not_found', 'This task is unavailable in this project.');
@@ -380,10 +405,16 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
         if (task.assignedAgentId) await mayControl(tx, actor, task, role);
         else if (role !== 'owner' && !(actor.kind === 'person' && actor.person.id === target.ownerProfileId))
           throw new Refusal('forbidden', 'Only the agent’s person or an owner/admin can assign unclaimed work.');
+        if (message !== undefined && !(actor.kind === 'person' && actor.person.id === target.ownerProfileId))
+          throw new Refusal('forbidden', 'People message only their own agents. Assign this agent without a message.');
         if (task.assignedAgentId !== input.assignedAgentId) {
           task.status = 'backlog';
           // A person's assignment reaches the agent's inbox; it does not start or extend the agent.
           if (actor.kind === 'person') notice = await readTargets(tx, [input.assignedAgentId], `task-assigned-${task.id}-${task.revision}`);
+          if (message !== undefined) {
+            assertInboxRoom(notice);
+            comment = { id: `comment_${String(task.revision).padStart(16, '0')}_${key}`, taskId: task.id, author, body: message, createdAt: at, updatedAt: at };
+          }
         }
         task.assignedAgentId = input.assignedAgentId;
       } else if (input.operation === 'update') {
@@ -452,7 +483,9 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
     tx.create(activity(task.id).doc(eventId), { id: eventId, taskId: task.id, actor: author, action: input.operation, revision: task.revision, at, fields, task, ...(comment ? { comment } : {}) });
     tx.create(receipts().doc(key), { actor: author, fingerprint, result });
     deliver(tx, notice, { sourceId: `task-assigned-${task.id}-${task.revision}`, kind: 'task_assigned', messageId: null,
-      payload: { type: 'task_assigned', taskId: task.id, title: task.title, titleAuthor: task.titleAuthor, assignedBy: author, revision: task.revision } }, at);
+      payload: { type: 'task_assigned', taskId: task.id, title: task.title, titleAuthor: task.titleAuthor, assignedBy: author, revision: task.revision, ...(message !== undefined ? { message } : {}) } }, at);
+    deliver(tx, created, { sourceId: `task-created-${task.id}`, kind: 'task_created', messageId: null,
+      payload: { type: 'task_created', taskId: task.id, title: task.title, titleAuthor: task.titleAuthor, createdBy: author, message, revision: task.revision } }, at);
     if (closedParent) deliver(tx, closedNotice, { sourceId: `task-children-closed-${closedParent.id}-${task.id}-${task.revision}`, kind: 'task_children_closed', messageId: null,
       payload: { type: 'task_children_closed', taskId: closedParent.id, title: closedParent.title, titleAuthor: closedParent.titleAuthor, revision: closedParent.revision } }, at);
     return visibleResult;
