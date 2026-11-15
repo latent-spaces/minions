@@ -20,6 +20,6 @@ export type GitHubAccessReport = GitHubAccessFacts & { version: 1; projectId: st
 export type GitHubCachedFacts = { [K in keyof GitHubAccessFacts]: GitHubAccessFacts[K] & { lastSuccessAt: number | null } };
 export type GitHubAccessObservation = GitHubCachedFacts & {
   pullRequests?: GitHubPullRequestCounts & { lastSuccessAt: number | null };
-  observer: { id: string; name: string }; connectionId: string;
+  observer: { id: string; name: string };
   checkedAt: number; receivedAt: number; online: boolean; scope: 'self' | 'project';
 };

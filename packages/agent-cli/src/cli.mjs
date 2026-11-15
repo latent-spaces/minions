@@ -29,7 +29,7 @@ Claude, Codex, DeepSeek or another model supported by that client.
 
 Commands:
   setup [--site WEBSITE] [--wait-seconds N] [--no-client-hint]
-      Connect this computer to the local MyLittleSwarm engine (waiting up to N seconds,
+      Sign in to the local MyLittleSwarm engine as its owner (waiting up to N seconds,
       default 120, for the engine to answer), start its shared local service and connect
       Claude Code and Codex to it, with the MyLittleSwarm skill. Starts no models.
       --no-client-hint: for a separate installation, leave the coding agents to the
@@ -174,10 +174,10 @@ export async function main(args, out = console.log, err = console.error) {
       // its own steps and summary (--no-client-hint), only the short lines are shown.
       const nested = values['no-client-hint'] === true;
       const screen = command !== 'setup' ? null : !nested && process.stdin.isTTY && process.stdout.isTTY ? createSetupScreen() : createChatScreen(out);
-      // This computer connects to the local engine by itself; nobody approves it (owner decision, 13 November 2026).
-      if (screen && !nested) { screen.start(); screen.step(1, 'Connecting this computer to MyLittleSwarm'); }
-      const account = await connectWhenReady(owner, site, { seconds: waitSeconds });
-      if (screen) screen.done(`This computer is connected${account.account_name ? ` for ${account.account_name}` : ''}`);
+      // The connector signs in with the engine's local owner session; nothing about this computer is saved (owner decision, 15 November 2026).
+      if (screen && !nested) { screen.start(); screen.step(1, 'Signing in to MyLittleSwarm'); }
+      const account = await signInWhenReady(owner, site, { seconds: waitSeconds });
+      if (screen) screen.done(`Signed in as ${account.account_name}`);
       const separate = !!(values['state-dir'] || process.env.MLSWARM_SERVICE_HOME || selfHostedWebsiteOrigin());
       // A separate installation changes no coding agent here, so there is no step 2 to show.
       if (screen && !separate) screen.step(2, 'Connecting your coding agents');
@@ -217,11 +217,11 @@ export function separateInstallationHint(home, platform = process.platform) {
   const command = connectorCommand(platform, { args: ['mcp-config', '--client', 'claude', '--state-dir', home] });
   return `This is a separate installation, so no coding client was changed. To register it, run this, with --client codex or --client other for those coding agents: ${command}`;
 }
-// Connects this computer, retrying while the local engine is still starting and cannot be reached yet.
-export async function connectWhenReady(owner, site, { seconds, now = Date.now, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
+// Signs in as the owner, retrying while the local engine is still starting and cannot be reached yet.
+export async function signInWhenReady(owner, site, { seconds, now = Date.now, sleep = ms => new Promise(resolve => setTimeout(resolve, ms)) }) {
   const until = now() + seconds * 1000;
   for (;;) {
-    try { return await owner.connect('MyLittleSwarm shared service', site); }
+    try { return await owner.signIn(site); }
     catch (error) { if (!(error?.unreachable || /can’t be reached right now/.test(error.message)) || now() >= until) throw error; }
     await sleep(1000);
   }

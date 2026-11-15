@@ -118,7 +118,7 @@ test('steady-state reads and writes per runner request, cold and with shared pro
     }
   }
   for (const [path, sum] of Object.entries(sums)) table[path] = { coldReads: +(sum.cold / ROUNDS).toFixed(2), warmReads: +(sum.warm / ROUNDS).toFixed(2), writes: +(sum.writes / ROUNDS).toFixed(2) };
-  // Every request authenticates (agentByToken: token query + a read-only transaction over agent, computer and
+  // Every request authenticates (agentByToken: token query + a read-only transaction over agent and
   // operator documents), so no steady-state request is cheap. Per connected session per second, today's cadence:
   // wait and session every 20 s, a project-control renewal every 25 s (after C4-1).
   const perSession = (kind: 'coldReads' | 'warmReads') => table['/wait'][kind] / 20 + table['/worker-session'][kind] / 20 + table['/project-control'][kind] / 25;
@@ -251,8 +251,7 @@ test('busy-session work: tool calls, direct sends per recipient, inbox reads and
 test('owner computer poll: reads per request through the owner routes', async () => {
   const { ownerRoutes } = await import('../src/owner/routes.js');
   const { idTokenFor } = await import('./helpers.js');
-  const { hashToken, newToken } = await import('../src/auth.js');
-  const app = express(); app.use(express.json()); app.use('/api/owner', ownerRoutes(now, { selfHosted: () => true }));
+  const app = express(); app.use(express.json()); app.use('/api/owner', ownerRoutes(now));
   const owner = app.listen(0, '127.0.0.1'); await new Promise<void>(resolve => owner.once('listening', resolve));
   const root = `http://127.0.0.1:${(owner.address() as { port: number }).port}/api/owner`;
   const call = async (path: string, token: string, body?: object) => {
@@ -262,8 +261,8 @@ test('owner computer poll: reads per request through the owner routes', async ()
   };
   try {
     await seed({ profiles: [{ name: 'Computer owner', email: 'computer-owner@example.test' }] });
-    const token = newToken();
-    expect((await call('/local-computer', await idTokenFor('computer-owner@example.test'), { candidateTokenHash: hashToken(token), clientName: 'Unit' })).status).toBe(200);
+    // The connector signs in with the owner's local session (owner decision, 15 November 2026).
+    const token = await idTokenFor('computer-owner@example.test');
     const poll = [['/participations/sync', { participations: [] }], ['/participation-controls', undefined], ['/backgrounds/sync', { backgrounds: [] }], ['/background-controls', undefined]] as const;
     const table: Record<string, number[]> = {};
     for (let round = 0; round < 2; round++) {
@@ -287,11 +286,9 @@ test('owner computer poll: reads per request through the owner routes', async ()
 // what a changed page costs, without the first-write path).
 test('owner computer sync page: reads and writes per background row', async () => {
   const { syncBackgrounds } = await import('../src/projects/background-controls.js');
-  const { collection } = await import('../src/firestore.js');
   const f = await seed({ profiles: [{ name: 'Row owner', email: 'row-owner@example.test' }],
     agents: Array.from({ length: 5 }, (_, i) => ({ person: 0, name: `Row worker ${i}` })) });
-  const owner = f.personIds[0], computer = randomUUID();
-  await collection('computerConnections').doc(computer).set({ profileId: owner, revokedAt: null, approvedAt: clock });
+  const owner = f.personIds[0];
   const rows = await Promise.all(f.agents.map(async agent => {
     const missionId = randomUUID();
     const run = await inProject(TEST_PROJECT, () => startRun(agent.agentId, { clientRunId: missionId, runnerVersion: 'synthetic-background', takeover: false }, now));
@@ -300,7 +297,7 @@ test('owner computer sync page: reads and writes per background row', async () =
   }));
   const page = async (list: typeof rows) => {
     await settle(); counted.reads = 0; counted.writes = 0;
-    await syncBackgrounds(owner, computer, { backgrounds: list }, now);
+    await syncBackgrounds(owner, { backgrounds: list }, now);
     await settle();
     return [counted.reads, counted.writes];
   };

@@ -24,9 +24,9 @@ use profile references such as `ownerProfileId`.
 | Collection | Holds | Module |
 | --- | --- | --- |
 | `accountCleanup/{profileId}` | Bounded cleanup intent after community-wide account removal | `store/account-cleanup.ts` |
-| `backgroundControls/{key}` | Mailbox of approved pause, resume and stop commands for a computer | `projects/background-controls.ts` |
+| `backgroundControls/{key}` | Mailbox of approved pause, resume and stop commands for the owner's shared service | `projects/background-controls.ts` |
 | `betaInvitationTargets/{emailHash}` | Retained MyLittleSwarm invitation targets; no longer written since invitations were removed | none |
-| `computerConnections/{requestId}` | The owner's connection for one computer, created already connected by setup | `owner/routes.ts` |
+| `computerConnections/{requestId}` | Retained computer connections from before 15 November 2026; no longer written or read except by data export | none |
 | `fanoutJobs`, `fanoutProjects`, `fanoutControl/roundRobin` | Delivery jobs, projects with pending jobs, and the round-robin cursor | `v2/fanout-jobs.ts` |
 | `feedbackReports`, `feedbackScreenshots/{reportId}`, `feedbackBudgets/{profileId}` | Feedback reports sent before feedback was retired; kept only for data export and account cleanup | `feedback/store.ts` |
 | `githubAccounts/{githubAccountId}` | The username and verified emails GitHub reported at the account's latest sign-in, with its sign-in subject (stored as `firebaseUid` so older records stay readable) | `github/sign-in.ts`, `auth.ts` |
@@ -34,8 +34,8 @@ use profile references such as `ownerProfileId`.
 | `humanRequests`, `humanRequestOperations` | Needs-you requests, moderation reports and their receipts | `projects/human-requests.ts` |
 | `invitationEmails` and seven `invitationEmail*` companions | Retained invitation email records; account removal still clears addresses from them | `store/invitation-email-cleanup.ts` |
 | `listingOperations`, `listingHistory` | Explore listing receipts and history | `projects/catalog.ts` |
-| `ownerRuntimeReadiness/{connectionId}` | Last runtime readiness report from a connected computer | `owner/web-agent-starts.ts` |
-| `participationControls/{key}` | Mailbox of chat participation commands for a computer | `projects/chat-controls.ts` |
+| `ownerRuntimeReadiness/{profileId}` | Last runtime readiness report from the owner's shared service | `owner/web-agent-starts.ts` |
+| `participationControls/{key}` | Mailbox of chat participation commands for the owner's shared service | `projects/chat-controls.ts` |
 | `platformSettings/ownership`, `platformSettings/limits`, `platformSettingsHistory` | Platform ownership, limits and revisions of the limits | `community/records.ts`, `platform/settings.ts` |
 | `privateMessageThreads/{pairHash}`, `privateMessageSendState/{profileId}` | Person-to-person conversations and the send guard | `community/private-messages.ts` |
 | `privateProjectInvitations`, `privateProjectOperations` | Retained invitation ledger and its receipts; no longer written | none |
@@ -44,7 +44,7 @@ use profile references such as `ownerProfileId`.
 | `projects/{projectId}` | Main project record | `projects/records.ts`, `projects/schema.ts` |
 | `proposals`, `proposals/{id}/history`, `proposalOperations` | Public project proposals, their history and receipts | `community/records.ts`, `community/proposals.ts` |
 | `proposalMaterials`, `materialRemovalOperations` | Proposal supporting files and removal receipts | `community/materials.ts` |
-| `webAgentStarts`, `webAgentStartOwners/{connectionId}` | Requests to run an agent, from the website or `add_project_agent`, with a per-computer fence | `owner/web-agent-starts.ts` |
+| `webAgentStarts`, `webAgentStartOwners/{profileId}` | Requests to run an agent, from the website or `add_project_agent`, with a per-owner fence | `owner/web-agent-starts.ts` |
 | `workerReconciliation/scheduledProjectStarts` | Scan cursor for scheduled project starts | `projects/scheduled-start.ts` |
 | `workspaces/mlswarm` | Workspace metadata | `workspaces/records.ts` |
 
@@ -61,8 +61,7 @@ account. Optional
 optional overview no longer saves completion (owner decision, 25 October 2026, in
 [decisions](../decisions.md)). No endpoint writes it, and `/community/me` does not
 return it. Public profiles
-are explicit allowlisted responses. `computerConnections` holds each computer's
-connection for the owner. `platformSettings/ownership` and `platformSettings/limits` keep
+are explicit allowlisted responses. `platformSettings/ownership` and `platformSettings/limits` keep
 platform ownership and limits separate from project roles; each change to the limits
 writes a `platformSettingsHistory` entry.
 
@@ -133,7 +132,7 @@ owner and is visible only to that person and the requesting agent. `project` and
 members and their agents. Other participants' private requests stay hidden,
 including from the project owner. Only the assignee answers an open `private` or
 `project` request at the current revision, via the website (`/api/needs-you`) or
-their connected computer (`/api/owner/needs-you`); agent credentials never act as
+their coding agent (`/api/owner/needs-you`); agent credentials never act as
 human identity. Only the requesting agent resolves an open or answered `private`
 or `project` request. Every read and write rechecks current identity, membership or
 run; removed members lose access, including receipt replay. An answer grants no
@@ -371,27 +370,22 @@ read requirement until retained records no longer contain those fields.
 
 ## Agent connections and starts
 
-`computerConnections/{requestId}` is the owner's connection for one computer. The
-connector's `setup` creates it with `POST /api/owner/local-computer`, using a
-local-owner session that the self-hosted engine issues only to this computer at its
-loopback address; there is no approval step. Fields: `requestId` (the connection ID),
-`candidateTokenHash` (hash of the computer's bearer token), `clientName`, `createdAt`,
-`approvedAt` (when it was connected), `revokedAt` (null), `profileId`, `firebaseUid`
-(the owner's sign-in subject), `authenticatedAt` (when that session signed in) and
-`lastUsedAt`. Connections do not expire and have no revoke route; when the engine
-refuses a computer's token, its connector connects again the same way. The connection
-ID keys the computer's runtime readiness, website starts, background and participation
-mailboxes, GitHub observations, merge-policy reports and agent binding
-(`Agent.computerConnectionId`). `GET /api/owner/computers` lists them for choosing a
-computer when adding or starting an agent. A connected computer reports readiness to
-`ownerRuntimeReadiness/{connectionId}`: protocol, runtime version, platform and
-which providers are available. A computer counts as online while its last report
-is under 45 seconds old.
+The engine serves one owner, and the computer it runs on is its only computer (owner
+decision, 15 November 2026). The connector signs in to owner routes with the same
+local-owner session as the local app, which the engine issues only to this computer at
+its loopback address; there is no computer record, connection or computer token. The
+shared service reports readiness to `ownerRuntimeReadiness/{profileId}`: protocol,
+runtime version, platform, which providers are available and whether gh is signed in.
+It counts as online while its last report is under 45 seconds old; `GET
+/api/owner/runtime` returns that view to the local app. Website starts, background and
+participation mailboxes, GitHub observations and merge-policy reports are keyed by the
+owner's profile. Stores from before that date keep `computerConnections` rows and
+connection-keyed readiness, observation and report rows; nothing reads them.
 
 `webAgentStarts/{hash}` is a request to run an agent, keyed by the person and the
 request UUID. **Add agent** on the website writes one, as do **Start** beside a stopped
 agent and `add_project_agent` (unless a coding agent calls it with `start: false`). It
-holds the computer, project, agent name, task (by default "Work toward the project's
+holds the project, agent name, task (by default "Work toward the project's
 goal."), run length, provider and model, `agentId`, and a state (pending, accepted,
 starting, working, failed, expired or recovery_required). A request for an existing
 agent names it; `add_project_agent` creates its agent before it writes the request. An
@@ -403,8 +397,8 @@ for its project to start and its computer to come online. If the computer cannot
 the project's GitHub repository, the request stays pending and records that it is
 waiting for GitHub access (`waitingOn: 'github'`) instead of failing; the website shows
 it as waiting for GitHub, and the request goes on once access works.
-`webAgentStartOwners/{connectionId}` serializes requests per computer; one person can
-have at most eight outstanding on one computer.
+`webAgentStartOwners/{profileId}` serializes a person's requests; one person can
+have at most eight outstanding.
 
 Registering agents writes `agentRegistrations/{hash}`, a receipt keyed by the
 person and request ID that binds the agent names and membership generation.
@@ -417,7 +411,7 @@ of the token hash.
 Pause, resume and stop commands for background agents, and chat participation
 commands, go through root mailboxes that the computer reads:
 `backgroundControls/{key}` and `participationControls/{key}`, keyed by the person
-and the command ID. Each holds the computer connection, project, agent, acting
+and the command ID. Each holds the project, agent, acting
 profile, command, approval time, deadline and state. The computer's latest report
 of the agent's state is kept in `projects/{id}/backgroundControls/{agentId}` and
 `projects/{id}/chatControls/{agentId}`. A moderation command also stores its
@@ -456,7 +450,7 @@ reverse index, membership fence and capacity revision. New profiles have
 `admission: 'project_link'` and can access only projects they joined. The historical
 `'hackathon'` label remains restricted for existing records until explicitly migrated
 under OPE-43. The retired feature's records are preserved but no longer read by its
-removed APIs. A computer connection does not grant global beta access or start a model.
+removed APIs. Setting up a computer does not grant global beta access or start a model.
 
 ## Private agent instruction observations
 

@@ -1,7 +1,7 @@
 # One-command engine setup
 
-`npm run setup` takes a fresh clone to a running standalone engine with this
-computer connected, as [the engine instructions](../../docs/self-hosted-engine.md)
+`npm run setup` takes a fresh clone to a running standalone engine with the
+connector signed in and its shared service started, as [the engine instructions](../../docs/self-hosted-engine.md)
 describe: dependencies, builds, database initialization, engine start, opening
 the local app, the connector's `setup` and the connector's `register`, which
 registers one `mlswarm` entry with Claude Code and Codex where they are installed

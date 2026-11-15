@@ -1,4 +1,3 @@
-import { assertCurrentComputer, computerConnections as computers, currentComputer, COMPUTER_DISCONNECTED } from '../owner/computer-access.js';
 import { createHash } from 'node:crypto';
 import type { Transaction } from '../firestore.js';
 import { RUN_LENGTH } from '@mlswarm/contracts';
@@ -34,10 +33,10 @@ export const BACKGROUND_RECEIPT = z.object({ state: z.enum(['accepted','applied'
   message: z.string().trim().min(1).max(200).regex(/^[^\x00-\x1f\x7f-\x9f]*$/).optional(),
 }).strict();
 type Snapshot = z.infer<typeof BACKGROUND_SNAPSHOT>;
-type Saved = Snapshot & { connectionId: string; deviceLastSeenAt: number; pendingId: string | null };
+type Saved = Snapshot & { deviceLastSeenAt: number; pendingId: string | null };
 type Command = { version: 2; operationId: string; kind: 'pause' | 'resume' | 'stop'; target: BackgroundTarget;
   missionId: string; generation: number; payload: { pauseOperationId?: string } };
-type Mail = { id: string; profileId: string; connectionId: string; projectId: string; agentId: string; fingerprint: string; actorProfileId?: string; reason?:string;
+type Mail = { id: string; profileId: string; projectId: string; agentId: string; fingerprint: string; actorProfileId?: string; reason?:string;
   // deadlineAt is this command's own expiry, not the mission's.
   command: Command; approvedAt: number; deadlineAt: number; state: BackgroundControlState; message?: string; acknowledgedAt?: number; effectObservedAt?: number };
 const snapshots = () => projectCollection<Saved>('backgroundControls');
@@ -66,12 +65,12 @@ export async function readBackgroundControl(tx: Transaction, profileId: string, 
   const saved=(await tx.get(snapshots().doc(agentId))).data();
   if (!saved || saved.target.ownerId!==profileId) return null;
   const pending=saved.pendingId ? (await tx.get(mailbox.doc(key(profileId,saved.pendingId)))).data():undefined;
-  const run=(await tx.get(runs().doc(agentId))).data(),computer=(await tx.get(computers.doc(saved.connectionId))).data();
+  const run=(await tx.get(runs().doc(agentId))).data();
   const result=publicView(saved,pending,at);
-  if(!currentComputer(computer,profileId) || saved.cloudRun && (run?.runId!==saved.missionId || run.endedAt!==null || run.generation!==saved.cloudRun.generation)) result.available=false;
+  if(saved.cloudRun && (run?.runId!==saved.missionId || run.endedAt!==null || run.generation!==saved.cloudRun.generation)) result.available=false;
   return result;
 }
-export async function syncBackgrounds(profileId: string, connectionId: string, input: unknown, now:()=>number) {
+export async function syncBackgrounds(profileId: string, input: unknown, now:()=>number) {
   const {backgrounds}=parse(BACKGROUND_SYNC,input),seen=new Set<string>();
   for(const snapshot of backgrounds) {
     if(snapshot.target.ownerId!==profileId) throw new Refusal('forbidden','Background mission belongs to another account.');
@@ -87,8 +86,6 @@ export async function syncBackgrounds(profileId: string, connectionId: string, i
       const pendingRef=saved?.pendingId ? mailbox.doc(key(profileId,saved.pendingId)):null;
       const pending=pendingRef ? (await tx.get(pendingRef)).data():undefined;
       const same=saved?.missionId===snapshot.missionId;
-      if(saved && saved.connectionId!==connectionId && (!ended(saved) || same))
-        throw new Refusal('runtime_conflict','This mission belongs to another approved computer.');
       if(saved && ((!same && snapshot.generation<=saved.generation) || snapshot.generation<saved.generation || same && (snapshot.generation!==saved.generation || snapshot.target.site!==saved.target.site)
         || !same && !ended(saved))) throw new Refusal('runtime_conflict','A different background mission already owns this agent.');
       if(same && saved!.state==='recovery_required' && !['recovery_required','stopped','failed'].includes(snapshot.state))
@@ -104,17 +101,13 @@ export async function syncBackgrounds(profileId: string, connectionId: string, i
         throw new Refusal('runtime_conflict','The cloud has not confirmed this exact background run.');
       if(!snapshot.cloudRun && run?.endedAt===null && run.runId!==snapshot.missionId)
         throw new Refusal('run_active','Another run already owns this agent.');
-      if(saved && saved.connectionId!==connectionId && (!snapshot.cloudRun || run?.endedAt!==null))
-        throw new Refusal('runtime_conflict','Another computer must first confirm a fresh background run.');
-      await assertCurrentComputer(tx, connectionId, profileId);
       const effect= same && unresolved(pending) && pending.command.missionId===snapshot.missionId && pending.command.generation===snapshot.generation
         && (pending.command.kind==='stop' ? snapshot.state==='stopped' : !ended(snapshot) && (pending.command.kind==='pause'
           ? snapshot.state==='paused' && snapshot.pauseOperationId===pending.id
           : pending.state==='accepted' && snapshot.pauseOperationId===null && ['accepted','starting','running','waiting','blocked'].includes(snapshot.state)));
       // Retain proof of an observed effect across a lost ACK and later Stop/new Pause.
       if(effect && !pending!.effectObservedAt && pendingRef) tx.update(pendingRef,{effectObservedAt:at});
-      tx.set(ref,{...snapshot,connectionId,deviceLastSeenAt:at,pendingId:same ? saved!.pendingId:null} satisfies Saved);
-      tx.update(agents().doc(snapshot.target.agentId), { computerConnectionId: connectionId });
+      tx.set(ref,{...snapshot,deviceLastSeenAt:at,pendingId:same ? saved!.pendingId:null} satisfies Saved);
     }));
   } catch(error) {failure??=error;}
   if(failure) throw failure;
@@ -137,9 +130,8 @@ export async function requestBackgroundControl(actorId:string,agentId:string,inp
     }
     const pendingRef=saved.pendingId ? mailbox.doc(key(profileId,saved.pendingId)):null;
     const pending=pendingRef ? (await tx.get(pendingRef)).data():undefined;
-    const run=(await tx.get(runs().doc(agentId))).data(),computer=(await tx.get(computers.doc(saved.connectionId))).data();
-    const queued=await tx.get(mailbox.where('connectionId','==',saved.connectionId).where('state','in',['queued','accepted']).limit(33));
-    if(!currentComputer(computer,profileId)) throw new Refusal('runtime_conflict',`${COMPUTER_DISCONNECTED} Try again in a moment.`);
+    const run=(await tx.get(runs().doc(agentId))).data();
+    const queued=await tx.get(mailbox.where('profileId','==',profileId).where('state','in',['queued','accepted']).limit(33));
     if(saved.missionId!==value.missionId || saved.generation!==value.generation)
       throw new Refusal('runtime_conflict','This agent’s work changed. Refresh, then try again.');
     if(ended(saved) || ['stopping','recovery_required'].includes(saved.state)) throw new Refusal('runtime_conflict','This agent already stopped working, so it can’t be paused or resumed. Start it again instead.');
@@ -156,24 +148,24 @@ export async function requestBackgroundControl(actorId:string,agentId:string,inp
     if(queued.size-Number(replacesPending)>=32) throw new Refusal('bad_input','This computer has 32 changes waiting. Wait for it to come back online, then try again.');
     const command:Command={version:2,operationId:value.id,kind:value.kind,target:saved.target,missionId:saved.missionId,generation:saved.generation,
       payload:value.kind==='resume' ? {pauseOperationId:value.pauseOperationId!}:{}};
-    const mail:Mail={id:value.id,profileId,actorProfileId:actorId,connectionId:saved.connectionId,projectId:currentProjectId(),agentId,fingerprint,command,
+    const mail:Mail={id:value.id,profileId,actorProfileId:actorId,projectId:currentProjectId(),agentId,fingerprint,command,
       approvedAt:at,deadlineAt:at+RUN_LENGTH.maxMinutes*60_000,state:'queued'};
     if(unresolved(pending) && pendingRef) tx.update(pendingRef,{state:value.kind==='stop'?'failed':'expired',message:'Superseded by a newer control.',acknowledgedAt:at});
     tx.create(receiptRef,mail);const next={...saved,pendingId:value.id};tx.set(ref,next);
     return {background:publicView(next,mail,at),replayed:false};
   });
 }
-export async function readBackgroundCommands(profileId:string,connectionId:string,query:unknown,now:()=>number) {
+export async function readBackgroundCommands(profileId:string,query:unknown,now:()=>number) {
   parse(z.object({}).strict(),query);
-  const found=await mailbox.where('connectionId','==',connectionId).where('state','in',['queued','accepted']).limit(32).get();
+  const found=await mailbox.where('profileId','==',profileId).where('state','in',['queued','accepted']).limit(32).get();
   return {commands:found.docs.map(doc=>doc.data()).filter(mail=>mail.profileId===profileId)
     .sort((a,b)=>a.approvedAt-b.approvedAt || a.id.localeCompare(b.id)).map(mail=>({id:mail.id,command:mail.command,deadlineAt:mail.deadlineAt})),serverTime:now()};
 }
-export async function acknowledgeBackgroundCommand(profileId:string,connectionId:string,id:string,input:unknown,now:()=>number) {
+export async function acknowledgeBackgroundCommand(profileId:string,id:string,input:unknown,now:()=>number) {
   parse(uuid,id);const receipt=parse(BACKGROUND_RECEIPT,input);
   await db.runTransaction(async tx=>{
     const ref=mailbox.doc(key(profileId,id)),mail=(await tx.get(ref)).data();
-    if(!mail || mail.profileId!==profileId || mail.connectionId!==connectionId) throw new Refusal('not_found','Background control unavailable.');
+    if(!mail || mail.profileId!==profileId) throw new Refusal('not_found','Background control unavailable.');
     if(!unresolved(mail)) {
       if(mail.state!==receipt.state || mail.message!==receipt.message) throw new Refusal('duplicate','Keep the original background outcome.');return;
     }

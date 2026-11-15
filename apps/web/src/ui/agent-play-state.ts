@@ -1,18 +1,16 @@
 import { availableProviders, readSavedStart, type StartPayload } from '../web-agent-start';
-import type { Computer } from './ComputerSetup';
+import type { Runtime } from './ComputerSetup';
 
-type Selection = { connectionId: string; execution: StartPayload['execution'] };
+type Selection = { execution: StartPayload['execution'] };
 export type PlayRequest = StartPayload & { agentId: string };
 export type PlayState = { pending: PlayRequest | null; busy: boolean; error: string | null };
 
-/** Replaying an approved environment never chooses a different computer, provider or model. */
-export function repeatExecution(selection: Selection | null | undefined, computers: Computer[], now: number) {
-  if (!selection?.execution) throw new Error('Choose this agent’s computer, provider and model explicitly before starting it.');
-  const computer = computers.find(c => c.id === selection.connectionId);
-  if (!computer) throw new Error('This agent’s last computer is unavailable. Choose a computer explicitly before starting it.');
-  if (!availableProviders(computer, now).includes(selection.execution.provider))
-    throw new Error('Reconnect this agent’s computer and selected provider, or choose a different setup explicitly.');
-  return { connectionId: selection.connectionId, execution: { ...selection.execution } };
+/** Replaying an approved environment never chooses a different provider or model. */
+export function repeatExecution(selection: Selection | null | undefined, runtime: Runtime | null, now: number) {
+  if (!selection?.execution) throw new Error('Choose this agent’s provider and model explicitly before starting it.');
+  if (!availableProviders(runtime, now).includes(selection.execution.provider))
+    throw new Error('Start MyLittleSwarm and this agent’s coding tool on this computer, then try again.');
+  return { execution: { ...selection.execution } };
 }
 
 /** Persist before sending. Neither remounts nor retries create a new launch intent. */

@@ -7,11 +7,14 @@ async function fixture(){const f=await seed({profiles:[{name:'Reader',email:'rea
 test('person export includes own approvals and updates without verifiers',async()=>{
  const f=await fixture();
  await db.doc('computerConnections/computer').set({profileId:f.person.id,candidateTokenHash:'secret-candidate',pollingSecretHash:'secret-poll',clientName:'Codex'});
+ // The start fence is kept per person since 15 November 2026; a store from before then may still hold connection rows.
+ await db.doc(`webAgentStartOwners/${f.person.id}`).set({revision:1});
  await db.doc(`projects/${TEST_PROJECT}/updates/update`).set({author:{profile:{id:f.person.id}},body:'Own update'});
  await db.doc(`projects/${TEST_PROJECT}/progressOperations/update`).set({update:{author:{profile:{id:f.person.id}},body:'Own update'}});
  const result=await exportPerson(f.person.id,()=>10000),serialized=JSON.stringify(result);
  expect(serialized).toContain('Own update');expect(serialized).not.toContain('secret-candidate');expect(serialized).not.toContain('secret-poll');
  expect(result.records.some(r=>r.path==='computerConnections/computer')).toBe(true);
+ expect(result.records.some(r=>r.path===`webAgentStartOwners/${f.person.id}`)).toBe(true);
 });
 
 test('person export withholds every other author’s human-request text and preserves own fields', async () => {

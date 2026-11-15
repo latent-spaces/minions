@@ -15,7 +15,7 @@ async function until(read,predicate){const deadline=Date.now()+8000;while(Date.n
 async function setup(t,{beforeAccept,prepare,grantMs=300000,available=true,repositoryWait=async()=>({waitingFor:null,code:"ready",checkedAt:Date.now()}),folder}={}){
   const home=await mkdtemp(join(tmpdir(),'mlswarm-web-start-')),store=await openRuntimeStore({directory:join(home,'ledger')});
   const events=join(home,'events.jsonl'),gate=join(home,'gate'),incarnation=randomUUID(),at=Date.now();
-  let request={id:randomUUID(),connectionId:randomUUID(),projectId,name:'synthetic-fox',scope:'Synthetic mission, no model',minutes:5,
+  let request={id:randomUUID(),projectId,name:'synthetic-fox',scope:'Synthetic mission, no model',minutes:5,
     execution:{provider:'claude',model:null},incarnation,state:'pending',createdAt:at,pickupByAt:at+60000,launchByAt:null,deadlineAt:null,agentId:null};
   const receipts=[],readiness=[],accepted=[];let adds=0,clones=0,accepts=0,clock=Date.now();
   const controllers=createRuntimeControllers({store,adapterFactory:createFakeAdapterFactory({command:process.execPath,args:[fixture],cwd:home,env:{PATH:process.env.PATH},initialInput:(_mission,steering)=>({events,gate,steering})})});

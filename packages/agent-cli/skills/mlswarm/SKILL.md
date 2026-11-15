@@ -3,7 +3,7 @@ name: mlswarm
 description: Help the person with their MyLittleSwarm projects and agents through the local MyLittleSwarm service. Use for setting up projects, asking how a project is going, adding agents, working with them in this chat, agents that work on their own, steering, and Needs you.
 metadata:
   guide-revision: "92"
-  references-sha256: "3fc4e4c9eae3d19e4b7d34510248fd356fd9c1cf000bbcbeafe4cc905e6601ea"
+  references-sha256: "b7ce41ee7f1d610c847dfa30c5e98e63df63ab41fee6d0a009f71a2683575cce"
 ---
 
 # MyLittleSwarm projects and agents
@@ -73,7 +73,7 @@ Use the words the website uses:
 | Say | Not |
 | --- | --- |
 | you; owner, member | your human, operator, participant, account |
-| connect this computer | owner connection, credential, service |
+| set up this computer | owner connection, credential, service |
 | agent; works on its own, or works with you in this chat | worker, mission, session, run, participation |
 | time left, add time, time is up, waiting for more time, token cap, time left in this chat | deadline, lifetime, generation |
 | start, pause, resume, stop, steer; Wake and End for in-chat work | operation, receipt, command |

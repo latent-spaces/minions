@@ -12,7 +12,7 @@ import { CloseButton } from './CloseButton';
 import { Bot, Check, Eye, Plus, SendHorizontal, SlidersHorizontal } from 'lucide-react';
 import { AgentAvatar } from './AgentAvatar';
 import { useMyWorkers } from './MyWorkerControls';
-import { SetupCard, useComputers } from './ComputerSetup';
+import { SetupCard, useRuntime } from './ComputerSetup';
 
 const PROVIDERS: Provider[] = ['claude', 'codex'];
 const providerName = (p: Provider) => p === 'codex' ? 'Codex' : 'Claude Code';
@@ -32,8 +32,7 @@ export function AddAgent({ user, projectId, projectName, refresh, go, occupied =
   const [profileId, setProfileId] = useState<string | null>(null);
   const [profileError, setProfileError] = useState(false);
   const [profileRetry, setProfileRetry] = useState(0);
-  const { computers, error: computersError } = useComputers(user, open, tick);
-  const [connectionId, setConnectionId] = useState(saved?.connectionId ?? '');
+  const { loaded, runtime, error: runtimeError } = useRuntime(user, open, tick);
   const [provider, setProvider] = useState<Provider | null>(saved?.execution.provider ?? null);
   const [model] = useState(saved?.execution.model ?? '');
   const [name, setName] = useState(() => saved?.name ?? suggestAgentName(userPrefix(user.displayName), occupied));
@@ -44,12 +43,11 @@ export function AddAgent({ user, projectId, projectName, refresh, go, occupied =
   const [error, setError] = useState<string | null>(null);
   const [rejected, setRejected] = useState(false);
   const submitted = useRef<StartPayload | null>(saved);
-  const computer = computers?.find(c => c.id === connectionId) ?? (connectionId ? undefined : computers?.[0]);
-  // An offline computer takes the start when it comes online, so either coding agent may be chosen for it.
-  const online = computerOnline(computer);
-  const providers = online ? availableProviders(computer) : PROVIDERS;
+  // While the computer is offline the start waits for it, so either coding agent may be chosen.
+  const online = computerOnline(runtime);
+  const providers = online ? availableProviders(runtime) : PROVIDERS;
   const chosenProvider = provider ?? providers[0];
-  const ready = session.currentUid() === user.uid && !!profileId && !!computer && !!chosenProvider && providers.includes(chosenProvider) && !computersError;
+  const ready = session.currentUid() === user.uid && !!profileId && !!runtime && !!chosenProvider && providers.includes(chosenProvider) && !runtimeError;
   useEffect(() => {
     setProfileId(null); setProfileError(false);
     if (!open || session.currentUid() !== user.uid) return;
@@ -60,7 +58,7 @@ export function AddAgent({ user, projectId, projectName, refresh, go, occupied =
   useEffect(() => { if (profileError) setProfileRetry(t => t + 1); }, [tick]);
   useEffect(() => { if (provider === null && providers.length) setProvider(providers[0]); }, [provider, providers.join(',')]);
   useEffect(() => { if (!open) return; const timer = setInterval(() => setTick(t => t + 1), setupPhase === 'needed' ? 4000 : 15000); return () => clearInterval(timer); }, [open, setupPhase]);
-  useEffect(() => { if (!open) { setSetupPhase('unknown'); return; } if (setupPhase === 'unknown' && computers) setSetupPhase(computers.length === 0 ? 'needed' : 'done'); }, [open, computers, setupPhase]);
+  useEffect(() => { if (!open) { setSetupPhase('unknown'); return; } if (setupPhase === 'unknown' && loaded) setSetupPhase(runtime ? 'done' : 'needed'); }, [open, loaded, runtime, setupPhase]);
   useEffect(() => { if (openRequest) setOpen(true); }, [openRequest]);
   useEffect(() => { onOpenChange?.(open); if (open) dialog.current?.showModal(); else dialog.current?.close(); }, [open, onOpenChange]);
   useEffect(() => () => { dialog.current?.close(); }, [user.uid, projectId]);
@@ -111,7 +109,7 @@ export function AddAgent({ user, projectId, projectName, refresh, go, occupied =
     if (session.currentUid() !== user.uid || !profileId || busy || (request && terminalStart(request))) return;
     const original = submitted.current;
     if (!original && (!ready || !validAgentModel(model) || !/^[\w-]{1,64}$/.test(name) || !validAgentGoal(scope))) return;
-    const next: StartPayload = original ?? { id: crypto.randomUUID(), connectionId: computer!.id, projectId, name, ...(scope.trim() ? { scope: scope.trim() } : {}), execution: { provider: chosenProvider!, model: model.trim() || null }, approved: true };
+    const next: StartPayload = original ?? { id: crypto.randomUUID(), projectId, name, ...(scope.trim() ? { scope: scope.trim() } : {}), execution: { provider: chosenProvider!, model: model.trim() || null }, approved: true };
     submitted.current = next; try { sessionStorage.setItem(storageKey, JSON.stringify(next)); } catch { /* Retained in memory when storage is unavailable. */ } setPayload(next); setBusy(true); setError(null);
     try { const data = await Promise.race([ownOwner<{ request: StartRequest }>(user, profileId!, '/web-agent-starts', next), new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Unconfirmed response')), 15_000))]); setRequest(data.request); }
     catch (failure) {
@@ -141,24 +139,22 @@ export function AddAgent({ user, projectId, projectName, refresh, go, occupied =
         </ul>
         <div className="actions k42-add-footer"><Button type="button" className="k42-ph-thin" onClick={() => setAdded(null)}>Add another</Button>{added.agentId && go ? <Button type="button" className="primary k42-add-primary" onClick={() => { setOpen(false); go(projectRoute(projectId, 'agents', added.agentId!)); }}>View agent</Button> : <Button type="button" className="primary k42-add-primary" onClick={() => setOpen(false)}>Done</Button>}</div>
       </div> : <>
-      {!fixed && setupPhase === 'needed' && <SetupCard connected={!!computers?.length} onCancel={() => setOpen(false)} onContinue={() => setSetupPhase('done')} />}
-      <form hidden={!fixed && (setupPhase !== 'done' || !computers?.length)} onSubmit={e => { e.preventDefault(); void send(); }}>
+      {!fixed && setupPhase === 'needed' && <SetupCard connected={!!runtime} onCancel={() => setOpen(false)} onContinue={() => setSetupPhase('done')} />}
+      <form hidden={!fixed && (setupPhase !== 'done' || !runtime)} onSubmit={e => { e.preventDefault(); void send(); }}>
         <fieldset disabled={fixed || busy} style={{ border: 0, padding: 0, margin: 0 }}>
-          <p className="k42-add-connected"><span className="k42-add-check" aria-hidden="true"><Check size={14} /></span>Computer connected<span className="muted">{providerName(chosenProvider!)} on {computer?.clientName ?? 'this computer'}</span></p>
+          <p className="k42-add-connected"><span className="k42-add-check" aria-hidden="true"><Check size={14} /></span>Ready on this computer<span className="muted">{providerName(chosenProvider!)}</span></p>
           <p className="muted k42-add-note">It works toward the project goal. You can steer it anytime.</p>
-          {!!computers && computers.length > 1 && <><p className="k42-add-label" id={`${id}-computer`}>Computer</p>
-            <div className="k42-contrib-chips" role="group" aria-labelledby={`${id}-computer`}>{computers.map(c => <Button key={c.id} type="button" className="k42-contrib-chip" aria-pressed={computer?.id === c.id} onClick={() => { setConnectionId(c.id); setProvider(null); }}>{c.clientName}{computerOnline(c) ? '' : ' · offline'}</Button>)}</div></>}
           {providers.length > 1 && <>
           <p className="k42-add-label" id={`${id}-provider`}>Runs on your computer with</p>
-          <div className="k42-contrib-chips" role="group" aria-labelledby={`${id}-provider`}>{PROVIDERS.map(p => <Button key={p} type="button" className="k42-contrib-chip" aria-pressed={chosenProvider === p} disabled={!providers.includes(p)} title={providers.includes(p) ? undefined : `${providerName(p)} isn’t set up on ${computer?.clientName ?? 'your computer'}`} onClick={() => setProvider(p)}><span className={`k42-contrib-mark k42-tone-${p === 'claude' ? 'butter' : 'mint'}`} aria-hidden="true">{p === 'claude' ? 'C' : 'X'}</span>{providerName(p)}</Button>)}</div>
+          <div className="k42-contrib-chips" role="group" aria-labelledby={`${id}-provider`}>{PROVIDERS.map(p => <Button key={p} type="button" className="k42-contrib-chip" aria-pressed={chosenProvider === p} disabled={!providers.includes(p)} title={providers.includes(p) ? undefined : `${providerName(p)} isn’t set up on this computer`} onClick={() => setProvider(p)}><span className={`k42-contrib-mark k42-tone-${p === 'claude' ? 'butter' : 'mint'}`} aria-hidden="true">{p === 'claude' ? 'C' : 'X'}</span>{providerName(p)}</Button>)}</div>
           </>}
         </fieldset>
         {!fixed && <>
           {profileError ? <p className="error" role="alert">Could not verify your account. Trying again…</p>
-            : computersError ? <p className="error" role="alert">Could not reach your computer. Trying again…</p>
-            : !profileId || computers === null ? <p className="muted" role="status">Getting ready…</p>
-            : computer && !online ? <p role="status">{computer.clientName} is offline. The agent starts when it’s online.</p>
-            : !ready && <p role="status">Claude Code and Codex aren’t ready on {computer?.clientName ?? 'your computer'}. Open your coding agent there and ask it to update MyLittleSwarm. This updates by itself.</p>}
+            : runtimeError ? <p className="error" role="alert">Could not reach MyLittleSwarm on this computer. Trying again…</p>
+            : !profileId || !loaded ? <p className="muted" role="status">Getting ready…</p>
+            : runtime && !online ? <p role="status">MyLittleSwarm’s shared service on this computer is offline. The agent starts when it’s back.</p>
+            : !ready && <p role="status">Claude Code and Codex aren’t ready on this computer. Open your coding agent and ask it to update MyLittleSwarm. This updates by itself.</p>}
           <div className="actions k42-add-footer"><Button type="button" className="soft" onClick={() => setOpen(false)}>Cancel</Button><Button className="primary k42-add-primary" type="submit" disabled={!ready || busy || !validAgentModel(model) || !validAgentGoal(scope)}><Bot size={18} aria-hidden="true" />Add agent</Button></div></>}
         {fixed && <><p role="status">{rejected ? 'This request was not accepted.' : request ? startMessage(request) : 'Starting… Checking whether your computer accepted this request.'}</p>
           {request?.agentId && go && <p><NavLink to={projectRoute(projectId, 'agents', request.agentId)} go={route => { setOpen(false); go(route); }}>Open {payload.name}</NavLink></p>}

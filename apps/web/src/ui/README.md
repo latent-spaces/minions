@@ -281,9 +281,9 @@ and communication map. People add agents through MyLittleSwarm MCP in their loca
 agent. The unmounted `AddAgent` dialog and existing creation APIs/runtime are retained
 for this visibility-only change (OPE-230); accepted work continues normally. Revisit
 the retained dialog when the owner decides whether web creation will return.
-There is no computer approval page and no connections card: the connector's setup command
-connects this computer, its coding agents and GitHub by itself (owner, 13 November 2026), and
-an old `?view=owner-connect` link opens My projects. The global My agents page has been
+There is no computer approval page, connections card or computer picker: the engine's one
+computer is implicit (owner, 15 November 2026). `npm run setup` sets up its coding agents and
+GitHub, and an old `?view=owner-connect` link opens My projects. The global My agents page has been
 removed; agents remain in their projects.
 
 Page headings use `PathHeading`: a breadcrumb trail above a single h1. The trail starts

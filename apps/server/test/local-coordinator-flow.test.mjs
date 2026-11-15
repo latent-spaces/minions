@@ -35,8 +35,7 @@ async function fixture() {
   const now = () => at, ownerId = (await seed({ profiles: [{ name: 'Coordinator', email: 'coordinator@example.test' }] })).personIds[0];
   const person = { id: ownerId, ...(await profiles.doc(ownerId).get()).data() };
   const { id: projectId } = await createPrivateProject(person, { client_request_id: randomUUID(), title: 'Synthetic local project', goal: 'Test independent background work', githubUrl: 'https://github.com/example/synthetic' }, now);
-  const computer = randomUUID(), principal = { site: 'https://synthetic.invalid', ownerId };
-  await collection('computerConnections').doc(computer).set({ profileId: ownerId, revokedAt: null, approvedAt: at, connectionExpiresAt: at + 86400_000 });
+  const principal = { site: 'https://synthetic.invalid', ownerId };
   const events = join(home, 'events.jsonl'), gate = join(home, 'gate'), checkout = join(home, 'checkout');
   await mkdir(checkout);
   const store = await openRuntimeStore({ directory: join(home, 'ledger') });
@@ -45,18 +44,18 @@ async function fixture() {
   const ownerClient = {
     async addAgent(args) {
       if (!tokens.has(args.agent_name)) tokens.set(args.agent_name, hashToken(randomUUID()));
-      const added = await inProject(projectId, () => connectOwnAgent(ownerId, { name: args.agent_name, candidateTokenHash: tokens.get(args.agent_name), clientName: 'Synthetic coordinator', folder: checkout }, now, computer));
+      const added = await inProject(projectId, () => connectOwnAgent(ownerId, { name: args.agent_name, candidateTokenHash: tokens.get(args.agent_name), clientName: 'Synthetic coordinator', folder: checkout }, now));
       return { ...added, record: { ownerProfileId: ownerId, agentName: args.agent_name, agentId: added.agentId, service: `${principal.site}/p/${projectId}`, folder: checkout, repo: 'https://github.com/example/synthetic' } };
     },
-    inspectAgentStart: (id,target) => inspectAgentStart(ownerId,computer,id,target,now),
-    cancelAgentStart: (id,input) => cancelAgentStart(ownerId,computer,id,input,now),
-    agentStartCancellation: (operationId,target) => readAgentStartCancellation(ownerId,computer,operationId,target,now),
-    queueAgentRun: input => createWebAgentStart(ownerId, { ...input, connectionId: computer }, now),
-    publishRuntimeReadiness: input => publishRuntimeReadiness(ownerId, computer, input, now),
-    listAgentStarts: () => readAgentStarts(ownerId, computer, {}, now),
+    inspectAgentStart: (id,target) => inspectAgentStart(ownerId,id,target,now),
+    cancelAgentStart: (id,input) => cancelAgentStart(ownerId,id,input,now),
+    agentStartCancellation: (operationId,target) => readAgentStartCancellation(ownerId,operationId,target,now),
+    queueAgentRun: input => createWebAgentStart(ownerId, input, now),
+    publishRuntimeReadiness: input => publishRuntimeReadiness(ownerId, input, now),
+    listAgentStarts: () => readAgentStarts(ownerId, {}, now),
     listRepositoryAccess: async () => ({ owned: [], joined: [] }),
-    acceptAgentStart: (id, input) => acceptAgentStart(ownerId, computer, id, input, now),
-    acknowledgeAgentStart: async (id, input) => { await receiptAgentStart(ownerId, computer, id, input, now); return { ok: true }; },
+    acceptAgentStart: (id, input) => acceptAgentStart(ownerId, id, input, now),
+    acknowledgeAgentStart: async (id, input) => { await receiptAgentStart(ownerId, id, input, now); return { ok: true }; },
   };
   let service;
   const application = createRuntimeApplication({ principal, controllers, ownerClient,

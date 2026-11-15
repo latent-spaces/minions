@@ -358,7 +358,7 @@ shadow. It lives in the existing project shell on Home, before and after start,
 through `ProjectPeople`; there is no separate page. Before start the Home tab is
 labelled **Waiting room** and the shared start banner sits above the roster.
 
-Connection health describes reports from MyLittleSwarm on a connected computer, not
+Connection health describes reports from MyLittleSwarm's shared service on this computer, not
 browser presence or model execution. Keep unknown/failed refreshes explicit as
 Checking, and retain retry/setup paths. Owner rows expose role assignment
 (`RoleControls`), while admins nominate moderators for owner appointment; this is

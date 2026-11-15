@@ -7,7 +7,8 @@ import './your-agent.css';
 import { Check, Copy } from 'lucide-react';
 import './first-ai.css';
 
-export type Computer = { id: string, clientName: string, approvedAt: number; runtime?: null | { protocol: number; version: string; incarnation: string; platform: string; providers: { id: string; available: boolean; reason: string }[]; lastSeenAt: number; online: boolean } };
+// The engine's one computer: its shared service's last report, or null before the first (owner decision, 15 November 2026).
+export type Runtime = { protocol: number; version: string; incarnation: string; platform: string; providers: { id: string; available: boolean; reason: string }[]; lastSeenAt: number; online: boolean };
 // A page that is not focused may never settle a clipboard write; the prompt is then shown to copy by hand.
 export async function copyText(text: string): Promise<boolean> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -23,29 +24,20 @@ export async function copyText(text: string): Promise<boolean> {
   }
 }
 
-// Setup connects this computer by itself, so the list is all of this owner's connected computers.
-export function useComputers(user: SessionUser, active: boolean, tick: number) {
-  const [state, setState] = useState<{ computers: Computer[] | null, error: string | null }>({ computers: null, error: null });
+// loaded is false until the first answer; runtime stays null until the shared service first reports.
+export function useRuntime(user: SessionUser, active: boolean, tick: number) {
+  const [state, setState] = useState<{ loaded: boolean, runtime: Runtime | null, error: string | null }>({ loaded: false, runtime: null, error: null });
   const [lookedAt, setLookedAt] = useState(0);
   useEffect(() => {
     if (!active) return;
     let cancelled = false;
-    const read = async () => {
-      const computers: Computer[] = [];
-      let next: string | null = null;
-      do {
-        const page: { computers: Computer[]; next: string | null } = await owner(user, `/computers${next ? `?${new URLSearchParams({ cursor: next })}` : ''}`);
-        if (cancelled) return;
-        computers.push(...page.computers); next = page.next;
-      } while (next);
-      setState({ computers: computers.sort((a, b) => b.approvedAt - a.approvedAt), error: null });
-    };
-    void read().catch((e: Error) => { if (!cancelled) setState(s => ({ computers: s.computers, error: e.message })); });
+    void owner<{ runtime: Runtime | null }>(user, '/runtime').then(({ runtime }) => { if (!cancelled) setState({ loaded: true, runtime, error: null }); },
+      (e: Error) => { if (!cancelled) setState(s => ({ ...s, error: e.message })); });
     return () => { cancelled = true; };
   }, [user, active, tick, lookedAt]);
-  // While no computer is set up or online, look again every 2 seconds (for up to 2 minutes), so a computer
-  // that just finished setup appears without waiting for the regular check.
-  const waiting = active && !!state.computers && !state.computers.some(c => c.runtime?.online);
+  // While the service has not reported or is offline, look again every 2 seconds (for up to 2 minutes), so a
+  // computer that just finished setup appears without waiting for the regular check.
+  const waiting = active && state.loaded && !state.runtime?.online;
   const fastChecks = useRef(0);
   useEffect(() => { if (!waiting) fastChecks.current = 0; }, [waiting]);
   useEffect(() => {
@@ -93,13 +85,13 @@ function ConnectSteps({ intro, command, commandLabel, then, prompt, promptLabel 
 }
 export function SetupSteps() {
   const prompt = useMemo(setupPrompt, []), command = useMemo(() => setupCommand(window.location.origin), []);
-  return <ConnectSteps intro={`In ${CHECKOUT}, run ${CHECKOUT_PREPARE}, then run this in your terminal. It connects this computer, your coding agents and GitHub.`} command={command} commandLabel="Copy setup command" prompt={prompt} promptLabel="Copy setup prompt" />;
+  return <ConnectSteps intro={`In ${CHECKOUT}, run ${CHECKOUT_PREPARE}, then run this in your terminal. It sets up MyLittleSwarm, your coding agents and GitHub.`} command={command} commandLabel="Copy setup command" prompt={prompt} promptLabel="Copy setup prompt" />;
 }
 export function GitHubSteps() {
   return <ConnectSteps intro="Run these in your terminal:" command={GITHUB_COMMANDS.join('\n')} commandLabel="Copy GitHub commands" then="sign in to GitHub" prompt={githubSetupInstructions()} promptLabel="Copy GitHub prompt" />;
 }
 
-// The one way to connect a computer, wherever one is needed (owner, 21 October 2026).
+// The one way to set up this computer, wherever it is needed (owner, 21 October 2026).
 export function SetupCard({ connected, onCancel, onContinue, title = 'Bring your AI along.' }: { connected: boolean; onCancel: () => void; onContinue: () => void; title?: string }) {
   return <div className="k42-first-ai">
     <div className="k42-first-ai-body">

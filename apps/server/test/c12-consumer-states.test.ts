@@ -8,7 +8,7 @@ import type { Server } from 'node:http';
 import { once } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { afterAll, afterEach, beforeEach, expect, test } from 'vitest';
-import { agents, collection, db, inProject, profiles, projectDoc, type Agent } from '../src/firestore.js';
+import { agents, db, inProject, profiles, projectDoc, type Agent } from '../src/firestore.js';
 import { writeCreatedAgentStatus } from '../src/v2/agent-group.js';
 import { presence } from '../src/v2/records.js';
 import { humanRequests } from '../src/projects/human-requests.js';
@@ -59,12 +59,11 @@ test('directory, ?ids=, /current and the public list report the same state per a
   });
   await humanRequests.doc(randomUUID()).set({ projectId: TEST_PROJECT, agentId: needsYou, assigneeProfileId: owner,
     visibility: 'private', status: 'open', createdAt: at } as never);
-  // A queued never-run agent: an approved web start on an approved computer that has not created the agent yet.
-  const computer = randomUUID(), startId = randomUUID();
-  await collection('computerConnections').doc(computer).set({ profileId: owner, revokedAt: null, approvedAt: at, connectionExpiresAt: at + 30 * 86_400_000 });
-  await publishRuntimeReadiness(owner, computer, { protocol: 1, version: '0.1.0', incarnation: randomUUID(), platform: 'darwin',
+  // A queued never-run agent: an approved web start that this computer has not created the agent for yet.
+  const startId = randomUUID();
+  await publishRuntimeReadiness(owner, { protocol: 1, version: '0.1.0', incarnation: randomUUID(), platform: 'darwin',
     providers: [{ id: 'codex', available: true, reason: 'ready' }] }, () => at);
-  await createWebAgentStart(owner, { id: startId, connectionId: computer, projectId: TEST_PROJECT, name: 'queued', scope: 'Synthetic queued start',
+  await createWebAgentStart(owner, { id: startId, projectId: TEST_PROJECT, name: 'queued', scope: 'Synthetic queued start',
     execution: { provider: 'codex', model: null }, approved: true }, () => at);
   const person = { id: owner, ...(await profiles.doc(owner).get()).data()! };
   await publishCatalog(person as never, TEST_PROJECT, { client_request_id: 'publish', expected_revision: 0, listed: true, summary: 'c12 fixture', category: 'games', tags: [] }, () => at);

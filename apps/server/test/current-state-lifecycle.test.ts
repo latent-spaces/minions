@@ -10,7 +10,7 @@ import type { Server } from 'node:http';
 import { once } from 'node:events';
 import { randomUUID } from 'node:crypto';
 import { afterAll, afterEach, beforeEach, expect, test } from 'vitest';
-import { collection, inProject } from '../src/firestore.js';
+import { inProject } from '../src/firestore.js';
 import { registerAgent } from '../src/onboarding/registration.js';
 import { revokeOwned } from '../src/onboarding/store.js';
 import { createWebAgentStart } from '../src/owner/web-agent-starts.js';
@@ -57,9 +57,7 @@ test('never-run agents (complete agent-only documents under A1) show today\'s ma
   const alice = f.personIds[0]!, token = await idTokenFor('cs-life-alice@example.test');
   const register = (name: string) => scope(() => registerAgent(alice, name, () => at)) as Promise<{ agentId: string }>;
   const queued = (await register('queued-quail')).agentId, plain = (await register('plain-puma')).agentId, gone = (await register('gone-gnu')).agentId;
-  const computer = randomUUID();
-  await collection('computerConnections').doc(computer).set({ profileId: alice, approvedAt: at, revokedAt: null, connectionExpiresAt: at + 30 * 86_400_000 });
-  await createWebAgentStart(alice, { id: randomUUID(), connectionId: computer, projectId: TEST_PROJECT, name: 'queued-quail', agentId: queued,
+  await createWebAgentStart(alice, { id: randomUUID(), projectId: TEST_PROJECT, name: 'queued-quail', agentId: queued,
     execution: { provider: 'codex', model: null }, approved: true }, () => at);
   await scope(() => revokeOwned(alice, gone, () => at));
   const rows = await parity(token, alice, [queued, plain, gone]);
@@ -79,9 +77,7 @@ test('a stopped agent queued again from the website shows Waiting, as today (com
   at += 1000;
   await scope(() => reportPhase(agentId, run.run_id, { phase: 'stopping' }, () => at));
   at += 1000;
-  const computer = randomUUID();
-  await collection('computerConnections').doc(computer).set({ profileId: alice, approvedAt: at, revokedAt: null, connectionExpiresAt: at + 30 * 86_400_000 });
-  await createWebAgentStart(alice, { id: randomUUID(), connectionId: computer, projectId: TEST_PROJECT, name: 'again-ant', agentId,
+  await createWebAgentStart(alice, { id: randomUUID(), projectId: TEST_PROJECT, name: 'again-ant', agentId,
     execution: { provider: 'codex', model: null }, approved: true }, () => at);
   const [row] = await parity(token, alice, [agentId]);
   expect(row!.today).toBe('waiting');

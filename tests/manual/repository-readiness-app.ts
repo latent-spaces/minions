@@ -10,7 +10,7 @@ import { chromium, type Page } from 'playwright';
 import { disposableTarget } from '../support/disposable-session.mjs';
 import { signInBrowser } from '../support/browser-session.js';
 import { idTokenFor } from '../../apps/server/test/helpers.js';
-import { collection, profiles } from '../../apps/server/src/firestore.js';
+import { profiles } from '../../apps/server/src/firestore.js';
 import { createPrivateProject } from '../../apps/server/src/projects/private.js';
 import { seedRuntime } from '../../apps/server/test/helpers.js';
 import { createWebAgentStart,publishRuntimeReadiness,acceptAgentStart } from '../../apps/server/src/owner/web-agent-starts.js';
@@ -56,12 +56,11 @@ try {
     await page.goto(projectUrl); return page;
   }
   await seedRuntime(id,{started:true,paused:false});
-  const computer=randomUUID(),incarnation=randomUUID(),requestId=randomUUID(),now=Date.now;
-  await collection('computerConnections').doc(computer).set({profileId:people[0].id,revokedAt:null,approvedAt:now()});
-  await publishRuntimeReadiness(people[0].id,computer,{protocol:1,version:'synthetic',incarnation,platform:'darwin',github:'ready',providers:[{id:'claude',available:true,reason:'ready'}]},now);
-  await createWebAgentStart(people[0].id,{id:requestId,connectionId:computer,projectId:id,name:'repository-check-synthetic',execution:{provider:'claude',model:null},approved:true},now);
-  await inProject(id,()=>connectOwnAgent(people[0].id,{name:'repository-check-synthetic',candidateTokenHash:hashToken(randomUUID()),clientName:'Synthetic browser check',folder:'/tmp/synthetic-no-execution',webStartId:requestId},now,computer));
-  await acceptAgentStart(people[0].id,computer,requestId,{incarnation,waitingFor:'github',repository:{waitingFor:'github',code:'git_authentication_failed',checkedAt:now()}},now);
+  const incarnation=randomUUID(),requestId=randomUUID(),now=Date.now;
+  await publishRuntimeReadiness(people[0].id,{protocol:1,version:'synthetic',incarnation,platform:'darwin',github:'ready',providers:[{id:'claude',available:true,reason:'ready'}]},now);
+  await createWebAgentStart(people[0].id,{id:requestId,projectId:id,name:'repository-check-synthetic',execution:{provider:'claude',model:null},approved:true},now);
+  await inProject(id,()=>connectOwnAgent(people[0].id,{name:'repository-check-synthetic',candidateTokenHash:hashToken(randomUUID()),clientName:'Synthetic browser check',folder:'/tmp/synthetic-no-execution',webStartId:requestId},now));
+  await acceptAgentStart(people[0].id,requestId,{incarnation,waitingFor:'github',repository:{waitingFor:'github',code:'git_authentication_failed',checkedAt:now()}},now);
   const owner=await open(people[0]);
   const message=owner.locator('main').getByText(/Last repository check:.*Git authentication/).first();
   await message.waitFor();

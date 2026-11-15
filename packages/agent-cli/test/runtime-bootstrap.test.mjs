@@ -25,7 +25,7 @@ async function fixture(t, { uniqueAgents = false, sessions = true } = {}) {
     calls.push({path,body});
     let value;
     if (path === '/api/auth/local-owner/session') { if (!sessions) return new Response(JSON.stringify({message:'Local owner sign-in is unavailable.'}),{status:404}); value = {token:'lo1.synthetic.session'}; }
-    else if (path === '/api/owner/local-computer') value = {connectionId:'00000000-0000-4000-8000-000000000001',personName:'Synthetic Owner',personId:ownerId,email:'owner@example.test'};
+    else if (path === '/api/owner/profile') value = {profileId:ownerId,name:'Synthetic Owner',email:'owner@example.test'};
     else if (path.endsWith('/agents/connect')) value = {agentId:uniqueAgents ? body.name : 'synthetic-agent',agentName:body.name,projectId,repoUrl:'https://github.com/example/fixture',created:true,settings:{involvement:'with_me'}};
     else if (path.endsWith('/agent-starts') && body.id) value = {request:{id:body.id,state:'pending',scope:body.scope ?? 'Work toward the project goal.',execution:body.execution}};
     else if (path === '/api/owner/participation-controls') value = {commands:[],serverTime:Date.now()};
@@ -42,19 +42,19 @@ async function fixture(t, { uniqueAgents = false, sessions = true } = {}) {
   }};
 }
 
-test('installed bootstrap connects this computer itself, and opens no runtime when the engine cannot connect it',async t=>{
+test('installed bootstrap signs in as the owner itself, and opens no runtime when the engine gives no owner session',async t=>{
   const refused = await fixture(t, { sessions: false });
-  await assert.rejects(refused.compose(),/does not connect computers/);
+  await assert.rejects(refused.compose(),/gives no owner session/);
   assert.deepEqual(refused.calls.map(call => call.path),['/api/auth/local-owner/session']);
   const f = await fixture(t);
   await f.compose();
-  assert.deepEqual(f.calls.slice(0,2).map(call => call.path),['/api/auth/local-owner/session','/api/owner/local-computer']);
-  assert.equal(f.owner.currentAccount().account_profile_id,ownerId);
+  assert.deepEqual(f.calls.slice(0,2).map(call => call.path),['/api/auth/local-owner/session','/api/owner/profile']);
+  assert.equal((await f.owner.signIn()).account_profile_id,ownerId);
 });
 
 test('approved empty installation can add a trusted chat binding dynamically without starting a provider or exposing credentials',async t=>{
   const f = await fixture(t);
-  await f.owner.connect();
+  await f.owner.signIn();
   const composed = await f.compose(), caller = {kind:'owner',site,ownerId};
   assert.ok(composed.application.listTools(caller).some(tool=>tool.name==='work_in_this_chat'));
   assert.equal(parse(await composed.application.callTool(caller,'get_computer_status',{})).localReady,true);
@@ -80,7 +80,7 @@ test('approved empty installation can add a trusted chat binding dynamically wit
 
 test('add_project_agent queues the first run with the chosen model, like the website form', async t => {
   const f = await fixture(t, { uniqueAgents: true });
-  await f.owner.connect();
+  await f.owner.signIn();
   const composed = await f.compose(), caller = { kind: 'owner', site, ownerId };
   const added = parse(await composed.application.callTool(caller, 'add_project_agent', { project_id: projectId, agent_name: 'cheap', folder: join(f.root, 'cheap'), model: 'sonnet' }));
   assert.equal(added.run.id, f.calls.find(call => call.path.endsWith('/agent-starts') && call.body.execution).body.id);
