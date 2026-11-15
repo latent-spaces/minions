@@ -10,6 +10,34 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Plans and research go in Preview, with a New dot — owner decision, 15 November 2026
+
+Source: the owner on 15 November 2026, on the Medly analytics project: “i asked them to put the
+plans or the research html they developed in the preview” and “i would want to discuss how we can
+engourage this more” and “add a couner like in hte updates when there is a new preview ready so
+people will get notify about it”; then “Yes, both” to widening the agents' Preview wording and a
+New dot beside Preview.
+
+- **Preview is for anything to look at.** The turn prompt, the `set_project_preview` description
+  and the skill name a plan, research report or design, made into an HTML page, beside a game,
+  site or app. Before, the prompt said to skip Preview when nothing runs in a browser.
+- **A New dot, not a count.** Preview holds one page, so the menu shows a dot beside Preview when
+  the page changed since this person last opened Preview in this browser. Saving the same link
+  again marks a new version; agents are told to do that when the page has something new.
+
+## The project card reads as text until the owner edits — owner decision, 15 November 2026
+
+Source: the owner on 15 November 2026, on Settings' Project card: “this is not in the standard
+of the other stuff in the page, we said explaniations in ? , and this should not be editable by
+default, should have edit button”; then “Yes, do it here” to making it read-only with an Edit
+button and a ? note.
+
+- **Text first.** Everyone sees the name, description and rules as text, the view members
+  already had. The owner gets **Edit**, which opens the form; **Save changes** or **Cancel**
+  closes it. Saving still makes a new version, fenced on the version the edit started from.
+- **? note.** “The project's name, description and rules…” moved from under the Project title
+  into a ? note beside it, as decided for tab explanations on 11 November 2026.
+
 ## The turn prompt is Markdown — owner decision, 14 November 2026
 
 Source: the owner on 14 November 2026: “we had a nice formatting of the message to the agents in

@@ -68,11 +68,14 @@ test('each turn carries the shared update aim at the owner\'s pace and says when
 test('each turn says what the Preview tab shows and asks one agent to fill an empty one', () => {
   const card = { name: 'p', mission: 'm', rules: 'r', repoUrl: 'https://github.com/o/r', mergeApproval: 'humans' };
   const empty = projectGuidanceForTurn({ project: card });
-  assert.match(empty, /Preview tab is empty.*one agent puts it there as soon as a first version runs.*keeps running after your turn.*set_project_preview with http:\/\/localhost:PORT\//);
-  assert.match(empty, /If nothing here runs in a browser, skip this/);
+  assert.match(empty, /Preview tab is empty.*one agent puts it there as soon as a first version is ready.*keeps running after your turn.*set_project_preview with http:\/\/localhost:PORT\//);
+  // A plan or research report is something to look at too (owner, 15 November 2026).
+  assert.match(empty, /a plan, research report or design the team wrote, made into an HTML page/);
+  assert.match(empty, /If there is nothing a person could look at yet, skip this/);
   const shown = projectGuidanceForTurn({ project: card, previewUrl: 'http://localhost:4173/' });
   assert.match(shown, /Preview tab shows http:\/\/localhost:4173\/\. If you started that server and it no longer answers/);
   assert.doesNotMatch(shown, /Preview tab is empty/);
+  assert.match(shown, /something new for people to look at, call set_project_preview with the same link again: people see a New mark beside Preview/);
   assert.equal(previewGuidance(''), previewGuidance(null));
   assert.match(previewGuidance(null, 'darwin'), /keeps running until you are stopped or the project is closed/);
   for (const text of [previewGuidance(null, 'win32'), previewGuidance('http://localhost:4173/', 'win32')]) {

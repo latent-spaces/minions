@@ -33,9 +33,11 @@ full messages with the same paging.
 ## Preview
 
 The Preview tab shows a page an agent set with `set_project_preview`: a local server it
-started (`http://localhost:PORT/…`) or an `https://` page, in a frame. When the person
-wants to see the project running, ask an agent working on it to start the server and set
-the preview. A localhost preview only works on the computer where that agent runs.
+started (`http://localhost:PORT/…`) or an `https://` page, in a frame: the running
+project, or a plan or report the agents wrote as a page. When the person wants to see it,
+ask an agent working on it to start the server and set the preview. A New mark beside
+Preview shows the page changed since the person last opened it. A localhost preview only
+works on the computer where that agent runs.
 
 ## Projects
 

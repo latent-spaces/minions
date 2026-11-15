@@ -10,7 +10,7 @@ import { groupAgents } from './agent-running-state';
 import { CheatSheetButton } from './ProjectCheatSheet';
 import { useAnchoredPopover } from './use-anchored-popover';
 
-export interface WorkspaceNavItem { id: string; label: string; icon?: ReactNode; href: string; current?: boolean; locked?: string; count?: number; onNavigate: () => void; }
+export interface WorkspaceNavItem { id: string; label: string; icon?: ReactNode; href: string; current?: boolean; locked?: string; count?: number; fresh?: boolean; onNavigate: () => void; }
 /** `private` marks a project that is not listed in Explore: a lock on its stamp (shell polish 2026-10-18, section 12). */
 /** `cover` is a loaded image URL for the project's stamp: the screenshot on its newest update. */
 /** A running project has no status words in the menu, only the live dot on its stamp; other states are named (owner, 11 and 13 November 2026). */
@@ -90,13 +90,13 @@ export function WorkspaceNavigation({ globals, projectsLink, projects, projectSt
   // Collapsed links retain their accessible names and tooltips.
   const link = (item: WorkspaceNavItem, children: ReactNode, className = 'k42-nav-link', { currentKind = 'page' }: { currentKind?: 'page' | 'location' } = {}) => {
     const tip = collapsed ? item.label : undefined;
-    return item.locked ? <span role="link" aria-disabled="true" tabIndex={0} title={tip ? `${item.label}. ${item.locked}` : item.locked} aria-label={`${item.label}. ${item.locked}`} className={`${className} k42-nav-locked`}>{children}{!tip && <LockKeyhole size={13} aria-hidden="true" />}</span> : <a href={item.href} className={className} title={tip} aria-label={collapsed || item.count ? item.label : undefined} aria-current={item.current ? currentKind : undefined} onClick={e => {
+    return item.locked ? <span role="link" aria-disabled="true" tabIndex={0} title={tip ? `${item.label}. ${item.locked}` : item.locked} aria-label={`${item.label}. ${item.locked}`} className={`${className} k42-nav-locked`}>{children}{!tip && <LockKeyhole size={13} aria-hidden="true" />}</span> : <a href={item.href} className={className} title={tip} aria-label={collapsed || item.count || item.fresh ? item.label : undefined} aria-current={item.current ? currentKind : undefined} onClick={e => {
       if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       e.preventDefault(); item.onNavigate();
     }}>{children}</a>;
   };
-  // A count beside a section is the requests waiting on this person's answer.
-  const list = (items: WorkspaceNavItem[]) => <ul>{items.map(item => <li key={item.id}>{link({ ...item, label: item.count ? `${item.label}, ${item.count} waiting for you` : item.label }, <>{item.icon}{text(item.label)}{!!item.count && <span className="k42-nav-count" aria-hidden="true">{item.count}</span>}</>)}</li>)}</ul>;
+  // A count beside a section is the requests waiting on this person's answer; a New dot is a page they have not opened yet.
+  const list = (items: WorkspaceNavItem[]) => <ul>{items.map(item => <li key={item.id}>{link({ ...item, label: item.count ? `${item.label}, ${item.count} waiting for you` : item.fresh ? `${item.label}, new` : item.label }, <>{item.icon}{text(item.label)}{!!item.count && <span className="k42-nav-count" aria-hidden="true">{item.count}</span>}{!item.count && item.fresh && <span className="k42-nav-new" aria-hidden="true" />}</>)}</li>)}</ul>;
   const label = (value: string) => <p className={`k42-nav-label${collapsed ? ' k42-nav-text' : ''}`}>{value}</p>;
   const agents = groupAgents(project?.myAgents ?? []);
   const fitted = useFittedCount(agents.length, [collapsed, project?.id, !!project?.connect]);

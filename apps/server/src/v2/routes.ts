@@ -597,7 +597,7 @@ export function serverFor(agent: WithId<Agent>, runId: string | undefined, now: 
 
   const progressActor = () => ({ kind: 'agent' as const, agent, runId: runId! });
   server.registerTool('set_project_preview', {
-    description: 'Show live work in the project’s Preview tab: a game, site or app people can try. Point it at a server you started on this computer (http://localhost:PORT/…) or an https:// page; the tab shows it in a frame. A localhost preview only works for people on this computer, and only while your server runs, so keep it running and clear the link (empty string) when it stops. Set it when there is something worth trying, not for every change. Saving it starts nothing and grants no powers; mention it in your next update.',
+    description: 'Show work in the project’s Preview tab: a game, site or app people can try, or a plan, research report or design as an HTML page people can read. Point it at a server you started on this computer (http://localhost:PORT/…) or an https:// page; the tab shows it in a frame. A localhost preview only works for people on this computer, and only while your server runs, so keep it running and clear the link (empty string) when it stops. People see a New mark beside Preview: set it when there is something worth looking at, and set the same link again when the page behind it has something new, not for every small change. Saving it starts nothing and grants no powers; mention it in your next update.',
     inputSchema: PREVIEW_INPUT,
   }, input => run(() => setProjectPreview(currentProjectId(), progressActor(), input, now)));
   server.registerTool('publish_project_update', {

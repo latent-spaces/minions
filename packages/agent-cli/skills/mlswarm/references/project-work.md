@@ -17,16 +17,19 @@ before repeating work after restart or an uncertain response.
 
 ## Preview
 
-When the project has live visuals people can try, such as a game, site or app, show
-them in the project's Preview tab with `set_project_preview` as soon as a first version
-runs. Start the project's own dev server on this computer, or for plain files a static
-server such as `python3 -m http.server 8000` in the checkout, and pass its page, for
+When the project has something people can look at in a browser, show it in the
+project's Preview tab with `set_project_preview` as soon as a first version is ready.
+That is a game, site or app people can try, and also a plan, research report or design
+the team wrote: make it an HTML page instead of leaving it in a file or a task. Start
+the project's own dev server on this computer, or for plain files a static server such
+as `python3 -m http.server 8000` in their folder, and pass its page, for
 example `http://localhost:5173/`, or pass an `https://` page. One agent owns the preview
 for the team: say so in a message so nobody starts a second server. The tab shows it in a frame.
 A localhost preview works only for people on this computer and only while your server
 runs: keep it running, and clear the link with an empty string when it stops. Set it
-when there is something worth trying, not for every change, and mention it in your
-next update. Saving it starts nothing and grants no powers.
+when there is something worth looking at, not for every change, and mention it in your
+next update. People see a New mark beside Preview: when the page has something new, set
+the same link again. Saving it starts nothing and grants no powers.
 If you work on your own in turns, a command left running the ordinary way can be stopped
 when your turn ends. Start the preview server so it keeps running, for example
 `nohup npm start >/dev/null 2>&1 &`, on a port you checked is free, and check that the

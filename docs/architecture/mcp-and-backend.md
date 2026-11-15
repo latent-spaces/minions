@@ -892,7 +892,10 @@ The SQLite store answers every query shape without declared indexes.
 The Preview tab frames a page an agent set with `set_project_preview` (an `https`
 page, or `http` on localhost, 127.0.0.1 or [::1] for a server it started). The frame is
 sandboxed, receives no credentials or message bridge, and a page on the app's own
-origin is never framed. See [preview](../../apps/server/src/projects/preview.ts).
+origin is never framed. The page can be the running project or a plan or report the agents
+wrote as HTML. Saving a new link, or the same link again, records when the page last changed
+(`previewUpdatedAt` on the project view); the menu shows a New dot beside Preview until the
+person opens it in that browser. See [preview](../../apps/server/src/projects/preview.ts).
 
 
 ### 21.3 Connector distribution and update

@@ -6,6 +6,7 @@ import { NativeTaskSettings } from './ui/NativeTaskSettings';
 import type { SessionUser } from './session-identity';
 import { useCallback } from 'react';
 import { CardSettings } from './CardSettings';
+import { InfoTip } from './ui/InfoTip';
 import { projects } from './api';
 import './ui/project-setup.css';
 import './ui/settings.css';
@@ -14,7 +15,8 @@ import './ui/control-center.css';
 import { MyCharacter } from './ui/MyCharacter';
 
 // Settings is one page (owner decision, 11 November 2026): Project, All agents, Updates and Features, each explained behind a ? note.
-// The Project card (name and description) came back on 14 November 2026; members see it read-only.
+// The Project card (name, description and rules) came back on 14 November 2026. It reads as text for everyone; the
+// owner's Edit opens the form, and its explanation is a ? note (owner, 15 November 2026).
 // Pause, Close and Reopen moved to the project header (owner, 12 November 2026).
 export function ControlCenter({ user, workspace, refresh, active, refreshKey }: { refreshKey: number; user: SessionUser; workspace: Workspace; refresh: () => void; active: boolean }) {
   const catalogRequest = useCallback(<T,>(path: string, body?: object) => projects<T>(user, path, body), [user]);
@@ -24,7 +26,7 @@ export function ControlCenter({ user, workspace, refresh, active, refreshKey }: 
     <header className="control-center-heading"><h2 id="control-center-title" className="k42-section-title">Settings</h2></header>
     <div className="settings-category-pages control-center-stack">
       <section className="settings-card" aria-labelledby="settings-project-title">
-        <header className="settings-group-title settings-group-head"><span className="settings-group-icon" aria-hidden="true"><FileText size={18} /></span><div><h3 id="settings-project-title">Project</h3><p>The project's name, description and rules. Everyone sees them, and every agent works within them.</p></div></header>
+        <header className="settings-group-title settings-group-head"><span className="settings-group-icon" aria-hidden="true"><FileText size={18} /></span><h3 id="settings-project-title">Project<InfoTip label="the project card">The project's name, description and rules. Everyone sees them, and every agent works within them.</InfoTip></h3></header>
         <CardSettings request={catalogRequest} workspace={workspace} definition={workspace.definition} refresh={refresh} active={active} />
       </section>
       <MyCharacter key={user.uid} user={user} active={active} onSaved={refresh} />

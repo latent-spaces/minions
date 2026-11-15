@@ -28,7 +28,7 @@ import { messagesV2 } from '../v2/records.js';
 import { runtimeOf, runtimeWithCard, recordWithRuntime, type WorkspaceProject, type RuntimeState } from './records.js';
 import { communityRulesDoc, communitySettingsDoc, setCommunityPublication } from './community-schema.js';
 import { communityRulesView } from './community-rules.js';
-import { previewDoc, previewView } from './preview.js';
+import { previewDoc, previewUpdatedAtView, previewView } from './preview.js';
 export type { WorkspaceProject } from './records.js';
 export const CONFIGURE = z.object({
   client_request_id: z.string().regex(/^[\w-]{1,64}$/), expected_revision: z.number().int().nonnegative(),
@@ -216,7 +216,7 @@ export async function readWorkspace(operator: WithId<Profile>, id: string) {
     ...(isPrivateProject(approved) ? { privacy: { ...approved.privacy, memberLimit: (await db.runTransaction(tx => readProjectAdmission(tx, id, approved.ownerProfileId))).capacity } } : {}),
     ...(role === 'owner' && approved.setupPlan ? { setupPlan: approved.setupPlan } : {}),
     startAnnouncement: await readStartAnnouncement(operator.id, id),
-    communityRules: communityRulesView(rulesSnap.data()), previewUrl: previewView(previewSnap.data()), setup, participantCount, execution, endsAt: approved.execution.endsAt ?? null, tokenLimit: approved.execution.tokenLimit ?? null,
+    communityRules: communityRulesView(rulesSnap.data()), previewUrl: previewView(previewSnap.data()), previewUpdatedAt: previewUpdatedAtView(previewSnap.data()), setup, participantCount, execution, endsAt: approved.execution.endsAt ?? null, tokenLimit: approved.execution.tokenLimit ?? null,
     // What the job's token pool has counted, for the owner's job bar; read only while a cap is set.
     ...(role === 'owner' && approved.execution.tokenLimit ? { tokensUsed: await inProject(id, () => jobTokensCounted(approved.ownerProfileId, approved.execution.startsAt)) } : {}), canConfigure: role === 'owner' };
 }

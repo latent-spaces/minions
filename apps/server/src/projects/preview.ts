@@ -1,5 +1,5 @@
-// The project's preview: a page an agent points at to show live work (a local game, site or app),
-// shown in the Preview tab (owner, 10 November 2026, “Agent sets a link”). Saving it starts nothing and grants no powers.
+// The project's preview: a page an agent points at to show its work, a game, site or app, or a plan or report as a page
+// (owner, 10 and 15 November 2026), shown in the Preview tab. Saving it starts nothing and grants no powers.
 import { z } from 'zod';
 import { db, inProject, validatedCollection } from '../firestore.js';
 import { Refusal } from '../errors.js';
@@ -30,8 +30,11 @@ export const previewDoc = (id: string) => validatedCollection(`${projectSettings
 }).doc('preview');
 
 export const previewView = (record: Preview | undefined) => record?.url ?? null;
+// When the shown page last changed, for the New dot beside Preview in the menu (owner, 15 November 2026).
+export const previewUpdatedAtView = (record: Preview | undefined) => record?.url ? record.updatedAt : null;
 
-// The newest save wins; saving the same link again changes nothing.
+// The newest save wins. Saving the same link again marks a new version of the page behind it; clearing an empty
+// preview changes nothing.
 export async function setProjectPreview(id: string, actor: ProgressActor, input: { url: string }, now: () => number) {
   const parsed = PREVIEW_INPUT.url.safeParse(input.url);
   if (!parsed.success) throw new Refusal('bad_input', 'Use an https:// link, or http://localhost:PORT for a server on this computer. An empty string removes the preview.');
@@ -39,7 +42,7 @@ export async function setProjectPreview(id: string, actor: ProgressActor, input:
   return inProject(id, () => db.runTransaction(async tx => {
     const author = await authorizeProgressPublisher(tx, actor);
     await assertNewProgressAction(tx, actor, { whilePaused: true });
-    if (((await tx.get(previewDoc(id))).data()?.url ?? null) === url) return { previewUrl: url };
+    if (url === null && ((await tx.get(previewDoc(id))).data()?.url ?? null) === null) return { previewUrl: url };
     tx.set(previewDoc(id), PREVIEW.parse({ schemaVersion: 1, url, updatedBy: author.agent?.id ?? author.profile.id, updatedAt: now() }));
     return { previewUrl: url };
   }));
