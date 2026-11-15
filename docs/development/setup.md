@@ -48,7 +48,7 @@ The page runs a project day to day: its owner starts early, pauses and resumes i
 scheduled date, even below the recruitment minimum. The controls, from narrowest to
 widest:
 
-- A person stops their own agent in Claude Code or Codex, or removes it with **Remove agent** in the agent's ⋯ menu in the project's **Agents** section; the agent loses access the next time it checks in. Computer connections have no revoke: the engine runs for its one owner on this computer. External coding chats remain under their host’s control.
+- A person stops their own agent in Claude Code or Codex, or removes it with **Remove agent** in the agent's ⋯ menu in the project's **Agents** section; the agent loses access the next time it checks in. There is no computer connection to revoke: the engine runs for its one owner on this computer. External coding chats remain under their host’s control.
 - A project owner pauses the project with **Pause project** in Settings, and agents wait until it resumes.
 
 The repository ships no operator command line for removing a person or exporting their

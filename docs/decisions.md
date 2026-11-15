@@ -10,6 +10,34 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## No computer connections: the engine's one computer is implicit — owner decision, 15 November 2026
+
+Source: the owner in chat on 15 November 2026. They asked whether the computer connection was
+needed (“I wanted to get rid of the computer connection and approval thing”). Of the two options
+offered, keeping the records but hiding the setup step, or removing connections completely, they
+chose to remove them completely (“yes do it”). The engine serves one owner on 127.0.0.1, so the
+computer it runs on is the only computer, and a saved computer credential gave no protection
+beyond the owner session the local app already uses.
+
+- **The connector signs in like the local app.** It asks the engine for the owner's local session
+  (`POST /api/auth/local-owner/session`, given only to a request from this computer at the
+  engine's own address) and sends that session as the bearer on every owner request. When a
+  session expires or the engine refuses it, the connector asks for a new one and repeats the
+  request once. The connector saves no computer token. Sessions expire after 12 hours, so the
+  leaked-credential note in [What “no expiry, no revoke” means for connections](#what-no-expiry-no-revoke-means-for-connections--owner-decision-13-november-2026)
+  no longer applies.
+- **One computer, keyed by the owner.** Runtime readiness, the web start queue, background and
+  in-chat controls, GitHub observations and merge-policy reports are kept per owner, not per
+  computer. Adding an agent on the website no longer picks a computer.
+- **Removed.** `POST /api/owner/local-computer`, `GET /api/owner/computers`, the
+  `computerConnections` records and their checks, an agent's `computerConnectionId`, the
+  `connectionId` in web start requests and controls, the connector's saved computer credential
+  and reconnect step, and setup's “Connecting this computer” step. `GET /api/owner/runtime`
+  returns this computer's readiness for the website.
+- **Kept.** Each agent's own token, which identifies the agent, not a computer.
+- This supersedes the **Kept** list of [No computer approval: setup connects this computer by itself](#no-computer-approval-setup-connects-this-computer-by-itself--owner-decision-13-november-2026)
+  and rules out running agents for one engine on a second computer.
+
 ## Plans and research go in Preview, with a New dot — owner decision, 15 November 2026
 
 Source: the owner on 15 November 2026, on the Medly analytics project: “i asked them to put the

@@ -44,19 +44,19 @@ session that ran it ends; `npm run stop` stops it. The port it ran on is saved i
 another. Running it again later rebuilds, keeps the existing database and connector
 installation, starts the engine and opens the local app again. Running it while
 the engine already runs (from another window) starts nothing: it opens the local
-app and runs the connector's `setup` again, which finishes at once for a
-connected computer. It starts no model.
+app and runs the connector's `setup` again, which finishes at once when the
+connector is already set up. It starts no model.
 
 The local app has one person, the owner, so it opens without a sign-in step. A
 page the engine serves at its own loopback address gets the owner's session from
 the engine; other websites and other hosts are refused. Without a desktop (over
 SSH, in CI, or with `MLSWARM_NO_BROWSER=1`) the command prints the address to open.
 
-The connector's `setup` connects this computer with no human step: it asks the
-engine for a local-owner session the same way, and the engine records this
-computer's connection for the owner, already connected. There is no approval page
-or code. If the connector fails, the engine keeps running; run `npm run setup`
-again to connect.
+The connector's `setup` signs in with no human step: it asks the engine for the
+owner's local session the same way and reads the owner's name. The engine's
+computer is its only computer, so there is no computer connection, approval page
+or code, and the connector saves no computer credential. If the connector fails,
+the engine keeps running; run `npm run setup` again.
 
 When the `claude` command is on PATH, the command then registers this installation's
 MCP server in Claude Code's user settings with `claude mcp add-json`, unless an entry

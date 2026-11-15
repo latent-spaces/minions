@@ -1,4 +1,4 @@
-// One command from a fresh clone to a local engine running in the background with this computer connected. Every
+// One command from a fresh clone to a local engine running in the background with the connector set up. Every
 // child this script starts is Node itself, without a shell, so checkout paths with spaces and Windows work alike; npm
 // runs the package build scripts as any npm run does. Nothing here runs a model.
 import { spawn, spawnSync } from 'node:child_process';
@@ -112,16 +112,16 @@ async function startEngine(env, files) {
   throw new Error(`The engine did not report its address within two minutes. It may still be starting; its log is ${files.engineLog}. Stop it with npm run stop.`);
 }
 
-/** The connector's own setup for this computer: 'connected', 'interrupted' (Ctrl+C) or 'failed'. */
-async function connectComputer(url, env) {
+/** The connector's own setup, which signs in as the owner and starts the shared service: 'ready', 'interrupted' (Ctrl+C) or 'failed'. */
+async function connectorSetup(url, env) {
   try {
     // This command registers the coding agent itself, so the connector's own hint for a separate installation is left out.
     await run('connector setup', [at('packages/agent-cli/src/cli.mjs'), 'setup', '--site', url, '--wait-seconds', '600', '--no-client-hint'], { env });
-    return 'connected';
+    return 'ready';
   } catch (error) {
     // During its GitHub sign-in step the connector reads keys in raw mode, so a Ctrl+C there reaches only the connector.
     if (interruptedByUser(error.exit)) return 'interrupted';
-    console.error(`${error.message} The engine keeps running. To connect this computer, run npm run setup again.`);
+    console.error(`${error.message} The engine keeps running. To finish setting up the connector, run npm run setup again.`);
     return 'failed';
   }
 }
@@ -142,11 +142,11 @@ function registerClients(env) {
   });
 }
 
-function summary(url, connected, files, registration) {
+function summary(url, ready, files, registration) {
   const connector = args => connectorCommand(process.platform, { node: process.execPath, cli: at('packages/agent-cli/src/cli.mjs'),
     serviceHome: files.serviceHome, credentialHome: files.credentialHome, args });
   const manual = `To register it yourself, run (--client claude, codex or other): ${connector(['mcp-config', '--client', 'claude'])}`;
-  say(`${connected ? 'Done' : 'The engine is running; this computer is not connected yet'}. The local app is at ${url}/.
+  say(`${ready ? 'Done' : 'The engine is running; the connector is not set up yet'}. The local app is at ${url}/.
 The engine runs in the background; npm run stop stops it.
 ${registration.lines}
 ${registration.registered
@@ -159,12 +159,12 @@ For agents that work on repositories, sign in to GitHub with gh auth login.`);
  * After the connector's own setup: registers the coding agents, then prints the summary. A test engine in its own
  * MLSWARM_ENGINE_HOME never replaces the computer's mlswarm entry (owner decision, 14 November 2026).
  */
-async function finish(url, connected, files, connectorEnv, values) {
-  const registration = !connected ? { registered: false, lines: 'No coding agent was registered: this computer is not connected yet.' }
+async function finish(url, ready, files, connectorEnv, values) {
+  const registration = !ready ? { registered: false, lines: 'No coding agent was registered: the connector is not set up yet.' }
     : values['no-register'] ? { registered: false, lines: 'No coding agent was registered (--no-register).' }
     : process.env.MLSWARM_ENGINE_HOME ? { registered: false, lines: 'This is a test engine (MLSWARM_ENGINE_HOME), so no coding agent was registered.' }
     : await registerClients(connectorEnv);
-  summary(url, connected, files, registration);
+  summary(url, ready, files, registration);
 }
 
 async function main() {
@@ -191,10 +191,10 @@ async function main() {
       && await run('engine check', [engineMain, 'check-running', '--url', `http://127.0.0.1:${port}`], { env: engineEnvironment(base, { home, port }), stdio: 'ignore' }).then(() => true, () => false);
     if (ours) {
       const site = `http://127.0.0.1:${port}`, connectorEnv = connectorEnvironment(base, { home, port });
-      say(`The engine is already running at ${site}. Opening the local app and checking this computer's connection.`);
+      say(`The engine is already running at ${site}. Opening the local app and checking the connector.`);
       openApp(site);
-      const result = await connectComputer(site, connectorEnv);
-      if (result !== 'interrupted') await finish(site, result === 'connected', files, connectorEnv, values);
+      const result = await connectorSetup(site, connectorEnv);
+      if (result !== 'interrupted') await finish(site, result === 'ready', files, connectorEnv, values);
       return;
     }
     throw new Error(occupiedMessage(port, portHolder(port)));
@@ -243,9 +243,9 @@ async function main() {
   console.info(`The engine is listening on ${url} in the background; its activity log is ${files.engineLog}.`);
   openApp(url);
 
-  next('Connecting this computer');
-  const result = await connectComputer(url, connectorEnv);
-  if (result !== 'interrupted') await finish(url, result === 'connected', files, connectorEnv, values);
+  next('Signing in and starting the shared service');
+  const result = await connectorSetup(url, connectorEnv);
+  if (result !== 'interrupted') await finish(url, result === 'ready', files, connectorEnv, values);
 }
 
 main().catch(error => { console.error(error.message); process.exitCode = 1; });

@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID, createHash } from 'node:crypto';
+import { randomBytes, createHash } from 'node:crypto';
 import { validRunMinutes } from './run-length.mjs';
 import { dirname, join, isAbsolute } from 'node:path';
 import { mkdirSync, readdirSync, unlinkSync } from 'node:fs';
@@ -59,38 +59,38 @@ async function engineSession(origin, fetchImpl) {
     headers: { Accept: 'application/json', origin, 'content-type': 'application/json' }, body: '{}' }); }
   catch (error) { if (neverConnected(error)) throw engineUnreachable(origin); throw new Error('MyLittleSwarm can’t be reached right now. Start the local engine, then try again.'); }
   const data = await response.json().catch(() => null);
-  if (response.status === 404) throw new Error(`The MyLittleSwarm engine at ${origin} does not connect computers. Run setup with the address of the local engine on this computer.`);
+  if (response.status === 404) throw new Error(`The MyLittleSwarm engine at ${origin} gives no owner session here. Run setup with the address of the local engine on this computer.`);
   if (!response.ok || typeof data?.token !== 'string' || data.token.length > 1024) throw new Error('The local MyLittleSwarm engine did not open a session for this computer. Check that setup uses the engine’s own address, then try again.');
   return data.token;
 }
 export function createOwnerClient({ home = sessionHome(), workspace = workspaceHome(), site, fetchImpl = fetch, now = Date.now, ownerSession } = {}) {
   const origin = ownerOrigin(site); home = canonicalPath(home); workspace = canonicalPath(workspace);
   function directory() { ensureHome(home); const root = join(home, 'owners'); privateDir(root); const dir = join(root, digest(origin)); privateDir(dir); return dir; }
-  function receipt() {
-    const p = join(directory(), 'owner.json'); if (!lstatExists(p)) return null;
-    const r = readPrivate(p, true);
-    // Files saved before 13 November 2026 can also say pending, expired or cancelled, and hold the retired approval's
-    // pollingSecret and expiry; anything but a current connection is connected again.
-    if (r.schema !== 'mlswarm-owner-1' || r.origin !== origin || !TOKEN.test(r.token ?? '') || !['connecting','approved','pending','expired','cancelled','revoked'].includes(r.status)) throw new Error('Owner connection state is invalid. No credentials were changed.');
-    return r;
-  }
-  const save = r => writePrivate(join(directory(), 'owner.json'), r);
   // A website path the service returned, as a full link on this website; anything else is no link.
   const siteUrl = path => typeof path === 'string' && /^\/[^/\\]/.test(path) && !path.includes('\\') ? new URL(path, origin).href : null;
-  const NOT_CONNECTED = 'This computer is not connected to MyLittleSwarm yet. Run setup on this computer, then repeat this call.';
-  function approved() {
-    const r = receipt();
-    if (!r || r.status !== 'approved' || !PROFILE.test(r.personId ?? '')) throw new Error(NOT_CONNECTED);
-    return r;
+  const DIFFERENT_ACCOUNT = 'The MyLittleSwarm engine now belongs to a different account. Run setup again to check which account it uses, then try again with the same request.';
+  // The owner's session and profile live in memory only (owner decision, 15 November 2026): nothing about this
+  // computer is saved, and an expired or refused session is fetched again.
+  let session = null, profile = null, loading = null;
+  const signedIn = () => session ??= (ownerSession ?? (() => engineSession(origin, fetchImpl)))().catch(error => { session = null; throw error; });
+  function loadProfile() {
+    return loading ??= request('/profile').then(data => {
+      if (!PROFILE.test(data.profileId ?? '') || typeof data.name !== 'string') throw new Error('MyLittleSwarm sent back an unexpected reply. Try again in a moment.');
+      return profile = { profileId: data.profileId, name: data.name, email: typeof data.email === 'string' ? data.email : null };
+    }).finally(() => { loading = null; });
   }
-  function selectedAccount(expectedProfileId) {
-    const r = approved();
-    if (expectedProfileId !== undefined && (!PROFILE.test(expectedProfileId ?? '') || r.personId !== expectedProfileId)) throw new Error('This computer is now connected to a different MyLittleSwarm account. Run setup again to check which account it uses, then try again with the same request.');
-    return r;
+  function matchAccount(expectedProfileId) {
+    if (expectedProfileId !== undefined && (!PROFILE.test(expectedProfileId ?? '') || profile?.profileId !== expectedProfileId)) throw new Error(DIFFERENT_ACCOUNT);
+    return profile;
   }
-  async function request(path, { method = 'GET', body, token, profileId, signal, responseLimit = 256 * 1024, reconnected = false } = {}) {
+  async function selectedAccount(expectedProfileId) {
+    if (!profile) await loadProfile();
+    return matchAccount(expectedProfileId);
+  }
+  async function request(path, { method = 'GET', body, profileId, signal, responseLimit = 256 * 1024, renewed = false } = {}) {
+    const current = signedIn(), token = await current;
     let response;
-    try { response = await fetchImpl(new URL('/api/owner' + path, origin), { method, redirect: 'error', credentials: 'omit', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: { Accept: 'application/json', ...(body !== undefined ? { 'content-type': 'application/json' } : {}), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(profileId ? { 'X-Mlswarm-Profile-Id': profileId } : {}) }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) }); }
+    try { response = await fetchImpl(new URL('/api/owner' + path, origin), { method, redirect: 'error', credentials: 'omit', signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000), headers: { Accept: 'application/json', ...(body !== undefined ? { 'content-type': 'application/json' } : {}), Authorization: `Bearer ${token}`, ...(profileId ? { 'X-Mlswarm-Profile-Id': profileId } : {}) }, ...(body !== undefined ? { body: JSON.stringify(body) } : {}) }); }
     catch (error) { if (neverConnected(error)) throw engineUnreachable(origin); throw new Error('MyLittleSwarm can’t be reached right now. Try the same request again in a moment.'); }
     let size = 0, chunks = [];
     for await (const c of response.body) { size += c.byteLength; if (size > responseLimit) { await response.body.cancel?.().catch(() => {}); throw new Error('MyLittleSwarm sent back an unexpected reply. Try again in a moment.'); } chunks.push(c); }
@@ -98,13 +98,11 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
     if (!data || typeof data !== 'object' || Array.isArray(data)) throw new Error('MyLittleSwarm sent back an unexpected reply. Try again in a moment.');
     if (!response.ok) {
       const detail = response.status < 500 && typeof data.message === 'string' && data.message.length <= 500 && !/[\x00-\x1f\x7f-\x9f]/.test(data.message) ? data.message : null;
-      // The engine no longer accepts this computer's credential, for example after its store was set up again:
-      // connect again the same way setup does, nobody is asked, and repeat the request once with the new credential.
-      // Any other refusal, such as a project the person does not belong to, leaves the connection as it is.
-      if (response.status === 401 && token && !reconnected && /^This computer is no longer connected to MyLittleSwarm/.test(data.message ?? '')) {
-        const fresh = await reconnect(token);
-        if (profileId && fresh.personId !== profileId) throw new Error('This computer is now connected to a different MyLittleSwarm account. Run setup again to check which account it uses, then try again with the same request.');
-        return request(path, { method, body, token: fresh.token, profileId, signal, responseLimit, reconnected: true });
+      // An expired or refused session: get a new one and repeat the request once, still as the same account.
+      if (response.status === 401 && data.error === 'unauthorized' && !renewed) {
+        if (session === current) session = null;
+        if (profileId && (await loadProfile()).profileId !== profileId) throw new Error(DIFFERENT_ACCOUNT);
+        return request(path, { method, body, profileId, signal, responseLimit, renewed: true });
       }
       const failure = new Error(detail ? `Owner operation refused: ${detail}` : 'MyLittleSwarm couldn’t do that. Check the current state, then try again.');
       // Keep permanent project refusals distinguishable from transport failures.
@@ -119,34 +117,14 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
     }
     return data;
   }
-  function publicState(r) {
-    return { website_origin: origin, environment: new URL(origin).protocol === 'http:' ? 'local-development' : 'live', status: r.status, account_name: r.personName ?? null, account_profile_id: r.status === 'approved' && PROFILE.test(r.personId ?? '') ? r.personId : null };
-  }
-  // Connects this computer to the local engine with the owner's session (owner decision, 13 November 2026): there is
-  // no approval step and the connection does not expire. The credential is saved before the engine hears of it, so a
-  // retry after a lost reply sends the same one and the engine answers with the same connection.
-  let connecting = null;
-  function establish(clientName, replaced) {
-    return connecting ??= (async () => {
-      let r = receipt();
-      if (r?.status === 'approved' && r.token !== replaced) return r;
-      if (!r || r.status !== 'connecting' || r.token === replaced) { r = { schema:'mlswarm-owner-1', origin, requestId:randomUUID(), token:randomBytes(32).toString('base64url'), clientName:r?.clientName ?? clientName, status:'connecting' }; save(r); }
-      const session = await (ownerSession ?? (() => engineSession(origin, fetchImpl)))();
-      const response = await request('/local-computer', { method:'POST', token:session, body:{ candidateTokenHash:hash(r.token), clientName:r.clientName } });
-      if (!UUID.test(response.connectionId ?? '') || !PROFILE.test(response.personId ?? '') || typeof response.personName !== 'string') throw new Error('MyLittleSwarm sent back an unexpected reply. Try again in a moment.');
-      const current = receipt();
-      if (current?.status === 'approved' && current.token !== r.token && current.token !== replaced) return current;
-      const saved = { ...r, requestId:response.connectionId, status:'approved', personId:response.personId, personName:response.personName, email:typeof response.email === 'string' ? response.email : null };
-      save(saved); return saved;
-    })().finally(() => { connecting = null; });
-  }
-  const reconnect = replaced => establish('MyLittleSwarm shared service', replaced);
-  async function connect(clientName = 'MyLittleSwarm CLI', expectedWebsite) {
+  const publicState = p => ({ website_origin: origin, environment: new URL(origin).protocol === 'http:' ? 'local-development' : 'live', account_name: p.name, account_profile_id: p.profileId });
+  // Signs in to the engine as its owner and reads who that is.
+  async function signIn(expectedWebsite) {
     if (expectedWebsite !== undefined && ownerOrigin(expectedWebsite) !== origin) throw new Error(`MyLittleSwarm website mismatch: this connector uses ${origin}, but setup requested ${ownerOrigin(expectedWebsite)}. Check MLSWARM_SELF_HOSTED_ORIGIN and MLSWARM_SITE_URL, then run mcp-config --site for the requested website and reload only when agents are idle.`);
-    return publicState(await establish(clientName));
+    return publicState(await loadProfile());
   }
   async function operation(name, args, { expectedProfileId, signal } = {}) {
-    const r = selectedAccount(expectedProfileId);
+    const r = await selectedAccount(expectedProfileId);
     const e = value => encodeURIComponent(value ?? ''), project = `/projects/${e(args.project_id)}`;
     const specs = { list_working_agents:[`${project}/my-workers`], list_needs_you:['/needs-you'], answer_human_request:[`/needs-you/${e(args.request_id)}/answer`,'POST'], set_project_update_settings:[`${project}/project-update-settings`,'POST'], get_project_overview:[`${project}/overview`], list_project_agents:[`${project}/agents`], list_project_conversations:[`${project}/conversations`], read_project_conversation:[`${project}/conversations/${e(args.thread_id)}`], read_project_chat:[`${project}/chat`], read_project_updates:[`${project}/updates`], list_project_tasks:[`${project}/tasks`], read_project_task:[`${project}/tasks/${e(args.task_id)}`], update_project_card:[`${project}/card`,'POST'], set_project_repository:[`${project}/configure`,'POST'], publish_to_explore:[`${project}/publish`,'POST'], make_project_public:[`${project}/public-conversion`,'POST'], create_private_project:['/projects/private','POST'], set_agent_limits:[`${project}/agents/${e(args.agent_id)}/settings`,'POST'], register_my_agents:[`${project}/agents`,'POST'], list_my_projects:['/projects'], list_my_proposals:['/proposals'], get_my_proposal:[`/proposals/${e(args.project_id)}`], control_project:[`${project}/control`,'POST'], archive_my_project:[`${project}/personal-archive`,'POST'] };
     if (!specs[name]) throw new Error('Owner operation is unknown.');
@@ -157,30 +135,28 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
     // An approved change is saved on this computer before MyLittleSwarm hears of it, so a retry after a lost
     // reply comes from the same account with the same input.
     const recorded = (requestId, input, path, body) => withOperationLock(directory(), async () => {
-      const account = selectedAccount(expectedProfileId);
-      if (!PROFILE.test(account.personId ?? '')) throw new Error('Reconnect your human account before changing project setup.');
+      const account = await selectedAccount(expectedProfileId);
       const intents = join(directory(), 'project-management'); privateDir(intents);
       const file = join(intents, digest(name + ':' + requestId) + '.json'), fingerprint = hash(canonical(input));
       const intent = lstatExists(file) ? readPrivate(file, true) : null;
-      if (intent && (intent.profileId !== account.personId || intent.fingerprint !== fingerprint)) throw new Error('Retry this action with its original human account and unchanged input.');
-      if (!intent) writePrivate(file, { profileId:account.personId, fingerprint });
-      return request(path, { method:'POST', body, token:account.token, profileId:account.personId });
+      if (intent && (intent.profileId !== account.profileId || intent.fingerprint !== fingerprint)) throw new Error('Retry this action with its original human account and unchanged input.');
+      if (!intent) writePrivate(file, { profileId:account.profileId, fingerprint });
+      return request(path, { method:'POST', body, profileId:account.profileId });
     });
     if (name === 'create_private_project') {
       if (args.approved !== true || typeof args.title !== 'string' || !args.title.trim() || args.title.trim().length > 120 || typeof args.goal !== 'string' || !args.goal.trim() || args.goal.trim().length > 1500 || (args.rules !== undefined && (typeof args.rules !== 'string' || args.rules.trim().length > 3000)) || typeof args.repoUrl !== 'string' || !isGithubRepositoryUrl(args.repoUrl) || !UUID.test(args.client_request_id ?? '')) throw new Error('Owner private creation requires approval of the name, purpose and GitHub repository and the original request UUID.');
       const body = { client_request_id: args.client_request_id, title: args.title.trim(), goal: args.goal.trim(), ...(args.rules?.trim() ? { rules: args.rules.trim() } : {}), githubUrl: args.repoUrl, approved: true };
       // Save before contact, so an uncertain write never becomes another person's
-      // project after this computer is connected under a different account.
+      // project after the engine is set up again for a different account.
       return withOperationLock(directory(), async () => {
-        const account = selectedAccount(expectedProfileId);
-        if (!PROFILE.test(account.personId ?? '')) throw new Error('Owner account identity is missing. Run setup again before creating a private project.');
+        const account = await selectedAccount(expectedProfileId);
         const intents = join(directory(), 'private-projects'); privateDir(intents);
         const path = join(intents, `${digest(body.client_request_id)}.json`);
         const fingerprint = hash(JSON.stringify(body));
         const saved = lstatExists(path) ? readPrivate(path, true) : null;
-        if (saved && (saved.schema !== 'mlswarm-private-creation-1' || saved.fingerprint !== fingerprint || saved.profileId !== account.personId)) throw new Error('Owner private creation must retain its original account, name, purpose, repository and request UUID. Review that original request; do not replace it automatically.');
-        if (!saved) writePrivate(path, { schema: 'mlswarm-private-creation-1', profileId: account.personId, fingerprint, input: { client_request_id: body.client_request_id, title: body.title, goal: body.goal, ...(body.rules ? { rules: body.rules } : {}), repoUrl: body.githubUrl } });
-        const created = await request('/projects/private', { method: 'POST', body, token: account.token, profileId: account.personId });
+        if (saved && (saved.schema !== 'mlswarm-private-creation-1' || saved.fingerprint !== fingerprint || saved.profileId !== account.profileId)) throw new Error('Owner private creation must retain its original account, name, purpose, repository and request UUID. Review that original request; do not replace it automatically.');
+        if (!saved) writePrivate(path, { schema: 'mlswarm-private-creation-1', profileId: account.profileId, fingerprint, input: { client_request_id: body.client_request_id, title: body.title, goal: body.goal, ...(body.rules ? { rules: body.rules } : {}), repoUrl: body.githubUrl } });
+        const created = await request('/projects/private', { method: 'POST', body, profileId: account.profileId });
         if (!ID.test(created.id ?? '') || created.projectId !== created.id || created.startsAgents !== false || created.messageProtection !== 'server_readable_v1') throw new Error('Owner service returned an invalid private creation response. Retry the same request.');
         return { ...created, project_page_url: siteUrl(created.projectPagePath) ?? new URL(`/?project=${created.id}`, origin).href };
       });
@@ -194,7 +170,7 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
       if (args.project_id !== undefined && !ID.test(args.project_id) || args.status !== undefined && !['open','answered','resolved'].includes(args.status)) throw new Error('Choose a valid project and Needs you status.');
       const params = new URLSearchParams();
       for (const field of ['project_id','status','cursor','limit']) if (args[field] !== undefined) params.set(field,args[field]);
-      return lean(await request('/needs-you?' + params,{token:r.token,profileId:r.personId}));
+      return lean(await request('/needs-you?' + params,{profileId:r.profileId}));
     }
     if (name === 'answer_human_request') {
       const indices=args.option_indices;
@@ -205,13 +181,13 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
       if ((args.body?.trim().length ?? 0)+(args.custom_answer?.trim().length ?? 0)>2000) throw new Error('Keep the answer and note within 2000 characters combined.');
       if (args.approved !== true || !ID.test(args.request_id ?? '') || !Number.isSafeInteger(args.expected_revision) || args.expected_revision < 1 || !/^[\w-]{1,64}$/.test(args.client_request_id ?? '') || (args.body !== undefined && (typeof args.body !== 'string' || args.body.trim().length > 2000)) || (args.option_index !== undefined && (!Number.isInteger(args.option_index) || args.option_index < 0 || args.option_index > 2)) || (args.option_index === undefined && !indices?.length && !args.custom_answer?.trim() && !args.body?.trim())) throw new Error('Answer with the human-approved option or text, current revision and original request ID.');
       return withOperationLock(directory(),async () => {
-        const account=selectedAccount(expectedProfileId), body={expected_revision:args.expected_revision,client_request_id:args.client_request_id,body:args.body?.trim() ?? '',...(args.option_index !== undefined ? {option_index:args.option_index} : {}),...(indices !== undefined ? {option_indices:indices.slice().sort((a,b)=>a-b)} : {}),...(args.custom_answer !== undefined ? {custom_answer:args.custom_answer.trim()} : {}),approved:true};
+        const account=await selectedAccount(expectedProfileId), body={expected_revision:args.expected_revision,client_request_id:args.client_request_id,body:args.body?.trim() ?? '',...(args.option_index !== undefined ? {option_index:args.option_index} : {}),...(indices !== undefined ? {option_indices:indices.slice().sort((a,b)=>a-b)} : {}),...(args.custom_answer !== undefined ? {custom_answer:args.custom_answer.trim()} : {}),approved:true};
         const intents=join(directory(),'human-answers'); privateDir(intents);
         const path=join(intents,digest(body.client_request_id)+'.json'), fingerprint=hash(canonical({request_id:args.request_id,body}));
         const saved=lstatExists(path) ? readPrivate(path,true) : null;
-        if (saved && (saved.profileId !== account.personId || saved.fingerprint !== fingerprint)) throw new Error('Retry the original human answer under its original account.');
-        if (!saved) writePrivate(path,{profileId:account.personId,fingerprint});
-        return request(`/needs-you/${args.request_id}/answer`,{method:'POST',body,token:account.token,profileId:account.personId});
+        if (saved && (saved.profileId !== account.profileId || saved.fingerprint !== fingerprint)) throw new Error('Retry the original human answer under its original account.');
+        if (!saved) writePrivate(path,{profileId:account.profileId,fingerprint});
+        return request(`/needs-you/${args.request_id}/answer`,{method:'POST',body,profileId:account.profileId});
       });
     }
     if (name === 'make_project_public') {
@@ -274,16 +250,16 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
     const query = new URLSearchParams();
     for (const field of ['cursor','scope','q','source','limit']) if (args[field] !== undefined) query.set(field, String(args[field]));
     if (query.size) path += '?' + query;
-    const response = await request(path,{method,body,token:r.token,profileId:r.personId});
+    const response = await request(path,{method,body,profileId:r.profileId});
     // The goal is already in definition.goal.
     if (name === 'get_project_overview' && response.project && typeof response.project === 'object') delete response.project.mission;
     return lean(response);
   }
   // The projects the human belongs to, by name.
-  async function memberProjects(token) {
+  async function memberProjects() {
     const projects = [];
     for (let cursor, pages = 0; pages < 10; pages++) {
-      const page = await request('/member-projects' + (cursor ? '?cursor=' + encodeURIComponent(cursor) : ''), { token });
+      const page = await request('/member-projects' + (cursor ? '?cursor=' + encodeURIComponent(cursor) : ''));
       if (!Array.isArray(page.projects)) throw new Error('MyLittleSwarm sent back an unexpected reply. Try again in a moment.');
       projects.push(...page.projects.filter(p => ID.test(p?.projectId ?? '') && typeof p.projectName === 'string'));
       if (!(cursor = page.next)) break;
@@ -292,8 +268,8 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
   }
   // The project the human named. Punctuation and case are ignored, and a shorter name is accepted when it
   // fits exactly one project.
-  async function namedProject(name, token) {
-    const plain = value => String(value).normalize('NFKD').toLowerCase().replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim(), wanted = plain(name), projects = await memberProjects(token);
+  async function namedProject(name) {
+    const plain = value => String(value).normalize('NFKD').toLowerCase().replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim(), wanted = plain(name), projects = await memberProjects();
     const exact = wanted ? projects.filter(p => plain(p.projectName) === wanted) : [], found = exact.length ? exact : wanted ? projects.filter(p => plain(p.projectName).includes(wanted)) : [];
     if (found.length === 1) return found[0];
     const names = (found.length ? found : projects).map(p => `“${p.projectName}”`).join(', ');
@@ -316,10 +292,10 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
   }
   // The project's folder in the fixed layout, named after the project. The agent's own folder inside it,
   // <agent>-<id>, is known once the service has answered with the agent's ID.
-  async function placedProject(projectId, service, token, saved, projectName) {
+  async function placedProject(projectId, service, saved, projectName) {
     const projects = layout(workspace).projects, inside = folder => dirname(dirname(folder)) === projects;
     const placed = saved.filter(s => inside(s.record.folder)).map(s => ({ projectId: s.record.service === service ? projectId : s.record.service, folder: dirname(s.record.folder) }));
-    projectName ??= (await memberProjects(token)).find(p => p.projectId === projectId)?.projectName;
+    projectName ??= (await memberProjects()).find(p => p.projectId === projectId)?.projectName;
     if (typeof projectName !== 'string') throw new Error('You aren’t a member of this project, so nothing was saved.');
     const folder = projectFolder(workspace, projectId, projectName, placed);
     mkdirSync(folder, { recursive: true }); mkdirSync(layout(workspace).main, { recursive: true });
@@ -330,8 +306,8 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
   // exact: the agent's ID, when the caller names an existing agent. own: the folder is the agent's own checkout.
   async function addAgent(args, clientName = 'MyLittleSwarm CLI', { exact, own = true, expectedProfileId, webStartId } = {}) {
     if (webStartId !== undefined && !UUID.test(webStartId)) throw new Error('Web starts require their original request UUID.');
-    const r = selectedAccount(expectedProfileId);
-    const named = args.project_id === undefined && typeof args.project_name === 'string' && args.project_name.trim() && args.project_name.length <= 500 ? await namedProject(args.project_name, r.token) : null;
+    const r = await selectedAccount(expectedProfileId);
+    const named = args.project_id === undefined && typeof args.project_name === 'string' && args.project_name.trim() && args.project_name.length <= 500 ? await namedProject(args.project_name) : null;
     if (named) args = { ...args, project_id: named.projectId };
     if (Object.keys(args).some(k => !['project_id','project_name','agent_name','folder'].includes(k)) || !ID.test(args.project_id ?? '') || !/^[\w-]{1,64}$/.test(args.agent_name ?? '') || (args.folder !== undefined && (typeof args.folder !== 'string' || !isAbsolute(args.folder)))) throw new Error('Adding an agent needs the project’s name or exact ID and a short agent name; a folder, when given, must be absolute.');
     const service = projectIdentity({ projectUrl: new URL(`/p/${args.project_id}`, origin).href, folder: workspace }).projectUrl;
@@ -339,19 +315,19 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
     const path = join(adds, `${digest([args.project_id, args.agent_name, ...(webStartId ? [webStartId] : [])])}.json`);
     const once = async (known, saved) => {
       let add = lstatExists(path) ? readPrivate(path, true) : null;
-      if (add && add.profileId !== r.personId) throw new Error('Retry this unfinished agent request with its original human account. No credentials were changed.');
+      if (add && add.profileId !== r.profileId) throw new Error('Retry this unfinished agent request with its original human account. No credentials were changed.');
       if (add && (add.projectId !== args.project_id || add.name !== args.agent_name || !TOKEN.test(add.candidateToken ?? ''))) throw new Error('Saved agent request is invalid. No credentials were changed.');
       // An agent this computer already connected keeps its folder and its saved credential, so picking it
       // up again in a new conversation changes nothing and the service answers it as the same connection.
       // An unfinished request keeps what it chose, also when its record was saved just before it was interrupted.
       const chosen = args.folder !== undefined ? canonicalPath(args.folder) : add ? add.folder ?? null : known?.record.folder ?? null;
-      const project = chosen ? null : add?.project ?? await placedProject(args.project_id, service, r.token, saved, named?.projectName);
+      const project = chosen ? null : add?.project ?? await placedProject(args.project_id, service, saved, named?.projectName);
       assertStateOutsideWorkspace(home, chosen ?? project);
       if (add && (add.folder ?? null) !== chosen) throw new Error('An unfinished request for this agent names another folder. Retry it with that folder, or choose another agent name.');
-      if (!add) { add = { profileId: r.personId, projectId: args.project_id, name: args.agent_name, folder: chosen, project, candidateToken: (known && known.record.folder === chosen ? known.token : null) ?? randomBytes(32).toString('base64url') }; writePrivate(path, add); }
+      if (!add) { add = { profileId: r.profileId, projectId: args.project_id, name: args.agent_name, folder: chosen, project, candidateToken: (known && known.record.folder === chosen ? known.token : null) ?? randomBytes(32).toString('base64url') }; writePrivate(path, add); }
       // A refusal is final, so its request is not kept: the next attempt starts from what is saved.
       // For an agent placed in the layout the service is told the project's folder; the agent's is inside it.
-      const result = await request(`/projects/${args.project_id}/agents/connect`, { method: 'POST', token: r.token, body: { name: args.agent_name, candidateTokenHash: hash(add.candidateToken), clientName, ...(webStartId ? { webStartId } : {}), folder: chosen ?? project, ...(exact ?? known?.record.agentId ? { agentId: exact ?? known.record.agentId } : {}) } })
+      const result = await request(`/projects/${args.project_id}/agents/connect`, { method: 'POST', body: { name: args.agent_name, candidateTokenHash: hash(add.candidateToken), clientName, ...(webStartId ? { webStartId } : {}), folder: chosen ?? project, ...(exact ?? known?.record.agentId ? { agentId: exact ?? known.record.agentId } : {}) } })
         .catch(error => { if (error?.refusal === true) unlinkSync(path); throw error; });
       if (!/^[\w-]{1,200}$/.test(result.agentId ?? '') || result.agentName !== args.agent_name || result.projectId !== args.project_id || ((exact ?? known?.record.agentId) && result.agentId !== (exact ?? known.record.agentId))) throw new Error('Owner service returned a different agent than requested. Nothing was saved; review My agents.');
       const folder = chosen ?? join(project, `${args.agent_name}-${result.agentId.slice(0, 6).toLowerCase()}`);
@@ -360,7 +336,7 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
       // An agent this conversation's own process keeps connected is already saved with this credential:
       // nothing is written, and its lock is this process's own.
       const lock = join(dir, 'operation.lock'), here = known?.record.id === id && known.record.folder === folder && known.token === add.candidateToken && lstatExists(lock) && readPrivate(lock).trim() === String(process.pid);
-      const record = here ? validateSession(known.record, id) : validateSession({ schema: 'mcp-connection-1', id, service, ownerProfileId: r.personId, agentId: result.agentId, agentName: result.agentName, repo: projectIdentity({ projectUrl: service, repo: result.repoUrl, folder }).repo, folder, createdAt: now(), approvedAt: now(), ...(own ? { ownFolder: true } : {}), ...(webStartId ? { webStartId } : {}) }, id);
+      const record = here ? validateSession(known.record, id) : validateSession({ schema: 'mcp-connection-1', id, service, ownerProfileId: r.profileId, agentId: result.agentId, agentName: result.agentName, repo: projectIdentity({ projectUrl: service, repo: result.repoUrl, folder }).repo, folder, createdAt: now(), approvedAt: now(), ...(own ? { ownFolder: true } : {}), ...(webStartId ? { webStartId } : {}) }, id);
       if (!here) await withOperationLock(dir, async () => {
         writePrivate(join(dir, 'token'), add.candidateToken); saveConnection(dir, record);
       });
@@ -372,7 +348,7 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
       if (matches.length > 1) throw new Error('Several saved agents share this name. Select the exact agent ID before reconnecting.');
       const known = matches[0] ?? null;
       if (webStartId && known && known.record.webStartId !== webStartId) throw new Error('A web start cannot adopt an existing agent. Choose another name.');
-      if (known?.record.ownerProfileId && known.record.ownerProfileId !== r.personId) throw new Error('This saved agent belongs to its original human account. No credentials were changed.');
+      if (known?.record.ownerProfileId && known.record.ownerProfileId !== r.profileId) throw new Error('This saved agent belongs to its original human account. No credentials were changed.');
       try { return await once(known, saved); }
       catch (error) {
         // The saved record belongs to an agent the service no longer has under this name, such as one revoked on
@@ -385,25 +361,24 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
   }
   // Trusted service delivery ports, deliberately absent from the caller-selected
   // MCP operation catalog. Credentials stay in this client and never in snapshots.
-  const participationRequest = (path, body, options = {}) => {
-    const account = selectedAccount(options.expectedProfileId);
-    return request(path, { ...(body === undefined ? {} : { method: 'POST', body }), token: account.token, profileId: account.personId, signal: options.signal });
+  const participationRequest = async (path, body, options = {}) => {
+    const account = await selectedAccount(options.expectedProfileId);
+    return request(path, { ...(body === undefined ? {} : { method: 'POST', body }), profileId: account.profileId, signal: options.signal });
   };
-  return { origin,connect,operation,addAgent,
+  return { origin,signIn,operation,addAgent,
     async submitSteering(projectId,input,options={}) {
       if(!ID.test(projectId??''))throw new Error('Use the project ID.');
       const value=await participationRequest(`/projects/${projectId}/steering`,input,options);
-      try { selectedAccount(options.expectedProfileId); }catch(error){throw Object.assign(error,{refusal:true,code:'unauthorized'});}return value;
+      try { matchAccount(options.expectedProfileId); }catch(error){throw Object.assign(error,{refusal:true,code:'unauthorized'});}return value;
     },
     async steeringResult(projectId,operationId,options={}) {
       if(!ID.test(projectId??'')||!UUID.test(operationId??''))throw new Error('Use the original steering request.');
       const value=await participationRequest(`/projects/${projectId}/steering/${operationId}`,undefined,options);
-      try { selectedAccount(options.expectedProfileId); }catch(error){throw Object.assign(error,{refusal:true,code:'unauthorized'});}return value;
+      try { matchAccount(options.expectedProfileId); }catch(error){throw Object.assign(error,{refusal:true,code:'unauthorized'});}return value;
     },
-    currentAccount: () => publicState(approved()),
-    localAgentConnections({ expectedProfileId } = {}) {
-      const account = selectedAccount(expectedProfileId);
-      return savedAgents().filter(({ record }) => record.ownerProfileId === account.personId && new URL(record.service).origin === origin)
+    async localAgentConnections({ expectedProfileId } = {}) {
+      const account = await selectedAccount(expectedProfileId);
+      return savedAgents().filter(({ record }) => record.ownerProfileId === account.profileId && new URL(record.service).origin === origin)
         .map(({ record, token }) => ({ record: validateSession(record, record.id), token }));
     },
     publishRuntimeReadiness: (input, options) => participationRequest('/runtime/readiness', input, options),

@@ -123,15 +123,14 @@ A useful way to understand the system is to ask who issues a credential, what it
 
 | Credential or identifier | Meaning and enforcement |
 | --- | --- |
-| Server session | Human sign-in. The engine issues it after GitHub confirms the account (or for the local owner), checks it on every request, including revocation and disabled accounts, then resolves an active invited profile from verified identity information. |
-| Computer bearer | Lets one installed service act for the owner through owner routes. Setup gets it with a local-owner session from this computer (`POST /api/owner/local-computer`, self-hosted only); the connection is recorded already connected, does not expire and has no revoke. A refused bearer makes the connector connect again the same way. |
-| Project-agent bearer | Identifies one agent in one project. Firestore stores a token hash. Current agent, computer, owner and membership state remain authoritative. |
+| Server session | Human sign-in. The engine issues it after GitHub confirms the account (or for the local owner), checks it on every request, including revocation and disabled accounts, then resolves an active invited profile from verified identity information. The connector uses the same local-owner session on owner routes: it asks the engine for one (`POST /api/auth/local-owner/session`, given only to this computer at its loopback address), keeps it in memory and asks again when it expires or is refused. There is no computer credential (owner decision, 15 November 2026). |
+| Project-agent bearer | Identifies one agent in one project. Firestore stores a token hash. Current agent, owner and membership state remain authoritative. |
 | Local owner bearer | Protects the shared loopback service. Stored in private installation files and supplied to coding clients through the installed header helper. |
 | Local worker bearer | Random, revocable capability for one target, mission and generation. Accepted only while that mission has an active turn before its deadline. |
 | Cloud run ID | Fences project operations to an issued run. It is not a substitute for an authenticated bearer. |
 | Participation reference | Opaque local reference for an approved current-chat window. Resolves to its saved target, generation and deadline. |
 | Operation or request ID | Retry identity. Reusing an ID with different content is a conflict, not a new authorization. |
-| GitHub sign-in | Repository access for `gh` and Git. Separate from the computer connection and project membership. |
+| GitHub sign-in | Repository access for `gh` and Git. Separate from the owner session and project membership. |
 
 A tool's public arguments normally select `{projectId, agentId}`. The installed service supplies its own website and owner identity. Callers cannot use arguments to substitute another owner, a different website, arbitrary credentials, executable paths or a different checkout.
 
@@ -168,13 +167,13 @@ Project ownership does not imply execution authority over other people's agents.
 Setup combines a guided experience with distinct underlying checks:
 
 - The local service can start and its private store is healthy.
-- The connector connects this computer to the engine automatically, using a local-owner session the engine issues only to this computer at its loopback address.
+- The connector can sign in to the engine as the owner, using a local-owner session the engine issues only to this computer at its loopback address.
 - Claude Code or Codex is installed and its provider sign-in is usable.
 - Git and GitHub access work for the selected repository.
 - The coding client is registered to use MyLittleSwarm's MCP tools.
 - The installed connector and bundled guide are consistent.
 
-These are separate facts. Local health does not prove cloud connectivity. GitHub API access does not prove Git transport works. A computer connection is not permission to execute an agent. A successful client-registration command is not inferred from the provider being installed.
+These are separate facts. Local health does not prove cloud connectivity. GitHub API access does not prove Git transport works. Signing in as the owner is not permission to execute an agent. A successful client-registration command is not inferred from the provider being installed.
 
 The returned `cloudConnection` observation reports cloud connectivity and its timestamps. The older `cloudReady: false` field remains a fixed transport-identity marker for identified installed consumers. It must not be interpreted as an offline signal.
 
@@ -765,7 +764,7 @@ The following is a responsibility map, not a complete schema specification. [The
 
 | Storage | Representative records | Ownership and lifetime |
 | --- | --- | --- |
-| Cloud identity and connection | Profiles, verified GitHub-account mapping, computer connections | Human identity and this computer's connection |
+| Cloud identity | Profiles, verified GitHub-account mapping | Human identity |
 | Cloud project authority | Project, members/fences, agents, current runs and issued-run history | Transactional authority; cannot be replaced by a viewer cache |
 | Cloud current-state projection | Project `presence`, `currentStateChanges`, `currentStateProgress` | Current observations plus durable incremental-read proof |
 | Cloud accounting | Project `runnerUsage`, turn receipts, `usageChanges` and `usageProgress` | Report history, idempotent totals and accounting progress |
@@ -957,7 +956,7 @@ Focused regression entry points include [status admission](../../apps/server/tes
 
 ### 23.1 A person starts a five-minute background run
 
-The person selects the project, agent/provider and five-minute window. The cloud accepts a start for the connected computer; the website shows queued until execution is actually observed. The local broker checks its trusted binding, repository and provider readiness, then records an idempotent local operation.
+The person selects the project, agent/provider and five-minute window. The cloud accepts a start for the owner's shared service; the website shows queued until execution is actually observed. The local broker checks its trusted binding, repository and provider readiness, then records an idempotent local operation.
 
 The controller claims the checkout, prepares the turn and starts the independent guard and provider. The provider receives the narrow worker MCP bridge. Cloud calls are checked against the current agent and issued run, while local calls also require the active mission/generation.
 
@@ -1001,7 +1000,6 @@ When connectivity returns, the report is submitted again. The backend either com
 
 | Term | Meaning in this system |
 | --- | --- |
-| Computer connection | The owner's installation credential for this computer, created automatically by setup; it does not expire and has no revoke |
 | Project agent | A registered project identity with its own scoped credential and owner |
 | Run | A cloud-issued execution window with identity and fences |
 | Mission | The local durable controller's execution lifecycle for an agent/run |

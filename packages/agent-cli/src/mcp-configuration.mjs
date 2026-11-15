@@ -42,7 +42,7 @@ export function renderReusableConfiguration(config) {
     `Bundled MyLittleSwarm guide revision: ${GUIDE_REVISION}. Read its revision, hashes and complete file bundle with skill --json.`,
     '',
     `Website: ${config.site}${new URL(config.site).protocol === 'http:' ? ' (local development only)' : ''}.`,
-    'Run setup first to connect this computer and start its shared service. Claude, Codex and CLI connect to that same service; reconnecting starts no model and adds no time.',
+    'Run setup first to sign in to the engine and start its shared service. Claude, Codex and CLI connect to that same service; reconnecting starts no model and adds no time.',
     `Inspect an existing ${config.name} entry before replacing it. Remove its retired command/args/env fields and use this HTTP entry. Remove older mlswarm-… entries (one per engine, from before 14 November 2026) and their permissions. Preserve other connections and native permissions.`,
     'Approve adding or replacing the entry unless already authorized. Defer maintenance until affected work/client sessions are idle; never stop or restart running agents for an update.',
     config.client === 'codex' ? `Put this table in your user-level ~/.codex/config.toml, replacing only the ${config.name} table and older mlswarm-… tables:`

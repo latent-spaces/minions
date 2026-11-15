@@ -10,7 +10,7 @@ beforeEach(async () => {
   owner = (await seed({ profiles: [{ name: 'Owner', email: 'owner@example.test' }] })).personIds[0];
 });
 function pending(id: string, changes: Partial<WebAgentStart> = {}): WebAgentStart {
-  return { id, profileId: owner, projectId: TEST_PROJECT, connectionId: 'computer', name: id,
+  return { id, profileId: owner, projectId: TEST_PROJECT, name: id,
     scope: 'Synthetic visibility test', execution: { provider: 'codex', model: null },
     fingerprint: 'synthetic', incarnation: null, state: 'pending', createdAt: at - 100,
     activeUntil: at + 1000, pickupByAt: at + 1000, acceptedAt: null, launchByAt: null,

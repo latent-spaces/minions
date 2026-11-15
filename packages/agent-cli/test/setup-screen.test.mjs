@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { createSetupScreen, createChatScreen, interruptSelf } from '../src/setup-screen.mjs';
-import { main, connectWhenReady, signInToGitHub } from '../src/cli.mjs';
+import { main, signInWhenReady, signInToGitHub } from '../src/cli.mjs';
 
 function terminal({ raw = false, flowing = null } = {}) {
   const input = Object.assign(new EventEmitter(), { isTTY: true, isRaw: raw, readableFlowing: flowing,
@@ -38,20 +38,20 @@ test('missing raw-mode capability leaves setup usable through the printed URL', 
   assert.equal(input.listenerCount('data'), 0);
 });
 
-test('setup connects this computer without any human step, waiting only while the engine cannot be reached', async () => {
+test('setup signs in without any human step, waiting only while the engine cannot be reached', async () => {
   let attempts = 0, at = 0;
   const unreachable = new Error('MyLittleSwarm can’t be reached right now. Start the local engine, then try again.');
-  const owner = { async connect(clientName, site) {
-    assert.equal(clientName, 'MyLittleSwarm shared service'); assert.equal(site, 'http://127.0.0.1:8787');
-    if (++attempts < 3) throw unreachable; return { status: 'approved', account_name: 'Owner' }; } };
+  const owner = { async signIn(site) {
+    assert.equal(site, 'http://127.0.0.1:8787');
+    if (++attempts < 3) throw unreachable; return { account_name: 'Owner', account_profile_id: 'owner' }; } };
   const sleep = async ms => { at += ms; };
-  assert.deepEqual(await connectWhenReady(owner, 'http://127.0.0.1:8787', { seconds: 5, now: () => at, sleep }), { status: 'approved', account_name: 'Owner' });
+  assert.deepEqual(await signInWhenReady(owner, 'http://127.0.0.1:8787', { seconds: 5, now: () => at, sleep }), { account_name: 'Owner', account_profile_id: 'owner' });
   assert.equal(attempts, 3);
   attempts = -100; at = 0;
-  await assert.rejects(connectWhenReady(owner, 'http://127.0.0.1:8787', { seconds: 2, now: () => at, sleep }), /can’t be reached/);
-  const refused = { async connect() { attempts++; throw new Error('The MyLittleSwarm engine at http://127.0.0.1:8787 does not connect computers.'); } };
+  await assert.rejects(signInWhenReady(owner, 'http://127.0.0.1:8787', { seconds: 2, now: () => at, sleep }), /can’t be reached/);
+  const refused = { async signIn() { attempts++; throw new Error('The MyLittleSwarm engine at http://127.0.0.1:8787 gives no owner session here.'); } };
   attempts = 0;
-  await assert.rejects(connectWhenReady(refused, 'http://127.0.0.1:8787', { seconds: 60, now: () => at, sleep }), /does not connect computers/);
+  await assert.rejects(signInWhenReady(refused, 'http://127.0.0.1:8787', { seconds: 60, now: () => at, sleep }), /gives no owner session/);
   assert.equal(attempts, 1);
 });
 

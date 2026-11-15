@@ -24,9 +24,8 @@ import { createRunEvidence } from './run-evidence.mjs';
 
 export async function composeInstalledRuntime({ home, site, getService, credentialHome = sessionHome(), fetchImpl = fetch, webStartOptions = {} }) {
   const accountClient = createOwnerClient({ home: credentialHome, site, fetchImpl });
-  // A saved connection is used as is; without one the service connects this computer itself, as setup does.
-  const account = await accountClient.connect('MyLittleSwarm shared service');
-  if (account.status !== 'approved' || !account.account_profile_id) throw new Error('This computer could not connect to MyLittleSwarm. Run setup again.');
+  // The service signs in to the engine as its owner, as setup does.
+  const account = await accountClient.signIn();
   const principal = { site, ownerId: account.account_profile_id };
   validateTarget({ ...principal, projectId: 'installation', agentId: 'installation' });
   const registry = new Map();
@@ -64,7 +63,7 @@ export async function composeInstalledRuntime({ home, site, getService, credenti
     return registry.get(key(target));
   };
   try {
-    for (const {record,token} of accountClient.localAgentConnections({expectedProfileId:principal.ownerId})) install(record,token);
+    for (const {record,token} of await accountClient.localAgentConnections({expectedProfileId:principal.ownerId})) install(record,token);
     store = await openRuntimeStore({ directory:join(home,'ledger') });
     const workerOperations = createWorkerOperations({ store, resolveBinding: caller => resolveBinding(caller.target), fetchImpl });
     const bridges = createWorkerBridgeFactory({ getService, workerOperations });

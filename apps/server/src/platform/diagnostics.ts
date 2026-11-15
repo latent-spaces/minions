@@ -2,7 +2,7 @@ import { performance } from 'node:perf_hooks';
 import { FieldPath } from '../firestore.js';
 import { z } from 'zod';
 import { db, inProject, profiles, agents } from '../firestore.js';
-import { computerConnections } from '../owner/computer-access.js';
+import { runtimeReadiness, readinessView } from '../owner/web-agent-starts.js';
 import { assertCommunityActor, type CommunityActor } from '../community/identity.js';
 import { activeRecipientOperators, connectionAllowed, membershipsOf, validProjectId } from '../projects/access.js';
 import { projects } from '../projects/records.js';
@@ -96,21 +96,11 @@ async function readAgents(profileId: string, at: number) {
 export async function readUserConnections(actor: CommunityActor, rawProfileId: unknown, query: unknown, now: () => number) {
   await authorize(actor);
   const profileId = parse(z.string().regex(/^[A-Za-z0-9_-]{1,200}$/), rawProfileId);
-  const input = parse(z.object({ cursor: z.string().regex(/^[A-Za-z0-9_-]{1,200}$/).optional(), limit: z.coerce.number().int().min(1).max(50).default(20) }).strict(), query);
+  parse(z.object({}).strict(), query);
   const profile = (await profiles.doc(profileId).get()).data();
   if (!profile) throw new Refusal('not_found', 'No registered account has this ID.');
   const at = now();
-  let page = computerConnections.where('profileId', '==', profileId).orderBy(FieldPath.documentId()).limit(input.limit + 1);
-  if (input.cursor) page = page.startAfter(input.cursor);
-  const [found, agentResult] = await Promise.all([page.get(), readAgents(profileId, at)]);
-  const rows = found.docs.slice(0, input.limit);
-  return { observedAt: at, profile: profileSummary(profileId, profile), computers: rows.map(d => {
-    const c = d.data();
-    const lastUsedAt = typeof c.lastUsedAt === 'number' && Number.isFinite(c.lastUsedAt) && c.lastUsedAt >= 0 && c.lastUsedAt <= at ? c.lastUsedAt : null;
-    return { id: d.id, clientName: c.clientName,
-      // Only connections from before 13 November 2026 can be ended or never connected.
-      status: c.revokedAt !== null ? 'revoked' : c.approvedAt !== null ? 'connected' : 'not_connected',
-      createdAt: c.createdAt, connectedAt: c.approvedAt, revokedAt: c.revokedAt,
-      lastUsedAt, contactStatus: lastUsedAt === null ? 'unknown' : at - lastUsedAt < 5 * 60_000 ? 'recent' : 'stale' };
-  }), next: found.size > input.limit ? rows.at(-1)!.id : null, limit: input.limit, ...agentResult };
+  // The engine's one computer: its shared service's last report (owner decision, 15 November 2026).
+  const [readiness, agentResult] = await Promise.all([runtimeReadiness.doc(profileId).get(), readAgents(profileId, at)]);
+  return { observedAt: at, profile: profileSummary(profileId, profile), computer: readinessView(readiness.data(), at), ...agentResult };
 }

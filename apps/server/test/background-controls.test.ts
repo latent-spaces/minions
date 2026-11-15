@@ -2,44 +2,40 @@ import {notifications} from '../src/projects/moderation-notifications.js';
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import express from 'express';
-import { identity } from '../src/identity/index.js';
 import { ownerRoutes } from '../src/owner/routes.js';
-import { hashToken, newToken } from '../src/auth.js';
-import { collection, inProject } from '../src/firestore.js';
+import { inProject } from '../src/firestore.js';
 import { syncBackgrounds, requestBackgroundControl, readBackgroundCommands, acknowledgeBackgroundCommand } from '../src/projects/background-controls.js';
 import { startRun } from '../src/v2/runs.js';
 import { projectManagementRoutes } from '../src/projects/routes.js';
 import { idTokenFor, resetEmulator, seed, TEST_PROJECT } from './helpers.js';
 
 let at:number;
-const computer=randomUUID(),otherComputer=randomUUID();
 const scope=<T>(fn:()=>T)=>inProject(TEST_PROJECT,fn);
 beforeEach(async()=>{await resetEmulator();at=2_000_000_000_000;vi.spyOn(Date,'now').mockImplementation(()=>at);});
 afterEach(()=>vi.restoreAllMocks());
 async function fixture(){
   const f=await seed({profiles:[{name:'Owner',email:'owner@example.test'},{name:'Admin',email:'admin@example.test' }],agents:[{person:0,name:'Fox'}]});
-  const owner=f.personIds[0];await collection('computerConnections').doc(computer).set({profileId:owner,revokedAt:null,approvedAt:at,connectionExpiresAt:at+86400_000});
+  const owner=f.personIds[0];
   const agentId=f.agents[0].agentId,missionId=randomUUID();
   const run=await scope(()=>startRun(agentId,{clientRunId:missionId,runnerVersion:'synthetic-background',takeover:false},()=>at));
   const snapshot={target:{site:'https://karma42.ai',ownerId:owner,projectId:TEST_PROJECT,agentId},missionId,generation:17,deadlineAt:at+900_000,
     state:'running' as const,pauseOperationId:null as string|null,updatedAt:at,cloudRun:{runId:run.run_id,generation:run.generation}};
-  const sync=(value:object=snapshot,device=computer)=>syncBackgrounds(owner,device,{backgrounds:[value]},()=>at);
+  const sync=(value:object=snapshot)=>syncBackgrounds(owner,{backgrounds:[value]},()=>at);
   await sync();
   const request=(kind:'pause'|'resume',pauseOperationId?:string)=>({id:randomUUID(),kind,missionId,generation:17,approved:true,...(pauseOperationId ? {pauseOperationId}:{})});
   return {...f,owner,agentId,snapshot,sync,request};
 }
-test('foreign admin, wrong computer, invalid approval/generation and stale exact Pause are refused',async()=>{
+test('foreign admin, another person’s receipt, invalid approval/generation and stale exact Pause are refused',async()=>{
   const f=await fixture(),pause=f.request('pause');
   await expect(scope(()=>requestBackgroundControl(f.personIds[1],f.agentId,pause,()=>at))).rejects.toMatchObject({code:'forbidden'});
   await expect(scope(()=>requestBackgroundControl(f.owner,f.agentId,{...pause,approved:false},()=>at))).rejects.toMatchObject({code:'bad_input'});
   await expect(scope(()=>requestBackgroundControl(f.owner,f.agentId,{...pause,generation:18},()=>at))).rejects.toMatchObject({code:'runtime_conflict'});
   await expect(scope(()=>requestBackgroundControl(f.owner,f.agentId,{...pause,minutes:30},()=>at))).rejects.toMatchObject({code:'bad_input'});
-  await expect(f.sync(f.snapshot,otherComputer)).rejects.toMatchObject({code:'runtime_conflict'});
   await expect(f.sync({...f.snapshot,cloudRun:null})).rejects.toMatchObject({code:'runtime_conflict'});
   await expect(f.sync({...f.snapshot,cloudRun:{...f.snapshot.cloudRun,generation:999}})).rejects.toMatchObject({code:'runtime_conflict'});
   await scope(()=>requestBackgroundControl(f.owner,f.agentId,pause,()=>at));
-  await expect(acknowledgeBackgroundCommand(f.owner,otherComputer,pause.id,{state:'accepted'},()=>at)).rejects.toMatchObject({code:'not_found'});
-  await acknowledgeBackgroundCommand(f.owner,computer,pause.id,{state:'failed',message:'Refused.'},()=>at);
+  await expect(acknowledgeBackgroundCommand(f.personIds[1],pause.id,{state:'accepted'},()=>at)).rejects.toMatchObject({code:'not_found'});
+  await acknowledgeBackgroundCommand(f.owner,pause.id,{state:'failed',message:'Refused.'},()=>at);
   at+=10;await f.sync({...f.snapshot,state:'paused',pauseOperationId:randomUUID(),updatedAt:at});
   await expect(scope(()=>requestBackgroundControl(f.owner,f.agentId,f.request('resume',pause.id),()=>at))).rejects.toMatchObject({code:'runtime_conflict'});
 });
@@ -48,15 +44,15 @@ test('pause and stop are accepted and delivered after the job end time; a comman
   await f.sync({...f.snapshot,state:'waiting',updatedAt:at});
   const pause=f.request('pause');
   expect(await scope(()=>requestBackgroundControl(f.owner,f.agentId,pause,()=>at))).toMatchObject({background:{available:true,pending:{id:pause.id,state:'queued'}}});
-  expect((await readBackgroundCommands(f.owner,computer,{},()=>at)).commands).toEqual([expect.objectContaining({id:pause.id,deadlineAt:at+24*60*60_000})]);
-  await acknowledgeBackgroundCommand(f.owner,computer,pause.id,{state:'accepted'},()=>at);
+  expect((await readBackgroundCommands(f.owner,{},()=>at)).commands).toEqual([expect.objectContaining({id:pause.id,deadlineAt:at+24*60*60_000})]);
+  await acknowledgeBackgroundCommand(f.owner,pause.id,{state:'accepted'},()=>at);
   at+=10;await f.sync({...f.snapshot,state:'paused',pauseOperationId:pause.id,updatedAt:at});
-  await acknowledgeBackgroundCommand(f.owner,computer,pause.id,{state:'applied'},()=>at);
+  await acknowledgeBackgroundCommand(f.owner,pause.id,{state:'applied'},()=>at);
   const stop={id:randomUUID(),kind:'stop' as const,missionId:f.snapshot.missionId,generation:17,approved:true};
   expect(await scope(()=>requestBackgroundControl(f.owner,f.agentId,stop,()=>at))).toMatchObject({background:{pending:{id:stop.id,kind:'stop',state:'queued'}}});
   at+=10;await f.sync({...f.snapshot,state:'stopped',updatedAt:at});
-  await acknowledgeBackgroundCommand(f.owner,computer,stop.id,{state:'applied'},()=>at);
-  expect((await readBackgroundCommands(f.owner,computer,{},()=>at)).commands).toEqual([]);
+  await acknowledgeBackgroundCommand(f.owner,stop.id,{state:'applied'},()=>at);
+  expect((await readBackgroundCommands(f.owner,{},()=>at)).commands).toEqual([]);
 });
 test('browser endpoint uses real human auth and never accepts agent tokens or peers',async()=>{
   vi.restoreAllMocks();at=Date.now();
@@ -73,12 +69,9 @@ test('browser endpoint uses real human auth and never accepts agent tokens or pe
   }finally{await new Promise<void>((resolve,reject)=>server.close(error=>error ? reject(error):resolve()));}
 });
 
-test('approved computer HTTP delivery publishes exact state and preserves queued/accepted/applied distinctions',async()=>{
+test('owner-session HTTP delivery publishes exact state and preserves queued/accepted/applied distinctions',async()=>{
   vi.restoreAllMocks();at=Date.now();
-  const f=await fixture(),firebase=await idTokenFor('owner@example.test'),decoded=(await identity().verifySession(firebase))!,token=newToken();
-  await collection('computerConnections').doc(computer).set({requestId:computer,profileId:f.owner,firebaseUid:decoded.subject,authenticatedAt:decoded.authTime*1000,
-    candidateTokenHash:hashToken(token),pollingSecretHash:hashToken(newToken()),clientName:'Synthetic transport',createdAt:at,expiresAt:at+600_000,
-    approvedAt:at,revokedAt:null,connectionExpiresAt:at+86400_000});
+  const f=await fixture(),token=await idTokenFor('owner@example.test');
   const app=express();app.use('/api/owner',ownerRoutes(()=>at));const server=app.listen(0,'127.0.0.1');
   await new Promise<void>(resolve=>server.once('listening',resolve));const base=`http://127.0.0.1:${(server.address() as {port:number}).port}/api/owner`;
   const call=(path:string,body?:object,auth=token)=>fetch(base+path,{method:body?'POST':'GET',headers:{authorization:`Bearer ${auth}`,'content-type':'application/json'},body:body?JSON.stringify(body):undefined});
@@ -92,8 +85,8 @@ test('approved computer HTTP delivery publishes exact state and preserves queued
     at+=10;expect((await call('/backgrounds/sync',{backgrounds:[{...f.snapshot,state:'paused',pauseOperationId:pause.id,updatedAt:at}]})).status).toBe(200);
     expect((await call(`/background-controls/${pause.id}/receipt`,{state:'applied'})).status).toBe(200);
     expect((await (await call('/background-controls')).json()).commands).toEqual([]);
-    await collection('computerConnections').doc(computer).update({revokedAt:at});
-    expect((await call('/background-controls')).status).toBe(401);
+    // Another person's session sees none of the owner's commands.
+    expect((await (await call('/background-controls',undefined,await idTokenFor('admin@example.test'))).json()).commands).toEqual([]);
   }finally{await new Promise<void>((resolve,reject)=>server.close(error=>error?reject(error):resolve()));}
 });
 

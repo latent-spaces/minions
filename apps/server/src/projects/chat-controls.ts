@@ -1,5 +1,4 @@
 import { prepareCurrentStateProgress } from '../view/current-state-progress.js';
-import { assertCurrentComputer } from '../owner/computer-access.js';
 import { createHash, randomUUID } from 'node:crypto';
 import { RUN_LENGTH, validRunMinutes } from '@mlswarm/contracts';
 import type { Transaction } from '../firestore.js';
@@ -40,10 +39,10 @@ export const PARTICIPATION_CONTROL_RECEIPT = z.object({ state: z.enum(['applied'
 type Snapshot = z.infer<typeof PARTICIPATION_SNAPSHOT>;
 type Control = { version: 1; operationId: string; kind: ParticipationControlKind; target: Snapshot['target'];
   participationId: string; generation: number; payload: Record<string, unknown> };
-type Mail = { id: string; profileId: string; connectionId: string; projectId: string; agentId: string;
+type Mail = { id: string; profileId: string; projectId: string; agentId: string;
   fingerprint: string; actorProfileId?:string; reason?:string; command: Control; approvedAt: number; deadlineAt: number | null;
   state: ParticipationControlState; message?: string; acknowledgedAt?: number; acceptedAt?: number };
-type Saved = Snapshot & { connectionId: string; updatedAt: number; deviceLastSeenAt: number; pendingId: string | null };
+type Saved = Snapshot & { updatedAt: number; deviceLastSeenAt: number; pendingId: string | null };
 const snapshots = () => projectCollection<Saved>('chatControls');
 const mailbox = collection<Mail>('participationControls');
 const key = (profileId: string, id: string) => createHash('sha256').update(JSON.stringify([profileId,id])).digest('hex');
@@ -73,7 +72,7 @@ export async function readParticipationControl(tx: Transaction, profileId: strin
   return publicView(saved,pending,at);
 }
 
-export async function syncParticipations(profileId: string, connectionId: string, input: unknown, now: () => number) {
+export async function syncParticipations(profileId: string, input: unknown, now: () => number) {
   const {participations} = parse(PARTICIPATION_SYNC,input);
   const seen = new Set<string>();
   for (const snapshot of participations) {
@@ -90,14 +89,7 @@ export async function syncParticipations(profileId: string, connectionId: string
         const ref = snapshots().doc(snapshot.target.agentId), saved = (await tx.get(ref)).data(), at = now();
         const run = (await tx.get(runs().doc(snapshot.target.agentId))).data();
         const pending = saved?.pendingId ? (await tx.get(mailbox.doc(key(profileId,saved.pendingId)))).data() : undefined;
-        if (saved && saved.connectionId !== connectionId && (!terminal(saved,at)
-          || pendingDelivery(pending) && (pending.deadlineAt===null || pending.deadlineAt>at)))
-          throw new Refusal('runtime_conflict','This agent is working with you from another computer. Use End there first.');
-        if (saved && saved.connectionId!==connectionId && (snapshot.participationId===saved.participationId
-          || snapshot.state!=='active' || snapshot.deadlineAt<=at || snapshot.cloudRun?.generation==null
-          || run?.runId!==snapshot.participationId || run.mode!=='current_chat' || run.endedAt!==null))
-          throw new Refusal('runtime_conflict','A different computer must explicitly claim a new cloud-confirmed participation. Saved terminal snapshots never transfer its binding.');
-        if (saved && saved.connectionId === connectionId) {
+        if (saved) {
           if (snapshot.generation < saved.generation || snapshot.generation === saved.generation && snapshot.participationId !== saved.participationId)
             throw new Refusal('runtime_conflict','A newer participation snapshot already exists.');
           if (snapshot.participationId !== saved.participationId && !terminal(saved,at))
@@ -122,9 +114,7 @@ export async function syncParticipations(profileId: string, connectionId: string
           && (run.mode!=='current_chat' || (run.deadlineAt ?? Infinity)>at))
           throw new Refusal('run_active','Another current run already owns this agent.');
         const ended = pending?.command.kind === 'release' && pending.command.participationId === snapshot.participationId;
-        await assertCurrentComputer(tx, connectionId, profileId);
-        tx.set(ref,{...snapshot,...(ended ? {state:'released' as const} : {}),connectionId,updatedAt:at,deviceLastSeenAt:at,pendingId:saved?.pendingId ?? null});
-        tx.update(agents().doc(snapshot.target.agentId), { computerConnectionId: connectionId });
+        tx.set(ref,{...snapshot,...(ended ? {state:'released' as const} : {}),updatedAt:at,deviceLastSeenAt:at,pendingId:saved?.pendingId ?? null});
       }));
     } catch (error) {
       // Keep the refusal visible, but do not suppress independently authorized rows.
@@ -166,7 +156,7 @@ export async function requestParticipationControl(actorId: string, agentId: stri
       // Acceptance and cancellation contend on this same durable mailbox row.
       // A fetched envelope alone grants no permission to apply the Wake.
       tx.update(wakeRef,{state:'cancelled',message:'Wake cancelled before device acceptance.',acknowledgedAt:at});
-      tx.create(receiptRef,{id:v.id,profileId,connectionId:wake.connectionId,projectId:currentProjectId(),agentId,
+      tx.create(receiptRef,{id:v.id,profileId,projectId:currentProjectId(),agentId,
         fingerprint:fp,command:{...wake.command,operationId:v.id,kind:'cancel_wake',payload:{wakeId:wake.id}},
         approvedAt:at,deadlineAt:null,state:'applied'} satisfies Mail);
       const next={...saved,updatedAt:at};tx.set(ref,next);
@@ -187,8 +177,8 @@ export async function requestParticipationControl(actorId: string, agentId: stri
     // Completed immutable receipts are ordinary history. Bound live pending work,
     // without a permanent history cap that would eventually prevent End.
     const [grants, ends] = await Promise.all([
-      tx.get(mailbox.where('connectionId','==',saved.connectionId).where('state','in',['queued','accepted']).where('deadlineAt','>',at).limit(33)),
-      tx.get(mailbox.where('connectionId','==',saved.connectionId).where('state','in',['queued','accepted']).where('deadlineAt','==',null).limit(33)),
+      tx.get(mailbox.where('profileId','==',profileId).where('state','in',['queued','accepted']).where('deadlineAt','>',at).limit(33)),
+      tx.get(mailbox.where('profileId','==',profileId).where('state','in',['queued','accepted']).where('deadlineAt','==',null).limit(33)),
     ]);
     if (grants.size + ends.size >= 32 && !(v.kind === 'release' && pendingLive))
       throw new Refusal('bad_input','This computer has 32 changes waiting. Wait for it to come back online, then try again.');
@@ -197,7 +187,7 @@ export async function requestParticipationControl(actorId: string, agentId: stri
     const command:Control = {version:1,operationId:v.id,kind:v.kind,target:saved.target,participationId:saved.participationId,
       generation:saved.generation,payload:v.kind === 'release' ? {} : {approved:true,approvedAt:at,deadlineAt,
         ...(v.kind === 'extend' ? {expectedDeadlineAt:saved.deadlineAt} : {nextParticipationId:randomUUID()})}};
-    const mail:Mail = {id:v.id,profileId,actorProfileId:actorId,connectionId:saved.connectionId,projectId:currentProjectId(),agentId,
+    const mail:Mail = {id:v.id,profileId,actorProfileId:actorId,projectId:currentProjectId(),agentId,
       fingerprint:fp,command,approvedAt:at,deadlineAt,state:'queued'};
     if (v.kind === 'extend') {
       await prepareChatExtension(tx,agentId,saved.participationId,{clientRequestId:v.id,expectedDeadlineAt:saved.deadlineAt,approvedAt:at,deadlineAt:deadlineAt!},now);
@@ -222,30 +212,30 @@ export async function requestParticipationControl(actorId: string, agentId: stri
   });
 }
 
-export async function readParticipationCommands(profileId: string, connectionId: string, query: unknown, now: () => number) {
+export async function readParticipationCommands(profileId: string, query: unknown, now: () => number) {
   parse(z.object({}).strict(),query);
-  const found = await mailbox.where('connectionId','==',connectionId).where('state','in',['queued','accepted']).limit(32).get();
+  const found = await mailbox.where('profileId','==',profileId).where('state','in',['queued','accepted']).limit(32).get();
   return {commands:found.docs.map(doc=>doc.data()).filter(mail=>mail.profileId===profileId)
     .sort((a,b)=>a.approvedAt-b.approvedAt || a.id.localeCompare(b.id)).map(mail=>({id:mail.id,command:mail.command})),serverTime:now()};
 }
 // Claim only Wake: cancellation must win before the device can create local intent.
 // An unknown/lost reply is retried with the same ID, never treated as acceptance.
-export async function acceptParticipationCommand(profileId: string, connectionId: string, id: string, input: unknown, now: () => number) {
+export async function acceptParticipationCommand(profileId: string, id: string, input: unknown, now: () => number) {
   parse(uuid,id);parse(z.object({}).strict(),input);
   return db.runTransaction(async tx=>{
     const ref=mailbox.doc(key(profileId,id)),mail=(await tx.get(ref)).data();
-    if (!mail || mail.profileId!==profileId || mail.connectionId!==connectionId) throw new Refusal('not_found','Participation command unavailable.');
+    if (!mail || mail.profileId!==profileId) throw new Refusal('not_found','Participation command unavailable.');
     if (mail.command.kind!=='wake') throw new Refusal('bad_input','Only Wake needs device acceptance.');
     await inProject(mail.projectId,()=>own(tx,profileId,mail.agentId));
     if (mail.state==='queued') {tx.update(ref,{state:'accepted',acceptedAt:now()});return {state:'accepted' as const};}
     return {state:mail.state};
   });
 }
-export async function acknowledgeParticipationCommand(profileId: string, connectionId: string, id: string, input: unknown, now: () => number) {
+export async function acknowledgeParticipationCommand(profileId: string, id: string, input: unknown, now: () => number) {
   parse(uuid,id);const receipt=parse(PARTICIPATION_CONTROL_RECEIPT,input);
   await db.runTransaction(async tx=>{
     const ref=mailbox.doc(key(profileId,id)), mail=(await tx.get(ref)).data();
-    if (!mail || mail.profileId!==profileId || mail.connectionId!==connectionId) throw new Refusal('not_found','Participation command unavailable.');
+    if (!mail || mail.profileId!==profileId) throw new Refusal('not_found','Participation command unavailable.');
     if (mail.state!=='queued' && mail.state!=='accepted') {
       if(mail.state!==receipt.state || mail.message!==receipt.message) throw new Refusal('duplicate','Keep the original participation outcome.');
       return;

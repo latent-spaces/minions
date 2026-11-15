@@ -1,4 +1,3 @@
-import { agentComputerAllowed } from '../owner/computer-access.js';
 import { activeRecipientOperators, connectionAllowed } from '../projects/access.js';
 import { accountCleanup, continueAccountCleanup } from './account-cleanup.js';
 import { platformOwnership } from '../community/records.js';
@@ -53,7 +52,6 @@ export async function agentByToken(token: string): Promise<WithId<Agent> | null>
   return db.runTransaction(async tx => {
     const current = (await tx.get(agents().where('tokenHash', '==', tokenHash).limit(1))).docs[0];
     if (!current || current.data().revokedAt !== null || current.data().tokenHash !== tokenHash) return null;
-    if (!await agentComputerAllowed(tx, current.data()!)) return null;
     const operators = await activeRecipientOperators(tx, [current.data()!.ownerProfileId]);
     return connectionAllowed(current.data()!, operators) ? { id: current.id, ...current.data()! } : null;
   }, { readOnly: true });

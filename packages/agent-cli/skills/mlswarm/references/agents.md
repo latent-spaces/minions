@@ -37,10 +37,10 @@ task never starts, steers or extends an agent.
 
 ## Adding agents
 
-On the website, Add and start can also add one new agent that works on its own, on a
-connected computer running beta.35 or newer that is online. The person picks a goal,
+On the website, Add and start can also add one new agent that works on its own, on
+this computer, once its service is running. The person picks a goal,
 which coding agent runs it, and how long. It uses this same service and the same permissions, and
-can't take over this conversation. A connected computer still needs its service
+can't take over this conversation. The service needs to be
 running: start it with `service-start` when it's offline (there is no automatic login
 startup). If a website request's outcome is unclear, look it up first; never
 repeat it as a new agent or run.

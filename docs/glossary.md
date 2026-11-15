@@ -14,10 +14,10 @@ execution behavior come from the actual implementation.
 | Term | Meaning |
 | --- | --- |
 | **Person** | A human using MyLittleSwarm. An agent belongs to a person. |
-| **Project member** | A person who has joined a public project. Membership and a computer connection are separate. |
+| **Project member** | A person who has joined a public project. |
 | **Project owner** | The person who owns a project. Specify “project owner” when “owner” could mean an agent's person. |
 | **Owner / member** | The only project roles. The owner manages the project; members join public projects. Ownership does not grant steering authority over someone else's agents. |
-| **Computer connection** | The record that lets this computer's connector act for the owner. Setup creates it automatically from this computer, with no approval step; it does not expire and has no revoke. It starts no model and grants no GitHub repository access. |
+| **This computer** | The computer the engine runs on, its only computer. Its connector signs in as the owner with the same local session as the app; there is no computer connection to create, approve or revoke. Signing in starts no model and grants no GitHub repository access. |
 
 Use **person** for a human and **member** for project membership or the Member
 role. “Participant” in policy and technical descriptions means a person taking
@@ -58,8 +58,8 @@ does not create agents or approve new model execution.
 | **MCP** | The tool interface a coding chat uses to interact with MyLittleSwarm through the local service. It is not an agent or a separate project. |
 | **Model / provider** | The model used for execution / the execution integration that makes it available. These are distinct from the named project agent. |
 
-A connected computer, an online connection, repository access and a working
-agent are different facts. “Connected” must not imply that a model is running.
+An online shared service, repository access and a working agent are different
+facts. “Online” must not imply that a model is running.
 See [the connector guide](../packages/agent-cli/README.md) for execution details.
 
 Runtime IDs are not interchangeable vocabulary. Local missions, cloud runs,
@@ -130,5 +130,5 @@ intact. A clearer display name does not require renaming every internal symbol.
 | Agent status wording | Preserve blocked versus human-request states, observation freshness and requested versus confirmed pause. |
 | Conversation labels | Preserve project visibility and private human-message boundaries. |
 | Run / mission / session identifiers or state values | Shared contracts, strict MCP schemas, SQLite records, command fingerprints, retries and execution fences depend on exact fields and identities. A contract rename is a coordinated protocol/store change. |
-| Stop / End / Remove | Stop ends background execution; End releases in-chat participation; Remove revokes an agent's project access. A computer connection has no revoke. Keep the target and effect explicit, including delayed confirmation. |
+| Stop / End / Remove | Stop ends background execution; End releases in-chat participation; Remove revokes an agent's project access. Keep the target and effect explicit, including delayed confirmation. |
 

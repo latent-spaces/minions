@@ -8,7 +8,7 @@
 // is checked against the independent run oracle; (2) the contract: after the writer the document is complete.
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { agents, collection, db, inProject, profiles, type Agent, type Profile, type WithId } from '../src/firestore.js';
+import { agents, db, inProject, profiles, type Agent, type Profile, type WithId } from '../src/firestore.js';
 import { hashToken, newToken } from '../src/auth.js';
 import { registerAgent } from '../src/onboarding/registration.js';
 import { connectOwnAgent } from '../src/owner/agents.js';
@@ -29,7 +29,7 @@ import { sourcesFromStatusDoc, type AgentStatusDoc } from '../src/view/agent-sta
 import { canonicalStatusSources, deriveAgentState } from '../src/view/communication-agents.js';
 import { resetEmulator, seed, TEST_PROJECT } from './helpers.js';
 
-// Writers that compare against the wall clock (chat participations, computer approvals) read Date.now: pin it to `at`.
+// Writers that compare against the wall clock (chat participations) read Date.now: pin it to `at`.
 let at = 2_000_000_000_000;
 const scope = <T>(work: () => Promise<T>) => inProject(TEST_PROJECT, work);
 beforeEach(async () => { await resetEmulator(); at += 1_000_000; vi.spyOn(Date, 'now').mockImplementation(() => at); });
@@ -135,17 +135,16 @@ test('membership cleanup (continueMembershipCleanup) merges agent.revokedAt and 
   await expectWritten('continueMembershipCleanup', agentId, { state: 'revoked', doc: { runEndedAt: at, agent: { revokedAt: at } } });
 });
 
-// A current-chat participation on an approved computer, as chat-controls.test.ts sets it up.
+// A current-chat participation, as chat-controls.test.ts sets it up.
 async function chatFixture() {
   const { personId, agentId } = await fixture();
-  const computer = randomUUID(), participationId = randomUUID(), approvedAt = at, deadlineAt = at + 600_000;
-  await collection('computerConnections').doc(computer).set({ profileId: personId, approvedAt: at, revokedAt: null, connectionExpiresAt: at + 86_400_000 });
+  const participationId = randomUUID(), approvedAt = at, deadlineAt = at + 600_000;
   const started = await scope(() => startChatParticipation(agentId, { clientRunId: participationId, runnerVersion: 'synthetic-chat', approvedAt, deadlineAt }, () => at));
   const snapshot = { target: { site: 'https://karma42.ai', ownerId: personId, projectId: TEST_PROJECT, agentId }, participationId, generation: 17,
     state: 'active' as const, scope: 'Status document writer fixture.', approvedAt, deadlineAt,
     cloudRun: { runId: participationId, generation: started.generation, deadlineAt } };
-  await syncParticipations(personId, computer, { participations: [snapshot] }, () => at);
-  return { personId, agentId, computer, participationId, deadlineAt };
+  await syncParticipations(personId, { participations: [snapshot] }, () => at);
+  return { personId, agentId, participationId, deadlineAt };
 }
 
 test('chat operator stop (requestParticipationControl release) merges runEndedAt', async () => {
@@ -218,12 +217,11 @@ async function queuedFixture() {
   // One run, ended, so the document is complete (C3 98b01fa3) and queued is what decides Waiting.
   const run = await scope(() => startRun(agentId, { clientRunId: randomUUID(), runnerVersion: 'test', takeover: false }, () => at));
   await scope(() => reportPhase(agentId, run.run_id, { phase: 'stopping' }, () => at));
-  const computer = randomUUID(), requestId = randomUUID(), incarnation = randomUUID();
-  await collection('computerConnections').doc(computer).set({ profileId: personId, approvedAt: at, revokedAt: null, connectionExpiresAt: at + 30 * 86_400_000 });
-  await createWebAgentStart(personId, { id: requestId, connectionId: computer, projectId: TEST_PROJECT, name: 'erin-elk', agentId,
+  const requestId = randomUUID(), incarnation = randomUUID();
+  await createWebAgentStart(personId, { id: requestId, projectId: TEST_PROJECT, name: 'erin-elk', agentId,
     execution: { provider: 'codex', model: null }, approved: true }, () => at);
   const start = (await webAgentStarts.where('agentId', '==', agentId).get()).docs[0]!.data();
-  return { personId, agentId, computer, requestId, incarnation, start, key: await keyOf(requestId) };
+  return { personId, agentId, requestId, incarnation, start, key: await keyOf(requestId) };
 }
 const noStartGroup = async (agentId: string) =>
   expect((await scope(() => presence().doc(agentId).get())).data(), 'no start group (S4)').not.toHaveProperty('start');
@@ -241,10 +239,10 @@ test('past pickupByAt with no write, both the document and the sources still say
 });
 
 test('the lazy expiry at the computer\'s next pickup (acceptAgentStart) ends Waiting', async () => {
-  const { personId, agentId, computer, requestId, incarnation, start } = await queuedFixture();
+  const { personId, agentId, requestId, incarnation, start } = await queuedFixture();
   at = start.pickupByAt + 1000;
-  await publishRuntimeReadiness(personId, computer, { ...READINESS, incarnation }, () => at);
-  expect((await acceptAgentStart(personId, computer, requestId, { incarnation }, () => at)).request).toMatchObject({ state: 'expired' });
+  await publishRuntimeReadiness(personId, { ...READINESS, incarnation }, () => at);
+  expect((await acceptAgentStart(personId, requestId, { incarnation }, () => at)).request).toMatchObject({ state: 'expired' });
   expect((await webAgentStarts.where('agentId', '==', agentId).get()).docs[0]!.data().state).toBe('expired');
   await expectWritten('acceptAgentStart expiry', agentId, { state: 'stopped', doc: {} });
 });
@@ -284,14 +282,14 @@ test('a persona save (saveAgentPersona) merges agent.personaText (c4)', async ()
 });
 
 test('two starts for one agent: when the older one expires, the agent stays Waiting on the newer (c4\'s map case)', async () => {
-  const { personId, agentId, computer, requestId: older, incarnation, start } = await queuedFixture();
+  const { personId, agentId, requestId: older, incarnation, start } = await queuedFixture();
   at += 60_000;
   const newer = randomUUID();
-  await createWebAgentStart(personId, { id: newer, connectionId: computer, projectId: TEST_PROJECT, name: 'erin-elk', agentId,
+  await createWebAgentStart(personId, { id: newer, projectId: TEST_PROJECT, name: 'erin-elk', agentId,
     execution: { provider: 'codex', model: null }, approved: true }, () => at);
   at = start.pickupByAt + 1000;  // past the older start's limit, not the newer's
-  await publishRuntimeReadiness(personId, computer, { ...READINESS, incarnation }, () => at);
-  expect((await acceptAgentStart(personId, computer, older, { incarnation }, () => at)).request).toMatchObject({ state: 'expired' });
+  await publishRuntimeReadiness(personId, { ...READINESS, incarnation }, () => at);
+  expect((await acceptAgentStart(personId, older, { incarnation }, () => at)).request).toMatchObject({ state: 'expired' });
   await expectWritten('acceptAgentStart expiry of one of two', agentId, { state: 'waiting', doc: {} });
 });
 
@@ -322,9 +320,8 @@ test('recorded, not changed (c9): project close expires pending starts only; an 
 
 test('an agentless queued start (C3 b87fabba) is listed by today\'s path', async () => {
   const { personId } = await fixture();
-  const computer = randomUUID(), requestId = randomUUID();
-  await collection('computerConnections').doc(computer).set({ profileId: personId, approvedAt: at, revokedAt: null, connectionExpiresAt: at + 30 * 86_400_000 });
-  await createWebAgentStart(personId, { id: requestId, connectionId: computer, projectId: TEST_PROJECT, name: 'new-newt',
+  const requestId = randomUUID();
+  await createWebAgentStart(personId, { id: requestId, projectId: TEST_PROJECT, name: 'new-newt',
     execution: { provider: 'codex', model: null }, approved: true }, () => at);
   const key = await keyOf(requestId);
   expect((await projectQueuedStarts(TEST_PROJECT, at)).map(r => r.id)).toEqual([`queued-${key}`]);
@@ -337,14 +334,13 @@ test('a never-run agent\'s start: Waiting from sources; lazy expiry ends it and 
   const { personId } = await fixture();
   // Real registration writes the explicit no-run marker; a queued start does not invent a run.
   const { agentId } = await scope(() => registerAgent(personId, 'nova-newt', () => at)) as { agentId: string };
-  const computer = randomUUID(), requestId = randomUUID(), incarnation = randomUUID();
-  await collection('computerConnections').doc(computer).set({ profileId: personId, approvedAt: at, revokedAt: null, connectionExpiresAt: at + 30 * 86_400_000 });
-  await createWebAgentStart(personId, { id: requestId, connectionId: computer, projectId: TEST_PROJECT, name: 'nova-newt', agentId,
+  const requestId = randomUUID(), incarnation = randomUUID();
+  await createWebAgentStart(personId, { id: requestId, projectId: TEST_PROJECT, name: 'nova-newt', agentId,
     execution: { provider: 'codex', model: null }, approved: true }, () => at);
   const start = (await webAgentStarts.doc(await keyOf(requestId)).get()).data()!;
   await expectWritten('createWebAgentStart, never run', agentId, { state: 'waiting', doc: {} });
   at = start.pickupByAt + 1000;
-  await publishRuntimeReadiness(personId, computer, { ...READINESS, incarnation }, () => at);
-  expect((await acceptAgentStart(personId, computer, requestId, { incarnation }, () => at)).request).toMatchObject({ state: 'expired' });
+  await publishRuntimeReadiness(personId, { ...READINESS, incarnation }, () => at);
+  expect((await acceptAgentStart(personId, requestId, { incarnation }, () => at)).request).toMatchObject({ state: 'expired' });
   await expectWritten('acceptAgentStart expiry, never run', agentId, { state: 'unknown', doc: {} });
 });

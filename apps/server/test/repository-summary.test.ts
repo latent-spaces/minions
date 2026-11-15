@@ -9,8 +9,6 @@ import { projects } from '../src/projects/records.js';
 import { idTokenFor, resetEmulator, scoped, seed, TEST_PROJECT, testProject } from './helpers.js';
 
 const repository = testProject.repoUrl, at = 1_000_000;
-const connection='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
-const computers=collection<Record<string,unknown>>('computerConnections');
 const skip={status:'not_checked' as const,value:null};
 const scope = <T>(work: () => T) => inProject(TEST_PROJECT, work);
 const read = (time=at) => scope(()=>readRepositorySummary(repository,time));
@@ -18,12 +16,11 @@ beforeEach(resetEmulator);
 async function fixture(open=4,drafts=1,complete=true,merged=6) {
   const f=await seed({profiles:[{name:'Owner',email:'admin@example.test',role:'owner'}]});
   const person=f.personIds[0];
-  await computers.doc(connection).set({profileId:person,approvedAt:1,revokedAt:null,connectionExpiresAt:at+3_600_000});
-  await collection<Record<string,unknown>>('ownerRuntimeReadiness').doc(connection).set({profileId:person,connectionId:connection,lastSeenAt:at,protocol:1,version:'test',incarnation:connection,platform:'darwin',providers:[]});
+  await collection<Record<string,unknown>>('ownerRuntimeReadiness').doc(person).set({profileId:person,lastSeenAt:at,protocol:1,version:'test',incarnation:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',platform:'darwin',providers:[]});
   const report={version:1,membershipEpoch:0,projectId:TEST_PROJECT,repository,checkedAt:at,
     account:{status:'ok',value:{login:'local-login'}},access:{status:'ok',value:{role:'read',defaultBranch:'main'}},
     collaborators:skip,invitations:skip,rules:skip,protection:skip,pullRequests:{status:'ok',value:{open,drafts,merged,complete}}};
-  await publishGitHubAccess(person,connection,report,()=>at);
+  await publishGitHubAccess(person,report,()=>at);
   return {person,report};
 }
 test('unknown without a connector report; complete empty scan proves zero',async()=>{
@@ -36,19 +33,16 @@ test('unknown without a connector report; complete empty scan proves zero',async
 test('connector counts preserve partial coverage, stale receipts and explicit failures',async()=>{
   const {person,report}=await fixture(500,20,false);
   expect(await read()).toEqual({status:'observed',repository,open:500,merged:6,lastSyncAt:null,syncFailed:false});
-  await publishGitHubAccess(person,connection,{...report,checkedAt:at+1,pullRequests:{status:'rate_limited',value:null}},()=>at+1);
+  await publishGitHubAccess(person,{...report,checkedAt:at+1,pullRequests:{status:'rate_limited',value:null}},()=>at+1);
   expect(await read(at+1)).toMatchObject({open:500,merged:6,lastSyncAt:null,syncFailed:true});
-  await publishGitHubAccess(person,connection,{...report,checkedAt:at+2,pullRequests:{status:'ok',value:{open:2,drafts:0,complete:true}}},()=>at+2);
+  await publishGitHubAccess(person,{...report,checkedAt:at+2,pullRequests:{status:'ok',value:{open:2,drafts:0,complete:true}}},()=>at+2);
   expect(await read(at+2)).toMatchObject({open:2,merged:null,lastSyncAt:at+2,syncFailed:false});
   expect(await read(at+600_003)).toMatchObject({lastSyncAt:at+2,syncFailed:true});
 });
-test('reports stay within repository/project and current approval boundaries',async()=>{
+test('reports stay within repository/project boundaries',async()=>{
   await fixture();
   expect((await inProject('b'.repeat(64),()=>readRepositorySummary(repository,at))).status).toBe('unavailable');
   expect((await scope(()=>readRepositorySummary('https://github.com/other/repo',at))).status).toBe('unavailable');
-  await computers.doc(connection).update({revokedAt:at});
-  expect((await read()).status).toBe('unavailable');
-  await computers.doc(connection).update({revokedAt:null});
   await projects.doc(TEST_PROJECT).update({'setup.repoUrl':'https://github.com/other/repo'});
   // The caller normally reads the current repository, but stale caller input is fenced too.
   expect((await read()).status).toBe('unavailable');
@@ -69,20 +63,18 @@ test('overview counters require sign-in and are served after the shared cache is
   const response = await read(); expect(response.status).toBe(200);
   expect((await response.json()).repositorySummary).toMatchObject({ status: 'observed', open: 1, merged: 6 });
 });
-test('another computer without PR support cannot mask a successful count observation',async()=>{
+test('a report without PR support cannot mask a successful count observation',async()=>{
   const {person,report}=await fixture(9,3);
-  const other='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
-  await computers.doc(other).set({profileId:person,approvedAt:1,revokedAt:null,connectionExpiresAt:at+100000});
   const {pullRequests,...accessOnly}=report;
-  await publishGitHubAccess(person,other,{...accessOnly,checkedAt:at+1},()=>at+1);
+  await publishGitHubAccess(person,{...accessOnly,checkedAt:at+1},()=>at+1);
   expect(await read(at+1)).toMatchObject({status:'observed',open:9,merged:6,lastSyncAt:at});
-  await publishGitHubAccess(person,other,{...report,checkedAt:at+2,pullRequests:{status:'ok',value:{open:1,drafts:0,complete:true}}},()=>at+2);
+  await publishGitHubAccess(person,{...report,checkedAt:at+2,pullRequests:{status:'ok',value:{open:1,drafts:0,complete:true}}},()=>at+2);
   expect(await read(at+2)).toMatchObject({open:1,merged:null,lastSyncAt:at+2});
 });
 
 test('installed open/draft reporters leave merged unknown instead of claiming zero',async()=>{
   const {person,report}=await fixture();
   const {merged,...value}=report.pullRequests.value;
-  await publishGitHubAccess(person,connection,{...report,checkedAt:at+1,pullRequests:{status:'ok',value}},()=>at+1);
+  await publishGitHubAccess(person,{...report,checkedAt:at+1,pullRequests:{status:'ok',value}},()=>at+1);
   expect(await read(at+1)).toMatchObject({status:'observed',open:4,merged:null});
 });

@@ -18,10 +18,10 @@ commands or reveal credentials.
 The connector runs from a checkout of the mylittleswarm repository; it is not an npm
 package. For first setup, in that checkout run `npm ci --ignore-scripts`, then
 `node packages/agent-cli/src/cli.mjs setup` (`--site WEBSITE` only for a website other
-than the local engine at `http://127.0.0.1:8787`). Setup connects this computer to the
-local engine by itself; nobody approves it, and the connection doesn't expire. If the
-engine later stops accepting it, the service connects again on its own. Never ask for
-passwords or tokens, and never reuse a connection from another website. Setup connects
+than the local engine at `http://127.0.0.1:8787`). Setup signs in to the
+local engine as its owner by itself; nobody approves anything, and nothing about this
+computer is saved. When a sign-in expires, the service signs in again on its own. Never
+ask for passwords or tokens, and never reuse a credential from another website. Setup connects
 Claude Code and Codex itself: their registration, the bundled skill, and allowing MyLittleSwarm's tools once, so the client doesn't block something the
 person already said yes to in chat. For another client, `mcp-config --client other`
 prints how to register it. `service-start` starts the service without starting any agent.

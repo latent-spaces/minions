@@ -6,7 +6,7 @@ import { editMergePolicy, readMergePolicy, mergePolicySnapshot, mergePolicyView,
 import { repositoryAccess } from '../src/projects/github-username.js';
 import { projects } from '../src/projects/records.js';
 import { resetEmulator, seed, TEST_PROJECT } from './helpers.js';
-const at = 1_000_000, connectionId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const at = 1_000_000;
 beforeEach(resetEmulator);
 const snapshot = () => inProject(TEST_PROJECT, () => db.runTransaction(tx => mergePolicySnapshot(tx, TEST_PROJECT)));
 const view = (now = at) => inProject(TEST_PROJECT, () => db.runTransaction(tx => mergePolicyView(tx, TEST_PROJECT, now)));
@@ -20,7 +20,6 @@ async function fixture() {
     await profiles.doc(id).update({ githubUsername: login });
     await githubAccounts.doc(String(index + 1)).set({ firebaseUid: `firebase-${id}`, login, emails: [person.email], avatarUrl: null, checkedAt: at });
   }
-  await collection('computerConnections').doc(connectionId).set({ profileId: 'seed-owner', approvedAt: 1, revokedAt: null, connectionExpiresAt: at + 3600000 });
   return f;
 }
 test('existing projects make no enforcement request until this mode is explicitly saved', async () => {
@@ -78,20 +77,17 @@ test('unverified/reused usernames never resolve to arbitrary GitHub account IDs'
   expect(result.problem).toBe('identity_required');
   expect((await view()).enforcement.state).toBe('pending');
 });
-test('only current matching owner-computer receipts verify enforcement, with explicit stale/failed states', async () => {
+test('only the owner’s matching receipts verify enforcement, with explicit stale/failed states', async () => {
   const f = await fixture();
   await editMergePolicy('seed-owner', TEST_PROJECT, edit());
   const target = (await snapshot()).target!;
   const report = { projectId: TEST_PROJECT, policyKey: target.policyKey, code: 'verified' };
-  await expect(reportMergePolicy(f.personIds[0], connectionId, report, () => at)).rejects.toThrow();
-  await reportMergePolicy('seed-owner', connectionId, report, () => at);
+  await expect(reportMergePolicy(f.personIds[0], report, () => at)).rejects.toThrow();
+  await reportMergePolicy('seed-owner', report, () => at);
   expect((await view()).enforcement.state).toBe('verified');
   expect((await view(at + 120001)).enforcement.state).toBe('stale');
-  await reportMergePolicy('seed-owner', connectionId, { ...report, code: 'github_permissions' }, () => at + 1);
+  await reportMergePolicy('seed-owner', { ...report, code: 'github_permissions' }, () => at + 1);
   expect((await view(at + 1)).enforcement.state).toBe('failed');
-  await collection('computerConnections').doc(connectionId).update({ revokedAt: at });
-  expect((await view()).enforcement.state).toBe('pending');
-  await expect(reportMergePolicy('seed-owner', connectionId, report, () => at)).rejects.toThrow();
 });
 test('repository changes and mode edits reject stale reports; disabling requires confirmed removal', async () => {
   await fixture();
@@ -99,8 +95,8 @@ test('repository changes and mode edits reject stale reports; disabling requires
   await editMergePolicy('seed-owner', TEST_PROJECT, edit([], 1, 'existing'));
   const disabled = (await snapshot()).target!;
   expect((await view()).enforcement.state).toBe('pending');
-  await expect(reportMergePolicy('seed-owner', connectionId, { projectId: TEST_PROJECT, policyKey: disabled.policyKey, code: 'verified' }, () => at)).rejects.toThrow();
-  await reportMergePolicy('seed-owner', connectionId, { projectId: TEST_PROJECT, policyKey: disabled.policyKey, code: 'removed' }, () => at);
+  await expect(reportMergePolicy('seed-owner', { projectId: TEST_PROJECT, policyKey: disabled.policyKey, code: 'verified' }, () => at)).rejects.toThrow();
+  await reportMergePolicy('seed-owner', { projectId: TEST_PROJECT, policyKey: disabled.policyKey, code: 'removed' }, () => at);
   expect((await view()).enforcement.state).toBe('not_enabled');
   await projects.doc(TEST_PROJECT).update({ 'setup.repoUrl': 'https://github.com/example/other' });
   expect((await view()).enforcement.state).toBe('pending');

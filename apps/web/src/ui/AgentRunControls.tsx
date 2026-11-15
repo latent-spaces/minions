@@ -8,7 +8,7 @@ import { Pause, Play } from 'lucide-react';
 import { Button } from './Button';
 import { BackgroundWorkerActions } from './BackgroundWorkerControls';
 import { useMyWorkers, type MyWorkers } from './MyWorkerControls';
-import type { Computer } from './ComputerSetup';
+import type { Runtime } from './ComputerSetup';
 import './agent-run-controls.css';
 
 type Worker = ProjectWorkersView['agents'][number];
@@ -26,10 +26,10 @@ export function PlayAgent({ user, projectId, agent, disabled, refresh, compact =
       key: `mlswarm-agent-play:${user.uid}:${projectId}:${agent.agentId}`, projectId, agentId: agent.agentId,
       storage: sessionStorage, authorized: () => session.currentUid() === user.uid,
       prepare: async () => {
-        const { computers } = await owner<{ computers: Computer[] }>(user, '/computers');
+        const { runtime } = await owner<{ runtime: Runtime | null }>(user, '/runtime');
         const row = latest.current.agent;
         return { id: crypto.randomUUID(), projectId, agentId: row.agentId, name: row.agentName,
-          ...repeatExecution(row.run, computers, Date.now()), approved: true };
+          ...repeatExecution(row.run, runtime, Date.now()), approved: true };
       },
       send: async request => {
         const account = await owner<{ profileId: string }>(user, '/profile');

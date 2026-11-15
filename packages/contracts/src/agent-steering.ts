@@ -38,7 +38,7 @@ export type ProjectWorkersView = { agents: { agentId: string; agentName: string;
   // The agent's latest queued run, and the computer it runs on, for Play and the Waiting status.
   // A failed, expired or working start is 'superseded' once a newer mission has started for the agent, and a working
   // start whose own run has ended is 'ended', so this field never contradicts worker.session or lastRun.
-  run?: { id: string; state: string; waitingFor: StartWait | null; connectionId: string; execution: { provider: 'codex' | 'claude'; model: string | null }; repository?:RepositoryReadiness|null } | null;
+  run?: { id: string; state: string; waitingFor: StartWait | null; execution: { provider: 'codex' | 'claude'; model: string | null }; repository?:RepositoryReadiness|null } | null;
   // Chosen in the coding agent; shown read-only on the website.
   settings: { involvement: 'with_me' | 'on_own' };
   // The agent's current run as stored: endedAt and endReason say how it last ended.

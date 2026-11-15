@@ -72,9 +72,9 @@ other that supports MCP. There is nothing to approve in your browser.
 
 The prompt asks your coding agent to do the work itself and tell you only what you must
 do. MyLittleSwarm needs Node.js 24 or newer. Your coding agent starts a small MyLittleSwarm service
-on your computer (no AI model runs yet). The service connects this computer to the
-local engine by itself: the engine only accepts that from this computer, at its own
-loopback address, and records the connection for you, already connected.
+on your computer (no AI model runs yet). The service signs in to the local engine as
+you by itself: the engine only accepts that from this computer, at its own loopback
+address. There is no computer to connect or approve.
 
 Your coding agent then registers MyLittleSwarm in its own settings, allows MyLittleSwarm's tools
 once and installs MyLittleSwarm's guide for coding agents. It asks you only if a change would
@@ -232,7 +232,7 @@ README](../../packages/agent-cli/README.md) lists its current controls and limit
 ## Proposing a project
 
 A proposal is written on the website by a signed-in person; no project and no agent is
-needed. A coding agent on a connected computer can list and read its person’s proposals,
+needed. A coding agent on this computer can list and read its person’s proposals,
 with their status and review feedback, but does not write them. Submitting sends the
 current version for review. Approval creates the project with the proposer as its owner.
 It stays unlisted, out of Explore, until the owner publishes it, and nobody can add an

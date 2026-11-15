@@ -37,11 +37,11 @@ The connector connects to the local engine at `http://127.0.0.1:8787` by default
 `--site WEBSITE` for another loopback website or the enrolled self-hosted origin. It does
 not connect to the live site karma42.ai, from the time the product was called Karma42
 (owner decision, 10 November 2026). `npm run setup`
-at the repository root starts that standalone engine and connects this computer to it. Client registrations, the skill command and setup hints name the current Node
+at the repository root starts that standalone engine and runs the connector's setup against it. Client registrations, the skill command and setup hints name the current Node
 and this checkout's `src/cli.mjs` by absolute path, so moving the checkout needs setup
 again.
 
-Setup connects this computer to the engine with no human step, starts its shared service
+Setup signs in to the engine as its owner with no human step, starts its shared service
 and connects every Claude Code and Codex it finds: it writes the one `mlswarm` entry and
 removes older per-engine `mlswarm-<8 hex>` entries and their permissions, leaving any other entry as it is (including an everyday
 Karma42 install's `karma42` entry), allows
@@ -61,21 +61,22 @@ code and page are framed between marker lines, for the agent to show the person.
 generic HTTP description. Explicit local development uses its loopback website through
 `--site`; computer and agent credentials never move between environments.
 
-### How setup connects this computer
+### How the connector signs in
 
-`setup [--site URL] [--wait-seconds N]` asks the engine for a local-owner session
-(`POST /api/auth/local-owner/session`), which the engine issues only to this computer at
-its own loopback address. With that session as bearer, it calls
-`POST /api/owner/local-computer` with a hash of a new computer token and the client name.
-A self-hosted engine records a connection for the owner, already connected, and returns
-the owner's person ID, name and email. The connector saves them with the token in
-`owner.json`. There is no approval link, check code, browser page or wait.
+The engine serves one owner, and the computer it runs on is its only computer, so there
+is no computer connection or approval. `setup [--site URL] [--wait-seconds N]` and the
+shared service ask the engine for the owner's local session
+(`POST /api/auth/local-owner/session`), which the engine gives only to a request from
+this computer at its own loopback address, the same way the local app gets it. Every
+owner request carries that session as its bearer. `GET /api/owner/profile` names the
+owner (profile ID, name and email); setup shows the name.
 
-Every owner request from the connector carries that computer token as its bearer.
-Connections do not expire and there is no revoke. If the engine later refuses the
-token, for example because its store was initialized again, the connector connects
-again the same way without asking. The connection ID still keys this computer's
-runtime readiness, website starts, mailboxes, GitHub reports and agent bindings.
+The session and profile live in the connector's memory only; no computer credential is
+saved. Sessions expire after 12 hours. When the engine refuses one (`401 unauthorized`),
+the connector asks for a new session, reads the profile again and repeats the request
+once; if the engine now belongs to a different account, the request fails instead.
+Runtime readiness, website starts, controls and GitHub reports are kept per owner. Each
+agent keeps its own token, which identifies the agent.
 
 Claude uses an HTTP `headersHelper`; Codex uses `http_headers_helper`. Both read the
 private installation credential without copying it into registration snippets or shell
@@ -131,7 +132,7 @@ only for the existing loopback development workflow.
 The connector selects that origin by default and uses separate private defaults
 under `~/.mlswarm/instances/<origin-hash>/service` and
 `~/.mlswarm/instances/<origin-hash>/mcp`. Each instance has its own owner session and
-computer connection. Setup prints registration instructions for this
+agent credentials. Setup prints registration instructions for this
 separate installation instead of changing a coding client. The folder hash is the first 24
 hexadecimal characters of SHA-256 of the exact origin. Every installation's MCP name is
 `mlswarm`: a computer keeps one MyLittleSwarm entry, and registering one installation
@@ -208,8 +209,8 @@ state; they are not updated or migrated. The website no longer offers update
 settings, and the API answers their readiness without an update policy. The
 `update-check.json` and `update-state.json` files they left are not read.
 
-The retained website-start API accepts a connected computer even while it is offline: the
-request waits up to seven days for the computer to come online and the project to
+The website-start API accepts a request even while the service is offline: the
+request waits up to seven days for the service to come online and the project to
 start, then expires. An accepted request has up to three minutes to prepare and first
 launch, checked again in the native adapter. Work ends at the job's end time; a start
 that finishes preparing after it comes up waiting for more time instead of expiring.
@@ -221,7 +222,7 @@ checkouts remain available for inspection and are never overwritten by retry.
 
 ## Projects and agents
 
-Management tools use the owner identity of this computer's connection. Discover public
+Management tools act as the engine's owner, through the local owner session. Discover public
 project cards through `explore_projects` and `get_public_project`. Owner tools inspect
 projects/proposals, create private projects, edit setup and publish approved public projects. Read current versions before
 mutations and preserve request IDs/input after uncertain replies. Project start, listing,
@@ -237,14 +238,14 @@ checkouts for parallel background agents. For new coding-agent-prepared checkout
 of another person's agents.
 
 The service checks GitHub access read-only every five minutes, separately from agent
-starts and repository-invitation synchronization. Its connected computer reports the checked login
-and repository role; the owner's computer can also report collaborators, invitations and
+starts and repository-invitation synchronization. It reports the owner's checked login
+and repository role, and can also report collaborators, invitations and
 default-branch rules. They also report open/merged PR counts for the connected repository,
 including private repositories their local GitHub login can read. The scan reads at most
 five pages of 100 open PRs and five pages of 100 closed PRs per check; only closed
 PRs with a merge timestamp count as merged. Reports send only counts and coverage;
-PR titles, bodies and credentials stay local. The website header uses these connected-computer observations.
-With computers offline, saved counts retain their timestamp and indicate interrupted sync;
+PR titles, bodies and credentials stay local. The website header uses these observations.
+With the service offline, saved counts retain their timestamp and indicate interrupted sync;
 without a successful observation, counts remain unknown. Installed beta.61 and older
 computers report only open/draft counts, so Merged remains unknown until an updated
 computer reports it. This report compatibility ends at the next protocol cutover.
@@ -259,7 +260,7 @@ grant or revoke access for current members. Others push working branches and ope
 PRs; agents inherit their person's GitHub identity. Removing/rejoining does not
 restore an old explicit grant.
 
-The owner's connected computer synchronizes this opt-in policy beside repository
+The service synchronizes this opt-in policy beside repository
 invitations, about once a minute. Its GitHub CLI account must match the owner's
 verified numeric GitHub account ID and have repository admin permission. GitHub
 must support branch rulesets for the repository's visibility/plan. Credentials stay

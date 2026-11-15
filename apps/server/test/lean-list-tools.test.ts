@@ -7,7 +7,6 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { afterEach, beforeEach, expect, test } from 'vitest';
 import { v2Routes } from '../src/v2/routes.js';
 import { ownerRoutes } from '../src/owner/routes.js';
-import { hashToken, newToken } from '../src/auth.js';
 import { profiles } from '../src/firestore.js';
 import { createPrivateProject } from '../src/projects/private.js';
 import { TEST_PROJECT, idTokenFor, resetEmulator, scoped, seed } from './helpers.js';
@@ -19,7 +18,7 @@ let at = 2_000_000_000_000, server: Server, base: string;
 const clients: Client[] = [];
 beforeEach(async () => {
   await resetEmulator(); at = 2_000_000_000_000;
-  const app = express(); app.use('/api/owner', ownerRoutes(() => at, { selfHosted: () => true })); app.use(express.json()); app.use('/v2', scoped(v2Routes(() => at)));
+  const app = express(); app.use('/api/owner', ownerRoutes(() => at)); app.use(express.json()); app.use('/v2', scoped(v2Routes(() => at)));
   server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
   base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
 });
@@ -110,11 +109,8 @@ test('list_work_intents short rows carry the next step; detail: true adds the bl
 
 // The connector sends ?limit= to the owner routes; a cursor continued with a different limit
 // neither skips nor repeats rows.
-async function ownerComputer(email: string) {
-  const token = newToken();
-  const post = (path: string, body: object, auth = '') => fetch(base + '/api/owner' + path, { method: 'POST',
-    headers: { authorization: `Bearer ${auth}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  expect((await post('/local-computer', { candidateTokenHash: hashToken(token), clientName: 'Test' }, await idTokenFor(email))).status).toBe(200);
+async function ownerSession(email: string) {
+  const token = await idTokenFor(email);
   return async (path: string) => {
     const res = await fetch(base + '/api/owner' + path, { headers: { authorization: `Bearer ${token}` } });
     return { status: res.status, body: await res.json() };
@@ -134,7 +130,7 @@ test('owner list routes take ?limit= from 1 to 100, and a cursor continues under
     const sent = await fox('send_message', { to: [f.agents[1].agentId], body: `Thread ${n}`, client_message_id: `t${n}` });
     expect(sent.error, sent.value).toBe(false);
   }
-  const get = await ownerComputer('alice@example.test');
+  const get = await ownerSession('alice@example.test');
   const lists = [
     { path: '/projects', key: 'projects', id: 'id' },
     { path: `/projects/${TEST_PROJECT}/agents`, key: 'agents', id: 'agentId' },

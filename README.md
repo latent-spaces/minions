@@ -42,7 +42,7 @@ You need Node.js 24 or newer, Git, and Claude Code or Codex signed in on this co
 ```sh
 git clone https://github.com/oronanschel/mylittleswarm.git
 cd mylittleswarm
-npm run setup     # install, build, start the engine in the background, connect this computer
+npm run setup     # install, build, start the engine in the background, register MyLittleSwarm
 npm run stop      # stop the engine; npm run setup starts it again
 ```
 
@@ -50,8 +50,7 @@ npm run stop      # stop the engine; npm run setup starts it again
 address, and opens it in your browser, with no sign-in: the app is yours on this
 computer. When another program holds port 8787, setup stops and names it. The engine
 keeps running in the background after the command, the terminal or your coding chat
-ends. Setup connects this computer and registers one `mlswarm` connection with Claude
-Code and Codex by itself; it starts no model. Details are in [Run the standalone engine locally](docs/self-hosted-engine.md).
+ends. Setup registers one `mlswarm` connection with Claude Code and Codex by itself; it starts no model. Details are in [Run the standalone engine locally](docs/self-hosted-engine.md).
 
 Then, in Claude Code or Codex, ask for what you want, for example:
 
@@ -129,7 +128,7 @@ dependency folders.
 
 | Command | What it does |
 | --- | --- |
-| `npm run setup` | Build, start the engine and connect this computer |
+| `npm run setup` | Build, start the engine and register MyLittleSwarm with your coding agents |
 | `npm run build:web` / `npm run build:backend` | Build the web app / the engine |
 | `npm run typecheck:backend` | Typecheck the engine |
 | `npm run test:backend` | Server and integration tests on a disposable SQLite store with local sign-in |

@@ -27,7 +27,7 @@ beforeEach(async () => {
   app.use('/api/owner/participations/sync',participationSnapshotParser('127.0.0.1'));
   app.use(createMcpExpressApp({host:'127.0.0.1'}));
   app.use(sharedLinkRoutes(serverNow));
-  app.use('/api/owner', ownerRoutes(serverNow, { selfHosted: () => true }));
+  app.use('/api/owner', ownerRoutes(serverNow));
   app.use('/api/projects', projectManagementRoutes(serverNow));
   app.use('/p/:projectId', projectRuntimeRoutes(serverNow));
   server = app.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
@@ -53,7 +53,6 @@ async function fixture() {
   const fetchImpl=(url,options)=>{const original=new URL(url);if(original.origin!==site)throw new Error('Unexpected transport origin'); return fetch(base+original.pathname+original.search,options);};
   // This test server has no local-owner session route, so the owner's test sign-in stands in for it.
   const ownerClient=createOwnerClient({home:join(root,'owner-private'),workspace:join(root,'workspace'),site,fetchImpl,ownerSession:async()=>firebase});
-  expect((await ownerClient.connect('Synthetic shared service')).status).toBe('approved');
   const bindings=[];
   for(const [index,agent] of [f.agents[0],second].entries()){
     const projectId=index?secondProject:TEST_PROJECT,folder=join(root,`checkout-${index}`),stateDir=join(root,`private-${index}`);
@@ -154,7 +153,7 @@ test('snapshot body allowance precedes the SDK parser while loopback Host and or
   expect(rejectedHost).toBe(403);
   // Use the trusted authenticated client so ordinary owner auth remains real.
   await expect(f.ownerClient.syncParticipations(JSON.parse(oversized),{expectedProfileId:f.ownerId})).rejects.toThrow('Publish each agent once');
-  const tooLarge=await clientFetch('/api/owner/local-computer',JSON.stringify({synthetic:'x'.repeat(20*1024)}));
+  const tooLarge=await clientFetch('/api/owner/runtime/readiness',JSON.stringify({synthetic:'x'.repeat(20*1024)}));
   expect(tooLarge.status).toBe(413);
   const overSnapshotLimit=await clientFetch('/api/owner/participations/sync',JSON.stringify({synthetic:'x'.repeat(301*1024)}));
   expect(overSnapshotLimit.status).toBe(413);

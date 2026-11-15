@@ -3,8 +3,8 @@ import { randomUUID } from 'node:crypto';
 import { setAccountDisabled } from '../src/identity/server-sessions.js';
 import { beforeAll, afterAll, beforeEach, expect, test } from 'vitest';
 import type { Server } from 'node:http';
-import { hashToken, newToken } from '../src/auth.js';
-import { ownerRoutes, computerConnections } from '../src/owner/routes.js';
+import { hashToken, newToken, personIdentityFromIdToken } from '../src/auth.js';
+import { ownerRoutes } from '../src/owner/routes.js';
 import { projects } from '../src/community/records.js';
 import { configureWorkspace, controlWorkspace } from '../src/projects/store.js';
 import { inProject, agents, profiles, db } from '../src/firestore.js';
@@ -12,20 +12,14 @@ import { membershipDoc, membershipsOf } from '../src/projects/access.js';
 import { seed, resetEmulator, idTokenFor, seedApprovedProject, setTestMembership } from './helpers.js';
 let server: Server, base: string, at = 1000;
 const now = () => at, PROJECT = 'a'.repeat(64);
-beforeAll(async () => { const app = express(); app.use('/api/owner', ownerRoutes(now, { selfHosted: () => true })); app.use('/api/hosted', ownerRoutes(now, { selfHosted: () => false })); server = app.listen(0, '127.0.0.1'); await new Promise<void>(r => server.once('listening', r)); base = `http://127.0.0.1:${(server.address() as {port:number}).port}/api/owner`; });
+beforeAll(async () => { const app = express(); app.use('/api/owner', ownerRoutes(now)); server = app.listen(0, '127.0.0.1'); await new Promise<void>(r => server.once('listening', r)); base = `http://127.0.0.1:${(server.address() as {port:number}).port}/api/owner`; });
 afterAll(async () => { await new Promise<void>(r => server.close(() => r())); });
 beforeEach(async () => { at = 1000; await resetEmulator(); });
 async function http(path: string, token?: string, body?: object, profileId?: string) { const res = await fetch(base + path, { method: body ? 'POST' : 'GET', headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(profileId ? { 'X-Mlswarm-Profile-Id': profileId } : {}), 'content-type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) }); return { status: res.status, body: await res.text().then(t => { try { return JSON.parse(t); } catch { throw new Error(path + ' ' + res.status + ' ' + t); } }) }; }
-// The connector connects this computer with the owner's local session; there is no approval step.
-async function connect(session: string, token: string, clientName = 'Test client') {
-  const result = await http('/local-computer', session, { candidateTokenHash: hashToken(token), clientName });
-  expect(result.status).toBe(200);
-  return result.body.connectionId as string;
-}
+// The connector signs in with the owner's local session, like the app (owner decision, 15 November 2026).
 async function fixture() {
   const { personIds } = await seed({ profiles: [{ name: 'Owner', email: 'owner@example.test' }, { name: 'Other', email: 'other@example.test' }] });
-  const firebase = await idTokenFor('owner@example.test'), token = newToken();
-  return { personIds, firebase, token, id: await connect(firebase, token) };
+  return { personIds, token: await idTokenFor('owner@example.test') };
 }
 test('owner MCP configures a private project, edits its versioned Card and requests newcomer beta approval without publishing', async () => {
   const f = await fixture();
@@ -47,34 +41,38 @@ test('owner MCP configures a private project, edits its versioned Card and reque
   expect((await http(`/projects/${id}/publish`,f.token,{client_request_id:randomUUID(),expected_revision:after.body.revision,approved:true},profile)).status).toBe(403);
   expect((await projects.doc(id).get()).data()!.publication.listed).toBe(false);
 });
-test('the local engine connects this computer with the owner session, already connected and without an approval step', async () => {
+test('owner routes accept the local owner session and nothing else; the computer connection routes are gone', async () => {
   const { personIds } = await seed({ profiles: [{ name: 'Owner', email: 'owner@example.test' }, { name: 'Other', email: 'other@example.test' }] });
-  const session = await idTokenFor('owner@example.test'), token = newToken(), body = { candidateTokenHash: hashToken(token), clientName: 'Test client' };
-  expect((await http('/local-computer', undefined, body)).status).toBe(401);
-  expect((await http('/local-computer', newToken(), body)).status).toBe(401);
-  expect((await http('/local-computer', session, { ...body, requestId: randomUUID() })).status).toBe(400);
-  const hosted = await fetch(base.replace('/api/owner', '/api/hosted') + '/local-computer', { method: 'POST', headers: { authorization: `Bearer ${session}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
-  expect(hosted.status).toBe(404);
-  expect((await computerConnections.get()).size).toBe(0);
-  const connected = await http('/local-computer', session, body);
-  expect(connected.body).toEqual({ connectionId: expect.any(String), personId: personIds[0], personName: 'Owner', email: 'owner@example.test' });
-  expect(JSON.stringify(connected.body)).not.toContain(token);
-  expect((await computerConnections.doc(connected.body.connectionId).get()).data()).toMatchObject({ requestId: connected.body.connectionId,
-    candidateTokenHash: hashToken(token), clientName: 'Test client', approvedAt: at, revokedAt: null, profileId: personIds[0], authenticatedAt: expect.any(Number) });
-  // A retry after a lost reply answers with the same connection; another person cannot take the credential over.
-  expect((await http('/local-computer', session, body)).body.connectionId).toBe(connected.body.connectionId);
-  expect((await http('/local-computer', await idTokenFor('other@example.test'), body)).status).toBe(409);
-  expect((await computerConnections.get()).size).toBe(1);
-  expect((await http('/projects', token)).status).toBe(200);
-  expect((await http('/projects', session)).status).toBe(401);
+  const session = await idTokenFor('owner@example.test');
+  expect((await http('/projects', session)).status).toBe(200);
+  expect((await http('/member-projects', session)).status).toBe(200);
+  expect((await http('/profile', session)).body).toEqual({ profileId: personIds[0], name: 'Owner', email: 'owner@example.test' });
+  for (const token of [undefined, newToken(), 'not-a-session']) expect((await http('/projects', token)).status).toBe(401);
+  // A session of an email with no profile is not the owner.
+  expect((await http('/projects', await idTokenFor('stranger@example.test'))).status).toBe(401);
+  const body = { candidateTokenHash: hashToken(newToken()), clientName: 'Test client' };
+  expect((await fetch(base + '/local-computer', { method: 'POST', headers: { authorization: `Bearer ${session}`, 'content-type': 'application/json' }, body: JSON.stringify(body) })).status).toBe(404);
+  expect((await fetch(base + '/computers', { headers: { authorization: `Bearer ${session}` } })).status).toBe(404);
+  expect((await db.collection('computerConnections').get()).size).toBe(0);
 });
-test('a connected human creates a private project with its repository, without an existing project or agent', async () => {
+test('the runtime route reports this computer’s shared service for the signed-in owner only', async () => {
+  const { personIds } = await seed({ profiles: [{ name: 'Owner', email: 'owner@example.test' }, { name: 'Other', email: 'other@example.test' }] });
+  const session = await idTokenFor('owner@example.test'), other = await idTokenFor('other@example.test');
+  expect((await http('/runtime')).status).toBe(401);
+  expect((await http('/runtime', session)).body).toEqual({ runtime: null });
+  const report = { protocol: 1, version: '0.1.0', incarnation: randomUUID(), platform: 'darwin', providers: [{ id: 'claude', available: true, reason: 'ready' }], github: 'ready' };
+  expect((await http('/runtime/readiness', session, report)).body).toEqual({ ok: true, serverTime: at });
+  expect((await http('/runtime', session)).body).toEqual({ runtime: { protocol: 1, version: '0.1.0', incarnation: report.incarnation, platform: 'darwin',
+    providers: report.providers, github: 'ready', lastSeenAt: at, online: true } });
+  expect((await db.doc(`ownerRuntimeReadiness/${personIds[0]}`).get()).exists).toBe(true);
+  expect((await http('/runtime', other)).body).toEqual({ runtime: null });
+  at += 45_000;
+  expect((await http('/runtime', session)).body.runtime).toMatchObject({ lastSeenAt: 1000, online: false });
+});
+test('a signed-in human creates a private project with its repository, without an existing project or agent', async () => {
   await profiles.doc('private-owner').set({ name: 'Owner', email: 'owner@example.test', removedAt: null });
-  const firebase = await idTokenFor('owner@example.test'), token = newToken();
+  const token = await idTokenFor('owner@example.test');
   const body = { githubUrl: 'https://github.com/example/repo', client_request_id: randomUUID(), title: 'Private research', goal: 'Compare ideas.', approved: true };
-  expect((await http('/projects/private', token, body, 'private-owner')).status).toBe(401);
-  await connect(firebase, token, 'Private creator');
-  expect((await http('/projects/private', firebase, body, 'private-owner')).status).toBe(401);
   expect((await http('/projects/private', newToken(), body, 'private-owner')).status).toBe(401);
   expect((await http('/projects/private', token, body)).status).toBe(401);
   expect((await http('/projects/private', token, body, 'other')).status).toBe(401);
@@ -93,22 +91,18 @@ test('a connected human creates a private project with its repository, without a
   expect((await http('/projects', token)).body.projects).toMatchObject([{ id: projectId, status: 'ready_to_start' }]);
   await profiles.doc('private-owner').update({ removedAt: at });
   await profiles.doc('new-owner').set({ name: 'Replacement', email: 'owner@example.test', removedAt: null });
-  expect((await http('/projects/private', token, body, 'new-owner')).status).toBe(401);
+  // The session now resolves to the active profile with this email; the removed profile is no longer selectable.
+  expect((await http('/projects/private', token, body, 'private-owner')).status).toBe(401);
   expect((await projects.get()).size).toBe(1);
 });
-test('owner access does not expire, refuses a disabled account and a connection ended before 13 November 2026', async () => {
+test('owner access refuses a disabled account and the retired end-approval route is gone', async () => {
   const f = await fixture();
-  const c = (await computerConnections.doc(f.id).get()).data()!;
-  await setAccountDisabled(c.firebaseUid!, true);
+  const { firebaseUid } = await personIdentityFromIdToken(f.token);
+  await setAccountDisabled(firebaseUid, true);
   expect((await http('/projects', f.token)).status).toBe(401);
-  await setAccountDisabled(c.firebaseUid!, false);
-  at += 5 * 365 * 24 * 60 * 60_000;
-  expect((await http('/projects', f.token)).status).toBe(200);
-  // The retired end-approval route is gone.
+  await setAccountDisabled(firebaseUid, false);
+  expect((await http('/projects', await idTokenFor('owner@example.test'))).status).toBe(200);
   expect((await fetch(base + '/connections/revoke', { method: 'POST', headers: { authorization: `Bearer ${f.token}`, 'content-type': 'application/json' }, body: '{}' })).status).toBe(404);
-  await computerConnections.doc(f.id).update({ revokedAt: at });
-  const refused = await http('/projects', f.token);
-  expect(refused.status).toBe(401); expect(refused.body.message).toBe('This computer is no longer connected to MyLittleSwarm.');
 });
 test('only owned projects can be started; a member cannot start them', async () => {
   const f = await fixture();
@@ -120,7 +114,7 @@ test('only owned projects can be started; a member cannot start them', async () 
   expect((await http(`/projects/${PROJECT}/control`, f.token, start, person.id)).status).toBe(200);
   expect((await http(`/projects/${PROJECT}/control`, f.token, start, person.id)).body.replayed).toBe(true);
   await setTestMembership(PROJECT, f.personIds[1]);
-  const otherToken = newToken(); await connect(await idTokenFor('other@example.test'), otherToken, 'Other');
+  const otherToken = await idTokenFor('other@example.test');
     expect((await http(`/projects/${PROJECT}/control`, otherToken, { client_request_id: 'other', expected_revision: 2, action: 'start', approved: true }, f.personIds[1])).status).toBe(403);
   await controlWorkspace(person, PROJECT, { client_request_id: 'finish', expected_revision: 2, action: 'close' }, now);
   const list = (await http('/projects', f.token)).body;
@@ -140,27 +134,12 @@ test('team creation cannot impersonate another owner and validates explicit appr
   expect((await http(`/projects/${PROJECT}/agents`,f.token,input)).status).toBe(403);
   await inProject(PROJECT,async()=>expect((await agents().get()).size).toBe(0));
 });
-test('a connected computer is listed for its person only and has no revoke route', async () => {
-  const c = await fixture(); at += 400 * 24 * 60 * 60_000;
-  expect((await http('/member-projects', c.token)).status).toBe(200);
-  expect((await http('/computers', c.firebase)).body.computers).toEqual([{ id: c.id, clientName: 'Test client', approvedAt: 1000, runtime: null }]);
-  const other = await idTokenFor('other@example.test');
-  expect((await http('/computers', other)).body.computers).toEqual([]);
-  // The retired revoke route is gone: a browser session never reaches a computer route.
-  expect((await fetch(`${base}/computers/${c.id}/revoke`, { method: 'POST', headers: { authorization: `Bearer ${c.firebase}`, 'content-type': 'application/json' }, body: '{}' })).status).toBe(401);
-  expect((await fetch(`${base}/computers/${c.id}/revoke`, { method: 'POST', headers: { authorization: `Bearer ${c.token}`, 'content-type': 'application/json' }, body: '{}' })).status).toBe(404);
-  expect((await computerConnections.doc(c.id).get()).data()!.revokedAt).toBeNull();
-  // A connection ended before 13 November 2026 is not offered for agent starts.
-  await computerConnections.doc(c.id).update({ revokedAt: at });
-  expect((await http('/computers', c.firebase)).body.computers).toEqual([]);
-});
-
-test('owner quotas follow verified people across computers, not proxy sockets or forwarded headers', async () => {
+test('owner quotas follow verified people across sessions, not proxy sockets or forwarded headers', async () => {
   const f = await fixture();
-  const secondToken = newToken(); await connect(f.firebase, secondToken, 'Second computer');
-  const otherToken = newToken(); await connect(await idTokenFor('other@example.test'), otherToken, 'Other person');
-  // Both connections used the same verified-person window; fill its remaining allowance.
-  for (let n = 0; n < 58; n++) expect((await http('/projects', f.token)).status).toBe(200);
+  const secondToken = await idTokenFor('owner@example.test');
+  const otherToken = await idTokenFor('other@example.test');
+  // Both sessions use the same verified-person window; fill its allowance.
+  for (let n = 0; n < 60; n++) expect((await http('/projects', f.token)).status).toBe(200);
   expect((await http('/projects', secondToken)).status).toBe(429);
   expect((await http('/projects', otherToken)).status).toBe(200);
   const spoof = await fetch(base + '/projects', { headers: { authorization: `Bearer ${f.token}`, 'x-forwarded-for': '203.0.113.77' } });
@@ -168,7 +147,7 @@ test('owner quotas follow verified people across computers, not proxy sockets or
 });
 
 
-test('MCP lifecycle endpoint fences the computer and selected account and reopens without starting work',async()=>{
+test('MCP lifecycle endpoint fences the selected account and reopens without starting work',async()=>{
  const f=await fixture();
  const profile=f.personIds[0];
  const created=await http('/projects/private',f.token,{ githubUrl: 'https://github.com/example/repo', client_request_id:randomUUID(),title:'Lifecycle via MCP',goal:'Chat',approved:true},profile);
@@ -240,7 +219,7 @@ test('member MCP reads the versioned Card without gaining owner-only edit or set
   const id=created.body.id;
   const membership={profileId:member,projectId:id,role:'member' as const,status:'active' as const,statusChangedAt:0,restrictions:{chatMutedUntil:null},revision:1,updatedAt:at,connectionEpoch:0};
   await membershipDoc(id,member).set(membership);await membershipsOf(member).doc(id).set(membership);
-  const token=newToken();await connect(await idTokenFor('other@example.test'),token,'Member computer');
+  const token=await idTokenFor('other@example.test');
   const setup=await http(`/projects/${id}/overview`,token);
   expect(setup.status).toBe(200);expect(setup.body.role).toBe('member');
   const change={client_request_id:randomUUID(),expected_version:setup.body.cardVersion,definition:{...setup.body.definition,mergeApproval:'humans'},approved:true};
@@ -257,7 +236,7 @@ test('member MCP reads the versioned Card without gaining owner-only edit or set
   expect((await http(`/projects/${id}/card`,token,change,member)).status).toBe(401);
 });
 
-test('retired local browser owner endpoints are absent even for a connected computer', async () => {
+test('retired local browser owner endpoints are absent even for the owner session', async () => {
   const f = await fixture();
   for (const path of ['waiting-room', 'task-directory', 'native-task-settings', 'tasks', 'tasks/synthetic-task']) {
     for (const method of path.startsWith('tasks') ? ['POST'] : ['GET', 'POST']) {
@@ -269,21 +248,7 @@ test('retired local browser owner endpoints are absent even for a connected comp
   }
 });
 
-test('agents keep working on their computer, and a connection ended before 13 November 2026 fences its agents', async () => {
-  const f = await fixture();
-  const { TEST_PROJECT, addAgent } = await import('./helpers.js');
-  const { agentByToken } = await import('../src/store/profiles.js');
-  const { assertAgentMembership } = await import('../src/projects/access.js');
-  const item = await inProject(TEST_PROJECT, () => addAgent(f.personIds[0], 'bound', now));
-  await db.doc(`projects/${TEST_PROJECT}/agents/${item.agentId}`).update({ computerConnectionId: f.id });
-  at += 400 * 24 * 60 * 60_000;
-  expect(await inProject(TEST_PROJECT, () => agentByToken(item.token))).not.toBeNull();
-  await computerConnections.doc(f.id).update({ revokedAt: at });
-  expect(await inProject(TEST_PROJECT, () => agentByToken(item.token))).toBeNull();
-  await expect(inProject(TEST_PROJECT, () => db.runTransaction(tx => assertAgentMembership(tx, item.agentId)))).rejects.toMatchObject({ code: 'unauthorized' });
-});
-
-test('verified credential replay binds an older registration to this computer', async () => {
+test('verified credential replay answers an older registration as replayed', async () => {
   const f = await fixture();
   const { TEST_PROJECT, addAgent } = await import('./helpers.js');
   const { agentByToken } = await import('../src/store/profiles.js');
@@ -292,6 +257,5 @@ test('verified credential replay binds an older registration to this computer', 
     name: 'replay-old', agentId: item.agentId, candidateTokenHash: hashToken(item.token), clientName: 'Synthetic', folder: '/tmp/synthetic-agent',
   });
   expect(response.status).toBe(200); expect(response.body.replayed).toBe(true);
-  expect((await db.doc(`projects/${TEST_PROJECT}/agents/${item.agentId}`).get()).data()!.computerConnectionId).toBe(f.id);
   expect(await inProject(TEST_PROJECT, () => agentByToken(item.token))).not.toBeNull();
 });

@@ -2,7 +2,6 @@ import type { Transaction } from '../firestore.js';
 import { z } from 'zod';
 import type { ProjectMergePolicy, MergePolicyTarget, MergePolicyView, MergePolicyCode } from '@mlswarm/contracts';
 import { collection, db, githubAccounts, inProject, profiles } from '../firestore.js';
-import { computerConnections, currentComputer } from '../owner/computer-access.js';
 import { hashToken } from '../auth.js';
 import { Refusal } from '../errors.js';
 import { activeRecipientOperators, assertMembership, assertProjectWritable, type Membership } from './access.js';
@@ -48,9 +47,7 @@ export async function mergePolicyView(tx: Transaction, id: string, at: number): 
   if (policy.revision === 0) return { policy, enforcement: { state: 'not_enabled', checkedAt: null, code: null } };
   const saved = await tx.get(reports(id).orderBy('checkedAt', 'desc').limit(10));
   const record = (await tx.get(projects.doc(id))).data()!;
-  const ownerReports = saved.docs.map(row => row.data()).filter(row => row.profileId === record.ownerProfileId && row.policyKey === target?.policyKey);
-  const computers = ownerReports.length ? await tx.getAll(...saved.docs.filter(row => row.data().profileId === record.ownerProfileId && row.data().policyKey === target?.policyKey).map(row => computerConnections.doc(row.id))) : [];
-  const latest = ownerReports.find((_row, index) => currentComputer(computers[index]?.data(), record.ownerProfileId));
+  const latest = saved.docs.map(row => row.data()).find(row => row.profileId === record.ownerProfileId && row.policyKey === target?.policyKey);
   const operators = await activeRecipientOperators(tx, policy.selected.map(row => row.profileId));
   const visiblePolicy = { ...policy, selected: policy.selected.filter(row => operators.get(row.profileId)?.epoch === row.epoch) };
   const state = problem ? 'pending' : !latest ? 'pending' : at - latest.checkedAt > 120000 ? 'stale' : latest.code === 'verified' ? 'verified' : latest.code === 'removed' ? 'not_enabled' : 'failed';
@@ -88,19 +85,19 @@ export async function editMergePolicy(actorId: string, id: string, body: unknown
 }
 
 const REPORT = z.object({ projectId: z.string().regex(/^[a-f0-9]{64}$/), policyKey: z.string().regex(/^[a-f0-9]{64}$/), code: z.enum(['verified', 'removed', 'github_permissions', 'github_unavailable', 'account_mismatch', 'verification_failed', 'conflicting_rulesets', 'empty_repository']) }).strict();
-export async function reportMergePolicy(actorId: string, connectionId: string, body: unknown, now: () => number) {
+export async function reportMergePolicy(actorId: string, body: unknown, now: () => number) {
   const parsed = REPORT.safeParse(body);
   if (!parsed.success) throw new Refusal('bad_input', 'Invalid merge enforcement report.');
   const input = parsed.data;
   return inProject(input.projectId, () => db.runTransaction(async tx => {
     await assertMembership(tx, actorId);
-    const [project, computer] = await Promise.all([tx.get(projects.doc(input.projectId)), tx.get(computerConnections.doc(connectionId))]);
+    const project = await tx.get(projects.doc(input.projectId));
     const at = now();
-    if (project.data()!.ownerProfileId !== actorId || !currentComputer(computer.data(), actorId)) throw new Refusal('forbidden', 'Only the project owner’s computer can report enforcement.');
+    if (project.data()!.ownerProfileId !== actorId) throw new Refusal('forbidden', 'Only the project owner can report enforcement.');
     const snapshot = await mergePolicySnapshot(tx, input.projectId);
     if (!snapshot.target || snapshot.target.policyKey !== input.policyKey) throw new Refusal('proposal_conflict', 'Merge access changed. Synchronize the current policy.');
     if (input.code === 'verified' && snapshot.policy.mode !== 'selected_people' || input.code === 'removed' && snapshot.policy.mode !== 'existing') throw new Refusal('bad_input', 'Report does not match the selected mode.');
-    tx.set(reports(input.projectId).doc(connectionId), { policyKey: input.policyKey, code: input.code, checkedAt: at, profileId: actorId });
+    tx.set(reports(input.projectId).doc(actorId), { policyKey: input.policyKey, code: input.code, checkedAt: at, profileId: actorId });
     return { ok: true };
   }));
 }

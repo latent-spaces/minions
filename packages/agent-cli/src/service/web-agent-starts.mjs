@@ -18,15 +18,14 @@ import { canonicalGithubRepo } from '../github-repository.mjs';
 
 const execute = promisify(execFile);
 const execution = z.object({provider:z.enum(['codex','claude']),model:z.string().regex(/^[A-Za-z0-9_:.-]{1,150}$/).nullable()}).strict();
-const requestSchema = z.object({id:z.uuid(),connectionId:z.uuid(),projectId:z.string().regex(/^[a-f0-9]{64}$/),
+const requestSchema = z.object({id:z.uuid(),projectId:z.string().regex(/^[a-f0-9]{64}$/),
   name:z.string().regex(/^[\w-]{1,64}$/),scope:z.string().min(1).max(8000).refine(v=>Buffer.byteLength(v)<=8000&&!v.includes('\0')),
   execution,incarnation:z.uuid().nullable(),
   state:z.enum(['pending','accepted','starting','working','failed','expired','recovery_required']),
   createdAt:z.number().int().positive(),pickupByAt:z.number().int().positive(),launchByAt:z.number().int().positive().nullable(),deadlineAt:z.number().int().positive().nullable(),agentId:z.string().regex(/^[\w-]{1,200}$/).nullable(),
 });
 const terminal = new Set(['working','failed','expired','recovery_required']);
-// The computer that accepts a run is bound at acceptance, so the run's identity excludes it.
-const fingerprint = r => createHash('sha256').update(JSON.stringify([r.id,r.connectionId,r.projectId,r.name,r.scope,r.execution,r.createdAt,r.pickupByAt])).digest('hex');
+const fingerprint = r => createHash('sha256').update(JSON.stringify([r.id,r.projectId,r.name,r.scope,r.execution,r.createdAt,r.pickupByAt])).digest('hex');
 const failure = code => Object.assign(new Error(code),{code});
 
 export async function probeWebProviders({folder,signal,platform=process.platform,executables={codex:'codex',claude:'claude'},envSource=process.env}={}) {

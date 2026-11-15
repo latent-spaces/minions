@@ -42,27 +42,21 @@ test('the health environment names the self-hosted engine or a test session', ()
   // An ambiguous engine setting is not claimed as self-hosted.
   expect(environmentLabel({ MLSWARM_ENGINE: 'Self-Hosted' })).toBe('unconfigured');
 });
-test('computer pages include ended and never-connected rows, redact credentials and isolate users', async () => {
-  const records = collection('computerConnections');
-  const common = { clientName: 'Codex', createdAt: 1, approvedAt: 2, revokedAt: null, expiresAt: 5, connectionExpiresAt: at + 1, profileId: 'founder', firebaseUid: 'NEVER_UID', authenticatedAt: 1, pollingSecretHash: 'NEVER_POLL', candidateTokenHash: 'NEVER_HASH', localFolder: 'NEVER_FOLDER' };
-  await Promise.all([
-    records.doc('a').set(common), records.doc('b').set({ ...common, approvedAt: null }),
-    records.doc('c').set({ ...common, revokedAt: 3, lastUsedAt: at - 1 }), records.doc('z').set({ ...common, profileId: 'reviewer' }),
-  ]);
-  const first = await readUserConnections(founder, 'founder', { limit: '2' }, now);
-  expect(first.computers.map(c => c.status)).toEqual(['connected', 'not_connected']); expect(first.next).toBe('b');
-  const second = await readUserConnections(founder, 'founder', { limit: '2', cursor: first.next }, now);
-  expect(second.computers.map(c => c.status)).toEqual(['revoked']); expect(second.next).toBeNull();
-  expect(second.computers[0]).toMatchObject({ lastUsedAt: at - 1, contactStatus: 'recent' });
-  await records.doc('c').update({ lastUsedAt: at });
-  expect((await readUserConnections(founder, 'founder', { cursor: 'b' }, () => at + 5 * 60_000)).computers[0].contactStatus).toBe('stale');
-  await records.doc('c').update({ lastUsedAt: at + 1 });
-  expect((await readUserConnections(founder, 'founder', { cursor: 'b' }, now)).computers[0]).toMatchObject({ lastUsedAt: null, contactStatus: 'unknown' });
-  expect(first.computers[0]).toMatchObject({ lastUsedAt: null, contactStatus: 'unknown' });
-  const encoded = JSON.stringify([first, second]);
-  for (const secret of ['NEVER_', 'firebaseUid', 'authenticatedAt', 'pollingSecretHash', 'candidateTokenHash', 'localFolder']) expect(encoded).not.toContain(secret);
-  expect((await records.doc('a').get()).data()).toEqual(common);
-  await expect(readUserConnections(founder, 'founder', { limit: 51 }, now)).rejects.toMatchObject({ code: 'bad_input' });
+test('a user\'s computer is the shared service\'s last report, isolated per user, with no credentials or legacy connection rows', async () => {
+  const readiness = collection('ownerRuntimeReadiness');
+  // A connection record from a store older than 15 November 2026 is no longer read or disclosed.
+  await collection('computerConnections').doc('legacy').set({ clientName: 'Codex', profileId: 'founder', firebaseUid: 'NEVER_UID', candidateTokenHash: 'NEVER_HASH' });
+  expect((await readUserConnections(founder, 'founder', {}, now)).computer).toBeNull();
+  const report = { protocol: 1, version: '0.1.0', incarnation: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', platform: 'darwin', providers: [], github: 'ready' };
+  await readiness.doc('founder').set({ ...report, profileId: 'founder', lastSeenAt: at - 1 });
+  const read = await readUserConnections(founder, 'founder', {}, now);
+  expect(read.computer).toEqual({ ...report, lastSeenAt: at - 1, online: true });
+  expect((await readUserConnections(founder, 'founder', {}, () => at + 45_000)).computer).toMatchObject({ online: false });
+  expect((await readUserConnections(founder, 'reviewer', {}, now)).computer).toBeNull();
+  const encoded = JSON.stringify(read);
+  for (const secret of ['NEVER_', 'legacy', 'computers', 'candidateTokenHash']) expect(encoded).not.toContain(secret);
+  // The former paging parameters are refused.
+  for (const query of [{ limit: '2' }, { cursor: 'b' }]) await expect(readUserConnections(founder, 'founder', query, now)).rejects.toMatchObject({ code: 'bad_input' });
   await expect(readUserConnections(founder, 'absent', {}, now)).rejects.toMatchObject({ code: 'not_found' });
 });
 let server: Server, base: string;

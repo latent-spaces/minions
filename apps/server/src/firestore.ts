@@ -91,8 +91,6 @@ export type Profile = {
 export type GithubAccount = { firebaseUid: string; login: string; emails: string[]; avatarUrl: string | null; checkedAt: number };
 
 export type Agent = {
-  // Exact computer grant that connected this credential; older rows are bound on verified replay/sync.
-  computerConnectionId?: string;
   ownerProfileId: string;
   name: string;
   tokenHash: string;
