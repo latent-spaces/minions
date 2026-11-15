@@ -50,7 +50,7 @@ const codexProjectTrust = folder => `projects={${JSON.stringify(realpathSync.nat
 function generatedRulesOnly(folder) {
   const layer = join(folder, '.codex'), rules = join(layer, 'rules');
   if (existsSync(layer) && lstatSync(layer).isSymbolicLink() || existsSync(join(layer, 'config.toml'))) return false;
-  return !existsSync(rules) || !lstatSync(rules).isSymbolicLink() && readdirSync(rules).every(name => name === 'minions-worker-merge.rules');
+  return !existsSync(rules) || !lstatSync(rules).isSymbolicLink() && readdirSync(rules).every(name => name === 'mlswarm-worker-merge.rules');
 }
 const MERGE_DENY = ['Bash(gh pr merge)', 'Bash(gh pr merge *)'];
 export function localPermissionGuidance(mergeApproval, provider) {

@@ -35,7 +35,7 @@ createInterface({input:process.stdin}).on('line', line => {
  if (v.method === 'initialize') emit({id:v.id,result:{}});
  if (v.method === 'config/read') emit({id:v.id,result:{layers:[{name:{type:'project',dotCodexFolder:fs.realpathSync.native(v.params.cwd)+'/.codex'},config:{},version:'1'}]}});
  if (v.method === 'thread/start' || v.method === 'thread/resume') {
-  const ruleFile=${JSON.stringify(join(folder,'.codex','rules','minions-worker-merge.rules'))}; fs.appendFileSync(${JSON.stringify(policies)},JSON.stringify({rules:fs.existsSync(ruleFile)?fs.readFileSync(ruleFile,'utf8'):'',method:v.method})+'\\n');
+  const ruleFile=${JSON.stringify(join(folder,'.codex','rules','mlswarm-worker-merge.rules'))}; fs.appendFileSync(${JSON.stringify(policies)},JSON.stringify({rules:fs.existsSync(ruleFile)?fs.readFileSync(ruleFile,'utf8'):'',method:v.method})+'\\n');
   if (v.method === 'thread/resume' && (v.params.excludeTurns !== true || v.params.threadId !== thread)) throw Error('Unexpected resume identity/history request');
   emit({id:v.id,result:{thread:{id:thread},modelProvider:'openai',model:'gpt-6.1-sol'}});
  }
@@ -71,7 +71,7 @@ createInterface({input:process.stdin}).on('line', line => {
     const observed=readFileSync(policies,'utf8').trim().split('\n').map(line=>JSON.parse(line));
     assert.deepEqual(observed.map(value=>value.rules.includes('forbidden')),[true,false,true,false,false,false]);
     assert.deepEqual(observed.map(value=>value.method),['thread/start',...Array(5).fill('thread/resume')]);
-    assert.equal(existsSync(join(folder,'.codex','rules','minions-worker-merge.rules')),false);
+    assert.equal(existsSync(join(folder,'.codex','rules','mlswarm-worker-merge.rules')),false);
     assert.equal(readPrivate(join(stateDir, 'model-session.json'), true).id, '11111111-1111-4111-8111-111111111111');
     const journal = readRunJournal({directory:stateDir,identity});
     assert.equal(journal.availability,'available'); assert.deepEqual(journal.interruptedAttempts,[]);

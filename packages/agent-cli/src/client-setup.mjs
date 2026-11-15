@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -40,17 +40,20 @@ function readJson(path) {
 }
 
 function parses(text) { try { parse(text); return true; } catch { return false; } }
-// The settings without this installation's entry, as plain objects to compare; an mcp_servers left empty counts as
-// absent, as in a file that never had it.
+// The entry, its tool permission and its skill were named mlswarm before the rename to Minions (15 November 2026).
+// Setup removes them so a coding agent keeps one entry. Consumers: installs set up before the rename.
+export const RETIRED_NAME = 'mlswarm';
+// The settings without this installation's entry and the retired one, as plain objects to compare; an mcp_servers left
+// empty counts as absent, as in a file that never had it.
 function withoutEntry(settings, name) {
   settings = structuredClone(settings);
   const { mcp_servers: servers, ...rest } = settings;
   if (!servers || typeof servers !== 'object' || Array.isArray(servers)) return settings;
-  const { [name]: _entry, ...others } = servers;
+  const { [name]: _entry, [RETIRED_NAME]: _retired, ...others } = servers;
   return Object.keys(others).length ? { ...rest, mcp_servers: others } : rest;
 }
-// Only the table's own entry and its subtables are replaced, line by line so comments and layout are kept. The result
-// must parse to the same settings with only the new entry changed; anything else is left for the person.
+// Only the table's own entry, the retired one and their subtables are replaced, line by line so comments and layout are
+// kept. The result must parse to the same settings with only those entries changed; anything else is left for the person.
 export function withCodexEntry(text, table) {
   const [name] = Object.keys(parse(table).mcp_servers);
   let settings;
@@ -62,7 +65,8 @@ export function withCodexEntry(text, table) {
     // lines so far parse on their own.
     if (/^\s*\[/.test(lines[i]) && parses(lines.slice(0, i).join('\n'))) {
       const was = inside;
-      inside = Object.hasOwn(parse(lines[i]).mcp_servers ?? {}, name);
+      const header = parse(lines[i]).mcp_servers ?? {};
+      inside = Object.hasOwn(header, name) || Object.hasOwn(header, RETIRED_NAME);
       // Comments and blank lines right above the next table belong to it, not to this entry.
       if (was && !inside) kept.push(...pending);
       pending = [];
@@ -82,7 +86,13 @@ export function withCodexEntry(text, table) {
   return result;
 }
 
+// A copy of the retired skill that setup installed, unchanged, goes; one the person changed stays.
+function retireOldSkill(path) {
+  if (['current', 'update_available'].includes(installedSkill({ path }, BUNDLED_SKILL).status)) rmSync(dirname(path), { recursive: true, force: true });
+}
+
 function installSkill(path) {
+  retireOldSkill(join(dirname(dirname(path)), RETIRED_NAME, 'SKILL.md'));
   const installed = installedSkill({ path }, BUNDLED_SKILL), { status } = installed;
   if (status === 'current') return null;
   if (['not_installed', 'update_available', 'incomplete'].includes(status)) {
@@ -108,11 +118,12 @@ function connectClaude({ home, userHome }) {
   const config = reusableConfiguration({ client: 'claude', home });
   const registry = join(userHome, '.claude.json'), settingsPath = join(userHome, '.claude', 'settings.json');
   const servers = readJson(registry);
-  // The entry has this site's own name, so another installation's minions entry stays as it is.
-  if (!isDeepStrictEqual(servers.mcpServers?.[config.name], config.entry)) replace(registry, `${JSON.stringify({ ...servers, mcpServers: { ...servers.mcpServers, [config.name]: config.entry } }, null, 2)}\n`);
+  // The entry has this site's own name, so another installation's minions entry stays as it is. The retired one goes.
+  const { [RETIRED_NAME]: retired, ...kept } = servers.mcpServers ?? {};
+  if (retired !== undefined || !isDeepStrictEqual(kept[config.name], config.entry)) replace(registry, `${JSON.stringify({ ...servers, mcpServers: { ...kept, [config.name]: config.entry } }, null, 2)}\n`);
   // Minions asks the person in chat before important actions, so Claude Code need not ask again for each tool.
-  const settings = readJson(settingsPath), allow = settings.permissions?.allow ?? [], permission = `mcp__${config.name}`;
-  if (!allow.includes(permission)) replace(settingsPath, `${JSON.stringify({ ...settings, permissions: { ...settings.permissions, allow: [...allow, permission] } }, null, 2)}\n`);
+  const settings = readJson(settingsPath), allow = settings.permissions?.allow ?? [], permission = `mcp__${config.name}`, old = `mcp__${RETIRED_NAME}`;
+  if (!allow.includes(permission) || allow.includes(old)) replace(settingsPath, `${JSON.stringify({ ...settings, permissions: { ...settings.permissions, allow: [...allow.filter(entry => entry !== old && entry !== permission), permission] } }, null, 2)}\n`);
   return installSkill(join(userHome, '.claude', 'skills', 'minions', 'SKILL.md'));
 }
 
