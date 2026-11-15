@@ -398,7 +398,8 @@ verified person and use the same transactional service as scoped agent tools. No
 local browser editor, demo-only write gate or second task permission model remains.
 
 A person who adds a task in the app sends their own agents a message about it. Unassigned,
-the create request delivers one `task_created` inbox item to each of that person's connected
+the app includes the message even while its agent directory is loading; the server resolves
+the recipients. The create request delivers one `task_created` inbox item to each of that person's connected
 agents in the project (at most 20). Assigned to their own agent, the `task_assigned` item
 carries the message. The message is kept as the task's first comment, and its text and
 the title reach agents in untrusted envelopes. Both items count as direct inbox items, so a

@@ -301,7 +301,7 @@ export function ProjectTasks({ api, agents, people, readOnly = false, active, se
   </section>;
 }
 
-function NewTask({ api, agents, selfId, onCreated, onCancel }: { api: TasksApi; agents: TaskAgent[]; selfId: string | null; onCreated: (task: NativeTask) => void; onCancel: () => void }) {
+export function NewTask({ api, agents, selfId, onCreated, onCancel }: { api: TasksApi; agents: TaskAgent[]; selfId: string | null; onCreated: (task: NativeTask) => void; onCancel: () => void }) {
   const [text, setText] = useState(''), [agentId, setAgentId] = useState('');
   // The person's message to their agents about the new task (owner, 14 November 2026), prefilled and editable.
   const [note, setNote] = useState('Please take a look at this new task.');
@@ -313,7 +313,9 @@ function NewTask({ api, agents, selfId, onCreated, onCancel }: { api: TasksApi; 
   // People message only their own agents: the chosen agent when it is theirs, otherwise all of their agents here.
   const own = agents.filter(agent => !!selfId && agent.operatorId === selfId), chosen = agents.find(agent => agent.id === agentId);
   const recipients = chosen ? own.filter(agent => agent.id === chosen.id) : own;
-  const message = recipients.length ? note.trim() : '';
+  // The server resolves unassigned recipients. A directory still loading must not silently drop the message.
+  const sendsMessage = !agentId || recipients.length > 0;
+  const message = sendsMessage ? note.trim() : '';
   // A task created before a failed assignment still shows in the list when the dialog closes.
   const close = () => { if (busy) return; if (created.current) onCreated(created.current); else onCancel(); };
   // Assigning is a second step on the created task; if it fails the task stays, unassigned in Backlog.
@@ -321,7 +323,7 @@ function NewTask({ api, agents, selfId, onCreated, onCancel }: { api: TasksApi; 
     .then(result => onCreated(result.task), e => { setError(`The task was created, but it could not be assigned: ${errorText(e)}`); setBusy(false); });
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!text.trim() || busy || (recipients.length && !message)) return;
+    if (!text.trim() || busy || (sendsMessage && !message)) return;
     setBusy(true); setError(null);
     if (created.current) { void assign(created.current); return; }
     const { title, description } = taskFromPrompt(text);
@@ -358,12 +360,12 @@ function NewTask({ api, agents, selfId, onCreated, onCancel }: { api: TasksApi; 
       </fieldset>}
       <p className="muted" id={agentFieldId}>{agentId ? `${agents.find(agent => agent.id === agentId)?.name ?? 'The agent'} finds it in Backlog, assigned to it.` : 'New tasks start unassigned in Backlog.'}
         {chosen && !recipients.length && ' It gets an assignment notice; your message goes only to your own agents.'}</p>
-      {recipients.length > 0 && <>
-        <label htmlFor={noteId}>Message to {recipients.map(agent => agent.name).join(', ')}</label>
+      {sendsMessage && <>
+        <label htmlFor={noteId}>Message to {recipients.length ? recipients.map(agent => agent.name).join(', ') : 'your agents'}</label>
         <textarea id={noteId} className="k42-task-textarea" value={note} readOnly={locked} onChange={e => setNote(e.target.value)} required maxLength={2000} rows={2} />
       </>}
       {error && <p role="alert" className="error">{error}</p>}
-      <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || !text.trim() || (recipients.length > 0 && !message)}>{busy ? 'Adding…' : created.current ? 'Retry assigning' : uncertain ? 'Retry' : 'Add'}</Button><Button type="button" onClick={close} disabled={busy}>Cancel</Button></div>
+      <div className="k42-task-actions"><Button type="submit" className="primary" disabled={busy || !text.trim() || (sendsMessage && !message)}>{busy ? 'Adding…' : created.current ? 'Retry assigning' : uncertain ? 'Retry' : 'Add'}</Button><Button type="button" onClick={close} disabled={busy}>Cancel</Button></div>
     </form>
   </Dialog>;
 }
