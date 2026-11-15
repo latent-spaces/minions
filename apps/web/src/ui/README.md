@@ -147,6 +147,8 @@ status panel reads. No browser observation launches work.
 The project's sections are Tasks, Communication, Preview, Teams, Agents, Usage and Settings
 (`PROJECT_TABS` in `App.tsx`; each hides when its feature or the viewer's role rules it out).
 They are links in the menu, below New task and above My agents; the header has no tab row.
+Preview gets a New dot (`k42-nav-new`, named "Preview, new") when its page changed since this
+person last opened Preview in this browser (`preview-seen.ts`).
 My agents shows only the rows that fit the menu's remaining height (agents that need you
 first); the rest are behind "+N more", a popover list, so the menu does not scroll for them.
 When not even one row fits, a strip of small avatars (named on hover) takes its place.
@@ -456,8 +458,9 @@ full screen closes it. If the canvas or layout worker fails, the map shows Map
 unavailable with Retry map. Viewing the map only reads; the run controls change project work.
 
 Settings is one page. Its first card, Project, holds the project card: name, description and
-rules (`CardSettings`, with version history). The owner edits them, and members and closed
-projects see them read-only. The owner also gets three more cards: All agents
+rules (`CardSettings`, with version history), explained by a ? note beside the title. Everyone
+sees them as text first; the owner's Edit opens the form, and Save or Cancel closes it. Members
+and closed projects get no Edit button. The owner also gets three more cards: All agents
 (`CommunicationLimits`, which every agent in the project follows), Updates
 (`UpdateSettings`) and Features (Tasks and Teams toggles). Pause, Close and Reopen stay in the
 project header. Each setting's

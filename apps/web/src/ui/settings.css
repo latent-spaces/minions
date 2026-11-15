@@ -22,6 +22,8 @@
 .settings-category-pages .settings-readonly { display: grid; gap: 16px; }
 .settings-readonly dt { font-weight: 600; }
 .settings-readonly dd { margin: 4px 0 0; }
+/* The owner's Edit button under the read-only project card (owner, 15 November 2026). */
+.card-edit { display: inline-flex; align-items: center; gap: 6px; }
 .settings-category-pages .agent-panel { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; margin: 28px 0 0; border-top: var(--card-border); padding-top: 24px; }
 .settings-category-pages .agent-details-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .settings-category-pages .agent-details-list > div { min-width: 0; }

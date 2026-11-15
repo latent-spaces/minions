@@ -1,8 +1,9 @@
+import { Pencil } from 'lucide-react';
 import { MarkdownField } from './ui/MarkdownField';
 import { ChatBody } from './ui/ChatTimeline';
 import { Button } from './ui/Button';
-// The owner edits the project card in Settings: name, description and rules. Each save is a new version;
-// version 1 and the shared history are preserved.
+// The project card in Settings: name, description and rules, read-only for everyone. The owner's Edit opens the form;
+// Save or Cancel closes it (owner, 15 November 2026). Each save is a new version; version 1 and the history are kept.
 import { useEffect, useRef, useState } from 'react';
 import { ApiError } from './api';
 import type { ProjectRequest } from './explore-api';
@@ -30,6 +31,7 @@ export function CardSettings({ request, workspace, definition, refresh, active }
   const locked = busy || pending !== null;
   const cursor = cursors.at(-1);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const titleId = 'card-basics-title';
   useEffect(() => locked || hasEdits ? hold() : undefined, [locked, hasEdits]);
   // A reload shows the current version unless the owner has unsaved edits.
@@ -47,7 +49,7 @@ export function CardSettings({ request, workspace, definition, refresh, active }
     setPending(body); setBusy(true); setError(null); setSaved(null); setStale(false);
     try {
       const result = await request<{ version: number }>(`/${workspace.id}/card`, body);
-      dirty.current = false; setHasEdits(false); setBase(result.version); setPending(null); setSaved(result.version); setCursors([null]); setTick(value => value + 1); refresh();
+      dirty.current = false; setHasEdits(false); setBase(result.version); setPending(null); setSaved(result.version); setEditing(false); setCursors([null]); setTick(value => value + 1); refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save. Retry the original request.');
       // A definite refusal saved nothing: the edits stay editable and a new save is a new request. An unknown outcome
@@ -56,7 +58,8 @@ export function CardSettings({ request, workspace, definition, refresh, active }
     } finally { setBusy(false); }
   }
   function reload() { dirty.current = false; setHasEdits(false); setBase(version); setPending(null); setStale(false); setError(null); setFields(cardFields(definition)); refresh(); }
-  const form = owner && <form className="settings-form card-form" onSubmit={e => { e.preventDefault(); void save({ ...cardBody(fields, base, definition), client_request_id: crypto.randomUUID() }); }}>
+  function cancel() { reload(); setEditing(false); }
+  const form = owner && editing && <form className="settings-form card-form" onSubmit={e => { e.preventDefault(); void save({ ...cardBody(fields, base, definition), client_request_id: crypto.randomUUID() }); }}>
     <fieldset disabled={locked}>
       {CARD_FIELDS.map(field => <div key={field}>
         <label htmlFor={`card-${field}`}>{LABELS[field]}{field === 'rules' && <span className="muted"> (optional)</span>}</label>
@@ -64,12 +67,13 @@ export function CardSettings({ request, workspace, definition, refresh, active }
           ? <input id="card-title" required maxLength={120} value={fields.title} onChange={e => edit('title', e.target.value)} />
           : <MarkdownField id={`card-${field}`} rows={field === 'rules' ? 4 : 3} maxLength={field === 'rules' ? 3000 : 1500} required={field === 'goal'} value={fields[field]} onChange={e => edit(field, e.target.value)} />}
       </div>)}
-      <div className="settings-save-row"><Button disabled={!hasEdits || stale}>{busy ? 'Saving…' : 'Save changes'}</Button>{hasEdits && !pending && <Button type="button" className="soft" onClick={reload}>Discard changes</Button>}</div>
+      <div className="settings-save-row"><Button disabled={!hasEdits || stale}>{busy ? 'Saving…' : 'Save changes'}</Button>{!pending && <Button type="button" className="soft" onClick={cancel}>Cancel</Button>}</div>
     </fieldset>
   </form>;
   return <section className="settings-section" aria-labelledby={titleId}>
     <h3 id={titleId} className="visually-hidden">Project card</h3>
-    {!owner && <dl className="settings-readonly"><div><dt>Project name</dt><dd>{definition.title}</dd></div><div><dt>Description</dt><dd><ChatBody body={definition.goal} /></dd></div>{definition.rules && <div><dt>Rules</dt><dd><ChatBody body={definition.rules} /></dd></div>}</dl>}
+    {!form && <dl className="settings-readonly"><div><dt>Project name</dt><dd>{definition.title}</dd></div><div><dt>Description</dt><dd><ChatBody body={definition.goal} /></dd></div>{definition.rules && <div><dt>Rules</dt><dd><ChatBody body={definition.rules} /></dd></div>}</dl>}
+    {owner && !form && <div className="settings-save-row"><Button type="button" className="soft card-edit" onClick={() => { setSaved(null); setEditing(true); }}><Pencil size={14} aria-hidden="true" />Edit</Button></div>}
     {error && <p className="error" role="alert">{error}</p>}
     {saved !== null && <p role="status">Saved as version {saved}.</p>}
     {pending && !busy && <div className="pending-action"><p>Save not confirmed. Retry the same request before making another edit.</p>

@@ -106,3 +106,7 @@
 .k42-navigation .k42-nav-link:has(.k42-nav-count) { position:relative; }
 .k42-nav-count { margin-left:auto; min-width:18px; height:18px; box-sizing:border-box; padding:0 5px; border-radius:var(--pill-radius); background:var(--ink); color:var(--on-ink); font-size:11px; font-weight:650; line-height:18px; text-align:center; }
 .k42-navigation.is-collapsed .k42-nav-count { position:absolute; top:5px; right:3px; box-shadow:0 0 0 2px var(--canvas-sunken); }
+/* The New dot: the section's page changed since this person last opened it (owner, 15 November 2026). */
+.k42-navigation .k42-nav-link:has(.k42-nav-new) { position:relative; }
+.k42-nav-new { margin-left:auto; width:8px; height:8px; border-radius:50%; background:var(--ink); }
+.k42-navigation.is-collapsed .k42-nav-new { position:absolute; top:7px; right:7px; box-shadow:0 0 0 2px var(--canvas-sunken); }

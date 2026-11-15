@@ -248,7 +248,7 @@ Each table lists paths under `projects/{projectId}`.
 | `projectHistory`, `projectOperations` | Project control history and exact-retry receipts | `projects/store.ts` |
 | `settings/community` | Joining and human chat audience settings | `projects/community-schema.ts` |
 | `rules/current`, `ruleVersions/{version}` | Community conduct rules, separate from agent instructions | `projects/community-schema.ts`, `projects/community-rules.ts` |
-| `settings/preview` | Optional preview link an agent set: `https`, or `http` on localhost/127.0.0.1/[::1]; shown in the Preview tab | `projects/preview.ts` |
+| `settings/preview` | Optional preview link an agent set: `https`, or `http` on localhost/127.0.0.1/[::1]; shown in the Preview tab. `updatedAt` moves on each save, the same link included, for the menu's New dot | `projects/preview.ts` |
 | `settings/communication`, `usage/communication` | Agent messaging defaults and limits, and recent project-wide sends | `projects/communication.ts` |
 | `settings/projectUpdates` | Update writing style | `projects/progress-settings.ts` |
 

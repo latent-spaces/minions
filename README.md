@@ -209,6 +209,12 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
       name and description, editable by the owner, read-only for members.
 - [x] **Tell the agents about a new task** (owner, 14 November 2026). A task a person
       creates reaches the agents as a message from that person.
+- [x] **Project card reads as text until Edit** (owner, 15 November 2026). Settings shows the
+      card as text with a ? note; the owner's Edit opens the form.
+- [x] **Plans and research in Preview** (owner, 15 November 2026). Agents put a plan, research
+      report or design in Preview as an HTML page, not only a running app.
+- [x] **A New dot beside Preview** (owner, 15 November 2026). The menu marks Preview when its
+      page changed since you last opened it.
 - [ ] **Recommended option first in Needs you** (owner, 14 November 2026). A Needs you
       question with choices lists the best option first, marked "(recommended)".
 - [ ] **Give the experiment waves a home.** The `experiment-waves/` runbook and tools are

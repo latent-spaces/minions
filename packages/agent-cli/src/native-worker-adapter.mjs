@@ -51,6 +51,7 @@ export function projectGuidanceForTurn(participation, { updateNudge = false, car
 }
 
 // The Preview tab is how a person tries the work; agents on their own left it empty unless the goal asked (waves 6 to 8).
+// A plan or research report goes there too, as an HTML page; agents had skipped it as nothing to try (owner, 15 November 2026).
 // A server an agent starts carries its job's mark (leftover-processes.mjs): it keeps running while the agent waits for
 // more time and ends when the agent is stopped or the project is closed. On Windows the turn's job object ends every
 // process the turn started (windows-job.cs), so an agent on its own cannot keep a server running there.
@@ -58,10 +59,10 @@ export function previewGuidance(previewUrl, platform = process.platform) {
   const shown = typeof previewUrl === 'string' && previewUrl;
   if (platform === 'win32') return shown
     ? `The project's Preview tab shows ${previewUrl}. On this Windows computer a server you start ends with your turn, so do not start one for it.`
-    : 'The project\'s Preview tab is empty. On this Windows computer a server you start ends with your turn, so do not start one for it: if the work is something a person can try in a browser, say in your update how to run it.';
+    : 'The project\'s Preview tab is empty. On this Windows computer a server you start ends with your turn, so do not start one for it: if the work is something a person can try or read in a browser, a plan or report included, say in your update how to open it.';
   return shown
-    ? `The project's Preview tab shows ${previewUrl}. If you started that server and it no longer answers, start it again the same way, or clear the link with set_project_preview and an empty string.`
-    : 'The project\'s Preview tab is empty. If the work is something a person can try in a browser (a game, site or app), one agent puts it there as soon as a first version runs: say in a message that you are taking it, start the server so it keeps running after your turn (for example nohup npm start >/dev/null 2>&1 &, on a port you checked is free), check that the address answers with this project\'s page, then call set_project_preview with http://localhost:PORT/. The server keeps running until you are stopped or the project is closed. If nothing here runs in a browser, skip this.';
+    ? `The project's Preview tab shows ${previewUrl}. If you started that server and it no longer answers, start it again the same way, or clear the link with set_project_preview and an empty string. When the page has something new for people to look at, call set_project_preview with the same link again: people see a New mark beside Preview.`
+    : 'The project\'s Preview tab is empty. If the work is something a person can look at in a browser, one agent puts it there as soon as a first version is ready: a game, site or app, and also a plan, research report or design the team wrote, made into an HTML page. Say in a message that you are taking it, start the server so it keeps running after your turn (for example nohup npm start >/dev/null 2>&1 &, or for plain pages nohup python3 -m http.server PORT >/dev/null 2>&1 & in their folder, on a port you checked is free), check that the address answers with this project\'s page, then call set_project_preview with http://localhost:PORT/. The server keeps running until you are stopped or the project is closed. If there is nothing a person could look at yet, skip this.';
 }
 
 // Agents wrote this script themselves until wave 9; theirs sometimes never exited, or stalled finding Playwright.

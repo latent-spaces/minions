@@ -40,3 +40,16 @@ test('closing the project clears a localhost preview, whose server ended with th
   await controlWorkspace(person as never, TEST_PROJECT, { client_request_id: 'reopen', expected_revision: revision, action: 'reopen' }, () => 6_000);
   expect(await close('https://example.com/game', 'close-hosted')).toBe('https://example.com/game');
 });
+
+test('the preview records when its page last changed: a new link or the same link again marks it new', async () => {
+  const f = await seed({ profiles: [{ name: 'Bob', email: 'bob-new@example.test' }] });
+  const person = { id: f.personIds[0], ...(await profiles.doc(f.personIds[0]).get()).data()! };
+  const actor = { kind: 'person' as const, person };
+  expect(await readWorkspace(person, TEST_PROJECT)).toMatchObject({ previewUpdatedAt: null });
+  await setProjectPreview(TEST_PROJECT, actor, { url: 'http://localhost:5173/' }, () => 1_000);
+  expect(await readWorkspace(person, TEST_PROJECT)).toMatchObject({ previewUpdatedAt: 1_000 });
+  await setProjectPreview(TEST_PROJECT, actor, { url: 'http://localhost:5173/' }, () => 2_000);
+  expect(await readWorkspace(person, TEST_PROJECT)).toMatchObject({ previewUrl: 'http://localhost:5173/', previewUpdatedAt: 2_000 });
+  await setProjectPreview(TEST_PROJECT, actor, { url: '' }, () => 3_000);
+  expect(await readWorkspace(person, TEST_PROJECT)).toMatchObject({ previewUrl: null, previewUpdatedAt: null });
+});

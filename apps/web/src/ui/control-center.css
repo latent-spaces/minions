@@ -25,6 +25,8 @@
 .control-center .settings-group-head { display: flex; align-items: flex-start; gap: 12px; margin: 0; }
 .control-center .settings-group-head h3 { margin: 0; font-size: 18px; font-weight: 650; }
 .control-center .settings-group-head p { margin: 2px 0 0; font-size: 14px; font-weight: 400; color: var(--text-muted); }
+/* A header whose explanation is a ? note: the title and its ? sit centred beside the icon. */
+.control-center .settings-group-head > h3 { display: flex; align-items: center; gap: 4px; align-self: center; }
 .control-center .settings-group-icon { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; background: var(--canvas-soft); color: var(--ink); }
 .control-center .settings-card > .settings-group-head + * { padding-top: 20px; }
 /* Updates settings (owner, 12 November 2026): rows of choices, then the owner's own note. */

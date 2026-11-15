@@ -61,6 +61,7 @@ import { waitingTitle, workerAgentStatus, workerAvatarState } from './ui/agent-r
 import { MyWorkersContext } from './ui/MyWorkerControls';
 import type { CommunityAccount } from './community-api';
 import { useProjectCovers } from './project-covers';
+import { previewIsNew, previewSeenKey, readPreviewSeen, writePreviewSeen } from './preview-seen';
 import { statusTone, toneClass } from './ui/tag-tone';
 
 const REFRESH_MS = 30_000;
@@ -112,7 +113,7 @@ const FIT_SECTIONS: ReadonlySet<Section> = new Set(['preview']);
 // Needs you is reached from the notifications bell.
 const GLOBAL_NAMES: Record<GlobalView, string> = { projects: 'My projects', 'needs-you': 'Needs you' };
 /** Project navigation and own-agent shortcuts; web creation is hidden (OPE-230). */
-type ProjectFacts = { projectId: string; connect: (() => void) | null; addTask?: (() => void) | null; openAgent?: (id: string) => void; myAgents?: { state?: import('@mlswarm/contracts').CommunicationAgentState; provider?: string; id: string; name: string; status: string; detail: string; waiting?: boolean; queued?: boolean }[]; cheatSheet?: { title: string; started: boolean } | null; sections?: { id: Section; current: boolean; locked: boolean; count: number }[] };
+type ProjectFacts = { projectId: string; connect: (() => void) | null; addTask?: (() => void) | null; openAgent?: (id: string) => void; myAgents?: { state?: import('@mlswarm/contracts').CommunicationAgentState; provider?: string; id: string; name: string; status: string; detail: string; waiting?: boolean; queued?: boolean }[]; cheatSheet?: { title: string; started: boolean } | null; sections?: { id: Section; current: boolean; locked: boolean; count: number; fresh?: boolean }[] };
 const executionLabel = (p: ProjectEntry) => personalProjectStatus({ ...p, kind: 'project', proposalStatus: null }).label;
 /** Live: running, with job time left (owner, 13 November 2026). */
 const isLive = (p: ProjectEntry, now = Date.now()) => p.execution === 'active' && typeof p.endsAt === 'number' && p.endsAt > now;
@@ -297,8 +298,8 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   const projectMenu: ProjectMenu | null = openProject && { id:openProject.id, name:openProject.name, status:executionLabel(openProject), private:openProject.private, cover:covers[openProject.id] ?? null, live:isLive(openProject),
     back: { id:'all-projects', label:'All projects', href:formatRoute({ view:'projects' }), onNavigate:() => go({ view:'projects' }) },
     // The project's sections sit in the menu, below New task and above My agents (owner, 11 November 2026).
-    sections: (openFacts?.sections ?? []).map(({ id, current, locked, count }) => { const tab = PROJECT_TABS.find(t => t.id === id)!, Icon = tab.icon, to = projectRoute(openProject.id, id);
-      return { id, label: tab.label, icon: <Icon size={18} aria-hidden="true" />, href: formatRoute(to), current, count, locked: locked ? 'Available when the project starts' : undefined, onNavigate: () => { setNavigationOpen(false); go(to); } }; }),
+    sections: (openFacts?.sections ?? []).map(({ id, current, locked, count, fresh }) => { const tab = PROJECT_TABS.find(t => t.id === id)!, Icon = tab.icon, to = projectRoute(openProject.id, id);
+      return { id, label: tab.label, icon: <Icon size={18} aria-hidden="true" />, href: formatRoute(to), current, count, fresh, locked: locked ? 'Available when the project starts' : undefined, onNavigate: () => { setNavigationOpen(false); go(to); } }; }),
     connect: openFacts?.connect ?? null,
     // New task opens the New task dialog on the project's Tasks page.
     addTask: openFacts?.addTask ? () => { setNavigationOpen(false); openFacts.addTask!(); } : null,
@@ -524,7 +525,17 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   // Detail pages and the sections not in the menu keep their breadcrumb heading; the card's title is then an h2.
   const detail = !allAgents && (!!agent || !['overview', 'preview', 'usage', 'teams', 'conversations', 'control-center'].includes(currentSection));
   // Before a private project starts, only Tasks opens for members other than the owner.
-  const sections = PROJECT_TABS.filter(tab => (tab.id !== 'conversations' || workspace?.role !== 'guest' || workspace.publicationOrigin !== 'owner_conversion') && (tab.id !== 'preview' || workspace?.role !== 'guest') && (tab.id !== 'usage' || workspace?.role !== 'guest') && (tab.id !== 'teams' || nativeTeamsEnabled(workspace?.nativeTeams))).map(tab => ({ id: tab.id, current: currentSection === tab.id && !detail, locked: restricted && tab.id !== 'overview' && tab.id !== 'control-center', count: tab.id === 'conversations' ? openRequests.waiting.length : 0 }));
+  // A New dot beside Preview until this person opens the changed page (owner, 15 November 2026).
+  const previewKey = previewSeenKey(user.uid, projectId);
+  const [previewSeen, setPreviewSeen] = useState(() => ({ key: previewKey, at: readPreviewSeen(previewKey) }));
+  const previewSeenAt = previewSeen.key === previewKey ? previewSeen.at : readPreviewSeen(previewKey);
+  const previewUpdatedAt = workspace?.id === projectId ? workspace.previewUpdatedAt ?? null : null;
+  useEffect(() => {
+    if (currentSection !== 'preview' || !previewIsNew(previewUpdatedAt, previewSeenAt)) return;
+    writePreviewSeen(previewKey, previewUpdatedAt!); setPreviewSeen({ key: previewKey, at: previewUpdatedAt });
+  }, [currentSection, previewUpdatedAt, previewSeenAt, previewKey]);
+  const previewNew = currentSection !== 'preview' && previewIsNew(previewUpdatedAt, previewSeenAt);
+  const sections = PROJECT_TABS.filter(tab => (tab.id !== 'conversations' || workspace?.role !== 'guest' || workspace.publicationOrigin !== 'owner_conversion') && (tab.id !== 'preview' || workspace?.role !== 'guest') && (tab.id !== 'usage' || workspace?.role !== 'guest') && (tab.id !== 'teams' || nativeTeamsEnabled(workspace?.nativeTeams))).map(tab => ({ id: tab.id, current: currentSection === tab.id && !detail, locked: restricted && tab.id !== 'overview' && tab.id !== 'control-center', count: tab.id === 'conversations' ? openRequests.waiting.length : 0, fresh: tab.id === 'preview' && previewNew }));
   const sectionsKey = JSON.stringify(sections);
   useEffect(() => { onFacts({ projectId, connect: null, addTask, openAgent: activateAgent, myAgents, cheatSheet, sections }); }, [onFacts, projectId, myAgentsKey, activateAgent, cheatSheet, addTask, sectionsKey]);
   const owner = workspace?.role === 'owner';
