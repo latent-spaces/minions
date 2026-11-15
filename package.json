@@ -14,7 +14,6 @@
     "typecheck:backend": "npm --prefix apps/server run typecheck --",
     "test:backend": "node tests/run.mjs",
     "test:self-hosted": "node tests/self-hosted.mjs",
-    "test:guards": "npm --prefix tests run test:guards --",
     "test:connector": "npm --prefix packages/agent-cli test",
     "build:contracts": "npm --prefix packages/contracts run build --",
     "prepare": "npm --workspace @mlswarm/contracts run build",

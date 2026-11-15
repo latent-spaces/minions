@@ -16,44 +16,15 @@ const bin = (pkg, name) => {
   return resolve(dirname(manifest), typeof metadata.bin === 'string' ? metadata.bin : metadata.bin[name]);
 };
 const step = (name, args, cwd = '.', needs = []) => ({ name, args, cwd: join(repository, cwd), needs });
-export function validationSteps(profile = 'full', platform = process.platform) {
-  if (!['full', 'portable'].includes(profile)) throw new Error('Use --profile full or --profile portable.');
-  if (profile === 'full' && platform === 'win32') throw new Error('The full profile includes POSIX-only subprocess and release checks. Use --profile portable for native Windows checks; run the full suite on macOS/Linux.');
-  const steps = [
+// The fast core (owner decision, 15 November 2026): typechecks plus a handful of smoke tests per package.
+export function validationSteps() {
+  return [
     step('contracts-build', [bin('typescript', 'tsc'), '-p', 'tsconfig.json'], 'packages/contracts'),
     step('connector-build', ['scripts/build.mjs'], 'packages/agent-cli', ['contracts-build']),
-  ];
-  if (profile === 'portable') return [...steps,
-    step('connector-native', ['--test', '--test-concurrency=1',
-      'test/runtime-store-ownership.test.mjs', 'test/website-origin.test.mjs',
-      'test/mcp-configuration.test.mjs', 'test/local-permissions.test.mjs',
-      'test/client-setup.test.mjs', 'test/skill-bundle.test.mjs', 'test/worker-guidance.test.mjs','test/run-journal.test.mjs',
-      'test/deadline-extension.test.mjs', 'test/runtime-mixed-providers.test.mjs',
-      'test/windows-command.test.mjs', 'test/windows-supervision.test.mjs',
-      'test/native-smoke-options.test.mjs', 'test/native-smoke-coordination.test.mjs', 'test/native-smoke-report.test.mjs',
-      'test/native-smoke-harness.test.mjs',
-      'test/context-measurement.test.mjs', 'test/turn-context.test.mjs', 'test/context-overhead-capture.test.mjs',
-      'test/runtime-owner-participation-controls.test.mjs', 'test/runtime-participation-routing.test.mjs',
-      'test/runtime-installation.test.mjs',
-      'test/deferred-sends.test.mjs', 'test/deferred-send-length.test.mjs',
-      'test/setup-repeat.test.mjs', 'test/setup-hint.test.mjs', 'test/codex-entry.test.mjs',
-      'test/repository-access.test.mjs', 'test/setup-github.test.mjs', 'test/queued-run-tools.test.mjs',
-      // Windows skips the two symlink-only merge-policy cases; ownership tests retain their native gates.
-      'test/codex-merge-policy.test.mjs', 'test/provider-limits.test.mjs',
-      'test/work-controller.test.mjs', 'test/runtime-worker-operations.test.mjs',
-      'test/runtime-participation.test.mjs', 'test/native-task-guidance.test.mjs'], 'packages/agent-cli', ['connector-build']),
-    step('setup-tools', ['--test', 'test/*.test.mjs'], 'tools/setup'),
-    step('tool-safety', ['--test', 'tests/support/api-readiness.test.mjs', 'tests/support/owned-process-tree.test.mjs', 'tests/all.test.mjs']),
-  ];
-  return [...steps,
     step('connector-tests', ['--test', '--test-concurrency=1', 'test/*.test.mjs'], 'packages/agent-cli', ['connector-build']),
-    step('test-guards', ['--test', 'tests/support/*.test.mjs', 'tests/all.test.mjs']),
     step('setup-tools', ['--test', 'test/*.test.mjs'], 'tools/setup'),
-    step('web-tests', ['--import', 'tsx', '--test', 'test/*.test.ts'], 'apps/web', ['contracts-build']),
     step('web-types', [bin('typescript', 'tsc'), '--noEmit'], 'apps/web', ['contracts-build']),
-    step('web-build', [bin('vite', 'vite'), 'build'], 'apps/web', ['contracts-build']),
     step('backend-types', [bin('typescript', 'tsc'), '--noEmit'], 'apps/server', ['contracts-build']),
-    step('backend-build', [bin('typescript', 'tsc'), '-p', 'tsconfig.build.json'], 'apps/server', ['contracts-build']),
     // This launcher creates its own disposable test session and store.
     step('backend-tests', ['tests/run.mjs'], '.', ['connector-build']),
   ];
@@ -109,17 +80,16 @@ export async function runSuites(steps, { logDirectory, env = testEnvironment(), 
 }
 
 async function main() {
-  let profile = 'full'; let logDirectory;
+  let logDirectory;
   const args = process.argv.slice(2);
   while (args.length) {
     const flag = args.shift();
-    if (flag === '--profile' && args.length) profile = args.shift();
-    else if (flag === '--logs' && args.length) logDirectory = resolve(args.shift());
-    else throw new Error('Usage: node tests/all.mjs [--profile full|portable] [--logs directory]');
+    if (flag === '--logs' && args.length) logDirectory = resolve(args.shift());
+    else throw new Error('Usage: node tests/all.mjs [--logs directory]');
   }
-  const steps = validationSteps(profile);
+  const steps = validationSteps();
   logDirectory ??= await mkdtemp(join(tmpdir(), 'mlswarm-validation-'));
-  console.info(`Validation: ${profile}; Node ${process.version}; ${process.platform}; logs: ${logDirectory}`);
+  console.info(`Validation: Node ${process.version}; ${process.platform}; logs: ${logDirectory}`);
   const controller = new AbortController();
   const interrupt = () => controller.abort();
   process.once('SIGINT', interrupt); process.once('SIGTERM', interrupt);

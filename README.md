@@ -131,9 +131,9 @@ dependency folders.
 | `npm run setup` | Build, start the engine and register MyLittleSwarm with your coding agents |
 | `npm run build:web` / `npm run build:backend` | Build the web app / the engine |
 | `npm run typecheck:backend` | Typecheck the engine |
-| `npm run test:backend` | Server and integration tests on a disposable SQLite store with local sign-in |
-| `npm run test:connector` | Connector and worker tests |
-| `npm run test:self-hosted` / `npm run test:setup` / `npm run test:guards` | Engine, setup and environment checks |
+| `npm run test:all` | The fast core: typechecks plus engine, connector and setup smoke tests |
+| `npm run test:backend` / `npm run test:connector` / `npm run test:setup` | One part of the core |
+| `npm run test:self-hosted` | Build the standalone engine and exercise it with fresh data |
 
 Test runners and focused commands are described in [tests](tests/README.md).
 Settings are named `MLSWARM_*`; use `MLSWARM_ENGINE_HOME` and `MLSWARM_ENGINE_PORT`

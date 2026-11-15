@@ -61,12 +61,18 @@ a required guarantee cannot be provided. Review npm/npx command launching and
 quoting, paths with spaces, file URLs, process cleanup and file locking on both
 platforms. A macOS-only test pass is not Windows acceptance.
 
-Add focused regression tests for platform-specific failures, including missing
-APIs in subprocesses and workers when relevant. Run native Windows and macOS
-checks when available; otherwise state precisely what was simulated and what
+Run native Windows and macOS checks when available; otherwise state precisely what was simulated and what
 still needs native verification. Never weaken POSIX security checks to make a
 Windows path pass, or use shared stash/reset operations to reproduce a bug while
 other sessions have work in progress.
+
+## Small, fast tests — owner decision, 15 November 2026
+
+Keep the test suite a small, fast core: typechecks plus a handful of smoke tests per
+package (see [tests](tests/README.md)). `npm run test:all` runs it. Do not add
+regression or coverage tests by default; add one only when it guards something a
+typecheck and the core cannot, and keep it fast. Verify behavior in the actual local
+application. Delete tests for removed behavior rather than adapting them.
 
 ## Batch work and integrate related PRs
 
