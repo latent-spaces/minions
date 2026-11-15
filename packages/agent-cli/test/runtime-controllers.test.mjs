@@ -18,7 +18,7 @@ async function until(read, predicate, label) {
   assert.fail(`Timed out: ${label}`);
 }
 async function setup(t, input, wrap = store => store) {
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-fake-controller-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-fake-controller-'));
   const store = await openRuntimeStore({ directory: join(directory, 'state') });
   const events = join(directory, 'events.jsonl');
   const adapter = { command: process.execPath, args: [fixture], cwd: directory, env: { PATH: process.env.PATH }, initialInput: (mission, steering) => ({ events, steering, ...input?.(mission, steering, directory) }) };
@@ -65,7 +65,7 @@ test('a mission found between turns at startup continues after its leftovers are
 
 test('service SIGKILL cleans native descendants; restart preserves receipts, outcomes and queued steering without a run', async t => {
   const { fork } = await import('node:child_process');
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-controller-crash-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-controller-crash-'));
   const host = fork(fileURLToPath(new URL('./fixtures/runtime-controller-host.mjs', import.meta.url)), [directory], { stdio: ['ignore', 'ignore', 'pipe', 'ipc'] });
   let stderr = ''; host.stderr.on('data', data => { stderr += data; });
   const replies = new Map(); let ready;
@@ -136,7 +136,7 @@ test('an idle worker is woken for one turn two minutes before the job\'s time en
 
 // So the agent asked for the team's regular update has a turn to post it in; an idle project is not woken every interval.
 test('an idle worker is woken once when the next regular update comes due', async t => {
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-fake-controller-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-fake-controller-'));
   const store = await openRuntimeStore({ directory: join(directory, 'state') });
   const fake = createFakeAdapterFactory({ command: process.execPath, args: [fixture], cwd: directory, env: { PATH: process.env.PATH }, initialInput: (_mission, steering) => ({ events: join(directory, 'events.jsonl'), steering }) });
   const adapterFactory = async (...input) => { const real = await fake(...input);

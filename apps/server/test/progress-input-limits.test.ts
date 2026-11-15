@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { PROGRESS_LIMITS } from '@mlswarm/contracts';
+import { PROGRESS_LIMITS } from '@minions/contracts';
 import { PUBLISH_PROGRESS_INPUT } from '../src/projects/progress.js';
 
 const valid = { clientRequestId: 'update-1', body: 'Shipped.', links: [],

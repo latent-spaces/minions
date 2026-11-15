@@ -39,5 +39,5 @@ export async function moderatePublicImage(bytes: Buffer, now: () => number): Pro
 }
 export const currentImageReview = (review: ImageModeration | undefined) => review?.policy === IMAGE_MODERATION_POLICY && /^[a-f0-9]{64}$/.test(review.imageSha256) ? review : null;
 export function assertImageAllowed(review: ImageModeration) {
-  if (review.decision !== 'allowed') throw new Refusal('image_rejected', 'This image didn’t pass the image check. Choose a different image and upload it with a new upload ID. If you think this is a mistake, tell the MyLittleSwarm team.');
+  if (review.decision !== 'allowed') throw new Refusal('image_rejected', 'This image didn’t pass the image check. Choose a different image and upload it with a new upload ID. If you think this is a mistake, tell the Minions team.');
 }

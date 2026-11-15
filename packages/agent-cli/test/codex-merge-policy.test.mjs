@@ -8,7 +8,7 @@ import { createCodexMergePolicy } from '../src/codex-merge-policy.mjs';
 import { agentsMayMerge, codexMergeRules, workerClaudeSettings } from '../runtime/providers.mjs';
 
 function fixture(t) {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'mlswarm-native-rules-'))), folder = join(root, 'checkout with spaces'), stateDir = join(root, 'state');
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'minions-native-rules-'))), folder = join(root, 'checkout with spaces'), stateDir = join(root, 'state');
   mkdirSync(folder); mkdirSync(stateDir, { mode: 0o700 }); execFileSync('git', ['-C', folder, 'init', '--quiet']);
   t.after(() => rmSync(root, { recursive: true, force: true }));
   return { folder, stateDir, policy: createCodexMergePolicy({ folder, stateDir }) };
@@ -31,7 +31,7 @@ test('native rule refresh preserves project config and rules and is excluded fro
   writeFileSync(config, '# Existing project config\n'); writeFileSync(personal, '# Existing native rule\n');
   await f.policy.prepare(codexMergeRules('humans')); assert.match(readFileSync(f.policy.file, 'utf8'), /forbidden/);
   execFileSync('git', ['-C', f.folder, 'add', '--all']);
-  assert.doesNotMatch(execFileSync('git', ['-C', f.folder, 'diff', '--cached', '--name-only'], { encoding: 'utf8' }), /mlswarm-worker-merge/);
+  assert.doesNotMatch(execFileSync('git', ['-C', f.folder, 'diff', '--cached', '--name-only'], { encoding: 'utf8' }), /minions-worker-merge/);
   await f.policy.prepare(codexMergeRules('other_agents')); assert.doesNotMatch(readFileSync(f.policy.file, 'utf8'), /forbidden/);
   await f.policy.cleanup(); assert.equal(existsSync(f.policy.file), false);
   assert.equal(readFileSync(config, 'utf8'), '# Existing project config\n'); assert.equal(readFileSync(personal, 'utf8'), '# Existing native rule\n');
@@ -58,7 +58,7 @@ test('cleanup refuses replaced ancestors and never removes a matching file outsi
   const f=fixture(t);await f.policy.prepare(codexMergeRules('humans'));
   const outside=join(f.stateDir,'moved');renameSync(join(f.folder,'.codex'),outside);symlinkSync(outside,join(f.folder,'.codex'));
   await assert.rejects(f.policy.cleanup(),/could not be installed safely/);
-  assert.equal(existsSync(join(outside,'rules','mlswarm-worker-merge.rules')),true);
+  assert.equal(existsSync(join(outside,'rules','minions-worker-merge.rules')),true);
 });
 test('a non-root work directory is refused before generating any native files',async t=>{
   const f=fixture(t),child=join(f.folder,'subdirectory');mkdirSync(child);

@@ -10,6 +10,10 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## 15 November 2026 — Rename the product to Minions
+
+Owner: rename the package and use Minions everywhere in the project. Product copy uses Minions; packages, commands, skills and identifiers use minions; configuration uses MINIONS_*. The private GitHub repository is latent-spaces/minions, following the owner’s explicit transfer request. Existing private state and worker ownership ledgers remain discoverable under their former paths; no live data is moved by this source change.
+
 ## Needs you becomes a short pinned message in Communication — owner selections, 12 November 2026
 
 The owner found the Needs you screen hard to read, with too many drop-downs, and
@@ -521,7 +525,7 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
 - **Usage keeps less context detail.** Later the same day the owner removed “Supplied
   context by day” and the per-agent context timeline from Usage. “Now · latest turn per
   agent” shows the share of each agent's context window and the window size where
-  reported, and hatches MyLittleSwarm's own setup as Karma42 does. The owner then also
+  reported, and hatches Minions's own setup as Karma42 does. The owner then also
   removed the “Exact values & coverage” section below it, and asked that Claude agents
   report their context window and request input so their share shows too.
 - **Add task above the sections; Assign to as avatars.** The owner then moved Add task
@@ -537,7 +541,7 @@ Source: the owner in chat on 11 November 2026, approving each change one by one,
   this computer still name it; it can go once no saved record or installed connector does.
 - **Open tabs offer Reload after an update.** Each web build writes its id to `version.json`.
   A tab checks it when it regains focus and every five minutes; when a newer build is served it
-  shows "MyLittleSwarm was updated" with a Reload button. It never reloads by itself, so a
+  shows "Minions was updated" with a Reload button. It never reloads by itself, so a
   half-typed task or message is not lost.
 - **Every project tab opens with the same heading.** Tasks, Preview, Communication, Usage,
   Settings and Teams share one 24px heading and an optional one-line intro, 16px below the
@@ -628,7 +632,7 @@ and the “For 5 minutes is Claude's timer” part of
 ## Agents talk to each other at the start of a project — owner decision, 11 November 2026
 
 Source: the owner in chat on 11 November 2026, when four agents started on the
-MyLittleSwarm project: “agetn should be encourage to converse at start of projects”, then
+Minions project: “agetn should be encourage to converse at start of projects”, then
 “it's not a rule but a soft guidance”.
 
 - **Soft guidance in the standing instructions.** `AGENT_PROMPT_V2.md` suggests that,
@@ -663,9 +667,9 @@ options offered the owner chose “Open automatically” and “Remove all three
   page at its loopback address (`Host` and `Origin` checked, at most 30 a minute). There
   is no owner link, no `owner-link` command and no link file.
 - **Screens removed.** Coming soon, the invited sign-in screen, the product tour (“How
-  MyLittleSwarm works”) and Sign out are gone. When the engine cannot open the session
+  Minions works”) and Sign out are gone. When the engine cannot open the session
   the app says so and asks for a reload.
-- **GitHub sign-in mode removed.** `MLSWARM_SIGN_IN`, GitHub OAuth sign-in, its setup
+- **GitHub sign-in mode removed.** `MINIONS_SIGN_IN`, GitHub OAuth sign-in, its setup
   and its docs are removed; the engine always runs with the local owner file. GitHub
   stays the person's own `gh` sign-in for repository work.
 - **Unchanged.** Approving a computer is still the person's own yes in the browser.
@@ -753,8 +757,8 @@ below from the options offered.
 Source: the owner in chat on 10 November 2026, asked why the repository is so big
 (“it should be a very small git”), chose option 1 of three: start a fresh history.
 
-- **New repository.** MyLittleSwarm continues in the private repository
-  `oronanschel/mylittleswarm`, starting from one commit with the files of
+- **New repository.** Minions continues in the private repository
+  `latent-spaces/minions`, starting from one commit with the files of
   `karma42-swarm` `main` at `4d01d97d`. A clone drops from about 357 MB to about 13 MB.
 - **The old repository is the archive.** `oronanschel/karma42-swarm` keeps its full
   history, PRs and branches, and is not changed or deleted. Commit hashes and PR links
@@ -766,37 +770,37 @@ Source: the owner in chat on 10 November 2026, asked why the repository is so bi
   the job-limits work, are brought over as changes on top of this commit when they
   continue.
 
-## Product renamed to MyLittleSwarm — owner decision, 10 November 2026
+## Product renamed to Minions — owner decision, 10 November 2026
 
 Source: the owner in chat on 10 November 2026: “let's also change the name of this
-product we don't keep karma42”, then “Yes, MyLittleSwarm”. Asked “Rename everything,
+product we don't keep karma42”, then “Yes, Minions”. Asked “Rename everything,
 including settings names and folders?”, the owner answered “Yes, everything”, then
 “let's go for all of the above decisions”. For the names underneath, the owner chose
-the short form “mlswarm”. Asked about renaming the GitHub repository: “Not now”.
+the short form “minions”. Asked about renaming the GitHub repository: “Not now”.
 
 What this means:
 
-- **Name.** Everything a person reads says MyLittleSwarm: the website, its page titles
+- **Name.** Everything a person reads says Minions: the website, its page titles
   and wordmark, the connector's messages, the MCP server instructions, the skill and
-  the docs. Names underneath use the short form `mlswarm`.
-- **Settings.** Every `KARMA42_*` setting is now `MLSWARM_*`, for example
-  `MLSWARM_ENGINE_PORT`, `MLSWARM_ENGINE_HOME`, `MLSWARM_SERVICE_HOME`,
-  `MLSWARM_SITE_URL` and `MLSWARM_SELF_HOSTED_ORIGIN`.
-- **Folders.** The connector service and credentials are in `~/.mlswarm/service` and
-  `~/.mlswarm/mcp` (`~/.mlswarm/instances/<id>/…` for an enrolled origin), the engine
-  home is `~/.mlswarm/engine`, and project workspaces are `~/mlswarm/main`,
-  `~/mlswarm/projects/<project>` and `~/mlswarm/instances/<id>`; on Windows the same
+  the docs. Names underneath use the short form `minions`.
+- **Settings.** Every `KARMA42_*` setting is now `MINIONS_*`, for example
+  `MINIONS_ENGINE_PORT`, `MINIONS_ENGINE_HOME`, `MINIONS_SERVICE_HOME`,
+  `MINIONS_SITE_URL` and `MINIONS_SELF_HOSTED_ORIGIN`.
+- **Folders.** The connector service and credentials are in `~/.minions/service` and
+  `~/.minions/mcp` (`~/.minions/instances/<id>/…` for an enrolled origin), the engine
+  home is `~/.minions/engine`, and project workspaces are `~/minions/main`,
+  `~/minions/projects/<project>` and `~/minions/instances/<id>`; on Windows the same
   under `%USERPROFILE%`.
-- **Packages.** The connector package is `mlswarm` (command `mlswarm-agent`), the shared
-  contracts `@mlswarm/contracts`, the server `@mlswarm/server`, the web app
-  `@mlswarm/web`, the test and benchmark workspaces `mlswarm-tests` and
-  `mlswarm-benchmarks`, and the repository root `mlswarm-workspace`.
-- **MCP entry and tools.** Each site's MCP entry is `mlswarm-<8 hex>`, and the MCP
-  servers are `mlswarm-local-runtime` and `mlswarm-project-worker`. The guide tool is
-  `get_mlswarm_guide`; any later tool that names the product uses `mlswarm`.
-- **Skill.** The bundled skill is `mlswarm` (`skills/mlswarm`), installed to
-  `~/.claude/skills/mlswarm` and `~/.agents/skills/mlswarm`.
-- **Internal names** follow: headers (`X-Mlswarm-Profile-Id`), cookies, storage keys,
+- **Packages.** The connector package is `minions` (command `minions-agent`), the shared
+  contracts `@minions/contracts`, the server `@minions/server`, the web app
+  `@minions/web`, the test and benchmark workspaces `minions-tests` and
+  `minions-benchmarks`, and the repository root `minions-workspace`.
+- **MCP entry and tools.** Each site's MCP entry is `minions-<8 hex>`, and the MCP
+  servers are `minions-local-runtime` and `minions-project-worker`. The guide tool is
+  `get_minions_guide`; any later tool that names the product uses `minions`.
+- **Skill.** The bundled skill is `minions` (`skills/minions`), installed to
+  `~/.claude/skills/minions` and `~/.agents/skills/minions`.
+- **Internal names** follow: headers (`X-Minions-Profile-Id`), cookies, storage keys,
   schema tags and temporary-file prefixes.
 - **The repository keeps its name for now.** It stays `oronanschel/karma42-swarm`, and
   links to it stay.

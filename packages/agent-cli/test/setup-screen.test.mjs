@@ -91,7 +91,7 @@ test('GitHub spawn error followed by close cleans up the screen once', async () 
   assert.equal(ok, false); assert.equal(stopped, 1);
 });
 
-test('arbitrary GitHub stderr never becomes an instruction in a MyLittleSwarm chat message', async () => {
+test('arbitrary GitHub stderr never becomes an instruction in a Minions chat message', async () => {
   const messages = [];
   const ok = await signInToGitHub(createChatScreen(value => messages.push(value)), { spawnImpl() {
     const child = Object.assign(new EventEmitter(), { stdout: new EventEmitter(), stderr: new EventEmitter() });

@@ -1,6 +1,6 @@
 import type { SessionUser } from './session-identity';
 import { useCallback } from 'react';
-import type { ProgressScreenshot } from '@mlswarm/contracts';
+import type { ProgressScreenshot } from '@minions/contracts';
 import type { Route } from './route';
 import { ProjectUpdates } from './ui/ProjectProgress';
 import { useProjectProgress } from './useProjectProgress';

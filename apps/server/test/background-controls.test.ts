@@ -102,15 +102,15 @@ test('notifications HTTP is recipient-only, profile-fenced, paged and read-idemp
   for(let i=0;i<22;i++)await notifications(f.owner).doc(i.toString(16).padStart(64,'0')).set({id:i.toString(16).padStart(64,'0'),kind:'agent_moderation',projectId:TEST_PROJECT,projectTitle:'Synthetic',agentId:f.agentId,agentName:'Fox',actorProfileId:f.personIds[1],actorName:'Admin',action:'pause',reason:'Synthetic reason',createdAt:at+i,readAt:null});
   const app=express();app.use('/api/owner',ownerRoutes(()=>at));const server=app.listen(0,'127.0.0.1');await new Promise<void>(resolve=>server.once('listening',resolve));
   const base=`http://127.0.0.1:${(server.address() as {port:number}).port}/api/owner/notifications`,token=await idTokenFor('owner@example.test');
-  const headers={authorization:`Bearer ${token}`,'X-Mlswarm-Profile-Id':f.owner,'content-type':'application/json'};
+  const headers={authorization:`Bearer ${token}`,'X-Minions-Profile-Id':f.owner,'content-type':'application/json'};
   try{
     expect((await fetch(base)).status).toBe(401);
-    expect((await fetch(base,{headers:{...headers,'X-Mlswarm-Profile-Id':f.personIds[1]}})).status).toBe(401);
+    expect((await fetch(base,{headers:{...headers,'X-Minions-Profile-Id':f.personIds[1]}})).status).toBe(401);
     const response=await fetch(base,{headers});expect(response.status).toBe(200);const first=await response.json();expect(first.items).toHaveLength(20);expect(first.next).toBeTruthy();
     const second=await (await fetch(base+'?cursor='+encodeURIComponent(first.next),{headers})).json();expect(second.items).toHaveLength(2);
     const id=first.items[0].id;expect((await fetch(base+'/'+id+'/read',{method:'POST',headers,body:'{}'})).status).toBe(200);
     expect((await fetch(base+'/'+id+'/read',{method:'POST',headers,body:'{}'})).status).toBe(200);
-    const foreign={...headers,authorization:`Bearer ${await idTokenFor('admin@example.test')}`,'X-Mlswarm-Profile-Id':f.personIds[1]};
+    const foreign={...headers,authorization:`Bearer ${await idTokenFor('admin@example.test')}`,'X-Minions-Profile-Id':f.personIds[1]};
     expect((await (await fetch(base,{headers:foreign})).json()).items).toEqual([]);
     expect((await fetch(base+'/'+id+'/read',{method:'POST',headers:foreign,body:'{}'})).status).toBe(404);
   }finally{await new Promise<void>((resolve,reject)=>server.close(e=>e?reject(e):resolve()));}
@@ -123,10 +123,10 @@ test('notifications read-all clears every unread notice for the recipient only, 
   await notifications(f.personIds[1]).doc(notice(255).id).set(notice(255));
   const app=express();app.use('/api/owner',ownerRoutes(()=>at));const server=app.listen(0,'127.0.0.1');await new Promise<void>(resolve=>server.once('listening',resolve));
   const base=`http://127.0.0.1:${(server.address() as {port:number}).port}/api/owner/notifications`,token=await idTokenFor('owner@example.test');
-  const headers={authorization:`Bearer ${token}`,'X-Mlswarm-Profile-Id':f.owner,'content-type':'application/json'};
+  const headers={authorization:`Bearer ${token}`,'X-Minions-Profile-Id':f.owner,'content-type':'application/json'};
   try{
     expect((await fetch(base+'/read-all',{method:'POST',body:'{}',headers:{'content-type':'application/json'}})).status).toBe(401);
-    expect((await fetch(base+'/read-all',{method:'POST',body:'{}',headers:{...headers,'X-Mlswarm-Profile-Id':f.personIds[1]}})).status).toBe(401);
+    expect((await fetch(base+'/read-all',{method:'POST',body:'{}',headers:{...headers,'X-Minions-Profile-Id':f.personIds[1]}})).status).toBe(401);
     expect((await fetch(base+'/read-all',{method:'POST',body:'{"x":1}',headers})).status).toBe(400);
     const first=await fetch(base+'/read-all',{method:'POST',body:'{}',headers});expect(first.status).toBe(200);expect(await first.json()).toEqual({ok:true,marked:25});
     expect(await (await fetch(base+'/read-all',{method:'POST',body:'{}',headers})).json()).toEqual({ok:true,marked:0});

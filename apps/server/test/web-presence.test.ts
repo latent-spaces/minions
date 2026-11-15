@@ -52,9 +52,9 @@ test('HTTP requires a signed-in browser account bound to the same immutable prof
   try {
     expect((await call({})).status).toBe(401);
     expect((await call({ authorization: `Bearer ${token}` })).status).toBe(403);
-    expect((await call({ authorization: `Bearer ${token}`, 'x-mlswarm-profile-id': 'another-account' })).status).toBe(403);
+    expect((await call({ authorization: `Bearer ${token}`, 'x-minions-profile-id': 'another-account' })).status).toBe(403);
     expect((await webPresence.doc(self).get()).exists).toBe(false);
-    const headers = { authorization: `Bearer ${token}`, 'x-mlswarm-profile-id': self };
+    const headers = { authorization: `Bearer ${token}`, 'x-minions-profile-id': self };
     const response = await call(headers); expect(response.status).toBe(200); expect(response.headers.get('cache-control')).toBe('no-store');
     expect((await response.json()).people[self]).toEqual({ online: true, freshUntil: T + 45_000 });
     expect((await call(headers, { profileIds: [], online: true })).status).toBe(400);

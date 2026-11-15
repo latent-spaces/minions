@@ -36,7 +36,7 @@ jobs:
         working-directory: apps/server
       - run: npm --prefix tests run test:guards
       - name: Install browser for image upload acceptance
-        run: npm --workspace @mlswarm/web exec -- playwright install --with-deps chromium
+        run: npm --workspace @minions/web exec -- playwright install --with-deps chromium
       - run: npm run test:backend
       # The test launcher gives each run its own SQLite store; saved data and models stay outside it.
   windows-cutover:

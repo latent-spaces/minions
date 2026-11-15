@@ -18,7 +18,7 @@ test('separate installation setup prints registration instructions without chang
 });
 
 function github(t, keyring = false) {
- const directory=realpathSync(mkdtempSync(join(tmpdir(),'mlswarm-setup-gh-'))), file=join(directory,'hosts.yml');
+ const directory=realpathSync(mkdtempSync(join(tmpdir(),'minions-setup-gh-'))), file=join(directory,'hosts.yml');
  t.after(()=>rmSync(directory,{recursive:true,force:true}));
  let migrated=!keyring;
  if(migrated)writeFileSync(file,'synthetic private config\n',{mode:0o600});
@@ -46,7 +46,7 @@ test('working GitHub alone never claims setup is ready without a connected codin
   const fixture=github(t),messages=[];
   await finishSetup('/tmp/synthetic','https://example.test',()=>{},false,{...fixture,screen:createChatScreen(message=>messages.push(message)),connect:()=>clients});
   assert.match(messages.join('\n'),/Finish connecting a coding agent/);
-  assert.doesNotMatch(messages.join('\n'),/MyLittleSwarm is ready/);
+  assert.doesNotMatch(messages.join('\n'),/Minions is ready/);
  }
 });
 

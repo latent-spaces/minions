@@ -16,7 +16,7 @@ const principal = { site: 'https://synthetic.invalid', ownerId: 'synthetic-owner
 const identity = () => ({ version: 2, incarnation: randomUUID(), pid: process.pid, transport: 'streamable-http', cloudReady: false });
 const record = home => ({ home, url: 'http://127.0.0.1:12345/mcp', token: randomBytes(32).toString('hex'), identity: identity(), principal });
 async function temporary(t) {
-  const home = await mkdtemp(join(tmpdir(), 'mlswarm-runtime-cli-'));
+  const home = await mkdtemp(join(tmpdir(), 'minions-runtime-cli-'));
   t.after(() => rm(home, { recursive: true, force: true }));
   return home;
 }

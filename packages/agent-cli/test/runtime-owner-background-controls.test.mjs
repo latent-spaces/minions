@@ -31,7 +31,7 @@ function mailbox(targets){
 function pump(store,controllers,m){return createOwnerParticipationControls({store,controllers,principal:m.principal,targets:m.targets,ownerClient:m.client,
   participation:{command:()=>assert.fail('Background command is not chat participation')},intervalMs:20,timeoutMs:500});}
 async function setup(t,{holdOutcome=false}={}){
-  const root=await realpath(await mkdtemp(join(tmpdir(),'mlswarm-website-background-'))),fixture=await makeMixedNativeFixtures(root,[['park','claude'],['garden','codex']],label=>[{gate:join(root,`${label}-one`)},{gate:join(root,`${label}-two`)}]);
+  const root=await realpath(await mkdtemp(join(tmpdir(),'minions-website-background-'))),fixture=await makeMixedNativeFixtures(root,[['park','claude'],['garden','codex']],label=>[{gate:join(root,`${label}-one`)},{gate:join(root,`${label}-two`)}]);
   const store=await openRuntimeStore({directory:join(root,'ledger')});
   let releaseOutcome;const held=new Promise(done=>{releaseOutcome=done;});const applied=new Set(),sessions=[],projectPauses=new Map();
   const tracked={...store,async markTurnApplied(input){const result=await store.markTurnApplied(input);applied.add(input.missionId);return result;},async recordTurn(input){if(holdOutcome&&input.missionId===missions[0]?.missionId)await held;return store.recordTurn(input);}};

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { CommunicationAgent } from '@mlswarm/contracts';
+import type { CommunicationAgent } from '@minions/contracts';
 import { ApiError } from '../src/authorized-request';
 import type { CurrentStateAnswer } from '../src/ui/communication-map/current-state-reader';
 import { CURRENT_STATE_CONTINUE_MS, CURRENT_STATE_FAST_POLL_MS, CURRENT_STATE_POLL_MS, accessRefused, createCurrentStateMap,

@@ -168,7 +168,7 @@ export function createParticipationRuntime({ store, principal, resolveBinding, f
         if(receipt.run_id!==record.participationId||receipt.deadline_at!==record.deadlineAt)fail('invalid_reply','Cloud extension acknowledgement does not match the approved window.');
         if(!Number.isSafeInteger(cloudGeneration)||cloudGeneration<1)fail('invalid_reply','The participation has no bound cloud generation.');
       } else {
-        const receipt=await request(binding,'/chat-participations',{client_run_id:record.participationId,runner_version:'mlswarm-participation-v1',approved_at:command.payload.approvedAt,deadline_at:command.payload.deadlineAt},deadline.signal);
+        const receipt=await request(binding,'/chat-participations',{client_run_id:record.participationId,runner_version:'minions-participation-v1',approved_at:command.payload.approvedAt,deadline_at:command.payload.deadlineAt},deadline.signal);
         if(receipt.protocol!==2||receipt.run_id!==record.participationId||!Number.isSafeInteger(receipt.generation)||receipt.generation<1||!Number.isSafeInteger(receipt.poll_seconds)||receipt.poll_seconds<1||receipt.poll_seconds>3600)fail('invalid_reply','Cloud participation acknowledgement does not match its saved intent.');
         cloudGeneration=receipt.generation;
       }
@@ -286,7 +286,7 @@ export function createParticipationRuntime({ store, principal, resolveBinding, f
             value.you.participation.authorization={
               mode:'current_chat',participationId:resolved.participationId,generation:resolved.generation,
               approvedAt:resolved.approvedAt,deadlineAt:resolved.deadlineAt,scope:resolved.scope,
-              instruction:'At the deadline, stop MyLittleSwarm participation. Do not request new work or ask for more time; there is no automatic renewal. Wait for explicit human approval. This does not stop or control the external chat host.',
+              instruction:'At the deadline, stop Minions participation. Do not request new work or ask for more time; there is no automatic renewal. Wait for explicit human approval. This does not stop or control the external chat host.',
             };
             reply.result.content.find(item=>item.type==='text').text=JSON.stringify(value);
             context.verified=true;context.control.news={project:{started:value.project?.started===true}};

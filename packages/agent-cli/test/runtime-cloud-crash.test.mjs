@@ -14,7 +14,7 @@ import { createReportDelivery } from '../src/service/report-delivery.mjs';
 const host = fileURLToPath(new URL('./fixtures/runtime-cloud-crash-host.mjs', import.meta.url));
 
 async function fixture(t) {
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-cloud-crash-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-cloud-crash-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   return directory;
 }

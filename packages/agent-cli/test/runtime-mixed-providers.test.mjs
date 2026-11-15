@@ -30,7 +30,7 @@ async function until(read, predicate, label) {
   assert.fail(`Timed out: ${label}; last value: ${JSON.stringify(value)}`);
 }
 async function setup(t, selections, turns, configure = () => {}) {
-  const root = await realpath(await mkdtemp(join(tmpdir(), 'mlswarm-mixed-native-')));
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'minions-mixed-native-')));
   const fixtures = await makeMixedNativeFixtures(root, selections, turns);
   // Exercise the exact metadata environment before asynchronous controllers:
   // a native Git/config failure must be actionable, not a 45-second timeout.

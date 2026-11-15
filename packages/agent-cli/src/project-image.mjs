@@ -74,7 +74,7 @@ export async function uploadProjectImage(control, input, folder, { fetchImpl = f
     const data = JSON.parse(text);
     if (!response.ok) {
       const code = ['bad_input', 'unauthorized', 'forbidden', 'not_found', 'run_superseded', 'rate_limited', 'intent_conflict', 'image_rejected', 'moderation_unavailable', 'moderation_required'].includes(data?.error) ? data.error : 'upload_unconfirmed';
-      const moderationMessage = code === 'image_rejected' ? 'Public-project image screening refused this image. Choose another image with a new request ID; contact MyLittleSwarm support if this seems incorrect.'
+      const moderationMessage = code === 'image_rejected' ? 'Public-project image screening refused this image. Choose another image with a new request ID; contact Minions support if this seems incorrect.'
         : code === 'moderation_unavailable' ? 'Public-project image screening is temporarily unavailable. Nothing was published. Retry the same image and request ID later, or publish a text-only update.' : null;
       return { error: code, message: code === 'bad_input'
         ? 'The image or request was refused. Use a still PNG/JPEG/WebP up to 2 MiB, 4096 pixels per side and 16 million pixels; optimized output must also fit 2 MiB. Compress or resize if needed. Keep original bytes for retries; use a new request ID when the image changes.'

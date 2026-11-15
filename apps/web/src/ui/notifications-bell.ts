@@ -1,4 +1,4 @@
-import type { ModerationNotification } from '@mlswarm/contracts';
+import type { ModerationNotification } from '@minions/contracts';
 
 // The notifications bell: a Needs you tab (open human requests) and an Updates tab (unread moderation notices).
 // Mentions and joins have no feed yet.

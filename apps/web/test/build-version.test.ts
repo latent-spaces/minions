@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-(globalThis as { __MLSWARM_BUILD__?: string }).__MLSWARM_BUILD__ = 'b1';
+(globalThis as { __MINIONS_BUILD__?: string }).__MINIONS_BUILD__ = 'b1';
 const { newerBuildServed } = await import('../src/build-version');
 
 const served = (body: unknown, ok = true) => async () => new Response(JSON.stringify(body), { status: ok ? 200 : 404 });

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { Transaction } from '../firestore.js';
-import type { ModerationReport } from '@mlswarm/contracts';
+import type { ModerationReport } from '@minions/contracts';
 import { agents, profiles, projectDoc, projectCollection } from '../firestore.js';
 import { membershipDoc } from './access.js';
 import { currentProjectId } from '../firestore.js';

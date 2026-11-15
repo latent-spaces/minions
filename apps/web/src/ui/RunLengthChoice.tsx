@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RUN_LENGTH, validRunMinutes } from '@mlswarm/contracts';
+import { RUN_LENGTH, validRunMinutes } from '@minions/contracts';
 
 // One "How long?" choice for the job: a few clear options, or another length. Nothing is chosen until the person
 // picks; null means no valid length yet.

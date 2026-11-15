@@ -15,7 +15,7 @@ async function port() { const s = portServer(); await new Promise<void>(resolve 
 // Tasks is the project's first tab: it keeps the communication map and the cheat sheet; Updates is the side panel.
 test('actual project Tasks keeps the communication map and cheat sheet and fits desktop and phone widths', async () => {
   await resetEmulator();
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-home-')), apiPort = await port(), webPort = await port();
+  const directory = await mkdtemp(join(tmpdir(), 'minions-home-')), apiPort = await port(), webPort = await port();
   const fixture = await seed({project:{name:'Synthetic Home feed',startsAt:Date.now()-60000},profiles:[{name:'Demo author',email:'author@example.test'}],agents:[{person:0,name:'Demo Fox'},{person:0,name:'Demo Owl'}]});
   await profiles.doc(fixture.personIds[0]).update({onboardingCompletedAt:100});
   const api = spawn(process.execPath, ['--import', 'tsx', 'apps/server/test/api-process.ts'], { cwd: root, stdio: ['ignore', 'pipe', 'pipe'], env: { ...process.env, HOST: '127.0.0.1', PORT: String(apiPort), ADMIN_EMAILS: 'admin@example.test' } });
@@ -30,7 +30,7 @@ test('actual project Tasks keeps the communication map and cheat sheet and fits 
       try { if ((await fetch(`http://127.0.0.1:${apiPort}/api/needs-you`)).status === 401) break; } catch {}
       if (n > 100) throw new Error(apiOutput || 'API did not start'); await new Promise(resolve => setTimeout(resolve, 100));
     }
-    await web.listen(); browser = await chromium.launch({ headless: true, ...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MLSWARM_TEST_BROWSER_EXECUTABLE } : {}) });
+    await web.listen(); browser = await chromium.launch({ headless: true, ...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MINIONS_TEST_BROWSER_EXECUTABLE } : {}) });
     const context = await browser.newContext({viewport:{width:1440,height:1000}});
     await context.route('**/*',(route:any)=>['127.0.0.1','localhost','[::1]'].includes(new URL(route.request().url()).hostname)?route.continue():route.abort());
     const page=await context.newPage(); diagnostic=page;
@@ -47,7 +47,7 @@ test('actual project Tasks keeps the communication map and cheat sheet and fits 
     expect(await page.locator('.k42-communication-timeline').count()).toBe(0);
     await page.getByRole('button',{name:'Cheat sheet',exact:true}).click();
     const sheet=page.getByRole('dialog',{name:'Cheat sheet',exact:true});await sheet.waitFor();
-    const prompt='Preview my MyLittleSwarm project "Synthetic Home feed" locally, automatically pulling the latest code and refreshing the preview.';
+    const prompt='Preview my Minions project "Synthetic Home feed" locally, automatically pulling the latest code and refreshing the preview.';
     await sheet.getByText(prompt,{exact:true}).waitFor();
     await page.evaluate(() => { (window as any).__copied=''; Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async(text:string)=>{(window as any).__copied=text;}}}); });
     await sheet.getByRole('button',{name:'Copy prompt: Preview on my computer',exact:true}).click();

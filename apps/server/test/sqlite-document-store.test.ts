@@ -22,7 +22,7 @@ test('a one-off query get() reports every document as added', async () => {
 });
 
 test('a file-backed store keeps documents across reopen and closes cleanly', async () => {
-  const folder = mkdtempSync(join(tmpdir(), 'mlswarm-sqlite-'));
+  const folder = mkdtempSync(join(tmpdir(), 'minions-sqlite-'));
   try {
     const file = join(folder, 'store.sqlite');
     const first = new SqliteFirestore(file);
@@ -183,7 +183,7 @@ test('string equality and in-lists narrowed in SQL keep exactly the matching doc
 
 // The store's clock resumes from the file, so a system clock that moved backward cannot reorder history.
 test('times after a reopen stay after every persisted time, even if the system clock moved backward', async () => {
-  const folder = mkdtempSync(join(tmpdir(), 'mlswarm-sqlite-clock-'));
+  const folder = mkdtempSync(join(tmpdir(), 'minions-sqlite-clock-'));
   const realNow = Date.now;
   try {
     const file = join(folder, 'store.sqlite');
@@ -205,7 +205,7 @@ test('times after a reopen stay after every persisted time, even if the system c
 });
 
 test('two connections to one file never hand out the same or an earlier update time', async () => {
-  const folder = mkdtempSync(join(tmpdir(), 'mlswarm-sqlite-clock-'));
+  const folder = mkdtempSync(join(tmpdir(), 'minions-sqlite-clock-'));
   const realNow = Date.now;
   try {
     const file = join(folder, 'store.sqlite');
@@ -222,7 +222,7 @@ test('two connections to one file never hand out the same or an earlier update t
 
 // A client may hold any read time as a cursor; after a reopen with the clock moved back, later writes must sort after it.
 test('writes after a reopen sort after every read time handed out before it, without writing the file on every read', async () => {
-  const folder = mkdtempSync(join(tmpdir(), 'mlswarm-sqlite-clock-'));
+  const folder = mkdtempSync(join(tmpdir(), 'minions-sqlite-clock-'));
   const realNow = Date.now;
   try {
     const file = join(folder, 'store.sqlite');
@@ -278,7 +278,7 @@ test('a commit re-runs only the listeners on the documents, collections and grou
 
 // A clean close gives back the unused lease, so restarts don't push times ahead of the system clock; a crash keeps it.
 test('clean reopens resume at the last time handed out, and an unclean stop still resumes past every read time', async () => {
-  const folder = mkdtempSync(join(tmpdir(), 'mlswarm-sqlite-clock-'));
+  const folder = mkdtempSync(join(tmpdir(), 'minions-sqlite-clock-'));
   const realNow = Date.now;
   try {
     const file = join(folder, 'store.sqlite');
@@ -306,7 +306,7 @@ test('clean reopens resume at the last time handed out, and an unclean stop stil
 
 // Each connection leases its own read times: one closing must not lower the bound another's readers hold.
 test('closing one connection never lets a later commit fall behind another live connection\'s read time', async () => {
-  const folder = mkdtempSync(join(tmpdir(), 'mlswarm-sqlite-leases-'));
+  const folder = mkdtempSync(join(tmpdir(), 'minions-sqlite-leases-'));
   const realNow = Date.now;
   try {
     const file = join(folder, 'store.sqlite');
@@ -330,7 +330,7 @@ test('closing one connection never lets a later commit fall behind another live 
 
 // The engine writes through one connection, but a test harness or operator tool may commit beside it.
 test('listeners see commits made by another connection to the same file, and stop watching when unsubscribed', async () => {
-  const folder = mkdtempSync(join(tmpdir(), 'mlswarm-sqlite-external-'));
+  const folder = mkdtempSync(join(tmpdir(), 'minions-sqlite-external-'));
   try {
     const file = join(folder, 'store.sqlite');
     const engine = new SqliteFirestore(file), outside = new SqliteFirestore(file);

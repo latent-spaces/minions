@@ -44,20 +44,20 @@ test('approval pages use native browser opening without shell interpolation on e
 });
 
 test('enrolled origins work across setup, browser, discovery and attribution without rebinding saved installations', async () => {
-  const home = await mkdtemp(join(tmpdir(), 'mlswarm self-host origin-'));
-  const previous = process.env.MLSWARM_SELF_HOSTED_ORIGIN;
-  const previousSite = process.env.MLSWARM_SITE_URL;
+  const home = await mkdtemp(join(tmpdir(), 'minions self-host origin-'));
+  const previous = process.env.MINIONS_SELF_HOSTED_ORIGIN;
+  const previousSite = process.env.MINIONS_SITE_URL;
   const site = 'https://swarm.example:8443';
   try {
-    process.env.MLSWARM_SELF_HOSTED_ORIGIN = site;
-    delete process.env.MLSWARM_SITE_URL;
+    process.env.MINIONS_SELF_HOSTED_ORIGIN = site;
+    delete process.env.MINIONS_SITE_URL;
     assert.equal(ownerOrigin(), site);
     assert.doesNotThrow(() => createDiscovery());
     const installation = await ensureInstallation({ home });
     assert.equal(installation.site, site);
     const configs = ['claude', 'codex', 'other'].map(client => reusableConfiguration({ client, home }));
     const name = configs[0].name;
-    assert.match(name, /^mlswarm-[a-f0-9]{8}$/);
+    assert.match(name, /^minions-[a-f0-9]{8}$/);
     for (const tool of OWNER_TOOLS) assert.ok(`mcp__${name}__${tool.name}`.length <= 64, tool.name);
     for (const config of configs) {
       assert.equal(config.site, site);
@@ -65,7 +65,7 @@ test('enrolled origins work across setup, browser, discovery and attribution wit
       assert.deepEqual(Object.keys(config.generic.mcpServers), [name]);
       assert.ok(config.toml.startsWith(`[mcp_servers.${name}]`));
       const printed = renderReusableConfiguration(config);
-      assert.ok(!printed.includes('replacing only the mlswarm table'));
+      assert.ok(!printed.includes('replacing only the minions table'));
       if (config.client === 'claude') {
         assert.ok(printed.includes(`mcp__${name}`));
         if (config.command) assert.ok(config.command.includes(`'${name}'`));
@@ -85,15 +85,15 @@ test('enrolled origins work across setup, browser, discovery and attribution wit
     assert.ok(!attribution.includes(`${DEFAULT_WEBSITE_ORIGIN}/`));
     await assert.rejects(ensureInstallation({ home, site: DEFAULT_WEBSITE_ORIGIN }), /different website/);
     assert.deepEqual(readInstallation(home), installation);
-    delete process.env.MLSWARM_SELF_HOSTED_ORIGIN;
-    assert.throws(() => readInstallation(home), /requires the MyLittleSwarm website/);
-    process.env.MLSWARM_SELF_HOSTED_ORIGIN = site;
+    delete process.env.MINIONS_SELF_HOSTED_ORIGIN;
+    assert.throws(() => readInstallation(home), /requires the Minions website/);
+    process.env.MINIONS_SELF_HOSTED_ORIGIN = site;
     assert.deepEqual(readInstallation(home), installation);
   } finally {
-    if (previous === undefined) delete process.env.MLSWARM_SELF_HOSTED_ORIGIN;
-    else process.env.MLSWARM_SELF_HOSTED_ORIGIN = previous;
-    if (previousSite === undefined) delete process.env.MLSWARM_SITE_URL;
-    else process.env.MLSWARM_SITE_URL = previousSite;
+    if (previous === undefined) delete process.env.MINIONS_SELF_HOSTED_ORIGIN;
+    else process.env.MINIONS_SELF_HOSTED_ORIGIN = previous;
+    if (previousSite === undefined) delete process.env.MINIONS_SITE_URL;
+    else process.env.MINIONS_SITE_URL = previousSite;
     await rm(home, { recursive: true, force: true });
   }
 });

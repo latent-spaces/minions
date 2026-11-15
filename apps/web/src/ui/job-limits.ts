@@ -1,4 +1,4 @@
-import type { ProjectWorkersView } from '@mlswarm/contracts';
+import type { ProjectWorkersView } from '@minions/contracts';
 import { timeLeft } from '../observation-time';
 
 // Pure helpers for the job bar above My agents: the job's end time and its token cap (decision 10 November 2026).

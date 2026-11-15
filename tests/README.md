@@ -4,7 +4,7 @@ After root `npm ci`, use Node.js 24+:
 
 ```sh
 npm run test:guards
-npm --workspace @mlswarm/web exec -- playwright install --with-deps chromium
+npm --workspace @minions/web exec -- playwright install --with-deps chromium
 npm run test:backend
 # Selectors are relative to apps/server, the Vitest configuration owner:
 node tests/run.mjs ../../tests/integration/web-route.test.ts
@@ -23,10 +23,10 @@ Tests sign in with server sessions issued for synthetic GitHub accounts; image
 screening is a fake moderator, and non-loopback browser requests are blocked. Install
 Chromium with the command above (also done in CI); no personal browser profile or
 model is used. Alternate local browser locations can be supplied as
-`MLSWARM_TEST_BROWSER_EXECUTABLE` / `MLSWARM_TEST_BROWSER`.
+`MINIONS_TEST_BROWSER_EXECUTABLE` / `MINIONS_TEST_BROWSER`.
 
 Reset helpers require a matching disposable session (`NODE_ENV=test`, a
-`MLSWARM_TEST_SESSION` name and no `MLSWARM_ENGINE`) and clear only that session's own
+`MINIONS_TEST_SESSION` name and no `MINIONS_ENGINE`) and clear only that session's own
 store. Bare Vitest without a valid disposable environment cannot reset records.
 
 | Owner | Cases and runner |

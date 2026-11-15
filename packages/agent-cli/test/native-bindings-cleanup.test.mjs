@@ -9,7 +9,7 @@ import { createNativeAdapterFactory } from '../src/service/native-bindings.mjs';
 import { inspectWorkerCheckout } from '../src/checkout-ownership.mjs';
 
 for (const failure of ['sweep', 'revoke']) test(`mission release retains its checkout after ${failure} uncertainty and allows exact cleanup retry (no models)`, async () => {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'mlswarm-cleanup-binding-')));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'minions-cleanup-binding-')));
   let blocked = true, adapter, revocations = 0, sweeps = 0;
   try {
     const fixtures = await makeMixedNativeFixtures(root, [['garden', 'claude']]);
@@ -54,7 +54,7 @@ test('service death between turns preserves the exact checkout claim while detac
   const { once } = await import('node:events');
   const { readFile } = await import('node:fs/promises');
   const { createLocalWorkerAdapter } = await import('../src/native-worker-adapter.mjs');
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'mlswarm-between-turn-crash-')));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'minions-between-turn-crash-')));
   let child, serverPid;
   const unrelated = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { detached: true, stdio: 'ignore' }); unrelated.unref();
   const alive = pid => { try { process.kill(pid, 0); return true; } catch (error) { if (error.code === 'ESRCH') return false; throw error; } };
@@ -95,7 +95,7 @@ test('service death between turns preserves the exact checkout claim while detac
 });
 
 test('native binding joins measured prompt sizes with facade counters and closes measurement on failure', async () => {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'mlswarm-context-binding-')));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'minions-context-binding-')));
   let adapter, begin = 0, end = 0, broken = false;
   try {
     const fixtures = await makeMixedNativeFixtures(root, [['garden', 'claude']]);
@@ -112,7 +112,7 @@ test('native binding joins measured prompt sizes with facade counters and closes
     const mission = {target:binding.target,missionId:randomUUID(),generation:1,execution:{provider:'claude',model:null},scope:'Synthetic context'};
     adapter = await createNativeAdapterFactory(fixtures)(mission);
     const result = await adapter.run({});
-    assert.deepEqual(result.usage.context, {instructionBytes:12,turnPromptBytes:34,catalogRequests:0,catalogBytes:0,tools:[],scope:'mlswarm-supplied',coverage:'partial'});
+    assert.deepEqual(result.usage.context, {instructionBytes:12,turnPromptBytes:34,catalogRequests:0,catalogBytes:0,tools:[],scope:'minions-supplied',coverage:'partial'});
     broken = true;
     await assert.rejects(adapter.run({}), /Synthetic native failure/);
     assert.equal(begin,2); assert.equal(end,2);

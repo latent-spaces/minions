@@ -44,7 +44,7 @@ test('real Git obtains credentials from gh without preexisting global Git config
   const {execFile}=await import('node:child_process');
   const {mkdtemp,mkdir,writeFile,rm}=await import('node:fs/promises');
   const {join}=await import('node:path');const {tmpdir}=await import('node:os');
-  const root=await mkdtemp(join(tmpdir(),'mlswarm-git-credential-'));
+  const root=await mkdtemp(join(tmpdir(),'minions-git-credential-'));
   t.after(()=>rm(root,{recursive:true,force:true}));
   await mkdir(join(root,'home'));await mkdir(join(root,'bin'));
   await writeFile(join(root,'bin','gh'),'#!/bin/sh\n[ "$1 $2" = "auth git-credential" ] || exit 1\nprintf "username=synthetic\\npassword=synthetic-secret\\n"\n',{mode:0o755});

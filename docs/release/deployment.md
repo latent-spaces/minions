@@ -1,6 +1,6 @@
 # Release guide
 
-This repository no longer deploys to a live site ([Disconnect from the live site](../decisions.md#disconnect-from-the-live-site--owner-decision-10-november-2026)). MyLittleSwarm runs as a local engine: [the engine instructions](../self-hosted-engine.md) and [`npm run setup`](../../tools/setup/README.md) start it and [the connector README](../../packages/agent-cli/README.md) covers connector installation and work modes. `karma42.ai` keeps running the code it was last deployed with; the history below records those earlier releases, made while the product was called Karma42.
+This repository no longer deploys to a live site ([Disconnect from the live site](../decisions.md#disconnect-from-the-live-site--owner-decision-10-november-2026)). Minions runs as a local engine: [the engine instructions](../self-hosted-engine.md) and [`npm run setup`](../../tools/setup/README.md) start it and [the connector README](../../packages/agent-cli/README.md) covers connector installation and work modes. `karma42.ai` keeps running the code it was last deployed with; the history below records those earlier releases, made while the product was called Karma42.
 
 ## Updating a computer
 

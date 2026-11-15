@@ -46,7 +46,7 @@ test('personal archive changes only the viewer directory/shortcuts; access, work
 test('HTTP archive requires the original signed-in profile and refuses foreign, removed and caller-selected identities', async () => {
   const { alice, bob } = await fixture(), token = await idTokenFor('alice@example.test');
   const call = (body: object, selected?: string, path = TEST_PROJECT) => fetch(`${base}/${path}/personal-archive`, { method: 'POST', headers: {
-    authorization: `Bearer ${token}`, 'content-type': 'application/json', ...(selected ? { 'X-Mlswarm-Profile-Id': selected } : {}),
+    authorization: `Bearer ${token}`, 'content-type': 'application/json', ...(selected ? { 'X-Minions-Profile-Id': selected } : {}),
   }, body: JSON.stringify(body) });
   expect((await call(input())).status).toBe(401);
   expect((await call(input(), bob.id)).status).toBe(401);

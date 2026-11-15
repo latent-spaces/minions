@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from 'vitest';
-import type { ParticipationControlView } from '@mlswarm/contracts';
+import type { ParticipationControlView } from '@minions/contracts';
 const webRequire = createRequire(new URL('../../apps/web/package.json', import.meta.url));
 const pid = 'a'.repeat(64), oldId = '11111111-1111-4111-8111-111111111111';
 const at = 1792224000000;
@@ -11,7 +11,7 @@ const participation = (extra: Partial<ParticipationControlView> = {}): Participa
 });
 
 test('real website hook retains exact retries, never auto-resends, and End bypasses a hung Extend without models', async () => {
-  const { createServer } = webRequire('vite'), { chromium } = webRequire(process.env.MLSWARM_TEST_PLAYWRIGHT ?? 'playwright');
+  const { createServer } = webRequire('vite'), { chromium } = webRequire(process.env.MINIONS_TEST_PLAYWRIGHT ?? 'playwright');
   const root = fileURLToPath(new URL('../../apps/web', import.meta.url));
   const apiPath = fileURLToPath(new URL('../../apps/web/src/api.ts', import.meta.url));
   const html = `<!doctype html><html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body>
@@ -41,7 +41,7 @@ test('real website hook retains exact retries, never auto-resends, and End bypas
   });
   let browser: any;
   try {
-    await vite.listen(); browser = await chromium.launch({ headless: true, ...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MLSWARM_TEST_BROWSER_EXECUTABLE } : {}) });
+    await vite.listen(); browser = await chromium.launch({ headless: true, ...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MINIONS_TEST_BROWSER_EXECUTABLE } : {}) });
     const page = await browser.newPage({ viewport: {width: 1280, height: 900} });
     await page.route('**/*', (route: any) => ['127.0.0.1', 'localhost'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
     const active = participation({ approvedAt: Date.now(), deadlineAt: Date.now() + 1800000, updatedAt: Date.now() });

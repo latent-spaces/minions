@@ -47,7 +47,7 @@ async function until(predicate: () => boolean) { for (let i = 0; i < 100; i++) {
 test('stream requires a human account, exact project membership and valid scope', async () => {
   const f = await fixture();
   expect((await fetch(f.base)).status).toBe(401);
-  expect((await fetch(f.base, { headers: { authorization: `Bearer ${f.token}`, 'X-Mlswarm-Profile-Id': f.personIds[1] } })).status).toBe(401);
+  expect((await fetch(f.base, { headers: { authorization: `Bearer ${f.token}`, 'X-Minions-Profile-Id': f.personIds[1] } })).status).toBe(401);
   expect((await f.open('invalid')).status).toBe(400);
   expect((await f.open('a'.repeat(64))).status).toBe(401);
 });

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
 import type { SessionUser } from '../session-identity';
-import type { ProjectWorkersView } from '@mlswarm/contracts';
+import type { ProjectWorkersView } from '@minions/contracts';
 import { ApiError, session as signedIn, projects } from '../api';
 import { useChatParticipationControls } from './ChatParticipationControls';
 import { useBackgroundWorkerControls } from './BackgroundWorkerControls';

@@ -27,7 +27,7 @@ test('connector mask subtracts overlapping avatars at normal and high pixel dens
  const server=await createServer({root,configFile:false,server:{host:'127.0.0.1',port:0},plugins:[{name:'occlusion-fixture',configureServer(vite:any){vite.middlewares.use('/__occlusion.html',(_req:any,res:any)=>{void vite.transformIndexHtml('/__occlusion.html',html).then((body:string)=>{res.setHeader('Content-Type','text/html');res.end(body);});});}}]});
  let browser:any;
  try{
-  await server.listen();browser=await chromium.launch({headless:true,...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MLSWARM_TEST_BROWSER_EXECUTABLE}:{})});
+  await server.listen();browser=await chromium.launch({headless:true,...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MINIONS_TEST_BROWSER_EXECUTABLE}:{})});
   const page=await browser.newPage();const errors:string[]=[];page.on('pageerror',(error:Error)=>errors.push(error.message));
   await page.goto(`http://127.0.0.1:${(server.httpServer!.address() as {port:number}).port}/__occlusion.html`);
   await page.waitForFunction(()=>document.querySelector('#result')?.textContent?.startsWith('['));

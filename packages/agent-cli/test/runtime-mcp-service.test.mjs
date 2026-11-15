@@ -33,7 +33,7 @@ const call = async (client, name, args) => {
 };
 
 async function fixture(t, wrap = value => value) {
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-runtime-mcp-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-runtime-mcp-'));
   const events = join(directory, 'events.jsonl'), gate = join(directory, 'gate');
   const store = await openRuntimeStore({ directory });
   const controllers = createRuntimeControllers({ store, adapterFactory: createFakeAdapterFactory({

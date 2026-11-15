@@ -85,7 +85,7 @@ export function projectManagementRoutes(now: () => number) {
   const id = (req: Request) => { if (!validProjectId(req.params.id)) throw new Refusal('bad_input', 'Choose a project from your project list.'); return req.params.id; };
   const privatePerson = (req: Request, res: Response) => {
     const person = res.locals.operator;
-    if (req.headers['x-mlswarm-profile-id'] !== person.id) throw new Refusal('unauthorized', 'You’re now signed in to a different MyLittleSwarm account. Reload the page, then try again.');
+    if (req.headers['x-minions-profile-id'] !== person.id) throw new Refusal('unauthorized', 'You’re now signed in to a different Minions account. Reload the page, then try again.');
     return person;
   };
   router.get('/:id/native-task-settings', (req, res) => answer(res, () => inProject(id(req), () => readNativeTaskSettings(res.locals.operator.id))));

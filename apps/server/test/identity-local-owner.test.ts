@@ -37,7 +37,7 @@ test('a forged, altered, foreign or expired token is refused', async () => {
   for (const bad of [`${prefix}.${forged}.${mac}`, `${prefix}.${payload}.${mac}x`, `${token}.extra`, other, 'not-a-token', ''])
     expect(await local.verifySession(bad)).toBeNull();
   // Reloading the local app opens a new owner session.
-  await expect(signInFromIdToken(other)).rejects.toMatchObject({ code: 'unauthorized', message: 'Reload MyLittleSwarm on this computer.' });
+  await expect(signInFromIdToken(other)).rejects.toMatchObject({ code: 'unauthorized', message: 'Reload Minions on this computer.' });
   clock += 12 * 60 * 60_000;
   expect(await local.verifySession(token)).toBeNull();
 });
@@ -77,7 +77,7 @@ test('only the installed local owner provider vouches for the owner email', asyn
   const impostor: IdentityProvider = { account: async () => null, exportAccount: async () => null,
     verifySession: async () => ({ subject: 'x', signInProvider: 'local-owner', authTime: 1, name: null, email: 'ada@example.test', emailVerified: true, githubId: null }) };
   setIdentityProvider(impostor);
-  await expect(signInFromIdToken('anything')).rejects.toMatchObject({ code: 'unauthorized', message: 'Reload MyLittleSwarm on this computer.' });
+  await expect(signInFromIdToken('anything')).rejects.toMatchObject({ code: 'unauthorized', message: 'Reload Minions on this computer.' });
 });
 
 test('the export contains only the owner account', async () => {

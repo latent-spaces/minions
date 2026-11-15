@@ -36,11 +36,11 @@ test('health reports this replica\'s request-state bounds without identities', a
   expect(Object.keys(health.replica.fanoutChecks).sort()).toEqual(['checks', 'emptyChecks', 'failedChecks', 'inFlight', 'projects']);
 });
 test('the health environment names the self-hosted engine or a test session', () => {
-  expect(environmentLabel({ MLSWARM_ENGINE: 'self-hosted', NODE_ENV: 'production' })).toBe('self-hosted');
-  expect(environmentLabel({ NODE_ENV: 'test', MLSWARM_TEST_SESSION: 'mlswarm-tests-0123456789ab' })).toBe('test');
+  expect(environmentLabel({ MINIONS_ENGINE: 'self-hosted', NODE_ENV: 'production' })).toBe('self-hosted');
+  expect(environmentLabel({ NODE_ENV: 'test', MINIONS_TEST_SESSION: 'minions-tests-0123456789ab' })).toBe('test');
   expect(environmentLabel({})).toBe('unconfigured');
   // An ambiguous engine setting is not claimed as self-hosted.
-  expect(environmentLabel({ MLSWARM_ENGINE: 'Self-Hosted' })).toBe('unconfigured');
+  expect(environmentLabel({ MINIONS_ENGINE: 'Self-Hosted' })).toBe('unconfigured');
 });
 test('computer pages include expired and revoked approvals, redact credentials and isolate users', async () => {
   const records = collection('computerConnections');

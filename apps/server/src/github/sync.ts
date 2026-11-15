@@ -31,7 +31,7 @@ export async function reconcileRepository(projectId: string, resource: GitHubRes
       const [project, current, contextDoc] = await Promise.all([tx.get(projectDoc()), tx.get(syncState(resource)), tx.get(githubContext())]);
       if (!runtimeOf(project.data())) throw new Refusal('not_found', 'This project has no GitHub repository yet. Ask the owner to add one in Settings.');
       const repoUrl = githubNumberIdentity(runtimeOf(project.data())!.repoUrl, 1).repoUrl, at = Date.now(), context = contextDoc.data();
-      if (context?.repoUrl === repoUrl && context.repositoryId !== binding.repositoryId) throw new Refusal('forbidden', 'The project’s GitHub repository changed. Ask the MyLittleSwarm team to reconnect it.');
+      if (context?.repoUrl === repoUrl && context.repositoryId !== binding.repositoryId) throw new Refusal('forbidden', 'The project’s GitHub repository changed. Ask the Minions team to reconnect it.');
       const stored = current.data();
       const prior = stored?.repoUrl === repoUrl && stored.repositoryId === binding.repositoryId ? stored : undefined;
       if (prior?.blocked) return { outcome: 'blocked' as const };
@@ -39,7 +39,7 @@ export async function reconcileRepository(projectId: string, resource: GitHubRes
       const state: GitHubSync = prior ?? { repoUrl, repositoryId: binding.repositoryId, generation: 0, leaseUntil: 0, readyAt: at,
         blocked: false, page: 1, since: null, cycleStartedAt: null, cycleWatermarkAt: null, cycleClockKnown: true, lastPassAt: null, lastFullPassAt: null, passes: 0,
         consecutiveFailures: 0, lastFailure: null, invalidResponses: 0, pages: 0, apiRequests: 0, responseBytes: 0, objectsObserved: 0 };
-      if (!Number.isSafeInteger(state.generation) || state.generation < 0 || state.generation >= Number.MAX_SAFE_INTEGER) throw new Refusal('intent_conflict', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+      if (!Number.isSafeInteger(state.generation) || state.generation < 0 || state.generation >= Number.MAX_SAFE_INTEGER) throw new Refusal('intent_conflict', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
       const newCycle = state.cycleStartedAt === null;
       const since = resource !== 'issues' ? null : newCycle && (state.lastFullPassAt === null || at - state.lastFullPassAt >= FULL_INTERVAL_MS) ? null : state.since;
       const lease = { ...state, since, cycleStartedAt: state.cycleStartedAt ?? at,

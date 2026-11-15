@@ -4,7 +4,7 @@ import type { Server } from 'node:http';
 import { afterAll, beforeAll, beforeEach, expect, test } from 'vitest';
 import { db, inProject, profiles } from '../src/firestore.js';
 import { journeyId, projectJourneys, recordProjectVisit } from '../src/onboarding/journeys.js';
-import { onboardingDistribution as distribution } from '@mlswarm/contracts';
+import { onboardingDistribution as distribution } from '@minions/contracts';
 import { readOnboardingTimings } from '../src/platform/onboarding.js';
 import { platformRoutes } from '../src/platform/routes.js';
 import { projectManagementRoutes } from '../src/projects/routes.js';
@@ -101,10 +101,10 @@ beforeAll(async () => { const app = express(); app.use('/owner', ownerRoutes(now
 afterAll(async () => { await new Promise<void>(r => server.close(() => r())); });
 test('visit endpoint is profile-fenced, membership checked, no-store, and never counts as human action', async () => {
   const id = await project(), f = await invited(id); await f.accept(); const token = await idTokenFor(f.person.email);
-  const headers = { authorization: `Bearer ${token}`, 'x-mlswarm-profile-id': f.person.id, 'content-type': 'application/json' };
+  const headers = { authorization: `Bearer ${token}`, 'x-minions-profile-id': f.person.id, 'content-type': 'application/json' };
   const visit = (h = headers) => fetch(`${base}/projects/${id}/visit`, { method: 'POST', headers: h, body: '{}' });
   const result = await visit(); expect(result.status).toBe(200); expect(result.headers.get('cache-control')).toBe('no-store');
-  expect((await visit({ ...headers, 'x-mlswarm-profile-id': 'other' })).status).toBe(401);
+  expect((await visit({ ...headers, 'x-minions-profile-id': 'other' })).status).toBe(401);
   await membershipDoc(id, f.person.id).update({ status: 'left' }); expect((await visit()).status).toBe(401);
   const journey = (await projectJourneys.doc(journeyId(f.person.id, id)).get()).data()!; expect(journey.humanActivity.firstAt).toBeNull(); expect(journey.milestones.firstVisit).toBe(at);
 });

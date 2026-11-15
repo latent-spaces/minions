@@ -6,7 +6,7 @@ function clean(value, label) {
 }
 export function projectIdentity({ projectUrl, repo = 'https://github.com/placeholder/project', folder }) {
   let url;
-  try { url = new URL(clean(projectUrl, 'project URL')); } catch { throw new Error('Use a MyLittleSwarm project service URL.'); }
+  try { url = new URL(clean(projectUrl, 'project URL')); } catch { throw new Error('Use a Minions project service URL.'); }
   if (!['https:', 'http:'].includes(url.protocol) || (url.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(url.hostname)) || url.username || url.password || url.search || url.hash || !/^\/p\/[a-f0-9]{64}\/?$/.test(url.pathname)) throw new Error('Use an HTTPS project service URL ending in /p/PROJECT_ID, without credentials or query parameters.');
   clean(repo, 'GitHub repository URL');
   const repository = githubRepositoryUrl(repo);

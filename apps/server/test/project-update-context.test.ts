@@ -56,11 +56,11 @@ test('agents receive the owner\'s update settings and one shared reminder at the
   const amber = await connect(f.agents[0].token), basil = await connect(f.agents[1].token);
   const project = (await amber('get_project')).value;
   expect(project.tasks.enabled).toBe(true);
-  expect(project.projectUpdates).toMatchObject({ guide: 'get_mlswarm_guide updates-and-help',
+  expect(project.projectUpdates).toMatchObject({ guide: 'get_minions_guide updates-and-help',
     everyMinutes: 5, topics: ['results', 'blockers', 'decisions', 'summaries'], slides: true, maxSlides: 5, lastPublishedAt: null, due: true });
   expect(project.projectUpdates.writingGuidance).toBeTruthy();
   expect(project.projectUpdates).not.toHaveProperty('responsibility');
-  const guide = readFileSync(new URL('../../../packages/agent-cli/skills/mlswarm/references/updates-and-help.md', import.meta.url), 'utf8').replace(/\s+/g, ' ');
+  const guide = readFileSync(new URL('../../../packages/agent-cli/skills/minions/references/updates-and-help.md', import.meta.url), 'utf8').replace(/\s+/g, ' ');
   for (const phrase of ['With Tasks on, base updates on task results', 'A post does not update or complete a task', 'at most 60 characters', 'at most 140 characters', 'about every `everyMinutes` minutes']) expect(guide).toContain(phrase);
   const input = { screenshot: await seedProgressImage('agent:' + f.agents[0].agentId), clientRequestId: 'first', title: 'Park paths load', body: 'Local checks passed; there is no deployed preview yet.', links: [] };
   expect((await amber('publish_project_update', input)).error).toBe(false);

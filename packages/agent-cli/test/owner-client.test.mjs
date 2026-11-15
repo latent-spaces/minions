@@ -47,7 +47,7 @@ test('owner secrets are private, durable before contact, and absent from respons
   assert.equal((await f.client.finish()).approval_url,pending.approval_url);
   assert.equal(JSON.parse(f.requests[1].body).requestId,original.requestId);
   assert.ok(!JSON.stringify(pending).includes(original.pollingSecret));assert.ok(!pending.approval_url.includes(original.pollingSecret));
-  await assert.rejects(f.client.operation('list_my_projects',{}),/not approved for MyLittleSwarm/);
+  await assert.rejects(f.client.operation('list_my_projects',{}),/not approved for Minions/);
   await f.client.finish();const poll=f.requests.at(-1);assert.equal(poll.headers.Authorization,`Bearer ${original.pollingSecret}`);assert.ok(!poll.url.includes(original.pollingSecret));
   f.approve();const account=await f.client.finish();assert.equal(account.status,'approved');assert.equal(account.account_name,'Owner');
   const saved=JSON.parse(readFileSync(join(f.home,'owners',digest(new URL(site).origin),'owner.json')));
@@ -68,7 +68,7 @@ test('owner mutations require explicit approval, revision and request identity',
   for(const args of [{project_id:P,archived:true,expected_revision:0,client_request_id:'archive'},{project_id:P,archived:'yes',approved:true,expected_revision:0,client_request_id:'archive'},{project_id:P,archived:true,approved:true,client_request_id:'archive'}])await assert.rejects(f.client.operation('archive_my_project',args));assert.equal(f.requests.length,before);
   await f.client.operation('archive_my_project',{project_id:P,archived:true,approved:true,expected_revision:0,client_request_id:'archive'});
   assert.ok(f.requests.at(-1).url.endsWith(`/projects/${P}/personal-archive`));assert.deepEqual(JSON.parse(f.requests.at(-1).body),{expected_revision:0,client_request_id:'archive',archived:true,approved:true});
-  await f.client.operation('end_computer_approval',{});await assert.rejects(f.client.operation('list_my_projects',{}),/not approved for MyLittleSwarm/);
+  await f.client.operation('end_computer_approval',{});await assert.rejects(f.client.operation('list_my_projects',{}),/not approved for Minions/);
  }finally{f.close();}
 });
 test('owner client rejects credential destinations outside trusted origins and redirects',async()=>{
@@ -101,7 +101,7 @@ test('project lifecycle controls require approval and send exact action, revisio
    assert.equal(f.requests.length,count);
    await f.client.operation('control_project',args);
    assert.ok(f.requests.at(-1).url.endsWith('/projects/'+P+'/control'));
-   assert.equal(f.requests.at(-1).headers['X-Mlswarm-Profile-Id'],'owner');
+   assert.equal(f.requests.at(-1).headers['X-Minions-Profile-Id'],'owner');
    assert.deepEqual(JSON.parse(f.requests.at(-1).body),{expected_revision:3,client_request_id:args.client_request_id,action,approved:true});
   }
  }finally{f.close();}
@@ -288,5 +288,18 @@ test('private-to-public conversion needs exact disclosure consent and preserves 
   assert.equal(f.requests.at(-1).method,'POST');
   const {project_id,...body}=args;assert.deepEqual(JSON.parse(f.requests.at(-1).body),body);
   assert.equal(OWNER_TOOLS.find(x=>x.name==='make_project_public').annotations.destructiveHint,true);
+ }finally{f.close();}
+});
+
+test('the Minions rename retains approval from the previous saved owner schema', async () => {
+ const f=fixture();try{
+  await f.client.connect();f.approve();await f.client.finish();
+  const file=join(f.home,'owners',digest(new URL(site).origin),'owner.json');
+  const original=JSON.parse(readFileSync(file));
+  writeFileSync(file,JSON.stringify({...original,schema:'mlswarm-owner-1'}));
+  assert.equal((await f.client.connect()).status,'approved');
+  await f.client.operation('list_my_projects',{});
+  assert.equal(f.requests.at(-1).headers.Authorization,`Bearer ${original.token}`);
+  assert.equal(JSON.parse(readFileSync(file)).token,original.token);
  }finally{f.close();}
 });

@@ -18,7 +18,7 @@ const tools = ['get_agent_run_log', 'get_agent_run_diagnostics'];
 const value = response => JSON.parse(response.content.find(item => item.type === 'text').text);
 
 async function fixture(t) {
-  const root = await realpath(await mkdtemp(join(tmpdir(), 'mlswarm-evidence-audit-')));
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'minions-evidence-audit-')));
   const registryRoot = join(root, 'ownership');
   await mkdir(registryRoot, { mode: 0o700 });
   const store = await openRuntimeStore({ directory: join(root, 'ledger') });

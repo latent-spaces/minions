@@ -16,7 +16,7 @@ beforeAll(async () => { const app = express(); app.use('/api/owner', ownerRoutes
 afterAll(async () => { await new Promise<void>(r => server.close(() => r())); });
 beforeEach(resetEmulator);
 async function http(path: string, token: string, body?: object, profileId?: string) {
-  const res = await fetch(base + path, { method: body ? 'POST' : 'GET', headers: { authorization: `Bearer ${token}`, ...(profileId ? { 'X-Mlswarm-Profile-Id': profileId } : {}), 'content-type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
+  const res = await fetch(base + path, { method: body ? 'POST' : 'GET', headers: { authorization: `Bearer ${token}`, ...(profileId ? { 'X-Minions-Profile-Id': profileId } : {}), 'content-type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
   return { status: res.status, body: await res.json() };
 }
 async function computer(email: string) {

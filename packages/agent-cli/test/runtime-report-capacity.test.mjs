@@ -13,7 +13,7 @@ const command = (agentId = target.agentId) => ({ version: 2, kind: 'start', oper
     execution: { provider: 'codex', model: null } } });
 
 async function fixture(t, state, count, spread = false) {
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-report-capacity-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-report-capacity-'));
   let store = await openRuntimeStore({ directory });
   t.after(async () => { await store.close(); await rm(directory, { recursive: true, force: true }); });
   const start = command();

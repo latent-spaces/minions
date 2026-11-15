@@ -1,5 +1,5 @@
 import { repositoryWaitMessage } from '../repository-readiness';
-import type { AgentObservation, BackgroundControlInput, BackgroundControlView, RepositoryReadiness, StartWait, WorkerSteeringSession } from '@mlswarm/contracts';
+import type { AgentObservation, BackgroundControlInput, BackgroundControlView, RepositoryReadiness, StartWait, WorkerSteeringSession } from '@minions/contracts';
 
 // The owner's agents grouped by who needs them, who is busy and who is idle (owner feedback, 20 October 2026).
 export const AGENT_GROUPS = ['Needs you', 'Working', 'Idle', 'Paused or starting', 'Check status', 'Ended'] as const;
@@ -45,7 +45,7 @@ export function tokenUsageNote(s: TokenSession | null | undefined) {
 /** What a run that has not started yet is waiting for; also shown for a new agent queued from the website. */
 export const waitingTitle = (waitingFor?: StartWait | null, repository?:RepositoryReadiness|null) => waitingFor === 'project' ? 'Waiting for the owner to start the project.'
   : waitingFor === 'time' ? 'Waiting for more time.'
-  : waitingFor === 'computer' ? 'Waiting for your computer to come online with MyLittleSwarm running.'
+  : waitingFor === 'computer' ? 'Waiting for your computer to come online with Minions running.'
   : waitingFor === 'github' ? repositoryWaitMessage(repository)
   : waitingFor === 'empty_repository' ? 'Waiting for a first commit in the project’s GitHub repository, such as a README.' : 'Starting on your computer.';
 /** Only confirmed terminal observations offer Play; uncertainty and cleanup retain their own states. */
@@ -76,7 +76,7 @@ export function workerAgentStatus(agent: AgentObservation, now: number): AgentSt
     // Pause lets the turn finish (owner decision, 9 November 2026): a worker in contact and in its turn is not unconfirmed.
     const finishingTurn = s?.phase === 'working';
     if (pause.externalChat || !s || now - s.lastContactAt >= 90_000 || (!finishingTurn && now - pause.requestedAt >= 30000))
-      return result('Pause unconfirmed', pause.externalChat ? 'Pause this external coding chat directly. MyLittleSwarm cannot interrupt its host.' : 'Project Pause requested. Runtime confirmation is unavailable.', s?.deadlineAt);
+      return result('Pause unconfirmed', pause.externalChat ? 'Pause this external coding chat directly. Minions cannot interrupt its host.' : 'Project Pause requested. Runtime confirmation is unavailable.', s?.deadlineAt);
     return result('Pausing', finishingTurn ? 'Project Pause requested. Finishing its current turn, then it pauses.' : 'Project Pause requested. Waiting for runtime feedback.', s.deadlineAt);
   }
   // Both observations describe the same local mission: the computer's snapshot arrives on its owner tick, the worker's
@@ -115,7 +115,7 @@ export const controlLabel = (kind: BackgroundControlInput['kind']) => CONTROL_LA
 
 export function backgroundControlStatus(view: BackgroundControlView, now: number, session?: AgentObservation['worker']['session']): string {
   if (view.state === 'recovery_required') return 'Needs a fix on your computer';
-  // A mission also stops without a Kill (project closed, run refused by the cloud, MyLittleSwarm shutting down, repeated failures): only a Kill says Killing or Killed.
+  // A mission also stops without a Kill (project closed, run refused by the cloud, Minions shutting down, repeated failures): only a Kill says Killing or Killed.
   const killed = view.pending?.kind === 'stop' && !['failed', 'expired'].includes(view.pending.state);
   if (view.state === 'stopping') return killed ? 'Killing' : 'Stopping';
   if (view.state === 'stopped') return killed ? 'Killed' : 'Stopped';
@@ -137,9 +137,9 @@ export function backgroundControlStatus(view: BackgroundControlView, now: number
 }
 
 /** Decorative animation state from the same verified observation as the sidebar label. */
-export function workerAvatarState(agent: AgentObservation, now: number, needsYou = false): import('@mlswarm/contracts').CommunicationAgentState {
+export function workerAvatarState(agent: AgentObservation, now: number, needsYou = false): import('@minions/contracts').CommunicationAgentState {
   const label = workerAgentStatus(agent, now).label;
-  const states: Record<AgentStatus['label'], import('@mlswarm/contracts').CommunicationAgentState> = {
+  const states: Record<AgentStatus['label'], import('@minions/contracts').CommunicationAgentState> = {
     Working:'working', Idle:'idle', Paused:'paused', Waiting:'waiting', Stopped:'stopped',
     Blocked:'blocked', Offline:'offline', Recovery:'unknown', Stopping:'pausing',
     Pausing:'pausing', 'Pause unconfirmed':'pause_unconfirmed', Unknown:'unknown',

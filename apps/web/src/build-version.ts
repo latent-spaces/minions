@@ -1,6 +1,6 @@
-declare const __MLSWARM_BUILD__: string;
+declare const __MINIONS_BUILD__: string;
 /** This bundle's build id; version.json beside the page names the newest one. */
-export const BUILD = __MLSWARM_BUILD__;
+export const BUILD = __MINIONS_BUILD__;
 
 /** True when the served version.json names a different build than the one this tab runs. A failed read says nothing. */
 export async function newerBuildServed(current: string, load: () => Promise<Response> = () => fetch('/version.json', { cache: 'no-store' })): Promise<boolean> {

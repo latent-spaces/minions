@@ -23,7 +23,7 @@ async function port() {
 
 test('actual project Settings lists connections, confirms revocation and handles mobile, errors and empty connections', async () => {
   await resetEmulator();
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-computers-')), apiPort = await port(), webPort = await port();
+  const directory = await mkdtemp(join(tmpdir(), 'minions-computers-')), apiPort = await port(), webPort = await port();
   const fixture = await seed({ profiles: [{ name: 'Computer owner', email: 'computer-owner@example.test' }] });
   const profileId = fixture.personIds[0];
   await profiles.doc(profileId).update({ onboardingCompletedAt: 100 });
@@ -52,7 +52,7 @@ test('actual project Settings lists connections, confirms revocation and handles
       try { if ((await fetch(`http://127.0.0.1:${apiPort}/api/needs-you`)).status === 401) break; } catch {}
       if (n > 100) throw new Error(output || 'API did not start'); await new Promise(resolve => setTimeout(resolve, 100));
     }
-    await web.listen(); browser = await chromium.launch({ headless: true, ...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MLSWARM_TEST_BROWSER_EXECUTABLE } : {}) });
+    await web.listen(); browser = await chromium.launch({ headless: true, ...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MINIONS_TEST_BROWSER_EXECUTABLE } : {}) });
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     await context.route('**/*', (route: any) => ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
     page = await context.newPage(); const errors: string[] = []; page.on('pageerror', (e: Error) => errors.push(e.message));

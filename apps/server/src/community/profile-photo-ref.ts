@@ -1,4 +1,4 @@
-import { PERSON_CHARACTERS, type PublicProfilePhoto } from '@mlswarm/contracts';
+import { PERSON_CHARACTERS, type PublicProfilePhoto } from '@minions/contracts';
 import type { Profile } from '../firestore.js';
 const ID = /^[a-f0-9]{64}$/;
 export function publicProfilePhoto(profile: Profile, personId: string): PublicProfilePhoto | null {

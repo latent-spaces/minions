@@ -1,5 +1,5 @@
 {
-  "name": "mlswarm-benchmarks",
+  "name": "minions-benchmarks",
   "private": true,
   "type": "module",
   "engines": {

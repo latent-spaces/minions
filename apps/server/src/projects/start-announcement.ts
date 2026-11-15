@@ -1,5 +1,5 @@
 import type { Transaction } from '../firestore.js';
-import type { ProjectStartAnnouncement } from '@mlswarm/contracts';
+import type { ProjectStartAnnouncement } from '@minions/contracts';
 import { collection, currentProjectId, db, inProject } from '../firestore.js';
 import { assertMembership } from './access.js';
 

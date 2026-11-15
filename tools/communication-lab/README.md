@@ -1,6 +1,6 @@
 # Communication connector lab
 
-Run `npm run communication:lab` from the repository root. `MLSWARM_LAB_PORT`
+Run `npm run communication:lab` from the repository root. `MINIONS_LAB_PORT`
 optionally selects a port; otherwise it prints a free loopback URL. Ctrl-C stops it.
 
 The lab imports the production CommunicationMap with four synthetic characters.

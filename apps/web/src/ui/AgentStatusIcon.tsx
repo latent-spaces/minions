@@ -1,6 +1,6 @@
 import { Circle, CircleHelp, Hand, Hourglass, Pause, Settings, Square, Check, WifiOff, Ban } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
-import type { CommunicationAgentState } from '@mlswarm/contracts';
+import type { CommunicationAgentState } from '@minions/contracts';
 import { COMMUNICATION_AGENT_LABELS } from './communication-agent-state';
 import { agentIconState } from './agent-status-icon';
 import './agent-state-bubble.css';

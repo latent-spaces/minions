@@ -3,15 +3,15 @@ import assert from 'node:assert/strict';
 import { main, HELP, specs } from '../src/cli.mjs';
 const run = async args => { const out = [], err = []; return { exit: await main(args, value => out.push(value), value => err.push(value)), out: out.join('\n'), err: err.join('\n') }; };
 test('setup refuses a conflicting explicit site before saving approvals or contacting a server', async t => {
-  const previous = process.env.MLSWARM_SELF_HOSTED_ORIGIN;
-  process.env.MLSWARM_SELF_HOSTED_ORIGIN = 'https://swarm.example';
+  const previous = process.env.MINIONS_SELF_HOSTED_ORIGIN;
+  process.env.MINIONS_SELF_HOSTED_ORIGIN = 'https://swarm.example';
   t.after(() => {
-    if (previous === undefined) delete process.env.MLSWARM_SELF_HOSTED_ORIGIN;
-    else process.env.MLSWARM_SELF_HOSTED_ORIGIN = previous;
+    if (previous === undefined) delete process.env.MINIONS_SELF_HOSTED_ORIGIN;
+    else process.env.MINIONS_SELF_HOSTED_ORIGIN = previous;
   });
   const result = await run(['setup', '--site', 'http://127.0.0.1:8787']);
   assert.notEqual(result.exit, 0);
-  assert.match(result.err, /--site must match MLSWARM_SELF_HOSTED_ORIGIN/);
+  assert.match(result.err, /--site must match MINIONS_SELF_HOSTED_ORIGIN/);
   assert.equal(result.out, '');
 });
 test('retired commands and secret-bearing, duplicate or unknown arguments fail without echo', async () => {

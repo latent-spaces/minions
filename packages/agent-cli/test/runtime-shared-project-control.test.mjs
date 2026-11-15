@@ -16,7 +16,7 @@ async function until(read, predicate, label) {
 const target = (projectId, agentId, site = 'https://fixture.invalid') => ({ site, ownerId: 'synthetic-owner', projectId, agentId });
 
 async function setup(t, options = {}) {
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-shared-control-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-shared-control-'));
   const store = await openRuntimeStore({ directory });
   const projects = new Map(), held = new Map(), holders = [], sessions = [], refusals = new Map(), afters = [], payloads = [], lagging = new Map();
   const calls = [], syncTimes = [], observeTimes = [];

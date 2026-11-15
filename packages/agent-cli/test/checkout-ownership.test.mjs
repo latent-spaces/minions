@@ -23,7 +23,7 @@ test('machine identity stays unknown when the platform output has no identifier'
 });
 
 test('a ticket held by a live process refuses the claim and names the ticket file', async () => {
-  const root = await realpath(await mkdtemp(join(tmpdir(), 'mlswarm-ownership-busy-')));
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'minions-ownership-busy-')));
   const registryRoot = join(root, 'registry'), folder = join(root, 'repo');
   await mkdir(registryRoot, { mode: 0o700 }); await mkdir(folder);
   const ticket = join(registryRoot, `ticket-${randomUUID()}.json`);

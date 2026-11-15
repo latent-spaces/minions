@@ -13,7 +13,7 @@ import { readBundledGuide } from '../src/skill-bundle.mjs';
 import { readPrivate, writePrivate } from '../src/state.mjs';
 
 async function fixture(t) {
-  const root=await mkdtemp(join(tmpdir(),'mlswarm-worker-operations-'));
+  const root=await mkdtemp(join(tmpdir(),'minions-worker-operations-'));
   const folder=join(root,'repo'),stateDir=join(root,'private');
   await mkdir(folder);await mkdir(stateDir,{mode:0o700});
   t.after(()=>rm(root,{recursive:true,force:true}));
@@ -118,9 +118,9 @@ test('worker operations verify exact participant every turn and reject selectors
 test('scoped worker discovery follows ON/OFF/ON and never exposes an unbundled or owner tool', async t => {
   const f=await fixture(t);
   const names=async()=> (await f.ops.listTools(f.caller)).map(t=>t.name);
-  assert.deepEqual((await names()).sort(),['comment_task','get_mlswarm_guide','get_project','get_task','list_tasks','manage_team','read_teams','upload_project_image']);
+  assert.deepEqual((await names()).sort(),['comment_task','get_minions_guide','get_project','get_task','list_tasks','manage_team','read_teams','upload_project_image']);
   f.enabled=false;
-  assert.deepEqual((await names()).sort(),['get_mlswarm_guide','get_project','get_task','list_tasks','read_teams','upload_project_image']);
+  assert.deepEqual((await names()).sort(),['get_minions_guide','get_project','get_task','list_tasks','read_teams','upload_project_image']);
   f.enabled=true;
   assert.ok((await names()).includes('comment_task'));
   f.catalogFailure=true;
@@ -143,11 +143,11 @@ test('real HTTP worker discovery refreshes on the same MCP client; cached OFF wr
   const names=async()=> (await client.listTools()).tools.map(t=>t.name);
   assert.ok((await names()).includes('comment_task'));
   await client.callTool({name:'get_project',arguments:{}});
-  const guide=await client.callTool({name:'get_mlswarm_guide',arguments:{section:'project-work'}});
+  const guide=await client.callTool({name:'get_minions_guide',arguments:{section:'project-work'}});
   assert.equal(guide.isError,undefined);
   assert.ok(guide.content[0].text.endsWith(readBundledGuide('project-work')));
   f.enabled=false;
-  assert.deepEqual((await names()).sort(),['get_mlswarm_guide','get_project','get_task','list_tasks','read_teams','upload_project_image']);
+  assert.deepEqual((await names()).sort(),['get_minions_guide','get_project','get_task','list_tasks','read_teams','upload_project_image']);
   await assert.rejects(client.callTool({name:'comment_task',arguments:{task_id:'task',expected_revision:1,body:'stale',client_request_id:'same'}}),e=>e.code===-32602 && /Tool comment_task not found/.test(e.message));
   assert.ok(!f.calls.some(c=>c.rpc.params?.name==='comment_task'));
   f.enabled=true;
@@ -158,7 +158,7 @@ test('real HTTP worker discovery refreshes on the same MCP client; cached OFF wr
 
 test('worker guide reads are local, identity/lifetime bound and limited to the two shared workflows', async t => {
   const f=await fixture(t);
-  const guide=args=>f.ops.callTool(f.caller,'get_mlswarm_guide',args);
+  const guide=args=>f.ops.callTool(f.caller,'get_minions_guide',args);
   await assert.rejects(guide({section:'project-work'}),{code:'identity_unverified'});
   await f.ops.callTool(f.caller,'get_project',{});
   const calls=f.calls.length;
@@ -169,7 +169,7 @@ test('worker guide reads are local, identity/lifetime bound and limited to the t
   for(const args of [{},{section:'computer'},{section:'agents'},{section:'projects'},{section:'work-in-chat'},
     {section:'../instructions.md'},{section:'project-work',projectId:'other'}]) await assert.rejects(guide(args),{code:'bad_input'});
   assert.equal(f.calls.length,calls,'workflow text never goes to the cloud');
-  await assert.rejects(f.ops.callTool({...f.caller,target:{...f.caller.target,projectId:'other'}},'get_mlswarm_guide',{section:'project-work'}),{code:'worker_inactive'});
+  await assert.rejects(f.ops.callTool({...f.caller,target:{...f.caller.target,projectId:'other'}},'get_minions_guide',{section:'project-work'}),{code:'worker_inactive'});
   f.mission.currentTurnId=randomUUID();
   await assert.rejects(guide({section:'project-work'}),{code:'identity_unverified'});
   await f.ops.callTool(f.caller,'get_project',{});
@@ -184,15 +184,15 @@ test('worker guide readers reopen the mission snapshot, refuse corruption and ne
   await f.ops.callTool(f.caller,'get_project',{});
   const restarted=createWorkerOperations({store:f.store,resolveBinding:async()=>f.binding,fetchImpl:f.fetchImpl});
   t.after(()=>restarted.release(f.caller));
-  await assert.rejects(restarted.callTool(f.caller,'get_mlswarm_guide',{section:'project-work'}),{code:'identity_unverified'});
+  await assert.rejects(restarted.callTool(f.caller,'get_minions_guide',{section:'project-work'}),{code:'identity_unverified'});
   await restarted.callTool(f.caller,'get_project',{});
-  const before=await f.ops.callTool(f.caller,'get_mlswarm_guide',{section:'project-work'});
-  assert.deepEqual(await restarted.callTool(f.caller,'get_mlswarm_guide',{section:'project-work'}),before);
+  const before=await f.ops.callTool(f.caller,'get_minions_guide',{section:'project-work'});
+  assert.deepEqual(await restarted.callTool(f.caller,'get_minions_guide',{section:'project-work'}),before);
   const file=join(f.missionDir,'worker-guides.json'),snapshot=readPrivate(file,true);
   snapshot.sections['project-work']='Unexpected different guidance';writePrivate(file,snapshot);
-  await assert.rejects(restarted.callTool(f.caller,'get_mlswarm_guide',{section:'project-work'}),{code:'guide_unavailable'});
+  await assert.rejects(restarted.callTool(f.caller,'get_minions_guide',{section:'project-work'}),{code:'guide_unavailable'});
   await rm(file);
-  await assert.rejects(restarted.callTool(f.caller,'get_mlswarm_guide',{section:'project-work'}),{code:'guide_unavailable'});
+  await assert.rejects(restarted.callTool(f.caller,'get_minions_guide',{section:'project-work'}),{code:'guide_unavailable'});
   assert.equal(readPrivate(join(f.missionDir,'instructions.md')),'Synthetic worker core');
 });
 
@@ -201,7 +201,7 @@ test('context measures returned facade catalog, guide and sanitized replies, exc
   await f.ops.beginContext(f.caller);
   await f.ops.prepareParticipation(f.caller);
   const tools = await f.ops.listTools(f.caller);
-  const guide = await f.ops.callTool(f.caller, 'get_mlswarm_guide', {section:'project-work'});
+  const guide = await f.ops.callTool(f.caller, 'get_minions_guide', {section:'project-work'});
   const reply = await f.ops.callTool(f.caller, 'list_tasks', {});
   let entered, release;
   const started = new Promise(resolve => { entered = resolve; });
@@ -215,7 +215,7 @@ test('context measures returned facade catalog, guide and sanitized replies, exc
   assert.equal(first.catalogBytes, Buffer.byteLength(JSON.stringify(tools)));
   assert.equal(first.byTool.find(t=>t.name==='list_tasks').definitionBytes,Buffer.byteLength(JSON.stringify(tools.find(t=>t.name==='list_tasks'))));
   assert.equal(first.byTool.find(t=>t.name==='list_tasks').calls,1);
-  assert.equal(first.byTool.find(t=>t.name==='get_mlswarm_guide').responseTextBytes,Buffer.byteLength(guide.content[0].text));
+  assert.equal(first.byTool.find(t=>t.name==='get_minions_guide').responseTextBytes,Buffer.byteLength(guide.content[0].text));
   assert.equal(first.byTool.some(t=>t.name==='secret-project-name'),false);
   assert.equal(first.tools.find(x => x.category === 'other').responseTextBytes, Buffer.byteLength(guide.content[0].text));
   assert.deepEqual(first.tools.find(x => x.category === 'coordination'), {

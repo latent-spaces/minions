@@ -1,7 +1,7 @@
 import { isPrivateProject } from './schema.js';
 import type { Transaction } from '../firestore.js';
 import { z } from 'zod';
-import { githubRepositoryUrl } from '@mlswarm/contracts';
+import { githubRepositoryUrl } from '@minions/contracts';
 import { hashToken } from '../auth.js';
 import { collection, db, inProject, profiles, type Profile, type WithId } from '../firestore.js';
 import { Refusal } from '../errors.js';
@@ -26,7 +26,7 @@ export async function createPrivateProject(actor: WithId<Profile>, input: z.infe
   const id = hashToken(`private-project:${actor.id}:${input.client_request_id}`), fingerprint = hashToken(JSON.stringify(input));
   return db.runTransaction(async tx => {
     const [person, receipt, current, limits] = await Promise.all([tx.get(profiles.doc(actor.id)), tx.get(operations.doc(id)), tx.get(projects.doc(id)), tx.get(platformSettings)]);
-    if (!active(person.data())) throw new Refusal('unauthorized', 'Your MyLittleSwarm account is no longer active.');
+    if (!active(person.data())) throw new Refusal('unauthorized', 'Your Minions account is no longer active.');
     if (receipt.exists) {
       if (receipt.data()!.fingerprint !== fingerprint) throw new Refusal('intent_conflict', 'This request ID was already used with different details. Send the original request again, or use a new request ID.');
       return { ...receipt.data()!.result, replayed: true };
@@ -54,7 +54,7 @@ export async function leavePrivateProject(actor: WithId<Profile>, id: string, re
     if (!isPrivateProject(project.data())) throw new Refusal('forbidden', 'Only a current private-project member can start this departure.');
     if (member.data()?.status !== 'active') throw new Refusal('not_found', 'You’re not a member of this project.');
     const epoch = membershipEpoch(id, actor.id, member.data(), fence.data()) + 1;
-    if (!Number.isSafeInteger(epoch) || epoch < 1) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+    if (!Number.isSafeInteger(epoch) || epoch < 1) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
     const at = now();
     const left: Membership = { ...member.data()!, status: 'left', statusChangedAt: at, connectionEpoch: epoch, revision: member.data()!.revision + 1, updatedAt: at };
     tx.set(membershipDoc(id, actor.id), left); tx.set(membershipsOf(actor.id).doc(id), left); tx.set(membershipFenceDoc(id, actor.id), { profileId: actor.id, projectId: id, epoch });

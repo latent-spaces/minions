@@ -1,4 +1,4 @@
-import type { ProjectLifecycle, ProjectRole, LifecycleStatus } from '@mlswarm/contracts';
+import type { ProjectLifecycle, ProjectRole, LifecycleStatus } from '@minions/contracts';
 
 // Viewer actions follow the viewer's role; status/readiness alone never grants a permission.
 export function lifecyclePresentation(state: ProjectLifecycle, role: ProjectRole) {

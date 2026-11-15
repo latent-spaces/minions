@@ -121,7 +121,7 @@ test.skipIf(!config)('5000 agents at 15s: quiet and busy canonical writers, 1/4 
         try {
           const response = await fetch(`${base}/p/${project}/usage`, { headers: { authorization: `Bearer ${project === HOT ? viewerTokens[viewer] : token}` }, signal: AbortSignal.timeout(10_000) });
           status = response.status; transport = 'body'; expect(response.status).toBe(200);
-          const value = await response.json() as import('@mlswarm/contracts').ProjectUsage;
+          const value = await response.json() as import('@minions/contracts').ProjectUsage;
           completed++; return value;
         } catch (error) {
           errors++; if (failures.length < 20) failures.push({ phase, project: project.slice(-8), viewer, endpoint: 'usage', elapsedMs: performance.now() - began, status, cause: transportCause(error, transport), memory: process.memoryUsage() });

@@ -47,7 +47,7 @@ test('Windows cleanup fails clearly without the required executable and uses an 
 });
 
 test('interruption stops the owned child and grandchild, including signal-resistant descendants, without killing a sibling', { timeout: 15_000 }, async () => {
-  const folder = await mkdtemp(join(tmpdir(), 'mlswarm owned tree space '));
+  const folder = await mkdtemp(join(tmpdir(), 'minions owned tree space '));
   const script = join(folder, 'tree.mjs'), marker = join(folder, 'ready.json');
   const sibling = spawn(process.execPath, ['-e', 'setInterval(()=>{},1000)'], { stdio: 'ignore' });
   const abort = new AbortController();
@@ -73,7 +73,7 @@ test('interruption stops the owned child and grandchild, including signal-resist
 });
 
 test('nonzero POSIX child exit cleans its surviving process group', { skip: process.platform === 'win32', timeout: 10_000 }, async () => {
-  const folder = await mkdtemp(join(tmpdir(), 'mlswarm owned failure '));
+  const folder = await mkdtemp(join(tmpdir(), 'minions owned failure '));
   let pids, result;
   try {
     const script = join(folder, 'tree.mjs'), marker = join(folder, 'ready.json');
@@ -90,7 +90,7 @@ test('nonzero POSIX child exit cleans its surviving process group', { skip: proc
 });
 
 test('nested launchers remain contained when the outer owner is interrupted', { timeout: 15_000 }, async () => {
-  const folder = await mkdtemp(join(tmpdir(), 'mlswarm nested tree '));
+  const folder = await mkdtemp(join(tmpdir(), 'minions nested tree '));
   const abort = new AbortController();
   let result, pids;
   try {
@@ -111,7 +111,7 @@ test('nested launchers remain contained when the outer owner is interrupted', { 
 });
 
 test('a real POSIX termination signal reaches the owner and cleans its tree', { skip: process.platform === 'win32', timeout: 15_000 }, async () => {
-  const folder = await mkdtemp(join(tmpdir(), 'mlswarm signal tree '));
+  const folder = await mkdtemp(join(tmpdir(), 'minions signal tree '));
   let owner, pids;
   try {
     const script = join(folder, 'tree.mjs'), wrapper = join(folder, 'owner.mjs'), marker = join(folder, 'ready.json');
@@ -120,7 +120,7 @@ test('a real POSIX termination signal reaches the owner and cleans its tree', { 
       process.exitCode = await runOwnedProcess(process.execPath, ${JSON.stringify([script, 'hold', marker])}, {}, { graceMs: 150, forceMs: 2000 });`);
     // This is an independent test owner: it must not inherit containment metadata
     // from a disposable test suite which happens to be running these guards.
-    const env = { ...process.env }; delete env.MLSWARM_DISPOSABLE_TREE_MEMBER;
+    const env = { ...process.env }; delete env.MINIONS_DISPOSABLE_TREE_MEMBER;
     owner = spawn(process.execPath, [wrapper], { stdio: ['ignore', 'ignore', 'pipe'], env });
     let diagnostics = ''; owner.stderr.on('data', value => { diagnostics += value; });
     const exited = new Promise((resolve, reject) => { owner.once('error', reject); owner.once('exit', resolve); });
@@ -136,7 +136,7 @@ test('a real POSIX termination signal reaches the owner and cleans its tree', { 
 
 test('argv, launch errors, exit failures and pre-aborted commands preserve their result and listener cleanup', async () => {
   const before = [process.listenerCount('SIGINT'), process.listenerCount('SIGTERM')];
-  const folder = await mkdtemp(join(tmpdir(), 'mlswarm owned argv '));
+  const folder = await mkdtemp(join(tmpdir(), 'minions owned argv '));
   try {
     const file = join(folder, 'argv.json'), argv = ['a b', 'a&b', '%PATH%', '$HOME', 'quote"single\''];
     assert.equal(await runOwnedProcess(process.execPath, ['-e', 'require("node:fs").writeFileSync(process.argv[1],JSON.stringify(process.argv.slice(2)))', file, ...argv]), 0);

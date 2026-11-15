@@ -1,3 +1,4 @@
+import { ownershipDirectory } from './brand-paths.mjs';
 import { readdirSync, statSync, unlinkSync, readFileSync, lstatSync, opendirSync, openSync, fstatSync, readSync, closeSync, constants } from 'node:fs';
 import { userInfo } from 'node:os';
 import { join, isAbsolute, basename, resolve, dirname, win32 } from 'node:path';
@@ -7,7 +8,7 @@ import { ensureHome, readPrivate, writePrivate, assertStateOutsideWorkspace, pat
 
 // This is deliberately independent of --state-dir and HOME overrides. All connector
 // processes for the same OS user arbitrate in one private, local filesystem registry.
-const checkoutOwnershipHome = () => join(userInfo().homedir, '.mlswarm', 'worker-ownership');
+const checkoutOwnershipHome = () => ownershipDirectory(userInfo().homedir);
 let machineIdentity;
 // Raw OS machine identifier, or undefined when this platform cannot provide one.
 export function readMachineId(platform = process.platform, run = execFileSync, read = readFileSync) {

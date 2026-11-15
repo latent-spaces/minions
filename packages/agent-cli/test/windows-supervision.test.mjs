@@ -25,7 +25,7 @@ test('Windows readiness refuses missing supervision capabilities before probing 
   assert.deepEqual(providers, [{ id: 'codex', available: false, reason: 'unavailable' }, { id: 'claude', available: false, reason: 'unavailable' }]);
 });
 async function start(t, args, { deadline = Date.now() + 60000, mark = randomBytes(16).toString('hex'), launchByAt = null, command = process.execPath } = {}) {
-  const guard = prepareSupervisedModel({ cwd: tmpdir(), env: { ...process.env, MLSWARM_MISSION_MARK: mark }, stdio: ['pipe', 'pipe', 'pipe'], deadline, launchByAt });
+  const guard = prepareSupervisedModel({ cwd: tmpdir(), env: { ...process.env, MINIONS_MISSION_MARK: mark }, stdio: ['pipe', 'pipe', 'pipe'], deadline, launchByAt });
   const messages = []; let output = '', closed = false;
   guard.on('message', message => messages.push(message)); guard.on('error', () => {});
   guard.stdout.on('data', chunk => { output += chunk; }); guard.stderr.resume();
@@ -49,7 +49,7 @@ test('Windows forwards RPC bytes and preserves literal command arguments without
 });
 
 test('Windows runs an npm JS shim in a path containing spaces and shell characters without cmd.exe', native, async t => {
-  const home = await mkdtemp(join(tmpdir(), 'mlswarm % !& npm '));
+  const home = await mkdtemp(join(tmpdir(), 'minions % !& npm '));
   t.after(() => rm(home, { recursive: true, force: true }));
   await writeFile(join(home, 'client.js'), 'console.log(JSON.stringify(process.argv.slice(2)));');
   const command = join(home, 'client.cmd');
@@ -94,10 +94,10 @@ test('Windows helper death kills only its job, including detached descendants, a
 });
 
 test('Windows controller death closes control IPC and the independent helper cleans up its native tree', native, async t => {
-  const home = await mkdtemp(join(tmpdir(), 'mlswarm Windows owner '));
+  const home = await mkdtemp(join(tmpdir(), 'minions Windows owner '));
   t.after(() => rm(home, { recursive: true, force: true }));
   const path = join(home, 'native.json'), mark = randomBytes(16).toString('hex');
-  const script = `import {prepareSupervisedModel} from ${JSON.stringify(new URL('../src/model-guard.mjs', import.meta.url).href)}; const guard=prepareSupervisedModel({cwd:process.cwd(),env:{...process.env,MLSWARM_MISSION_MARK:${JSON.stringify(mark)}},stdio:['ignore','pipe','pipe'],deadline:Date.now()+60000}); guard.stdout.resume();guard.stderr.resume();guard.on('message',m=>{if(m.nativeStarted)process.send({guard:guard.pid,native:m.nativeStarted});});guard.authorize(process.execPath,['-e',${JSON.stringify(`require('node:fs').writeFileSync(${JSON.stringify(path)},JSON.stringify({pid:process.pid}));setInterval(()=>{},1000);`)}]);`;
+  const script = `import {prepareSupervisedModel} from ${JSON.stringify(new URL('../src/model-guard.mjs', import.meta.url).href)}; const guard=prepareSupervisedModel({cwd:process.cwd(),env:{...process.env,MINIONS_MISSION_MARK:${JSON.stringify(mark)}},stdio:['ignore','pipe','pipe'],deadline:Date.now()+60000}); guard.stdout.resume();guard.stderr.resume();guard.on('message',m=>{if(m.nativeStarted)process.send({guard:guard.pid,native:m.nativeStarted});});guard.authorize(process.execPath,['-e',${JSON.stringify(`require('node:fs').writeFileSync(${JSON.stringify(path)},JSON.stringify({pid:process.pid}));setInterval(()=>{},1000);`)}]);`;
   const owner = spawn(process.execPath, ['--input-type=module', '-e', script], { stdio: ['ignore', 'ignore', 'pipe', 'ipc'] });
   owner.stderr.resume(); t.after(() => { if (owner.exitCode === null) owner.kill('SIGKILL'); });
   const [ids] = await once(owner, 'message');

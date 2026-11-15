@@ -52,17 +52,17 @@ test.skipIf(process.platform === 'win32')('a subprocess without ownership APIs r
 // Windows rules, checked with path.win32 on any host. Native Windows acceptance is still separate.
 test('Windows owner storage must be strictly inside the user folder: drives, case, spaces, siblings and shares', () => {
   const home = 'C:\\Users\\Ana Lee';
-  for (const target of ['C:\\Users\\Ana Lee\\.mlswarm\\engine', 'c:\\users\\ana lee\\engine data\\private', 'C:\\Users\\Ana Lee\\a\\..\\b']) {
+  for (const target of ['C:\\Users\\Ana Lee\\.minions\\engine', 'c:\\users\\ana lee\\engine data\\private', 'C:\\Users\\Ana Lee\\a\\..\\b']) {
     expect(insideUserFolder(home, target, path.win32), target).toBe(true);
   }
   for (const target of ['C:\\Users\\Ana Lee', 'C:\\Users\\Ana Lee\\', 'C:\\Users\\Ana Lee2\\engine', 'C:\\Users\\Ana Lee\\..\\Bob',
-    'C:\\Users', 'D:\\Users\\Ana Lee\\engine', '\\\\server\\share\\Ana Lee\\engine', 'C:\\ProgramData\\mlswarm']) {
+    'C:\\Users', 'D:\\Users\\Ana Lee\\engine', '\\\\server\\share\\Ana Lee\\engine', 'C:\\ProgramData\\minions']) {
     expect(insideUserFolder(home, target, path.win32), target).toBe(false);
   }
 });
 
 test('the same containment rule holds for POSIX paths', () => {
-  expect(insideUserFolder('/home/ana lee', '/home/ana lee/.mlswarm/engine', path.posix)).toBe(true);
+  expect(insideUserFolder('/home/ana lee', '/home/ana lee/.minions/engine', path.posix)).toBe(true);
   for (const target of ['/home/ana lee', '/home/ana lee2/engine', '/home/ana lee/../bob', '/srv/engine']) {
     expect(insideUserFolder('/home/ana lee', target, path.posix), target).toBe(false);
   }
@@ -87,7 +87,7 @@ test.skipIf(process.platform === 'win32')('a simulated Windows process confines 
 // Simulated: on Windows the user-folder rule compares native canonical paths, so an 8.3 short-name or other-case
 // spelling of a folder inside the user folder still counts as inside. Native Windows still has to confirm the call.
 test('Windows compares canonical paths, so a short-name spelling of the user folder stays inside it', () => {
-  const home = 'C:\\Users\\Ana Lee', short = 'C:\\Users\\ANALEE~1\\AppData\\Local\\Temp\\mlswarm';
+  const home = 'C:\\Users\\Ana Lee', short = 'C:\\Users\\ANALEE~1\\AppData\\Local\\Temp\\minions';
   const native = (target: string) => target.replace(/^c:\\users\\analee~1/i, home);
   const spelling = (target: string) => target;
   expect(insideUserFolder(canonicalPath(home, native), canonicalPath(short, native), path.win32)).toBe(true);
@@ -107,7 +107,7 @@ test.skipIf(process.platform === 'win32')('a simulated Windows process accepts a
   const script = `import fs from 'node:fs'; import os from 'node:os'; import path from 'node:path';
     Object.defineProperty(process, 'platform', { value: 'win32' });
     const real = fs.realpathSync.native, folder = fs.realpathSync(${JSON.stringify(directory)});
-    fs.realpathSync.native = target => fs.realpathSync(target) === folder ? path.join(real(os.userInfo().homedir), 'AppData', 'mlswarm') : real(target);
+    fs.realpathSync.native = target => fs.realpathSync(target) === folder ? path.join(real(os.userInfo().homedir), 'AppData', 'minions') : real(target);
     const { createOwnerFile, readOwnerFile } = await import(${JSON.stringify(source)});
     createOwnerFile(${JSON.stringify(file)}, 'synthetic');
     if (readOwnerFile(${JSON.stringify(file)}) !== 'synthetic') process.exitCode = 2;`;

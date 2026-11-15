@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { canonicalGithubRepo, githubRepositoryUrl, isGithubRepositoryUrl } from '../src/github-repository.mjs';
 
-// The same cases as apps/server/test/github-repository.test.ts, which checks @mlswarm/contracts.
+// The same cases as apps/server/test/github-repository.test.ts, which checks @minions/contracts.
 const CASES = [
   ['https://github.com/Owner/Repo', 'https://github.com/Owner/Repo'],
   ['https://github.com/o/r.git', 'https://github.com/o/r'],

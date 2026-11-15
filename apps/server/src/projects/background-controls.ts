@@ -1,8 +1,8 @@
 import { assertComputerApproval } from '../owner/computer-access.js';
 import { createHash } from 'node:crypto';
 import type { Transaction } from '../firestore.js';
-import { RUN_LENGTH } from '@mlswarm/contracts';
-import type { BackgroundControlView, BackgroundControlState, BackgroundTarget } from '@mlswarm/contracts';
+import { RUN_LENGTH } from '@minions/contracts';
+import type { BackgroundControlView, BackgroundControlState, BackgroundTarget } from '@minions/contracts';
 import { z } from 'zod';
 import { agents, collection, currentProjectId, db, inProject, projectCollection } from '../firestore.js';
 import { Refusal } from '../errors.js';
@@ -133,7 +133,7 @@ export async function requestBackgroundControl(actorId:string,agentId:string,inp
     if(value.kind==='resume') await assertProjectWritable(tx);
     const ref=snapshots().doc(agentId),saved=(await tx.get(ref)).data(),receiptRef=mailbox.doc(key(profileId,value.id));
     const receipt=(await tx.get(receiptRef)).data(),at=now();
-    if(!saved || saved.target.ownerId!==profileId) throw new Refusal('not_found','Update MyLittleSwarm on this computer, then try again.');
+    if(!saved || saved.target.ownerId!==profileId) throw new Refusal('not_found','Update Minions on this computer, then try again.');
     if(receipt) {
       if(receipt.fingerprint!==fingerprint) throw new Refusal('duplicate','This request ID was already used with different details. Send the original request again, or use a new request ID.');
       return {background:publicView(saved,receipt,at),replayed:true};

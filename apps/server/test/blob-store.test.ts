@@ -118,12 +118,12 @@ describe('local media store', () => {
 });
 
 describe('media directory', () => {
-  it('requires an absolute MLSWARM_BLOB_DIR and stores each kind in its own subdirectory', async () => {
-    for (const env of [{}, { MLSWARM_BLOB_DIR: 'relative/media' }, { MLSWARM_BLOB_DIR: '' }, { MLSWARM_BLOB_DIR: '  ' }])
+  it('requires an absolute MINIONS_BLOB_DIR and stores each kind in its own subdirectory', async () => {
+    for (const env of [{}, { MINIONS_BLOB_DIR: 'relative/media' }, { MINIONS_BLOB_DIR: '' }, { MINIONS_BLOB_DIR: '  ' }])
       expect(() => mediaStore('chat-media', env)).toThrow('absolute');
     const root = await mkdtemp(join(tmpdir(), 'media-dir-'));
     try {
-      await mediaStore('chat-media', { MLSWARM_BLOB_DIR: root }).replace('a', Buffer.from('x'), 'text/plain');
+      await mediaStore('chat-media', { MINIONS_BLOB_DIR: root }).replace('a', Buffer.from('x'), 'text/plain');
       expect((await readFile(join(root, 'chat-media', 'a'))).toString()).toBe('x');
     } finally { await rm(root, { recursive: true, force: true }); }
   });

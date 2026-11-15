@@ -18,7 +18,7 @@ async function until(read, predicate, label) {
   assert.fail(`Timed out: ${label}`);
 }
 async function setup(t, { retry = async () => {}, run = async () => success, wrapStore = store => store } = {}) {
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-worker-coordination-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-worker-coordination-'));
   const store = await openRuntimeStore({ directory });
   const state = { pending: 0, notices: [], paused: false, runs: [], acknowledgements: [], retries: 0 };
   const adapter = {

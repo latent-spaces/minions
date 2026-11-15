@@ -7,11 +7,11 @@ import { connectClients } from '../src/client-setup.mjs';
 import { ensureInstallation } from '../src/service/installation.mjs';
 
 async function computer(t) {
-  const root = mkdtempSync(join(tmpdir(), 'mlswarm-clients-'));
+  const root = mkdtempSync(join(tmpdir(), 'minions-clients-'));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const home = join(root, 'service'), userHome = join(root, 'user');
   await ensureInstallation({ home, site: 'http://127.0.0.1:8787' });
-  mkdirSync(join(userHome, '.claude', 'skills', 'mlswarm'), { recursive: true });
+  mkdirSync(join(userHome, '.claude', 'skills', 'minions'), { recursive: true });
   mkdirSync(join(userHome, '.codex'), { recursive: true });
   return { home, userHome, env: {} };
 }

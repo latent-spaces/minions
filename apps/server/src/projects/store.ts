@@ -1,12 +1,12 @@
 import { isPrivateProject } from './schema.js';
 import { readProjectAdmission } from './project-admission.js';
-import { canonicalGithubRepo, githubRepositoryUrl, nativeTasksEnabled, nativeTeamsEnabled } from '@mlswarm/contracts';
+import { canonicalGithubRepo, githubRepositoryUrl, nativeTasksEnabled, nativeTeamsEnabled } from '@minions/contracts';
 import { prepareProjectJourney } from '../onboarding/journeys.js';
 import { endProjectWork } from './close-work.js';
 import { readStartAnnouncement, writeStartAnnouncement } from './start-announcement.js';
 import { archiveState, projectArchives, projectStars, starState } from './personal-archive.js';
 import { DEFAULT_WORKSPACE_ID } from '../workspaces/schema.js';
-import { deriveProjectLifecycle, projectExecution, RUN_LENGTH, validRunMinutes, type ProjectLifecycle } from '@mlswarm/contracts';
+import { deriveProjectLifecycle, projectExecution, RUN_LENGTH, validRunMinutes, type ProjectLifecycle } from '@minions/contracts';
 import { platformSettings } from '../platform/settings.js';
 import { FieldPath, type Transaction } from '../firestore.js';
 import { z } from 'zod';
@@ -365,7 +365,7 @@ export async function joinWorkspace(operator: WithId<Profile>, id: string, input
       tx.get(profiles.doc(operator.id)), tx.get(projects.doc(id)), tx.get(projectListings.doc(id)),
       tx.get(membershipDoc(id, operator.id)), tx.get(membershipFenceDoc(id, operator.id)), tx.get(platformSettings), tx.get(capacityRef), tx.get(receiptRef), tx.get(communitySettingsDoc(id)),
     ]);
-    if (!person.exists || person.data()!.removedAt !== null) throw new Refusal('unauthorized', 'You need a MyLittleSwarm invitation to join.');
+    if (!person.exists || person.data()!.removedAt !== null) throw new Refusal('unauthorized', 'You need a Minions invitation to join.');
     if (!approved.exists || isPrivateProject(approved.data()) || approved.data()!.workspaceId !== DEFAULT_WORKSPACE_ID || !approved.data()!.publication.listed || !catalog.exists || !community.exists || community.data()!.joining !== 'invited_users' || approved.data()!.setup.required && !runtimeOf(approved.data())?.setupFinalizedAt) throw new Refusal('not_found', 'This project isn’t open for new members.');
     if (runtimeOf(approved.data())?.completedAt != null) throw new Refusal('bad_input', 'This project is closed and isn’t taking new members.');
     const ownerId = approved.data()!.ownerProfileId;

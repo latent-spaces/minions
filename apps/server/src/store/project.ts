@@ -1,5 +1,5 @@
 import { activeRecipientOperators, assertMembership } from '../projects/access.js';
-import type { ProjectMergePolicy } from '@mlswarm/contracts';
+import type { ProjectMergePolicy } from '@minions/contracts';
 import { collection, currentProjectId, db } from '../firestore.js';
 import { Refusal } from '../errors.js';
 import { readRuntime, type WorkspaceProject } from '../projects/records.js';

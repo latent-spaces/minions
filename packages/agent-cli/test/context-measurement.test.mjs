@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { validateOutcome } from '../src/service/contracts.mjs';
 import { normalizeCloudTurn } from '../src/service/cloud-reports.mjs';
 
-const context = () => ({scope:'mlswarm-supplied',coverage:'partial',instructionBytes:13,turnPromptBytes:21,catalogRequests:1,catalogBytes:34,
+const context = () => ({scope:'minions-supplied',coverage:'partial',instructionBytes:13,turnPromptBytes:21,catalogRequests:1,catalogBytes:34,
   tools:[{category:'coordination',calls:1,argumentBytes:2,responseTextBytes:55,refusals:0}]});
 const outcome = c => ({delivery:'acknowledged',failed:false,interrupted:false,retryable:false,cleanupConfirmed:true,
   usage:{provider:'codex',...(c ? {context:c} : {})}});

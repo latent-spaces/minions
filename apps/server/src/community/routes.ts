@@ -32,7 +32,7 @@ export function communityRoutes(now: () => number): Router {
   router.use(async (req, res, next) => {
     try {
       const token = bearerToken(req.headers.authorization);
-      if (!token) throw new Refusal('unauthorized', 'Sign in with the GitHub account you use for MyLittleSwarm.');
+      if (!token) throw new Refusal('unauthorized', 'Sign in with the GitHub account you use for Minions.');
       const { person, adminAuthenticated, verifiedGithubSession, firebaseUid } = await personIdentityFromIdToken(token);
       limit(`person:${person.id}`);
       res.locals.actor = { kind: 'person', operatorId: person.id, adminAuthenticated, verifiedGithubSession, firebaseUid } satisfies CommunityActor;
@@ -42,7 +42,7 @@ export function communityRoutes(now: () => number): Router {
   // Bind every profile write/preview to the immutable invitation, including same-UID reinvites.
   router.use('/my-profile', (req, res, next) => {
     if (req.method === 'POST' || req.path.startsWith('/photo/')) {
-      if (req.headers['x-mlswarm-profile-id'] !== res.locals.actor.operatorId) { fail(res, new Refusal('forbidden', 'Reload your profile, then edit again.')); return; }
+      if (req.headers['x-minions-profile-id'] !== res.locals.actor.operatorId) { fail(res, new Refusal('forbidden', 'Reload your profile, then edit again.')); return; }
     }
     next();
   });
@@ -64,7 +64,7 @@ export function communityRoutes(now: () => number): Router {
     } catch (error) { fail(res, error); }
   });
   router.post('/web-presence', (req, res) => answer(res, async () => {
-    if (req.headers['x-mlswarm-profile-id'] !== res.locals.actor.operatorId) throw new Refusal('forbidden', 'Reload your account, then try again.');
+    if (req.headers['x-minions-profile-id'] !== res.locals.actor.operatorId) throw new Refusal('forbidden', 'Reload your account, then try again.');
     if (Object.keys(req.query).length) throw new Refusal('bad_input', 'Presence does not accept query options.');
     return reportWebPresence(res.locals.actor, req.body, now);
   }));
@@ -163,6 +163,6 @@ function fail(res: Response, error: unknown) {
     sendRefusal(res, error);
   } else {
     console.error('A community request failed.', error);
-    res.status(500).json({ error: 'internal_error', message: 'Something went wrong on MyLittleSwarm. Try again in a moment.' });
+    res.status(500).json({ error: 'internal_error', message: 'Something went wrong on Minions. Try again in a moment.' });
   }
 }

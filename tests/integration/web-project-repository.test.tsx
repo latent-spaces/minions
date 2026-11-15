@@ -2,7 +2,7 @@ import { expect, test } from 'vitest';
 import { createRequire } from 'node:module';
 import { ProjectRepository } from '../../apps/web/src/ui/ProjectHeader';
 import { ProjectUsageFigures } from '../../apps/web/src/ui/ProjectUsageFigures';
-import type { RepositorySummary } from '@mlswarm/contracts';
+import type { RepositorySummary } from '@minions/contracts';
 const webRequire = createRequire(new URL('../../apps/web/package.json', import.meta.url));
 const { createElement } = webRequire('react');
 const { renderToStaticMarkup } = webRequire('react-dom/server');

@@ -7,7 +7,7 @@ import { createWorkerGuidance, readWorkerGuidance, snapshotWorkerInstructions } 
 import { readPrivate, writePrivate } from '../src/state.mjs';
 
 function fixture(t) {
-  const root=mkdtempSync(join(tmpdir(),'mlswarm mission guides '));
+  const root=mkdtempSync(join(tmpdir(),'minions mission guides '));
   t.after(()=>rmSync(root,{recursive:true,force:true}));
   const source=join(root,'source'),mission=join(root,'mission');
   for(const path of [source,mission])mkdirSync(path,{mode:0o700});

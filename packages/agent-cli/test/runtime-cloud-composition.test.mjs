@@ -13,7 +13,7 @@ const start = () => ({ version: 2, operationId: randomUUID(), kind: 'start', tar
 async function until(read, match) { for (let i = 0; i < 500; i++) { const value = await read(); if (match(value)) return value; await new Promise(resolve => setTimeout(resolve, 10)); } assert.fail('Synthetic composition did not settle'); }
 
 test('trusted cloud composition starts once, saves and delivers evidence without cloud last_turn bypass; a service stop leaves the worker waiting', async t => {
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-cloud-composition-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-cloud-composition-'));
   const store = await openRuntimeStore({ directory });
   let runtime;
   t.after(async () => { await runtime?.close(); await store.close(); await rm(directory, { recursive: true, force: true }); });
@@ -63,7 +63,7 @@ test('trusted cloud composition starts once, saves and delivers evidence without
 });
 
 test('reopening composition only drains original evidence and never registers or creates a model', async t => {
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-cloud-replay-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-cloud-replay-'));
   let store = await openRuntimeStore({ directory }); let runtime;
   t.after(async () => { await runtime?.close(); await store.close(); await rm(directory, { recursive: true, force: true }); });
   const command = start(); const { mission } = await store.accept(command);

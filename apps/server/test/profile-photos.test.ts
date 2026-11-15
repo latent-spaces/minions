@@ -26,8 +26,8 @@ beforeAll(async () => {
 afterAll(async () => { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); });
 beforeEach(async () => {
   await resetEmulator(); at += 120_000;
-  directory = await mkdtemp(join(tmpdir(), 'mlswarm-profile-photo-'));
-  vi.stubEnv('MLSWARM_BLOB_DIR', directory);
+  directory = await mkdtemp(join(tmpdir(), 'minions-profile-photo-'));
+  vi.stubEnv('MINIONS_BLOB_DIR', directory);
   imageModeration.moderator = { provider: 'google_vision_safesearch', analyze: async () => ({ responses: [{ safeSearchAnnotation: {
     adult: 'VERY_UNLIKELY', violence: 'VERY_UNLIKELY', racy: 'VERY_UNLIKELY', medical: 'VERY_UNLIKELY', spoof: 'VERY_UNLIKELY' } }] }) };
   await profiles.doc('person').set({ name: 'Person', email: 'person@example.test', removedAt: null });
@@ -55,7 +55,7 @@ test('character choice persists publicly, preserves photos, validates IDs and re
 });
 async function request(path: string, token?: string, profileId?: string, body?: object | Buffer, extra: Record<string, string> = {}) {
   return fetch(base + path, { method: body ? 'POST' : 'GET', headers: {
-    ...(token ? { authorization: `Bearer ${token}` } : {}), ...(profileId ? { 'x-mlswarm-profile-id': profileId } : {}),
+    ...(token ? { authorization: `Bearer ${token}` } : {}), ...(profileId ? { 'x-minions-profile-id': profileId } : {}),
     ...(body ? { 'content-type': Buffer.isBuffer(body) ? 'image/png' : 'application/json' } : {}), ...extra,
   }, ...(body ? { body: Buffer.isBuffer(body) ? new Uint8Array(body) : JSON.stringify(body) } : {}) });
 }

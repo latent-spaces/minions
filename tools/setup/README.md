@@ -12,7 +12,7 @@ implementation of any of them.
 Every child the script starts is Node itself (npm's JS entry, the engine, the
 connector) without a shell, so checkout paths with spaces and Windows work alike;
 npm runs the package build scripts as any `npm run` does. The engine runs with an
-IPC channel and is stopped with `mlswarm-stop`, the same graceful request on every
+IPC channel and is stopped with `minions-stop`, the same graceful request on every
 platform. Platform decisions live in [engine-plan.mjs](engine-plan.mjs) with no side
 effects; `npm run test:setup` checks them for Windows and POSIX, and runs the
 command's early refusals, which stop before anything is installed or started.

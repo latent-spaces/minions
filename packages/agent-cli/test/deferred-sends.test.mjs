@@ -11,7 +11,7 @@ import { DeferredSends } from '../runtime/project-operations.mjs';
 const send = { to: ['agent-1'], body: 'hello', client_message_id: 'msg-1' };
 
 test('deferred send journal saves on Windows, where a directory cannot be opened for fsync', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'mlswarm-deferred-'));
+  const root = await mkdtemp(join(tmpdir(), 'minions-deferred-'));
   const platform = Object.getOwnPropertyDescriptor(process, 'platform');
   const openSync = fs.openSync;
   t.after(async () => {
@@ -34,7 +34,7 @@ test('deferred send journal saves on Windows, where a directory cannot be opened
 });
 
 test('deferred send journal retries a rename briefly blocked on Windows', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'mlswarm-deferred-'));
+  const root = await mkdtemp(join(tmpdir(), 'minions-deferred-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   // A fresh process sees win32 before state.mjs reads the platform at import.
   const script = `
@@ -54,7 +54,7 @@ test('deferred send journal retries a rename briefly blocked on Windows', async 
 });
 
 test('deferred send journal survives a restart with its pending send', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'mlswarm-deferred-'));
+  const root = await mkdtemp(join(tmpdir(), 'minions-deferred-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const file = join(root, 'deferred.json');
   new DeferredSends(file, 'identity').add(send);
@@ -65,7 +65,7 @@ test('deferred send journal survives a restart with its pending send', async t =
 
 
 test('steering replies preserve empty recipients and full thread IDs across retries and restart', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'mlswarm-steering-send-'));
+  const root = await mkdtemp(join(tmpdir(), 'minions-steering-send-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const file = join(root, 'deferred.json');
   const thread_id = `steer_${'a'.repeat(64)}_12345678-1234-4123-8123-123456789012`;

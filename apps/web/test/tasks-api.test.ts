@@ -56,7 +56,7 @@ test('only http(s) links render as links', () => {
 test('task client sends the selected profile and refuses after the signed-in account changes', async () => {
   const headers: (string | undefined)[] = [];
   let uid = 'person-1';
-  await withServer((req, _body, res) => { headers.push(req.headers['x-mlswarm-profile-id'] as string | undefined); res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ tasks: [], nextCursor: null })); }, async base => {
+  await withServer((req, _body, res) => { headers.push(req.headers['x-minions-profile-id'] as string | undefined); res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ tasks: [], nextCursor: null })); }, async base => {
     const origin = base.replace('/api/projects', '');
     const g = globalThis as { fetch: typeof fetch };
     const realFetch = g.fetch;

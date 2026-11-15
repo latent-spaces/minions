@@ -6,7 +6,7 @@ import { existsSync } from 'node:fs';
 import { win32 } from 'node:path';
 
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
-const TREE_MEMBER = 'MLSWARM_DISPOSABLE_TREE_MEMBER';
+const TREE_MEMBER = 'MINIONS_DISPOSABLE_TREE_MEMBER';
 export function windowsTaskkillPath(env = process.env, exists = existsSync) {
   const root = env.SystemRoot ?? env.SYSTEMROOT;
   if (typeof root !== 'string' || !win32.isAbsolute(root)) throw new Error('Owned Windows process cleanup requires an absolute SystemRoot.');

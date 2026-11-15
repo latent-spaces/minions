@@ -14,8 +14,8 @@ let directory: string;
 beforeEach(async () => {
   imageModeration.moderator = { provider: 'google_vision_safesearch', analyze: async () => ({ responses: [{ safeSearchAnnotation: { adult: 'VERY_UNLIKELY', violence: 'VERY_UNLIKELY', racy: 'VERY_UNLIKELY', medical: 'VERY_UNLIKELY', spoof: 'VERY_UNLIKELY' } }] }) };
   await resetEmulator();
-  directory = await mkdtemp(join(tmpdir(), 'mlswarm-update-feed-'));
-  vi.stubEnv('MLSWARM_BLOB_DIR', directory);
+  directory = await mkdtemp(join(tmpdir(), 'minions-update-feed-'));
+  vi.stubEnv('MINIONS_BLOB_DIR', directory);
 });
 afterEach(async () => {
   vi.restoreAllMocks(); vi.unstubAllEnvs(); imageModeration.moderator = null;

@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import type { ContextNow, UsageAnalytics as Data } from '@mlswarm/contracts';
+import type { ContextNow, UsageAnalytics as Data } from '@minions/contracts';
 import { Button } from './Button';
 import { AgentNow, Outcomes, TopTools } from './UsageOverview';
 import './usage-analytics.css';

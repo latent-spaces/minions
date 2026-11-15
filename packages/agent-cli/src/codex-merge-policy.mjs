@@ -7,9 +7,9 @@ import { dirname, join } from 'node:path';
 import { digest, lstatExists, readPrivate, writePrivate, physicalPath } from './state.mjs';
 
 const execute = promisify(execFile);
-const relative = '.codex/rules/mlswarm-worker-merge.rules';
+const relative = '.codex/rules/minions-worker-merge.rules';
 const ignored = `/${relative}`;
-const unavailable = () => new Error('Codex merge policy could not be installed safely. Update Codex and inspect the reserved .codex/rules/mlswarm-worker-merge.rules file before retrying.');
+const unavailable = () => new Error('Codex merge policy could not be installed safely. Update Codex and inspect the reserved .codex/rules/minions-worker-merge.rules file before retrying.');
 
 export function createCodexMergePolicy({ folder, stateDir, env = process.env, run = execute }) {
   folder = physicalPath(folder);

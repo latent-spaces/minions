@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import type { HumanRequest } from '@mlswarm/contracts';
+import type { HumanRequest } from '@minions/contracts';
 import { readOpenRequests } from '../../apps/web/src/ui/read-open-requests.js';
 import { projectRequestSignals } from '../../apps/web/src/ui/project-request-signals.js';
 import { sidebarAgentRoute } from '../../apps/web/src/ui/shell-nav.js';

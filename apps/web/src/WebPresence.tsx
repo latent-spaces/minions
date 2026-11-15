@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { SessionUser } from './session-identity';
-import type { WebPresencePage } from '@mlswarm/contracts';
+import type { WebPresencePage } from '@minions/contracts';
 import { authorizedRequest } from './authorized-request';
 import { session } from './api';
 import { PersonPresence } from './ui/person-presence';

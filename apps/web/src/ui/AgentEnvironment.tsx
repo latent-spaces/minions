@@ -1,13 +1,13 @@
 import { useEffect, useId, useState } from 'react';
 import type { SessionUser } from '../session-identity';
-import type { AgentEnvironmentView } from '@mlswarm/contracts';
+import type { AgentEnvironmentView } from '@minions/contracts';
 import { ApiError, session, projects } from '../api';
 import { Button } from './Button';
 import { CloseButton } from './CloseButton';
 import { EmptyState } from './EmptyState';
 import { FileSearch } from 'lucide-react';
 
-const statusLabel = { discovered:'Found · loading unverified', missing:'Not found', unreadable:'Not inspected', supplied:'Supplied by MyLittleSwarm · native loading unverified' };
+const statusLabel = { discovered:'Found · loading unverified', missing:'Not found', unreadable:'Not inspected', supplied:'Supplied by Minions · native loading unverified' };
 // Opened from the agent page's ⋯ menu (owner, 12 November 2026).
 export function AgentEnvironment({ user, projectId, agentId, active, tick, onClose }: { user:SessionUser; projectId:string; agentId:string; active:boolean; tick:number; onClose:() => void }) {
   const id = useId();

@@ -21,7 +21,7 @@ const providerName = (p: Provider) => p === 'codex' ? 'Codex' : 'Claude Code';
 // (the project header, the sidebar, the steer bar). The request ID and exact payload stay
 // fixed through uncertain replies and modal closes.
 export function AddAgent({ user, projectId, projectName, refresh, go, occupied = [], onOpenChange, icon = false, openRequest }: { user: SessionUser; projectId: string; projectName: string; refresh: () => void; go?: (route: Route) => void; occupied?: string[]; onOpenChange?: (open: boolean) => void; icon?: boolean; openRequest?: number }) {
-  const storageKey = `mlswarm:web-agent-start:${user.uid}:${projectId}`;
+  const storageKey = `minions:web-agent-start:${user.uid}:${projectId}`;
   const [saved] = useState(() => { try { return readSavedStart(sessionStorage.getItem(storageKey), projectId); } catch { return null; } });
   const dialog = useRef<HTMLDialogElement>(null);
   const id = useId();
@@ -158,7 +158,7 @@ export function AddAgent({ user, projectId, projectName, refresh, go, occupied =
             : computersError ? <p className="error" role="alert">Could not reach your computer. Trying again…</p>
             : !profileId || computers === null ? <p className="muted" role="status">Getting ready…</p>
             : computer && !online ? <p role="status">{computer.clientName} is offline. The agent starts when it’s online.</p>
-            : !ready && <p role="status">Claude Code and Codex aren’t ready on {computer?.clientName ?? 'your computer'}. Open your coding agent there and ask it to update MyLittleSwarm. This updates by itself.</p>}
+            : !ready && <p role="status">Claude Code and Codex aren’t ready on {computer?.clientName ?? 'your computer'}. Open your coding agent there and ask it to update Minions. This updates by itself.</p>}
           <div className="actions k42-add-footer"><Button type="button" className="soft" onClick={() => setOpen(false)}>Cancel</Button><Button className="primary k42-add-primary" type="submit" disabled={!ready || busy || !validAgentModel(model) || !validAgentGoal(scope)}><Bot size={18} aria-hidden="true" />Add agent</Button></div></>}
         {fixed && <><p role="status">{rejected ? 'This request was not accepted.' : request ? startMessage(request) : 'Starting… Checking whether your computer accepted this request.'}</p>
           {request?.agentId && go && <p><NavLink to={projectRoute(projectId, 'agents', request.agentId)} go={route => { setOpen(false); go(route); }}>Open {payload.name}</NavLink></p>}

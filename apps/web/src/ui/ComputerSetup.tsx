@@ -24,7 +24,7 @@ export async function copyText(text: string): Promise<boolean> {
 }
 
 // Set by the approval tab, so other open tabs reload their computers without a Check again.
-export const COMPUTER_APPROVED = 'mlswarm.computerApproved';
+export const COMPUTER_APPROVED = 'minions.computerApproved';
 export function useComputers(user: SessionUser, active: boolean, tick: number, includeRevoking = false) {
   const [state, setState] = useState<{ computers: Computer[] | null, error: string | null }>({ computers: null, error: null });
   const [approvedAt, setApprovedAt] = useState(0);

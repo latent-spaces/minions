@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { projectGradient } from './project-gradient';
 import { Bot, Ellipsis, Link, ArrowUpRight, GitPullRequest, GitMerge } from 'lucide-react';
-import { canonicalGithubRepo, githubRepositoryParts, type ProjectUsage, type RepositorySummary } from '@mlswarm/contracts';
+import { canonicalGithubRepo, githubRepositoryParts, type ProjectUsage, type RepositorySummary } from '@minions/contracts';
 import { ProjectUsageFigures } from './ProjectUsageFigures';
 import { Button } from './Button';
 import { personInitials } from './person-initials';

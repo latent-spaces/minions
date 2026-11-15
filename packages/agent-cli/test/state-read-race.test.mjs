@@ -7,7 +7,7 @@ import { syncBuiltinESMExports } from 'node:module';
 import { readPrivate, writePrivate } from '../src/state.mjs';
 
 test('replacement retries remain bounded and reject unsafe replacement storage', t => {
-  const root = fs.mkdtempSync(join(tmpdir(), 'mlswarm-private-read-')), path = join(root, 'record.json');
+  const root = fs.mkdtempSync(join(tmpdir(), 'minions-private-read-')), path = join(root, 'record.json');
   const originalStat = fs.fstatSync; let attempts = 0;
   try {
     writePrivate(path, { revision: 0 });

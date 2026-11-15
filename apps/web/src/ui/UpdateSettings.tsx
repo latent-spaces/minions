@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Check } from 'lucide-react';
-import { PROGRESS_LIMITS, UPDATE_EVERY_MINUTES, UPDATE_TOPICS, type ProjectUpdateSettings, type UpdateTopic } from '@mlswarm/contracts';
+import { PROGRESS_LIMITS, UPDATE_EVERY_MINUTES, UPDATE_TOPICS, type ProjectUpdateSettings, type UpdateTopic } from '@minions/contracts';
 import { isSettledRefusal } from '../task-model';
 import { Button } from './Button';
 import { SettingToggle } from './SettingToggle';

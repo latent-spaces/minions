@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { PERSONA_OPTIONS } from '@mlswarm/contracts';
+import { PERSONA_OPTIONS } from '@minions/contracts';
 import { startRun, reportPhase } from '../../apps/server/src/v2/runs.js';
 import { randomUUID } from 'node:crypto';
 import { db, profiles, inProject } from '../../apps/server/src/firestore.js';
@@ -23,7 +23,7 @@ async function port() {
 
 test('actual app keeps coding-tool identity separate from model names across sidebar, cards and details', async () => {
   await resetEmulator();
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-agent-icons-')), apiPort = await port(), webPort = await port();
+  const directory = await mkdtemp(join(tmpdir(), 'minions-agent-icons-')), apiPort = await port(), webPort = await port();
   const fixture = await seed({ profiles: [{name:'Icon reviewer',email:'icons@example.test',role:'owner'}], agents: [
     {person:0,name:'Alpha worker'}, {person:0,name:'Beta worker'}, {person:0,name:'Gamma unknown'},
   ] });
@@ -54,7 +54,7 @@ test('actual app keeps coding-tool identity separate from model names across sid
       try{if((await fetch(`http://127.0.0.1:${apiPort}/api/needs-you`)).status===401)break;}catch{}
       if(attempt>100)throw new Error(output||'API did not start');await new Promise(resolve=>setTimeout(resolve,100));
     }
-    await web.listen();browser=await chromium.launch({headless:true,...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MLSWARM_TEST_BROWSER_EXECUTABLE}:{})});
+    await web.listen();browser=await chromium.launch({headless:true,...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MINIONS_TEST_BROWSER_EXECUTABLE}:{})});
     const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
     // Advance presentation time only; server freshness and real model state stay untouched.
     await context.addInitScript(() => {

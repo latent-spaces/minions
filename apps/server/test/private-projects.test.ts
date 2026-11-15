@@ -32,7 +32,7 @@ beforeAll(async () => {
 afterAll(async () => { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); });
 beforeEach(resetEmulator);
 async function call(path: string, token?: string, body?: object, profileId = token ? tokenProfiles.get(token) : undefined) {
-  const res = await fetch(base + path, { method: body ? 'POST' : 'GET', headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(profileId ? { 'X-Mlswarm-Profile-Id': profileId } : {}), ...(body ? { 'content-type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+  const res = await fetch(base + path, { method: body ? 'POST' : 'GET', headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(profileId ? { 'X-Minions-Profile-Id': profileId } : {}), ...(body ? { 'content-type': 'application/json' } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
   return { status: res.status, data: await res.json() };
 }
 async function fixture(limit = 10) {
@@ -52,7 +52,7 @@ test('private projects reject public publication and stale public projections ca
   const { tokens, id } = await fixture();
   expect((await call(`/api/projects/${id}/finalize`, tokens.owner, { client_request_id: randomUUID(), expected_revision: 0 })).status).toBe(403);
   expect((await call(`/api/projects/${id}/catalog`, tokens.owner, { client_request_id: randomUUID(), expected_revision: 0, listed: true, summary: 'Secret', category: 'research', tags: [] })).status).toBe(403);
-  await projectListings.doc(id).set({ workspaceId: 'mlswarm', title: 'Leaked', summary: 'Secret', category: 'research', tags: [], ownerName: 'owner', revision: 1, publishedAt: 1, updatedAt: 1, prefixes: [] });
+  await projectListings.doc(id).set({ workspaceId: 'minions', title: 'Leaked', summary: 'Secret', category: 'research', tags: [], ownerName: 'owner', revision: 1, publishedAt: 1, updatedAt: 1, prefixes: [] });
   await communitySettingsDoc(id).update({ chatRead: 'public' });
   expect((await call(`/api/projects/${id}`, tokens.owner)).data.listed).toBe(false);
   expect((await call('/api/discovery/projects')).data.projects).toEqual([]);
@@ -80,7 +80,7 @@ test('leaving fences existing agent credentials and rejoining never reactivates 
   expect((await call(`/api/projects/${id}/leave`, tokens.owner, { client_request_id: randomUUID() })).status).toBe(403);
 });
 
-test('private creation requires an existing MyLittleSwarm account bound to the signed-in profile', async () => {
+test('private creation requires an existing Minions account bound to the signed-in profile', async () => {
   const { tokens } = await fixture();
   const uninvited = await idTokenFor('uninvited@example.test');
   expect((await call('/api/projects/private', uninvited, { githubUrl: 'https://github.com/example/repo', client_request_id: randomUUID(), title: 'Unauthorized', goal: 'No access' })).status).toBe(401);

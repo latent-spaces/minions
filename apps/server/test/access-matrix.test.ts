@@ -129,7 +129,7 @@ async function call(method: string, path: string, token: string, body?: object) 
   const privateEndpoint = /\/(?:private|invitations)(?:\/|$)|\/(?:leave|personal-archive|personal-star|visit)$|\/(?:tasks|native-task-settings|native-team-settings)(?:\/|$)/.test(path);
   const email = privateEndpoint ? (await identity().verifySession(token))?.email ?? null : null;
   const person = email ? (await profiles.where('email', '==', email).limit(1).get()).docs[0] : null;
-  const response = await fetch(base + path, { method, headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', ...(person ? { 'X-Mlswarm-Profile-Id': person.id } : {}) },
+  const response = await fetch(base + path, { method, headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', ...(person ? { 'X-Minions-Profile-Id': person.id } : {}) },
     ...(method === 'POST' ? { body: JSON.stringify(body ?? {}) } : {}) });
   return { status: response.status, body: await response.json().catch(() => null) };
 }

@@ -1,3 +1,4 @@
+import { brandedDirectory } from './brand-paths.mjs';
 import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
@@ -12,7 +13,7 @@ export function defaultSiteStateHome(kind, env = process.env, userHome = homedir
   if (!['mcp', 'service'].includes(kind)) throw new Error('Unknown private state directory.');
   configuredWebsiteOrigin(env);
   const site = selfHostedWebsiteOrigin(env);
-  const root = join(userHome, '.mlswarm');
+  const root = brandedDirectory(userHome);
   return site === null ? join(root, kind)
     : join(root, 'instances', siteInstanceId(site), kind);
 }

@@ -2,7 +2,7 @@
 // These synthetic settings do not contact any backend or start agents.
 import { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import type { NativeTaskSettings } from '@mlswarm/contracts';
+import type { NativeTaskSettings } from '@minions/contracts';
 import { TaskSettingsControl, type TaskSettingsApi } from '../src/ui/TaskSettingsControl';
 import '../src/styles.css';
 import '../src/ui/theme.css';

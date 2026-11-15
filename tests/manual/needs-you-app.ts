@@ -36,7 +36,7 @@ try {
  api=spawn(process.execPath,['--import','tsx','apps/server/test/api-process.ts'],{cwd:root,stdio:'inherit',env:{...process.env,HOST:'127.0.0.1',PORT:String(apiPort)}});
  for(let i=0;;i++){try{if((await fetch(`http://127.0.0.1:${apiPort}/api/needs-you`)).status===401)break;}catch{}if(i>100)throw new Error('API did not start');await new Promise(r=>setTimeout(r,100));}
  web=await createServer({root:join(root,'apps/web'),cacheDir:join(folder,'vite-cache'),configFile:join(root,'apps/web/vite.config.ts'),server:{host:'127.0.0.1',port:webPort,strictPort:true}});await web.listen();
- browser=await chromium.launch({headless:true,...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MLSWARM_TEST_BROWSER_EXECUTABLE}:{})});
+ browser=await chromium.launch({headless:true,...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MINIONS_TEST_BROWSER_EXECUTABLE}:{})});
  const context=await browser.newContext({viewport:{width:1440,height:1000}});context.setDefaultTimeout(15_000);
  await context.route('**/*',route=>['127.0.0.1','localhost','[::1]'].includes(new URL(route.request().url()).hostname)?route.continue():route.abort());
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));

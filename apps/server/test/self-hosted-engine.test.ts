@@ -11,21 +11,21 @@ import { selfHostedCli } from './self-hosted-cli.js';
 const networkGuard = new URL('../../../tests/support/loopback-only-network-preload.mjs', import.meta.url).href;
 test('a fresh standalone CLI initializes, signs in its ordinary owner, shuts down and reopens its database', async () => {
   const root = mkdtempSync(join(tmpdir(), 'engine CLI with spaces ')); chmodSync(root, 0o700);
-  const env: NodeJS.ProcessEnv & { MLSWARM_SQLITE_PATH: string; MLSWARM_OWNER_FILE: string } = { ...process.env, MLSWARM_ENGINE: 'self-hosted', HOST: '127.0.0.1', PORT: '0',
-    MLSWARM_SQLITE_PATH: join(root, 'engine.sqlite'), MLSWARM_BLOB_DIR: join(root, 'media'), MLSWARM_OWNER_FILE: join(root, 'owner.json') };
-  for (const name of ['TRUST_PROXY', 'MLSWARM_TEST_SESSION', 'MLSWARM_TEST_SQLITE_PATH']) delete env[name];
+  const env: NodeJS.ProcessEnv & { MINIONS_SQLITE_PATH: string; MINIONS_OWNER_FILE: string } = { ...process.env, MINIONS_ENGINE: 'self-hosted', HOST: '127.0.0.1', PORT: '0',
+    MINIONS_SQLITE_PATH: join(root, 'engine.sqlite'), MINIONS_BLOB_DIR: join(root, 'media'), MINIONS_OWNER_FILE: join(root, 'owner.json') };
+  for (const name of ['TRUST_PROXY', 'MINIONS_TEST_SESSION', 'MINIONS_TEST_SQLITE_PATH']) delete env[name];
   const networkLogs: string[] = [];
   const guarded = (args: string[]) => {
     const log = join(root, `network-${networkLogs.length}.json`); networkLogs.push(log);
-    return { argv: ['--import', networkGuard, ...selfHostedCli(args)], env: { ...env, MLSWARM_TEST_NETWORK_LOG: log } };
+    return { argv: ['--import', networkGuard, ...selfHostedCli(args)], env: { ...env, MINIONS_TEST_NETWORK_LOG: log } };
   };
   const command = (...args: string[]) => { const run = guarded(args); return spawnSync(process.execPath, run.argv, { env: run.env, encoding: 'utf8', timeout: 15_000 }); };
   try {
     const init = command('init', '--owner-name', 'Ada Example', '--owner-email', 'ada@example.test', '--source-revision', 'a'.repeat(40));
     expect(init.status, init.stderr).toBe(0);
-    const bytes = readFileSync(env.MLSWARM_OWNER_FILE, 'utf8');
+    const bytes = readFileSync(env.MINIONS_OWNER_FILE, 'utf8');
     const refused = command('init', '--owner-name', 'Other', '--owner-email', 'other@example.test', '--source-revision', 'b'.repeat(40));
-    expect(refused.status).toBe(1); expect(readFileSync(env.MLSWARM_OWNER_FILE, 'utf8')).toBe(bytes);
+    expect(refused.status).toBe(1); expect(readFileSync(env.MINIONS_OWNER_FILE, 'utf8')).toBe(bytes);
     let firstToken = '';
     for (let round = 0; round < 2; round++) {
       const run = guarded(['start']);
@@ -47,7 +47,7 @@ test('a fresh standalone CLI initializes, signs in its ordinary owner, shuts dow
         const duplicate = command('start');
         expect(duplicate.status, duplicate.stderr).toBe(1);
         expect(duplicate.stderr).toContain('database is locked');
-        expect(existsSync(`${env.MLSWARM_SQLITE_PATH}.lock`)).toBe(true);
+        expect(existsSync(`${env.MINIONS_SQLITE_PATH}.lock`)).toBe(true);
         expect(output).toContain(`Open ${url}/`);
         // The engine's own page gets the owner session with no link; another website does not.
         const ask = (origin: string) => fetch(`${url}/api/auth/local-owner/session`, { method: 'POST', headers: { origin, 'content-type': 'application/json' }, body: '{}' });
@@ -62,10 +62,10 @@ test('a fresh standalone CLI initializes, signs in its ordinary owner, shuts dow
         if (!round) firstToken = session.token;
         else expect((await fetch(`${url}/api/auth/session`, { headers: { authorization: `Bearer ${firstToken}` } })).status).toBe(200);
         // Both stop routes drain and unlock: the supervisor's IPC message, then Ctrl+C (SIGINT).
-        if (round) child.kill('SIGINT'); else child.send('mlswarm-stop');
+        if (round) child.kill('SIGINT'); else child.send('minions-stop');
         expect(await exit).toBe(0);
-        expect(existsSync(`${env.MLSWARM_SQLITE_PATH}.lock`)).toBe(false);
-      } finally { if (child.exitCode === null) { child.send('mlswarm-stop'); await exit; } }
+        expect(existsSync(`${env.MINIONS_SQLITE_PATH}.lock`)).toBe(false);
+      } finally { if (child.exitCode === null) { child.send('minions-stop'); await exit; } }
     }
     // No engine process tried to reach a non-loopback host. A missing log (a process that died without
     // exiting normally) throws here rather than counting as nothing refused.

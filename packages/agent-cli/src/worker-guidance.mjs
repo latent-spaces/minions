@@ -5,7 +5,7 @@ import { skillTextHash } from './skill-bundle.mjs';
 
 export const WORKER_GUIDE_SECTIONS = Object.freeze(['project-work', 'updates-and-help']);
 export const WORKER_GUIDE_TOOL = {
-  name: 'get_mlswarm_guide',
+  name: 'get_minions_guide',
   description: 'Read a shared workflow pinned to this approved mission: project-work for tasks, collaboration, recovery and GitHub publication; updates-and-help for updates, Needs you and moderation. Read when needed if not retained in context. Only background-agent paths apply; owner management and in-chat participation tools are unavailable.',
   annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   inputSchema: { type: 'object', properties: { section: { type: 'string', enum: WORKER_GUIDE_SECTIONS } }, required: ['section'], additionalProperties: false },

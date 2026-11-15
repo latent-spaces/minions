@@ -5,7 +5,7 @@ import { afterAll, beforeAll, expect, test } from 'vitest';
 let vite: any, chromium: any, origin: string;
 beforeAll(async()=>{
   const require=createRequire(new URL('../../apps/web/package.json',import.meta.url));
-  const {createServer}=require('vite');({chromium}=require(process.env.MLSWARM_TEST_PLAYWRIGHT??'playwright'));
+  const {createServer}=require('vite');({chromium}=require(process.env.MINIONS_TEST_PLAYWRIGHT??'playwright'));
   const html=`<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>
   <main style="max-width:900px;margin:24px auto;padding:16px"><p>Synthetic project updates · no running models</p><div id="root"></div></main>
   <script type="module">
@@ -42,7 +42,7 @@ afterAll(async()=>{await vite?.close();});
 // Each page gets its own browser. Single-process Chromium ends when a page's context closes and can't host a second
 // context, so one shared browser can't give every case a fresh context.
 const openPage=async(viewport:{width:number;height:number})=>{
-  const browser=await chromium.launch({headless:true,...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MLSWARM_TEST_BROWSER_EXECUTABLE}:{})});
+  const browser=await chromium.launch({headless:true,...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MINIONS_TEST_BROWSER_EXECUTABLE}:{})});
   try { return await browser.newPage({viewport}); } catch (error) { await browser.close(); throw error; }
 };
 const closePage=(page:any)=>page.context().browser().close();

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { SessionUser } from '../src/session-identity';
-import type { ProgressScreenshot } from '@mlswarm/contracts';
+import type { ProgressScreenshot } from '@minions/contracts';
 import { ApiError } from '../src/authorized-request';
 import { createProgressClient } from '../src/progress-client';
 

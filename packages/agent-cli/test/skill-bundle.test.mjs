@@ -11,13 +11,13 @@ import { ensureInstallation } from '../src/service/installation.mjs';
 import { GUIDE_REVISION } from '../src/version.mjs';
 
 async function fixture(t) {
-  const root = mkdtempSync(join(tmpdir(), 'mlswarm skill bundle '));
+  const root = mkdtempSync(join(tmpdir(), 'minions skill bundle '));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const where = { home: join(root, 'service'), userHome: join(root, 'user'), env: {} };
   await ensureInstallation({ home: where.home, site: 'http://127.0.0.1:8787' });
   mkdirSync(join(where.userHome, '.claude'), { recursive: true });
   mkdirSync(join(where.userHome, '.codex'), { recursive: true });
-  return { ...where, root, skill: join(where.userHome, '.agents', 'skills', 'mlswarm'), setup: () => connectClients(where) };
+  return { ...where, root, skill: join(where.userHome, '.agents', 'skills', 'minions'), setup: () => connectClients(where) };
 }
 const status = root => installedSkill({ path: join(root, 'SKILL.md') }, BUNDLED_SKILL).status;
 const run = async args => {
@@ -30,14 +30,14 @@ test('MCP serves the router by default and only the selected workflow; invalid s
   const caller = { kind: 'owner', ...principal };
   const app = createRuntimeApplication({ principal });
   const read = async args => {
-    const result = await app.callTool(caller, 'get_mlswarm_guide', args);
+    const result = await app.callTool(caller, 'get_minions_guide', args);
     assert.equal(result.isError, undefined);
     return result.content[0].text;
   };
   assert.equal(await read({}), readBundledGuide());
   for (const section of GUIDE_SECTIONS) assert.equal(await read({ section }), readBundledGuide(section));
   for (const args of [{ section: '../../package.json' }, { section: 'all' }, { section: null }, { extra: true }]) {
-    const result = await app.callTool(caller, 'get_mlswarm_guide', args);
+    const result = await app.callTool(caller, 'get_minions_guide', args);
     assert.equal(result.isError, true);
     assert.equal(JSON.parse(result.content[0].text).error.code, 'bad_input');
   }
@@ -65,7 +65,7 @@ test('setup installs and repairs the complete bundle for both clients in paths w
   const f = await fixture(t);
   assert.ok(f.setup().every(result => result.connected));
   for (const client of ['.claude', '.agents']) {
-    const root = join(f.userHome, client, 'skills', 'mlswarm');
+    const root = join(f.userHome, client, 'skills', 'minions');
     for (const [file, text] of Object.entries(bundledGuideFiles())) assert.equal(readFileSync(join(root, file), 'utf8'), text);
     assert.equal(status(root), 'current');
   }
@@ -107,14 +107,14 @@ test('a canonical guide saved with CRLF line endings is current, and a newer gui
     writeFileSync(dest, text.replaceAll('\r\n', '\n').replaceAll('\n', '\r\n'));
   }
   assert.equal(status(f.skill), 'current');
-  writeFileSync(join(f.skill, 'SKILL.md'), `---\nname: mlswarm\nmetadata:\n  guide-revision: "${GUIDE_REVISION + 1}"\n---\nLater guide.\n`);
+  writeFileSync(join(f.skill, 'SKILL.md'), `---\nname: minions\nmetadata:\n  guide-revision: "${GUIDE_REVISION + 1}"\n---\nLater guide.\n`);
   assert.equal(status(f.skill), 'newer');
 });
 
 test('setup upgrades an earlier single-file guide to the full router bundle', async t => {
   const f = await fixture(t);
   mkdirSync(f.skill, { recursive: true });
-  writeFileSync(join(f.skill, 'SKILL.md'), `---\nname: mlswarm\nmetadata:\n  guide-revision: "${GUIDE_REVISION - 1}"\n---\nEarlier guide.\n`);
+  writeFileSync(join(f.skill, 'SKILL.md'), `---\nname: minions\nmetadata:\n  guide-revision: "${GUIDE_REVISION - 1}"\n---\nEarlier guide.\n`);
   assert.equal(status(f.skill), 'update_available');
   assert.equal(f.setup().find(result => result.client === 'Codex').note, null);
   assert.equal(status(f.skill), 'current');

@@ -13,7 +13,7 @@ const principal={site:'https://example.test',ownerId:'synthetic-owner'},projectI
 const fixture=fileURLToPath(new URL('./fixtures/runtime-fake-native.mjs',import.meta.url));
 async function until(read,predicate){const deadline=Date.now()+8000;while(Date.now()<deadline){const value=await read();if(predicate(value))return value;await new Promise(r=>setTimeout(r,15));}assert.fail('Expected synthetic start observation');}
 async function setup(t,{beforeAccept,prepare,grantMs=300000,available=true,repositoryWait=async()=>({waitingFor:null,code:"ready",checkedAt:Date.now()}),folder}={}){
-  const home=await mkdtemp(join(tmpdir(),'mlswarm-web-start-')),store=await openRuntimeStore({directory:join(home,'ledger')});
+  const home=await mkdtemp(join(tmpdir(),'minions-web-start-')),store=await openRuntimeStore({directory:join(home,'ledger')});
   const events=join(home,'events.jsonl'),gate=join(home,'gate'),incarnation=randomUUID(),at=Date.now();
   let request={id:randomUUID(),connectionId:randomUUID(),projectId,name:'synthetic-fox',scope:'Synthetic mission, no model',minutes:5,
     execution:{provider:'claude',model:null},incarnation,state:'pending',createdAt:at,pickupByAt:at+60000,launchByAt:null,deadlineAt:null,agentId:null};
@@ -78,7 +78,7 @@ test('a start whose preparation crosses the job\'s end time comes up waiting for
 });
 
 for(const [reason,label] of [['github','without GitHub access'],['empty_repository','for an empty repository']])test(`a start ${label} waits and starts when the repository is ready`,async t=>{
-  const folder=await mkdtemp(join(tmpdir(),'mlswarm-web-start-folder-'));t.after(()=>rm(folder,{recursive:true,force:true}));
+  const folder=await mkdtemp(join(tmpdir(),'minions-web-start-folder-'));t.after(()=>rm(folder,{recursive:true,force:true}));
   let access=false;const f=await setup(t,{folder,repositoryWait:async()=>({waitingFor:access?null:reason,code:access?'ready':reason==='github'?'git_authentication_failed':'empty_repository',checkedAt:Date.now()})});
   await until(()=>f.accepted,a=>a.some(v=>v.waitingFor===reason));
   assert.equal(f.request.state,'pending');assert.deepEqual(f.receipts,[]);assert.equal(f.counts.clones,0);
@@ -90,7 +90,7 @@ for(const [reason,label] of [['github','without GitHub access'],['empty_reposito
 });
 
 test('an empty agent folder is cloned before the start is accepted, outside the launch window',async t=>{
-  const folder=await mkdtemp(join(tmpdir(),'mlswarm-web-start-folder-'));t.after(()=>rm(folder,{recursive:true,force:true}));
+  const folder=await mkdtemp(join(tmpdir(),'minions-web-start-folder-'));t.after(()=>rm(folder,{recursive:true,force:true}));
   const before=[];const f=await setup(t,{folder,prepare:()=>{before.push(f.accepted.length);}});
   await until(()=>f.receipts,r=>r.some(v=>v.state==='starting'));
   assert.equal(before[0],0,'the first clone runs before any acceptance');
@@ -98,7 +98,7 @@ test('an empty agent folder is cloned before the start is accepted, outside the 
 });
 
 test('a failed clone while waiting keeps the start pending and tries again about a minute later',async t=>{
-  const folder=await mkdtemp(join(tmpdir(),'mlswarm-web-start-folder-'));t.after(()=>rm(folder,{recursive:true,force:true}));
+  const folder=await mkdtemp(join(tmpdir(),'minions-web-start-folder-'));t.after(()=>rm(folder,{recursive:true,force:true}));
   let fail=true;const f=await setup(t,{folder,prepare:()=>{if(fail)throw Object.assign(new Error('synthetic clone timeout'),{code:'preparation_failed'});}});
   await until(()=>f.counts,c=>c.clones===1);await f.tick();
   assert.equal(f.counts.clones,1);assert.equal(f.request.state,'pending');assert.deepEqual(f.receipts,[]);
@@ -109,7 +109,7 @@ test('a failed clone while waiting keeps the start pending and tries again about
 
 // The fake gh is a shell script; Windows runs the same code against real gh.exe.
 test('repository access adds only missing members and accepts only invitations to joined project repositories',{skip:process.platform==='win32'},async t=>{
-  const bin=await mkdtemp(join(tmpdir(),'mlswarm-fake-gh-'));t.after(()=>rm(bin,{recursive:true,force:true}));
+  const bin=await mkdtemp(join(tmpdir(),'minions-fake-gh-'));t.after(()=>rm(bin,{recursive:true,force:true}));
   await writeFile(join(bin,'gh'),`#!/bin/sh\n[ "$2" = --method ] && echo "$3 $4" >> "${bin}/calls" && exit 0\ncase "$3" in */collaborators) echo Alice;; */invitations) echo bob;; user/*) printf '7\\thttps://github.com/example/other\\n9\\thttps://github.com/Example/Synthetic\\n';; esac\n`,{mode:0o755});
   const path=process.env.PATH;process.env.PATH=`${bin}:${path}`;t.after(()=>{process.env.PATH=path;});
   await syncRepositoryAccess({owned:[{repo:'https://github.com/example/mine',usernames:['alice','bob','carol']}],joined:['https://github.com/example/synthetic']});
@@ -141,14 +141,14 @@ test('unknown controller acceptance preserves recovery evidence and cannot submi
 });
 
 test('checkout preparation rejects noncanonical repositories without launching Git or deleting files',async t=>{
-  const folder=await mkdtemp(join(tmpdir(),'mlswarm-unsafe-web-checkout-'));t.after(()=>rm(folder,{recursive:true,force:true}));
+  const folder=await mkdtemp(join(tmpdir(),'minions-unsafe-web-checkout-'));t.after(()=>rm(folder,{recursive:true,force:true}));
   await writeFile(join(folder,'keep.txt'),'preserve');
   await assert.rejects(prepareWebCheckout({folder,repo:'https://evil.example/owner/repo'}),{code:'preparation_failed'});
   assert.equal(await readFile(join(folder,'keep.txt'),'utf8'),'preserve');
 });
 
 test('cloud connection health records successful contact, staleness, outage and recovery independently of local execution',async t=>{
-  const home=await mkdtemp(join(tmpdir(),'mlswarm-cloud-health-'));let clock=Date.now(),offline=false;
+  const home=await mkdtemp(join(tmpdir(),'minions-cloud-health-'));let clock=Date.now(),offline=false;
   const pump=createWebAgentStarts({home,principal,controllers:{},addAgent:async()=>assert.fail('No agents may be added'),intervalMs:600000,now:()=>clock,
     capabilities:async()=>[],githubSignIn:async()=>'ready',syncAccess:async()=>{},
     ownerClient:{publishRuntimeReadiness:async()=>{if(offline)throw new Error('synthetic network outage');return {ok:true};},listAgentStarts:async()=>({requests:[],serverTime:clock}),listRepositoryAccess:async()=>({owned:[],joined:[]})},

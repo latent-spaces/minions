@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { ProjectWorkersView } from '@mlswarm/contracts';
+import type { ProjectWorkersView } from '@minions/contracts';
 import { jobTimeLine, jobTokensUsed, parseTokenCap, tidyTokenCap } from '../src/ui/job-limits';
 
 // Synthetic sessions only: no server, computer or model.

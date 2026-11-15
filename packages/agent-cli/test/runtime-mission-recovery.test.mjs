@@ -23,7 +23,7 @@ const recovery=(mission,extra={})=>({version:1,operationId:randomUUID(),...query
   action:'finalize',reason:'Close safely interrupted synthetic work.',approved:true,...extra});
 const reject=(action,code)=>assert.rejects(async()=>action(),error=>error.code===code);
 async function fixture(t) {
-  const root=await realpath(await mkdtemp(join(tmpdir(),'mlswarm-safe-recovery-'))),directory=join(root,'ledger'),registryRoot=join(root,'ownership');
+  const root=await realpath(await mkdtemp(join(tmpdir(),'minions-safe-recovery-'))),directory=join(root,'ledger'),registryRoot=join(root,'ownership');
   const folders=[join(root,'park'),join(root,'garden')];for(const folder of [...folders,registryRoot])await mkdir(folder,{mode:0o700});
   let store=await openRuntimeStore({directory}),controllers,inspections=0;
   const folder=mission=>folders[mission.target.projectId==='park'?0:1];

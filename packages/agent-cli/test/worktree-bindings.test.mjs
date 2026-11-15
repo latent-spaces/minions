@@ -10,7 +10,7 @@ import { createNativeAdapterFactory } from '../src/service/native-bindings.mjs';
 import { inspectWorkerCheckout } from '../src/checkout-ownership.mjs';
 
 test('sibling worktrees admit both provider bindings and retain independent ownership (fake processes, no models)', { timeout: 15000 }, async t => {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'mlswarm-worktree-bindings-')));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'minions-worktree-bindings-')));
   const fixtures = await makeMixedNativeFixtures(root, [['garden', 'claude'], ['garden', 'codex']]);
   const git = (folder, ...args) => execFileSync('git', ['-C', folder, ...args], { encoding: 'utf8',
     env: { PATH: process.env.PATH, HOME: fixtures.envSource.HOME, GIT_CONFIG_NOSYSTEM: '1', GIT_CONFIG_GLOBAL: '/dev/null' } }).trim();

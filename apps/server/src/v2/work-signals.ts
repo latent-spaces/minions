@@ -13,7 +13,7 @@ export const workSignalDoc = (agentId: string) => projectDocument<StoredWorkSign
 export function checkedWorkSignal(value: WorkSignal | undefined): WorkSignal {
   if (!value) return { revision: 0, runnable: false };
   if (!Number.isSafeInteger(value.revision) || value.revision < 0 || typeof value.runnable !== 'boolean') {
-    throw new Refusal('intent_conflict', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+    throw new Refusal('intent_conflict', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
   }
   return { revision: value.revision, runnable: value.runnable };
 }
@@ -22,7 +22,7 @@ export async function countedWorkSignal(tx: Transaction, agentId: string, stored
   if (stored) {
     const count = stored.runnableCount, humanAnswerCount = stored.humanAnswerCount ?? 0;
     if (!Number.isSafeInteger(count) || count < 0 || !Number.isSafeInteger(humanAnswerCount) || humanAnswerCount < 0 || !Number.isSafeInteger(count + humanAnswerCount) || stored.runnable !== (count + humanAnswerCount > 0)) {
-      throw new Refusal('intent_conflict', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+      throw new Refusal('intent_conflict', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
     }
     return { ...signal, runnableCount: count, humanAnswerCount };
   }
@@ -30,7 +30,7 @@ export async function countedWorkSignal(tx: Transaction, agentId: string, stored
   // bodies or repeat an existence query on every ongoing update. The same summary is fenced.
   const aggregate = await tx.get(projectCollection(`agents/${agentId}/workIntents`).where('state', '==', 'runnable').count());
   const count = aggregate.data().count;
-  if (!Number.isSafeInteger(count) || count < 0) throw new Refusal('intent_conflict', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+  if (!Number.isSafeInteger(count) || count < 0) throw new Refusal('intent_conflict', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
   return { ...signal, runnable: count > 0, runnableCount: count, humanAnswerCount: 0 };
 }
 export async function workSignalAtStart(tx: Transaction, agentId: string) {

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { beforeEach, expect, test } from 'vitest';
-import { nativeTasksEnabled } from '@mlswarm/contracts';
+import { nativeTasksEnabled } from '@minions/contracts';
 import { db, inProject, profiles } from '../src/firestore.js';
 import { saveNativeTaskSettings, readNativeTaskSettings } from '../src/projects/native-task-settings.js';
 import { mutateNativeTask, getNativeTask } from '../src/projects/native-tasks.js';

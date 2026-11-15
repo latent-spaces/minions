@@ -1,4 +1,4 @@
-import { PROMPT_SOURCES, CONTEXT_TOOL_NAMES, USAGE_METRICS, normalizeReportedUsage, type AnalyticsValues } from '@mlswarm/contracts';
+import { PROMPT_SOURCES, CONTEXT_TOOL_NAMES, USAGE_METRICS, normalizeReportedUsage, type AnalyticsValues } from '@minions/contracts';
 import type { LastTurn } from '../v2/records.js';
 export const emptyValues = (): AnalyticsValues => ({nativeReports:0,nativeLastInputMax:null,nativeCompactions:0,promptSourceReports:0,promptSources:Object.fromEntries(PROMPT_SOURCES.map(key=>[key,0])) as AnalyticsValues['promptSources'],mcpReports:0,mcpTools:{},reports:0,outcomes:{succeeded:0,failed:0,timed_out:0,budget_cap:0},
   metrics:Object.fromEntries(USAGE_METRICS.map(key=>[key,{sum:0,known:0,partial:0}])) as AnalyticsValues['metrics']});

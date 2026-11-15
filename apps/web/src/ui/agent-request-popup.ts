@@ -1,4 +1,4 @@
-import type { HumanRequest } from '@mlswarm/contracts';
+import type { HumanRequest } from '@minions/contracts';
 
 /** Keep an in-progress answer mounted when another client (or an uncertain send)
  * removes it from the open list. The existing versioned answer API reconciles retries. */

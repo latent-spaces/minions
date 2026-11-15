@@ -1,5 +1,5 @@
 import sharp from 'sharp';
-import { PROGRESS_LIMITS } from '@mlswarm/contracts';
+import { PROGRESS_LIMITS } from '@minions/contracts';
 import { Refusal } from '../errors.js';
 const MIME = { png: 'image/png', jpeg: 'image/jpeg', webp: 'image/webp' } as const;
 function inputError(message: string): never { throw new Refusal('bad_input', message); }

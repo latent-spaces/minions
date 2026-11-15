@@ -93,27 +93,27 @@ function installSkill(path) {
       try {
         const existing = readInstalledGuideFile(root, file);
         const upgradingKnownFile = status === 'update_available' && (file === 'SKILL.md' || installed.references_sha256);
-        if (!upgradingKnownFile && skillTextHash(existing) !== skillTextHash(content)) return `kept your own MyLittleSwarm skill at ${path}`;
-      } catch (error) { if (error.code !== 'ENOENT') return `kept your own MyLittleSwarm skill at ${path}`; }
+        if (!upgradingKnownFile && skillTextHash(existing) !== skillTextHash(content)) return `kept your own Minions skill at ${path}`;
+      } catch (error) { if (error.code !== 'ENOENT') return `kept your own Minions skill at ${path}`; }
     }
     // References first: once the new router is visible, all its links exist.
     for (const [file, content] of Object.entries(files)) if (file !== 'SKILL.md') replace(join(root, file), content);
     replace(path, files['SKILL.md']);
     return null;
   }
-  return `kept your own MyLittleSwarm skill at ${path}`;
+  return `kept your own Minions skill at ${path}`;
 }
 
 function connectClaude({ home, userHome }) {
   const config = reusableConfiguration({ client: 'claude', home });
   const registry = join(userHome, '.claude.json'), settingsPath = join(userHome, '.claude', 'settings.json');
   const servers = readJson(registry);
-  // The entry has this site's own name, so another installation's mlswarm entry stays as it is.
+  // The entry has this site's own name, so another installation's minions entry stays as it is.
   if (!isDeepStrictEqual(servers.mcpServers?.[config.name], config.entry)) replace(registry, `${JSON.stringify({ ...servers, mcpServers: { ...servers.mcpServers, [config.name]: config.entry } }, null, 2)}\n`);
-  // MyLittleSwarm asks the person in chat before important actions, so Claude Code need not ask again for each tool.
+  // Minions asks the person in chat before important actions, so Claude Code need not ask again for each tool.
   const settings = readJson(settingsPath), allow = settings.permissions?.allow ?? [], permission = `mcp__${config.name}`;
   if (!allow.includes(permission)) replace(settingsPath, `${JSON.stringify({ ...settings, permissions: { ...settings.permissions, allow: [...allow, permission] } }, null, 2)}\n`);
-  return installSkill(join(userHome, '.claude', 'skills', 'mlswarm', 'SKILL.md'));
+  return installSkill(join(userHome, '.claude', 'skills', 'minions', 'SKILL.md'));
 }
 
 function connectCodex({ home, userHome, codexHome }) {
@@ -121,11 +121,11 @@ function connectCodex({ home, userHome, codexHome }) {
   let text = '';
   try { text = readFileSync(path, 'utf8'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
   replace(path, withCodexEntry(text, config.toml));
-  return installSkill(join(userHome, '.agents', 'skills', 'mlswarm', 'SKILL.md'));
+  return installSkill(join(userHome, '.agents', 'skills', 'minions', 'SKILL.md'));
 }
 
 // Connects every coding client found on this computer to the shared service: its registration, its
-// permission for MyLittleSwarm's tools and the bundled skill. A skill the person changed is kept.
+// permission for Minions's tools and the bundled skill. A skill the person changed is kept.
 export function connectClients({ home, userHome = homedir(), env = process.env } = {}) {
   const codexHome = isAbsolute(env.CODEX_HOME ?? '') ? env.CODEX_HOME : join(userHome, '.codex');
   const clients = [

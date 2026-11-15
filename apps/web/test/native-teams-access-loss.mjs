@@ -9,7 +9,7 @@ import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const cacheDir = await mkdtemp(join(tmpdir(), 'mlswarm-teams-access-loss-'));
+const cacheDir = await mkdtemp(join(tmpdir(), 'minions-teams-access-loss-'));
 const entry = join(root, '__team-access-loss.tsx');
 const source = `
 import { createRoot } from 'react-dom/client';
@@ -59,7 +59,7 @@ try {
   }], server: { host: '127.0.0.1', port: 0, strictPort: true } });
   await server.listen();
   const address = server.httpServer.address();
-  browser = await chromium.launch({ args: ['--single-process'], ...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MLSWARM_TEST_BROWSER_EXECUTABLE } : {}) });
+  browser = await chromium.launch({ args: ['--single-process'], ...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MINIONS_TEST_BROWSER_EXECUTABLE } : {}) });
   const context = await browser.newContext();
   for (const mode of ['detail', 'labels']) for (const status of [401, 403, 404]) {
     const page = await context.newPage();

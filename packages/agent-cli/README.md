@@ -1,4 +1,4 @@
-# MyLittleSwarm shared local service
+# Minions shared local service
 
 This experimental beta replaces the per-client stdio connector with one authenticated
 loopback HTTP service. Claude, Codex and the CLI share that service across projects
@@ -24,7 +24,7 @@ unverified processes or reporting success.
 
 ## Setup
 
-The connector is the local package `mlswarm` in this repository. It is private,
+The connector is the local package `minions` in this repository. It is private,
 not published to npm, and runs from a checkout (owner decision, 10 November 2026). In a
 checkout of this repository:
 
@@ -43,9 +43,9 @@ again.
 
 Setup obtains browser approval for this computer, starts its shared service and connects
 every Claude Code and Codex it finds: it replaces only this website's own
-`mlswarm-<8 hex>` entry, leaving any other entry as it is (including an everyday
+`minions-<8 hex>` entry, leaving any other entry as it is (including an everyday
 Karma42 install's `karma42` entry), allows
-MyLittleSwarm's tools once and installs the bundled skill, keeping a skill the person changed.
+Minions's tools once and installs the bundled skill, keeping a skill the person changed.
 Codex's `config.toml` is read with a TOML parser and edited line by line, so comments and
 layout outside the replaced entry stay; a file that does not parse, or that entry written as an inline table or
 dotted keys, is left unchanged and setup says so.
@@ -69,10 +69,10 @@ References: [Claude MCP authentication](https://code.claude.com/docs/en/mcp#use-
 [official OpenAI MCP configuration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
 
 `mcp-config` prints instructions; it does not edit client settings. Setup's skill
-destinations: `~/.claude/skills/mlswarm/` and `~/.agents/skills/mlswarm/`. Each contains
+destinations: `~/.claude/skills/minions/` and `~/.agents/skills/minions/`. Each contains
 one `SKILL.md` router and six `references/*.md` workflows: projects, agents,
 work-in-chat, project-work, updates-and-help and computer. Read only the relevant
-workflow. `get_mlswarm_guide` returns the router by default; pass `section` with one
+workflow. `get_minions_guide` returns the router by default; pass `section` with one
 of those names to read its workflow through MCP. `skill --section NAME` does the
 same locally. `skill --json` returns router content/revision/hash and the complete
 installable bundle in `files`, keyed by relative path; copying only `content` is
@@ -85,7 +85,7 @@ saved file does not prove the client loaded it.
 
 ### Standalone self-hosted services
 
-For an independently operated service, set `MLSWARM_SELF_HOSTED_ORIGIN` to its
+For an independently operated service, set `MINIONS_SELF_HOSTED_ORIGIN` to its
 exact HTTPS origin, for example `https://swarm.example:8443`, before running
 `setup` or other connector commands. Keep this environment setting for later
 service starts. It accepts one canonical origin, without a trailing slash, path,
@@ -94,19 +94,19 @@ project or tool response cannot enroll another service. HTTP remains available
 only for the existing loopback development workflow.
 
 The connector selects that origin by default and uses separate private defaults
-under `~/.mlswarm/instances/<origin-hash>/service` and
-`~/.mlswarm/instances/<origin-hash>/mcp`. Each instance needs its own browser
+under `~/.minions/instances/<origin-hash>/service` and
+`~/.minions/instances/<origin-hash>/mcp`. Each instance needs its own browser
 sign-in and computer approval. Setup prints registration instructions for this
-separate installation under the MCP name `mlswarm-<8-hex-origin-hash>` instead of
+separate installation under the MCP name `minions-<8-hex-origin-hash>` instead of
 replacing the everyday coding-client entry. The folder hash is the first 24 hexadecimal
 characters of SHA-256 of the exact origin; the MCP name uses only the first 8 to
 leave room for tool names within client limits. The local engine and other loopback
-websites also use their own `mlswarm-<8 hex>` MCP name, so no installation replaces another's
-`mlswarm` entry. Default project workspaces live under
-`~/mlswarm/instances/<origin-hash>` so identically named projects on different
-sites stay separate. When set, `MLSWARM_SITE_URL` and `--site` must match the enrolled
+websites also use their own `minions-<8 hex>` MCP name, so no installation replaces another's
+`minions` entry. Default project workspaces live under
+`~/minions/instances/<origin-hash>` so identically named projects on different
+sites stay separate. When set, `MINIONS_SITE_URL` and `--site` must match the enrolled
 origin; conflicting settings fail before setup can save approvals.
-Explicit `MLSWARM_SERVICE_HOME` and `MLSWARM_CREDENTIAL_HOME` overrides still apply;
+Explicit `MINIONS_SERVICE_HOME` and `MINIONS_CREDENTIAL_HOME` overrides still apply;
 keep them private and separate from other installations and checkouts. Saved
 approvals, credentials, ledgers and active work are never moved to another site.
 Selecting a connector origin does not install or start the server stack.
@@ -121,9 +121,9 @@ process continues the missions that were between turns (waiting, paused or not y
 started) in the same mission, after ending any processes the previous service left
 for them; a mission it interrupted mid-turn is marked `recovery_required`.
 
-Without an enrolled origin, the default service installation is `~/.mlswarm/service`; `MLSWARM_SERVICE_HOME` selects
+Without an enrolled origin, the default service installation is `~/.minions/service`; `MINIONS_SERVICE_HOME` selects
 an isolated installation for development/testing. Approved account and agent credentials
-remain in `~/.mlswarm/mcp`; test isolation can use `MLSWARM_CREDENTIAL_HOME`. Keep these
+remain in `~/.minions/mcp`; test isolation can use `MINIONS_CREDENTIAL_HOME`. Keep these
 private directories outside repositories. Do not delete them to fix a connection.
 A service stop ends every turn in progress, so don't use it as a client-disconnect
 button; workers between turns keep waiting and continue when the service starts again.
@@ -148,7 +148,7 @@ Reopening saved state does not silently restart uncertain model work.
 
 ## Adding agents
 
-Add agents through MyLittleSwarm MCP in your local Claude Code or Codex chat. The website's
+Add agents through Minions MCP in your local Claude Code or Codex chat. The website's
 Add agent buttons are hidden; existing creation APIs and runtime request delivery
 remain available, and previously accepted work is preserved. The web dialog is
 retained but unmounted for this visibility-only change (OPE-230), pending an owner
@@ -246,7 +246,7 @@ updated. This changes no model-execution or deployment authority.
 
 ## Coordinate from your coding chat
 
-Use the main MyLittleSwarm app to follow project health and progress. The shared
+Use the main Minions app to follow project health and progress. The shared
 local service exposes MCP and runs background workers; it has no browser Home
 or local browser capability. The coordinating chat checks
 project status and manages separate agents through MCP without claiming a work
@@ -267,7 +267,7 @@ it to the core; the runtime manifest verifies both. New missions snapshot the pa
 in private mission state. The saved native-session identity includes the reference
 digest, so a different guide cannot silently resume the same model thread.
 
-The worker's local `get_mlswarm_guide` requires one of those two sections, current
+The worker's local `get_minions_guide` requires one of those two sections, current
 verified project identity and an active matching mission turn. It reads the saved
 snapshot without a cloud request and exposes no setup, agent-management or in-chat
 participation tools. The owner guide router remains available only to owner callers.
@@ -435,7 +435,7 @@ time to a live window; End releases it; Wake after expiry/End creates a fresh re
 The website shows **Works until** and offers **Add time**, **End**, **Wake** and **Cancel Wake** for the agent's owner. A saved
 request may await device confirmation; its deadline still counts from approval time.
 Disconnected clients do not renew or end the window. Old references stay invalid after
-Wake. At expiry MyLittleSwarm stops participation and tool delivery; it cannot stop or awaken
+Wake. At expiry Minions stops participation and tool delivery; it cannot stop or awaken
 the external Claude/Codex conversation or control that host's billing.
 
 ## Background missions
@@ -501,7 +501,7 @@ for the next working turn, and an agent paused on its own or at its token cap ge
 does not release an individual agent Pause. Native cleanup must settle before the
 worker confirms the exact project-pause revision. Home and the communication map
 show awaiting feedback, confirmed Paused, or Pause unconfirmed; external coding
-chats cannot be interrupted by MyLittleSwarm and require the person to pause the host.
+chats cannot be interrupted by Minions and require the person to pause the host.
 Installed services must be upgraded for project Pause and its confirmation; a website
 deployment alone cannot add these capabilities to an older service.
 
@@ -526,7 +526,7 @@ their reviewer/attribution instructions; identities and approvals are not indepe
 verified. Claude derives its native denies and Codex derives its native rules from
 the same policy decision. Other native restrictions remain in place.
 
-Codex uses one generated `.codex/rules/mlswarm-worker-merge.rules` file for Human
+Codex uses one generated `.codex/rules/minions-worker-merge.rules` file for Human
 approval, ignored through Git's local exclude file and removed after confirmed native
 exit. Existing native config and rules retain their original trust decision; an
 inactive required layer stops with `merge_policy_unavailable` before a model turn.
@@ -592,8 +592,8 @@ checkout inspection then reports the unavailable binding separately.
 The same reads are available through the shared service CLI:
 
 ```sh
-mlswarm-agent run-log --mission MISSION_UUID --project PROJECT_ID --agent AGENT_ID --limit 25
-mlswarm-agent run-diagnostics --mission MISSION_UUID --project PROJECT_ID --agent AGENT_ID
+minions-agent run-log --mission MISSION_UUID --project PROJECT_ID --agent AGENT_ID --limit 25
+minions-agent run-diagnostics --mission MISSION_UUID --project PROJECT_ID --agent AGENT_ID
 ```
 
 Use `--after` with the log's returned cursor for another page. Recovery diagnostics
@@ -627,7 +627,7 @@ worker the same way Stop does; `service-stop` ends turns in progress, and
 `service-stop --after-turns` lets them finish first.
 
 ```sh
-mlswarm-agent run-recover --mission MISSION_UUID --project PROJECT_ID --agent AGENT_ID --generation 1 \
+minions-agent run-recover --mission MISSION_UUID --project PROJECT_ID --agent AGENT_ID --generation 1 \
   --request-id RECOVERY_UUID --action finalize --reason "Close the interrupted mission" --approve
 ```
 
@@ -650,7 +650,7 @@ for initial testing and inspect real failure evidence before granting more work.
 
 ## Numeric context measurements
 
-Background turn reports include a bounded numeric summary of MyLittleSwarm-supplied
+Background turn reports include a bounded numeric summary of Minions-supplied
 context when measurement is available: instruction and assembled turn-prompt UTF-8
 bytes, returned MCP catalog bytes, and tool calls/argument bytes/returned text bytes
 by fixed category. The worker facade measures sanitized returned replies, including
@@ -682,11 +682,11 @@ subagent messages are skipped. The result's `modelUsage` entry for the model the
 agent started with gives `contextWindow`; `compact_boundary` events count compactions.
 Missing fields remain null; unsupported clients remain unknown. These scalars do not establish
 occupied history or a context-fill percentage. They survive independently from
-MyLittleSwarm's byte summary; optional telemetry is omitted if it would overflow the
+Minions's byte summary; optional telemetry is omitted if it would overflow the
 existing outcome metadata limit, without invalidating an otherwise valid outcome.
 
 
-Summaries are marked `scope: mlswarm-supplied` and `coverage: partial`. They do not
+Summaries are marked `scope: minions-supplied` and `coverage: partial`. They do not
 measure native shell/file tools, provider-managed session history, actual context-window
 token utilization or whether the model consumed every returned response. Native
 session recovery can perform multiple attempts within one controller turn; tool
@@ -768,16 +768,16 @@ Windows, Windows PowerShell, and both installed clients (Codex CLI 0.160.0 or ne
 Choose models already available on those accounts. No credentials need to be sent
 to anyone, copied between machines or added to CI. Only the coordination service
 is synthetic: the model turns, MCP calls, file editing, steering and cleanup are real.
-No production MyLittleSwarm records are used or changed.
+No production Minions records are used or changed.
 
 To test the merged Windows implementation from main, open PowerShell and use a **new** source folder:
 
 ```powershell
 $ErrorActionPreference = 'Stop'
 if ((node --version) -notmatch '^v24\.') { throw 'Install Node 24 first.' }
-$SmokeFolder = Join-Path $env:USERPROFILE 'mlswarm-windows-smoke-389'
+$SmokeFolder = Join-Path $env:USERPROFILE 'minions-windows-smoke-389'
 if (Test-Path $SmokeFolder) { throw 'Choose another new folder; keep the existing run intact.' }
-git clone --branch main --single-branch https://github.com/oronanschel/mylittleswarm.git $SmokeFolder
+git clone --branch main --single-branch https://github.com/latent-spaces/minions.git $SmokeFolder
 if ($LASTEXITCODE -ne 0) { throw 'Source checkout failed. Report the Git error.' }
 Set-Location $SmokeFolder
 npm ci

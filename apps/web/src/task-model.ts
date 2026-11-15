@@ -1,5 +1,5 @@
-import type { NativeTask, NativeTaskDetail, NativeTaskMutation, NativeTaskMutationResult, NativeTaskPage, NativeTaskReference } from '@mlswarm/contracts';
-import type { NativeTaskStatus } from '@mlswarm/contracts';
+import type { NativeTask, NativeTaskDetail, NativeTaskMutation, NativeTaskMutationResult, NativeTaskPage, NativeTaskReference } from '@minions/contracts';
+import type { NativeTaskStatus } from '@minions/contracts';
 
 export interface TasksApi {
   list(cursor?: string | null, status?: NativeTaskStatus, assignedAgentId?: string | null, search?: string): Promise<NativeTaskPage>;

@@ -1,5 +1,5 @@
 import { beforeEach, expect, test, vi } from 'vitest';
-import type { GitHubAccessReport } from '@mlswarm/contracts';
+import type { GitHubAccessReport } from '@minions/contracts';
 import { collection, db, profiles } from '../src/firestore.js';
 import { membershipDoc, membershipsOf } from '../src/projects/access.js';
 import { projects } from '../src/projects/records.js';

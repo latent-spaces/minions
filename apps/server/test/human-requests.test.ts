@@ -71,7 +71,7 @@ test('revoked membership fences reads, answers and historical receipts; guest an
   const app=express();app.use('/api/needs-you',humanRequestRoutes(()=>1200));
   const server=app.listen(0,'127.0.0.1');await new Promise<void>(resolve=>server.once('listening',resolve));
   const base=`http://127.0.0.1:${(server.address() as {port:number}).port}/api/needs-you`;
-  const call=(token?:string,profileId=f.personIds[0],body?:object)=>fetch(base+(body?`/${request.id}/answer`:''),{method:body?'POST':'GET',headers:{...(token?{authorization:`Bearer ${token}`} : {}),'X-Mlswarm-Profile-Id':profileId,...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
+  const call=(token?:string,profileId=f.personIds[0],body?:object)=>fetch(base+(body?`/${request.id}/answer`:''),{method:body?'POST':'GET',headers:{...(token?{authorization:`Bearer ${token}`} : {}),'X-Minions-Profile-Id':profileId,...(body?{'content-type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
   try {
     expect((await call()).status).toBe(401);
     expect((await call(f.agents[0].token)).status).toBe(401);

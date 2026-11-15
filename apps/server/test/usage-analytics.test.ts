@@ -89,7 +89,7 @@ test('project series exclude other projects while platform series include all nu
 
 test('partial cache/context coverage remains distinct from observed zero',()=>{
  const input=turn(1,'uncached');input.usage!.tokens!.cacheWrite=null;
- input.usage!.context={scope:'mlswarm-supplied',coverage:'partial',instructionBytes:10,turnPromptBytes:20,catalogRequests:0,catalogBytes:0,tools:[]};
+ input.usage!.context={scope:'minions-supplied',coverage:'partial',instructionBytes:10,turnPromptBytes:20,catalogRequests:0,catalogBytes:0,tools:[]};
  const values=turnValues(input);
  expect(values.metrics.input).toEqual({sum:0,known:0,partial:0});
  expect(values.metrics.output).toEqual({sum:3,known:1,partial:0});
@@ -98,10 +98,10 @@ test('partial cache/context coverage remains distinct from observed zero',()=>{
 });
 
 test('per-source and per-tool numeric evidence survives projection and bounded run/turn readers',async()=>{
- const {PROMPT_SOURCES}=await import('@mlswarm/contracts');
+ const {PROMPT_SOURCES}=await import('@minions/contracts');
  const {projectContext,platformContext}=await import('../src/analytics/context.js');
  const f=await fixture(),input=turn(1);
- input.usage!.context={scope:'mlswarm-supplied',coverage:'partial',instructionBytes:10,turnPromptBytes:21,promptSources:{...Object.fromEntries(PROMPT_SOURCES.map(k=>[k,0])),steering:21} as Record<typeof PROMPT_SOURCES[number],number>,steeringMessages:1,sessionMode:'resumed',catalogRequests:1,catalogBytes:100,tools:[],
+ input.usage!.context={scope:'minions-supplied',coverage:'partial',instructionBytes:10,turnPromptBytes:21,promptSources:{...Object.fromEntries(PROMPT_SOURCES.map(k=>[k,0])),steering:21} as Record<typeof PROMPT_SOURCES[number],number>,steeringMessages:1,sessionMode:'resumed',catalogRequests:1,catalogBytes:100,tools:[],
  byTool:[{name:'read_thread',catalogDeliveries:1,definitionBytes:80,calls:1,argumentBytes:2,responseTextBytes:55,refusals:0}]};
  await scope(()=>reportTurn(f.id,f.runId,input,now));await reconcileUsageMetrics(now);
  const data=await scope(()=>readProjectAnalytics(f.personIds[0]!,query,now));

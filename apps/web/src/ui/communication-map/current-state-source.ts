@@ -2,7 +2,7 @@
 // the map's existing status shape. It is the map's only status read: there is no other read to fall back to (card v19).
 // Until a first read completes the map shows no states; a failed read keeps what it showed and is retried next round; an
 // access refusal clears what it showed (ProjectCommunication).
-import type { CommunicationAgent, CommunicationAgents } from '@mlswarm/contracts';
+import type { CommunicationAgent, CommunicationAgents } from '@minions/contracts';
 import { ApiError } from '../../authorized-request';
 import { applyCurrentState, createReader, currentStateRows, restartReader, type CurrentStateAnswer, type CurrentStateReader }
   from './current-state-reader';

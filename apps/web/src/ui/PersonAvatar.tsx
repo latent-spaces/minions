@@ -4,7 +4,7 @@ import { useContext, useEffect, useRef, useState, type CSSProperties } from 'rea
 import { personTone, type PastelTone } from './avatar-tone';
 import { PersonPresence } from './person-presence';
 import { personInitials } from './person-initials';
-import type { PersonCharacter } from '@mlswarm/contracts';
+import type { PersonCharacter } from '@minions/contracts';
 import { personPortrait, personCharacter } from './character-set';
 import { CharacterAvatar } from './CharacterAvatar';
 import { usePersonCharacter } from './person-character-store';

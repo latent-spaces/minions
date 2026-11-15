@@ -11,7 +11,7 @@ export type CommunityActor = { kind: 'person'; operatorId: string; adminAuthenti
 
 export async function assertCommunityActor(tx: Transaction, actor: CommunityActor) {
   const [operator, settings, platform] = await Promise.all([tx.get(profiles.doc(actor.operatorId)), tx.get(platformOwnership), tx.get(platformSettings)]);
-  if (!operator.exists || operator.data()!.removedAt !== null) throw new Refusal('unauthorized', 'Your MyLittleSwarm account is no longer active.');
+  if (!operator.exists || operator.data()!.removedAt !== null) throw new Refusal('unauthorized', 'Your Minions account is no longer active.');
   return { operator: { id: operator.id, ...operator.data()! } as WithId<Profile>,
     isOwner: settings.data()?.ownerProfileId === actor.operatorId,
     canAdminPlatform: actor.adminAuthenticated === true,

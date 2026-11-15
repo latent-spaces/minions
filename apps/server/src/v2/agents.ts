@@ -5,7 +5,7 @@ import { activeRecipientOperators, connectionAllowed } from '../projects/access.
 import { agents, currentProjectId, db } from '../firestore.js';
 import { decodeCursor, encodeCursor } from '../cursor.js';
 import { type Phase } from './records.js';
-import type { CommunicationAgentState } from '@mlswarm/contracts';
+import type { CommunicationAgentState } from '@minions/contracts';
 import { canonicalStatusSources, deriveAgentState } from '../view/communication-agents.js';
 import { focusWithSource } from '../projects/agent-focus.js';
 

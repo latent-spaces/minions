@@ -26,7 +26,7 @@ const parse = <T>(schema: z.ZodType<T>, input: unknown): T => {
 };
 const profileSummary = (id: string, p: { name: string; email: string; removedAt: number | null }) => ({ id, name: p.name, email: p.email, removedAt: p.removedAt });
 
-// What the admin health card shows. A self-hosted engine says so instead of passing as MyLittleSwarm production.
+// What the admin health card shows. A self-hosted engine says so instead of passing as Minions production.
 export function environmentLabel(env: NodeJS.ProcessEnv = process.env): string {
   return deploymentKind(env);
 }

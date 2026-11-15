@@ -36,7 +36,7 @@ export async function projectRole(operator: WithId<Profile>, projectId = current
 
 export async function assertMembership(tx: Transaction, operatorId: string) {
   const operator = await tx.get(profiles.doc(operatorId));
-  if (!operator.exists || operator.data()!.removedAt !== null) throw new Refusal('unauthorized', 'This person’s MyLittleSwarm account is no longer active.');
+  if (!operator.exists || operator.data()!.removedAt !== null) throw new Refusal('unauthorized', 'This person’s Minions account is no longer active.');
   const id = currentProjectId();
   const [project, member] = await Promise.all([tx.get(projects.doc(id)), tx.get(membershipDoc(id, operatorId))]);
   if (!project.exists || (project.data()!.ownerProfileId !== operatorId && (!member.exists || member.data()!.status !== 'active' || member.data()!.profileId !== operatorId || member.data()!.projectId !== id))) {

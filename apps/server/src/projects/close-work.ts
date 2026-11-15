@@ -9,7 +9,7 @@ import { projects } from './records.js';
 const PAGE_SIZE = 100, CHAT_PAGE_SIZE = 75;
 
 // Closing a project ends its agents' work. Background agents see the project closed and stop on their
-// computers; chat sessions end here, so their next MyLittleSwarm call says to stop; queued runs are cancelled.
+// computers; chat sessions end here, so their next Minions call says to stop; queued runs are cancelled.
 // Best effort after the close itself committed: a retry of the same close repeats it safely.
 export async function endProjectWork(projectId: string, now: () => number, closeRevision: number) {
   return inProject(projectId, async () => {

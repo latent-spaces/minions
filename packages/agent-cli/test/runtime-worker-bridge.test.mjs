@@ -19,7 +19,7 @@ const parse=result=>JSON.parse(result.content.find(item=>item.type==='text').tex
 const request=endpoint=>fetch(endpoint.url,{method:'POST',headers:{Authorization:`Bearer ${endpoint.token}`,'content-type':'application/json',Accept:'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:randomUUID(),method:'tools/list'})});
 
 test('actual worker bridge composes scoped HTTP, participant preparation and durable send/ACK ports with cleanup', {timeout:15000}, async t=>{
-  const root=await mkdtemp(join(tmpdir(),'mlswarm-worker-bridge-'));
+  const root=await mkdtemp(join(tmpdir(),'minions-worker-bridge-'));
   const principal={site:'http://127.0.0.1:8787',ownerId:'owner'};
   const missions=[],bindings=[],resolved=[],upstream=[];
   let offline=true;
@@ -65,7 +65,7 @@ test('actual worker bridge composes scoped HTTP, participant preparation and dur
     await endpoint.beginContext();
     assert.notEqual(endpoint.token,service.token);
     const client=await connect(endpoint);clients.push(client);
-    assert.equal(client.getServerVersion().name,'mlswarm-project-worker');
+    assert.equal(client.getServerVersion().name,'minions-project-worker');
     const names=(await client.listTools()).tools.map(t=>t.name);
     assert.equal(new Set(names).size,names.length);assert.ok(names.includes('get_project'));for(const tool of ['list_tasks','get_task','create_task','update_task','claim_task','release_task','comment_task','link_task'])assert.ok(names.includes(tool),tool);for(const retired of ['find_github_work','get_issue_coordination','coordinate_issue'])assert.ok(!names.includes(retired),retired);assert.ok(!names.includes('control_agent'));assert.ok(!names.includes('list_my_projects'));
     assert.ok(names.includes('acknowledge_human_answer'));

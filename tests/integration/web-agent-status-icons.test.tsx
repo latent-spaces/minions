@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import * as React from 'react';
 import { createRequire } from 'node:module';
-import type { CommunicationAgentState } from '@mlswarm/contracts';
+import type { CommunicationAgentState } from '@minions/contracts';
 import { AgentStateBubble } from '../../apps/web/src/ui/AgentStateBubble';
 import { AgentStatusIcon } from '../../apps/web/src/ui/AgentStatusIcon';
 import { agentIconState } from '../../apps/web/src/ui/agent-status-icon';

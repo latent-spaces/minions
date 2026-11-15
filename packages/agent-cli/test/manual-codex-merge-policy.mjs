@@ -8,7 +8,7 @@ import { createInterface } from 'node:readline';
 import { codexMergeRules } from '../runtime/providers.mjs';
 import { createCodexMergePolicy } from '../src/codex-merge-policy.mjs';
 
-const root = realpathSync(mkdtempSync(join(tmpdir(), 'mlswarm-real-native-rules-'))), folder = join(root, 'checkout with spaces'), stateDir = join(root, 'state'), home = join(root, 'codex-home');
+const root = realpathSync(mkdtempSync(join(tmpdir(), 'minions-real-native-rules-'))), folder = join(root, 'checkout with spaces'), stateDir = join(root, 'state'), home = join(root, 'codex-home');
 for (const path of [folder, stateDir, home]) mkdirSync(path, { mode: 0o700 });
 execFileSync('git', ['-C', folder, 'init', '--quiet']);
 const policy = createCodexMergePolicy({ folder, stateDir });
@@ -41,7 +41,7 @@ async function inspect(mode, threadId) {
         if (value.id === 2) { nativeId = value.result.thread.id; if (threadId) assert.equal(nativeId, threadId); clearTimeout(timer); resolve(nativeId); }
       } catch (error) { clearTimeout(timer); reject(error); }
     });
-    send({ id: 1, method: 'initialize', params: { clientInfo: { name: 'mlswarm_no_model_policy_check', version: '1' } } });
+    send({ id: 1, method: 'initialize', params: { clientInfo: { name: 'minions_no_model_policy_check', version: '1' } } });
   });
   let id;
   try { id = await result; }

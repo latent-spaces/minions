@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { PERSON_CHARACTERS, type MyProfile, type PersonCharacter, type SaveMyProfile } from '@mlswarm/contracts';
+import { PERSON_CHARACTERS, type MyProfile, type PersonCharacter, type SaveMyProfile } from '@minions/contracts';
 import { community, session } from '../api';
 import { saveProfile } from '../profile-photo-api';
 import type { SessionUser } from '../session-identity';

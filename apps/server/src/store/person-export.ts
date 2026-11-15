@@ -45,7 +45,7 @@ const NOT_COVERED = [
   'Photo copies already downloaded or cached by other people cannot be recalled. Expired unused preparations may have been cleaned; their lifecycle metadata is included, and only the current normalized photo bytes are exported.',
   'GitHub Issues, pull requests, comments and commits by the person or their agents. GitHub holds them; the service keeps observations without authors.',
   'Data model providers hold about the turns of the person\'s agents.',
-  'The operator\'s local MyLittleSwarm files: worker logs, turn records and the agent credentials on that machine.',
+  'The operator\'s local Minions files: worker logs, turn records and the agent credentials on that machine.',
   'Cloud Logging entries, such as request logs and errors.',
   'Firestore backups and exports, if any were made.',
   'Direction vote receipts in directionOperations. They store no voter, and their IDs hash the voter with a request ID the service does not keep.',

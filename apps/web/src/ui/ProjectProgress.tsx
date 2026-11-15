@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import type { ProgressPage, ProgressScreenshot, PublishedUpdate } from '@mlswarm/contracts';
+import type { ProgressPage, ProgressScreenshot, PublishedUpdate } from '@minions/contracts';
 import { projectRoute, type Route } from '../route';
 import { NavLink } from '../shared';
 import { Button } from './Button';

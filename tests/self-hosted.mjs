@@ -6,7 +6,7 @@ import { executable, repository, runProcess, testEnvironment } from './support/d
 async function main() {
   if (Number(process.versions.node.split('.')[0]) < 24) throw new Error('Standalone acceptance requires Node.js 24 or newer.');
   if (process.argv.length !== 2) throw new Error('Use npm run test:self-hosted without additional arguments.');
-  const env = { ...testEnvironment(), MLSWARM_TEST_ENGINE_BUILD: '1' };
+  const env = { ...testEnvironment(), MINIONS_TEST_ENGINE_BUILD: '1' };
   // Keep compiler, bundler, test workers and engine children on the selected Node, including Windows.
   const searchKey = Object.keys(env).find(key => key.toLowerCase() === 'path');
   const searchPath = searchKey ? env[searchKey] : '';

@@ -13,9 +13,9 @@ test('older pipes show a bounded latest-message preview with a usable conversati
  const server=await createServer({configFile:false,root:join(root,'tools/communication-lab'),publicDir:false,plugins:[react()],
   resolve:{alias:Object.fromEntries(['react','react-dom'].map(name=>[name,dirname(web.resolve(name+'/package.json'))]))},
   server:{host:'127.0.0.1',port:0,fs:{allow:[root]}}});
- const output=await mkdtemp(join(tmpdir(),'mlswarm-connection-preview-'));let browser:any;
+ const output=await mkdtemp(join(tmpdir(),'minions-connection-preview-'));let browser:any;
  try{
-  await server.listen();browser=await chromium.launch({headless:true,...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MLSWARM_TEST_BROWSER_EXECUTABLE}:{})});
+  await server.listen();browser=await chromium.launch({headless:true,...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MINIONS_TEST_BROWSER_EXECUTABLE}:{})});
   const page=await browser.newPage({viewport:{width:1280,height:1000}});const errors:string[]=[];
   page.on('pageerror',(error:Error)=>errors.push(error.message));
   await page.goto(`http://127.0.0.1:${(server.httpServer!.address() as {port:number}).port}/`);

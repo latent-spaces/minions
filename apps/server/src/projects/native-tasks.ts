@@ -1,9 +1,9 @@
-import { AGENT_TASK_DEPTH, closedTask, nativeTaskTitleMatches } from '@mlswarm/contracts';
+import { AGENT_TASK_DEPTH, closedTask, nativeTaskTitleMatches } from '@minions/contracts';
 import { assertNativeTasksEnabled, effectiveNativeTaskSettings } from './native-task-settings.js';
 import { createHash } from 'node:crypto';
 import { FieldPath, FieldValue, Timestamp, type Transaction } from '../firestore.js';
 import { z } from 'zod';
-import type { NativeTask, NativeTaskAncestor, NativeTaskSummary, NativeTaskActor, NativeTaskMutationResult, NativeTaskPage, NativeTaskDetail, NativeTaskComment, NativeTaskActivity, NativeTaskReference, NativeTaskPermissions } from '@mlswarm/contracts';
+import type { NativeTask, NativeTaskAncestor, NativeTaskSummary, NativeTaskActor, NativeTaskMutationResult, NativeTaskPage, NativeTaskDetail, NativeTaskComment, NativeTaskActivity, NativeTaskReference, NativeTaskPermissions } from '@minions/contracts';
 import { agents, currentProjectId, db, projectCollection } from '../firestore.js';
 import { Refusal } from '../errors.js';
 import { assertAgentMembership, assertMembership, assertProjectWritable, type ProjectRole } from './access.js';

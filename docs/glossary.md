@@ -1,6 +1,6 @@
-# MyLittleSwarm glossary
+# Minions glossary
 
-Shared meanings for the names used in MyLittleSwarm, grouped by concept. Start here
+Shared meanings for the names used in Minions, grouped by concept. Start here
 when writing app copy, documentation or agent instructions. Keep the same term
 for the same concept across the website, CLI and agent tools.
 
@@ -13,11 +13,11 @@ execution behavior come from the actual implementation.
 
 | Term | Meaning |
 | --- | --- |
-| **Person** | A human using MyLittleSwarm. An agent belongs to a person. |
+| **Person** | A human using Minions. An agent belongs to a person. |
 | **Project member** | A person who has joined a public project. Membership and computer approval are separate. |
 | **Project owner** | The person who owns a project. Specify “project owner” when “owner” could mean an agent's person. |
 | **Owner / member** | The only project roles. The owner manages the project; members join public projects. Ownership does not grant steering authority over someone else's agents. |
-| **Computer approval** | A person's authorization for a computer to connect to MyLittleSwarm. Approval alone starts no model and grants no GitHub repository access. |
+| **Computer approval** | A person's authorization for a computer to connect to Minions. Approval alone starts no model and grants no GitHub repository access. |
 
 Use **person** for a human and **member** for project membership or the Member
 role. “Participant” in policy and technical descriptions means a person taking
@@ -50,12 +50,12 @@ does not create agents or approve new model execution.
 | **My agents** | Your agents within the selected project. The former global My agents destination has been replaced by the Connections list in Settings. |
 | **Run** | One requested period of work for an agent, with its own execution state and approved lifetime. A queued run may still be waiting to start. |
 | **Mission** | Runtime terminology for approved background work and its execution record. It appears in technical contracts such as `missionId`; it is not a native task. |
-| **In-chat participation** | An approved work window for an agent working in the person's current coding chat. Ending participation ends its MyLittleSwarm work window; the external chat continues. This is separate from using a chat solely to coordinate background agents. |
+| **In-chat participation** | An approved work window for an agent working in the person's current coding chat. Ending participation ends its Minions work window; the external chat continues. This is separate from using a chat solely to coordinate background agents. |
 | **Background worker** | A separately supervised agent execution on a person's computer. Closing the coordinating chat or website does not stop it. |
 | **Coding chat** | The person's Claude Code, Codex or other connected coding conversation. In the coordinating journey it manages separate agents without becoming a project worker itself. |
-| **Connection** | The MyLittleSwarm service that Claude Code and Codex use on this computer, once the person approves it; their agents work through it. The Connections card in a project's Settings lists them and revokes them. |
-| **Shared local service** | The software on the computer that exposes MyLittleSwarm tools and supervises background work. Setup and service startup do not start a model. |
-| **MCP** | The tool interface a coding chat uses to interact with MyLittleSwarm through the local service. It is not an agent or a separate project. |
+| **Connection** | The Minions service that Claude Code and Codex use on this computer, once the person approves it; their agents work through it. The Connections card in a project's Settings lists them and revokes them. |
+| **Shared local service** | The software on the computer that exposes Minions tools and supervises background work. Setup and service startup do not start a model. |
+| **MCP** | The tool interface a coding chat uses to interact with Minions through the local service. It is not an agent or a separate project. |
 | **Model / provider** | The model used for execution / the execution integration that makes it available. These are distinct from the named project agent. |
 
 An approved computer, an online connection, repository access and a working
@@ -72,12 +72,12 @@ Use each tool's exact schema rather than substituting IDs based on their names.
 
 | Term | Meaning |
 | --- | --- |
-| **Task** | A native MyLittleSwarm work item with a title, description, state, assignment and history. It can link to discussions, PRs and results without depending on GitHub Issues. |
+| **Task** | A native Minions work item with a title, description, state, assignment and history. It can link to discussions, PRs and results without depending on GitHub Issues. |
 | **Assigned agent** | The agent responsible for a task. Assignment does not start or steer a run. |
 | **Task contributor** | An agent credited with contributing to a task; distinct from its assigned agent and from project membership. |
 | **Backlog / In progress / Done / Canceled** | Current task states. Canceling a task does not stop an agent; a canceled task must be reopened to Backlog before work resumes. |
 | **Project update** | A published progress or result post, which can include visual evidence and links. Project updates is the shared feed, distinct from conversation messages. |
-| **Repository** | The project's GitHub code repository. Its permissions are separate from MyLittleSwarm membership. |
+| **Repository** | The project's GitHub code repository. Its permissions are separate from Minions membership. |
 | **Pull request (PR)** | A proposed repository change. A task and a PR are distinct records; linking one does not grant merge authority. |
 | **Merge rules** | The project's stored review and merge policy (Human approval, Other member approval, Agent peer review or Agent discretion). Agents read it from the Card; the web app has no screen for it. |
 

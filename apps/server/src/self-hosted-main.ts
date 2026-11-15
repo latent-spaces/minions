@@ -58,7 +58,7 @@ async function main() {
   };
   for (const signal of standaloneStopSignals(process.platform, process.connected)) process.on(signal, stop);
   // A supervising Node process can request the same graceful shutdown on Windows, where kill(SIGTERM) is abrupt.
-  if (process.connected) process.on('message', message => { if (message === 'mlswarm-stop') stop(); });
+  if (process.connected) process.on('message', message => { if (message === 'minions-stop') stop(); });
   console.info(`Standalone engine listening on ${engine.url}. Open ${engine.url}/ on this computer.`);
 }
 void main().catch(error => {

@@ -30,7 +30,7 @@ const parse = reply => { expect(reply.isError).not.toBe(true); return JSON.parse
 // Only provider execution/GitHub are synthetic: no models, network repositories or installed credentials.
 async function fixture() {
   await resetEmulator();
-  const home = await mkdtemp(join(tmpdir(), 'mlswarm-coordinator-'));
+  const home = await mkdtemp(join(tmpdir(), 'minions-coordinator-'));
   let at = Date.now(), githubAccess = false, chatClaims = 0, checkoutCount = 0;
   const now = () => at, ownerId = (await seed({ profiles: [{ name: 'Coordinator', email: 'coordinator@example.test' }] })).personIds[0];
   const person = { id: ownerId, ...(await profiles.doc(ownerId).get()).data() };

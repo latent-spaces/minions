@@ -18,7 +18,7 @@ beforeEach(async () => {
   await profiles.doc('other').set({ name: 'Other', email: 'other@example.test', removedAt: null });
 });
 const post = (token?: string, profileId = 'person', body: object = {}) => fetch(`${base}/my-profile/onboarding/complete`, {
-  method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}), 'x-mlswarm-profile-id': profileId }, body: JSON.stringify(body),
+  method: 'POST', headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}), 'x-minions-profile-id': profileId }, body: JSON.stringify(body),
 });
 
 test('retired tour completion cannot write progress and account reads preserve historical data', async () => {

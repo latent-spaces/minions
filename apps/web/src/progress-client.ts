@@ -1,5 +1,5 @@
 import type { SessionUser } from './session-identity';
-import type { ProgressPage, ProgressScreenshot } from '@mlswarm/contracts';
+import type { ProgressPage, ProgressScreenshot } from '@minions/contracts';
 import { ApiError } from './authorized-request';
 
 const base = (projectId: string) => `/api/project-progress/${projectId}`;

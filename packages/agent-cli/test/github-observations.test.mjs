@@ -208,7 +208,7 @@ test('merged counts exclude unmerged closures, deduplicate pages and preserve co
 });
 
 test('ruleset mutations send bounded JSON through stdin without a shell on Windows; DELETE accepts 204', async () => {
-  const body = { name: 'MyLittleSwarm merge access', bypass_actors: [{ actor_type: 'User', actor_id: 12, bypass_mode: 'pull_request' }] };
+  const body = { name: 'Minions merge access', bypass_actors: [{ actor_type: 'User', actor_id: 12, bypass_mode: 'pull_request' }] };
   const request = createGitHubRequest({ envSource: { UserProfile: 'C:\\Users\\Person Name', Path: 'C:\\GitHub CLI', GH_TOKEN: 'private-token' }, execute: async (command, args, options) => {
     assert.equal(command, 'gh'); assert.equal(options.shell, undefined); assert.equal(options.windowsHide, true);
     assert.equal(args.includes('private-token'), false);

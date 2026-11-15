@@ -5,7 +5,7 @@ import { agents, db, projectDocument } from '../firestore.js';
 import { assertMembership } from './access.js';
 import { Refusal } from '../errors.js';
 import { V2_LIMITS, COMMUNICATION_BOUNDS } from '../config.js';
-import type { CommunicationSettings } from '@mlswarm/contracts';
+import type { CommunicationSettings } from '@minions/contracts';
 import { activeRecipientOperators, connectionAllowed } from './access.js';
 
 // First slice permits restrictions within the existing platform envelope.

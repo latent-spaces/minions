@@ -38,7 +38,7 @@ beforeAll(async () => {
       }); } }],
   });
   await vite.listen(); origin = `http://127.0.0.1:${vite.httpServer.address().port}/__all-pages.html`;
-  browser = await chromium.launch({ headless: true, ...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MLSWARM_TEST_BROWSER_EXECUTABLE } : {}) });
+  browser = await chromium.launch({ headless: true, ...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MINIONS_TEST_BROWSER_EXECUTABLE } : {}) });
   // Keep one context alive across pages. Closing an implicitly owned context with
   // browser.newPage() can close single-process Chromium before the next case.
   context = await browser.newContext();

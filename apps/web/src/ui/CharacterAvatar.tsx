@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef, useState, useSyncExternalStore } from 'react';
-import type { CommunicationAgentState } from '@mlswarm/contracts';
+import type { CommunicationAgentState } from '@minions/contracts';
 import { CharacterMotion, characterTiming, type CharacterClip } from './character-motion';
 import { CharacterAmbient, ambientTiming, characterPointer, pupilOffset, rareEffectGate, subscribeCharacterPointer } from './character-ambient';
 import rareGeometry from './assets/characters/offbeat/rare-geometry.json';

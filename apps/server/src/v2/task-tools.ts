@@ -7,10 +7,10 @@ import { createHash } from 'node:crypto';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import * as z from 'zod';
-import type { NativeTask, NativeTaskActor, NativeTaskComment, NativeTaskDetail, NativeTaskMutation, NativeTaskMutationResult, NativeTaskReference } from '@mlswarm/contracts';
+import type { NativeTask, NativeTaskActor, NativeTaskComment, NativeTaskDetail, NativeTaskMutation, NativeTaskMutationResult, NativeTaskReference } from '@minions/contracts';
 import { getNativeTask, listNativeTaskSummaries, mutateNativeTask } from '../projects/native-tasks.js';
 import type { ProgressActor } from '../projects/progress-authority.js';
-import { nativeTasksEnabled } from '@mlswarm/contracts';
+import { nativeTasksEnabled } from '@minions/contracts';
 import { actorSource, untrusted } from './untrusted.js';
 import { LIST_PAGE, LIST_PAGE_DEFAULT } from './list-page.js';
 
@@ -150,7 +150,7 @@ export function registerTaskTools(server: McpServer, actor: () => ProgressActor,
     : { operation: 'comment', taskId: task_id, expectedRevision: expected_revision, body }));
 
   server.registerTool('link_task', {
-    description: 'Add or remove a typed link: a pull_request or result by https URL, or a MyLittleSwarm conversation or message by id. '
+    description: 'Add or remove a typed link: a pull_request or result by https URL, or a Minions conversation or message by id. '
       + 'Encouraged when a task comes from a discussion, a relevant PR is opened or found (including drafts), or a discussion records scope or decisions. '
       + 'Before completion or handoff, check for useful missing references and delivery or validation results; links are optional, not completion gates. '
       + 'Leave label out unless the link needs one to be understood (such as reference only); never put a status such as awaiting review in it. '

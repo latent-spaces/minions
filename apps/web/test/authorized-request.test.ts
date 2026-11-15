@@ -9,7 +9,7 @@ test('owner start transport delivers selected profile header and original payloa
   let delivered: { url?: string; method?: string; profile?: string; authorization?: string; body?: unknown } = {};
   const server = createServer(async (req, res) => {
     let raw = ''; for await (const chunk of req) raw += chunk;
-    delivered = { url: req.url, method: req.method, profile: req.headers['x-mlswarm-profile-id'] as string, authorization: req.headers.authorization, body: JSON.parse(raw) };
+    delivered = { url: req.url, method: req.method, profile: req.headers['x-minions-profile-id'] as string, authorization: req.headers.authorization, body: JSON.parse(raw) };
     res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ request: { state: 'pending' } }));
   });
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -104,7 +104,7 @@ test('project viewer reads coalesce in flight and wait out a refusal per project
 test('a refusal seen in another tab holds the same person and project here, and nothing else', async t => {
   const user = { uid: 'tabbed-viewer', getIdToken: async () => 'synthetic' } as unknown as SessionUser;
   const fetchMock = t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({ ok: true })));
-  const otherTab = new BroadcastChannel('mlswarm-read-holds');
+  const otherTab = new BroadcastChannel('minions-read-holds');
   otherTab.postMessage({ uid: 'tabbed-viewer', base: '/p/shared/api/view', until: Date.now() + 30_000 });
   otherTab.postMessage({ uid: 'tabbed-viewer', base: '/p/forged/api/view', until: 'soon' });
   otherTab.close();

@@ -1,7 +1,7 @@
 // Development-only harness: the production ProjectTasks component on a synthetic in-memory transport. Not the actual app
 // and not the native backend; real authenticated app acceptance is a separate check.
 import { createRoot } from 'react-dom/client';
-import type { NativeTask, NativeTaskComment, NativeTaskMutation, NativeTaskMutationResult, NativeTaskPage } from '@mlswarm/contracts';
+import type { NativeTask, NativeTaskComment, NativeTaskMutation, NativeTaskMutationResult, NativeTaskPage } from '@minions/contracts';
 import { ApiError } from '../src/authorized-request';
 import type { AgentRow } from '../src/api';
 import type { TasksApi } from '../src/tasks-api';

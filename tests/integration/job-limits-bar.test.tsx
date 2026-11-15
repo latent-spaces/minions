@@ -4,7 +4,7 @@ import { createRequire } from 'node:module';
 const webRequire = createRequire(new URL('../../apps/web/package.json', import.meta.url));
 const { createElement } = webRequire('react');
 const { renderToStaticMarkup } = webRequire('react-dom/server');
-import type { ProjectWorkersView } from '@mlswarm/contracts';
+import type { ProjectWorkersView } from '@minions/contracts';
 import type { Workspace } from '../../apps/web/src/project-api';
 import type { ProjectControls } from '../../apps/web/src/ui/ProjectControls';
 import { JobLimitsBar, TokenCapEditor } from '../../apps/web/src/ui/JobLimitsBar';

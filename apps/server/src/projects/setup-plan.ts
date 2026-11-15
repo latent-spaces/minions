@@ -1,5 +1,5 @@
 import type { Transaction } from '../firestore.js';
-import type { ProjectSetupPlan } from '@mlswarm/contracts';
+import type { ProjectSetupPlan } from '@minions/contracts';
 import { collection } from '../firestore.js';
 
 /** Only for the atomic first creation/approval; never reapplies an old plan on replay. */

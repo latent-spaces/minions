@@ -15,7 +15,7 @@ const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 const cleanups = new Map();
 function cleanup(home, task) { cleanups.get(home).push(task); }
 async function folder(t) {
-  const home = await mkdtemp(join(tmpdir(), 'mlswarm installation with spaces-'));
+  const home = await mkdtemp(join(tmpdir(), 'minions installation with spaces-'));
   cleanups.set(home, []);
   t.after(async () => {
     try { for (const task of cleanups.get(home).reverse()) await task(); }
@@ -65,12 +65,12 @@ test('one authenticated lifecycle endpoint preserves stable port and token acros
   const base = `http://127.0.0.1:${config.port}`;
   assert.equal((await fetch(`${base}/service/stop`, { method: 'POST' })).status, 401);
   assert.equal((await fetch(`${base}/service/status`, { headers: { Authorization: `Bearer ${config.token}`, Origin: 'https://foreign.invalid' } })).status, 403);
-  assert.equal((await fetch(`${base}/service/stop`, { method: 'POST', headers: { Authorization: `Bearer ${config.token}`, 'X-Mlswarm-Incarnation': status.incarnation }, body: 'payload' })).status, 400);
+  assert.equal((await fetch(`${base}/service/stop`, { method: 'POST', headers: { Authorization: `Bearer ${config.token}`, 'X-Minions-Incarnation': status.incarnation }, body: 'payload' })).status, 400);
   const stopped = await stopInstalledService({ home });
   assert.equal(stopped.stopped, true); await first.closed; assert.equal(closed, 1);
   const second = await runInstalledService({ home, site, compose }); cleanup(home, () => second.close());
   assert.equal(second.url, first.url); assert.notEqual(second.identity.incarnation, first.identity.incarnation);
-  assert.equal((await fetch(`${base}/service/stop`, { method: 'POST', headers: { Authorization: `Bearer ${config.token}`, 'X-Mlswarm-Incarnation': first.identity.incarnation } })).status, 409);
+  assert.equal((await fetch(`${base}/service/stop`, { method: 'POST', headers: { Authorization: `Bearer ${config.token}`, 'X-Minions-Incarnation': first.identity.incarnation } })).status, 409);
   assert.equal((await statusInstalledService({ home })).incarnation, second.identity.incarnation);
   assert.deepEqual(readInstallation(home), config);
   await second.close();

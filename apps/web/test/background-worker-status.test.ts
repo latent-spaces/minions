@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { AgentObservation, BackgroundControlView } from '@mlswarm/contracts';
+import type { AgentObservation, BackgroundControlView } from '@minions/contracts';
 import { backgroundControlStatus } from '../src/ui/agent-running-state';
 
 const now = 1_000_000;

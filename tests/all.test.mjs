@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { runSuites, validationSteps } from './all.mjs';
 
 test('suite failures and missing executables retain logs and do not hide independent results', async () => {
-  const folder = await mkdtemp(join(tmpdir(), 'mlswarm-runner space-'));
+  const folder = await mkdtemp(join(tmpdir(), 'minions-runner space-'));
   try {
     const suites = [
       { name: 'fails', args: ['-e', 'console.error("failure evidence"); process.exit(7)'] },
@@ -26,7 +26,7 @@ test('suite failures and missing executables retain logs and do not hide indepen
 });
 
 test('successful suite aggregation succeeds; aborted runs record skipped suites', async () => {
-  const folder = await mkdtemp(join(tmpdir(), 'mlswarm-runner-'));
+  const folder = await mkdtemp(join(tmpdir(), 'minions-runner-'));
   try {
     const suites = [{ name: 'first', args: ['-e', 'process.exit(0)'] }];
     assert.equal(await runSuites(suites, { logDirectory: folder, onResult() {} }), 0);
@@ -45,7 +45,7 @@ test('native Windows profile excludes POSIX launchers and keeps prerequisite bui
 });
 
 test('interrupting a running suite records failure and skips later suites', async () => {
-  const folder = await mkdtemp(join(tmpdir(), 'mlswarm-runner-abort-'));
+  const folder = await mkdtemp(join(tmpdir(), 'minions-runner-abort-'));
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 100);
   try {
@@ -60,7 +60,7 @@ test('interrupting a running suite records failure and skips later suites', asyn
 });
 
 test('an unwritable suite log is a recorded failure and independent suites continue', async () => {
-  const folder = await mkdtemp(join(tmpdir(), 'mlswarm-runner-log-'));
+  const folder = await mkdtemp(join(tmpdir(), 'minions-runner-log-'));
   try {
     const { mkdir } = await import('node:fs/promises');
     await mkdir(join(folder, 'blocked.log'));

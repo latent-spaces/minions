@@ -206,7 +206,7 @@ test('HTTP: /tasks/changes is its own route for members, and a malformed cursor 
   const server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
   try {
     const url = `http://127.0.0.1:${(server.address() as { port: number }).port}/api/projects/${TEST_PROJECT}/tasks/changes`;
-    const headers = { authorization: `Bearer ${token}`, 'x-mlswarm-profile-id': admin.person.id };
+    const headers = { authorization: `Bearer ${token}`, 'x-minions-profile-id': admin.person.id };
     const first = await fetch(url, { headers });
     expect(first.status).toBe(200);
     const { cursor } = await first.json();

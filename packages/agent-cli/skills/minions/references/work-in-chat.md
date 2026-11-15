@@ -20,8 +20,8 @@ Start with `get_project` to check who you are, the goal, rules, repository, scop
 end time. `get_chat_work`, `list_chat_work` and `get_chat_work_result` only look:
 they never claim, read the inbox or add time.
 
-At End or when time runs out, stop working on MyLittleSwarm. Don't renew on your own, ask for
-more time, or spend turns keeping it alive. MyLittleSwarm can't stop the chat app itself or
+At End or when time runs out, stop working on Minions. Don't renew on your own, ask for
+more time, or spend turns keeping it alive. Minions can't stop the chat app itself or
 reopen a closed chat; Wake on the website means "ready when the person continues this
 chat". (Agents that work on their own can be stopped by the service.) "Saved · awaiting
 device" on the website isn't accepted here yet, and time added late keeps its original
@@ -29,6 +29,6 @@ end. After the service restarts, earlier in-chat work can only be looked at: End
 before a separately approved Wake, and don't claim a second one to get around that.
 
 After claiming, read [Project work](project-work.md), or call
-`get_mlswarm_guide` with `section: "project-work"`, before doing project work. When
+`get_minions_guide` with `section: "project-work"`, before doing project work. When
 the project has tasks on, check `list_tasks` before choosing work and claim the task you
 take up through `call_task_tool`.

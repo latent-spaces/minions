@@ -12,7 +12,7 @@ import {MessageFlights} from './message-flights';
 import {projectPoints,fitReadableCamera,expandReadableCamera,screenPoint} from './projection';
 import {initialPositions3D} from './layout3d';
 import {useCallback,useEffect,useId,useLayoutEffect,useMemo,useRef,useState} from 'react';
-import type {CommunicationAgent} from '@mlswarm/contracts';
+import type {CommunicationAgent} from '@minions/contracts';
 import {CommunicationAgentNode} from '../CommunicationAgentNode';
 import {initialPositions,EDGE_MIN_WEIGHT,type Traffic} from './layout';
 import {metadataTraffic,type MapNode,type MapReply,type MapRequest} from './protocol';

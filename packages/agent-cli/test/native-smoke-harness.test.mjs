@@ -16,7 +16,7 @@ import { hostToolEnvironment } from '../src/windows-command.mjs';
 import { createFakeAdapterFactory } from './fixtures/runtime-fake-adapter.mjs';
 
 test('live smoke harness uses current shared steering and saves two turns through real HTTP/store/controller wiring (offline peer, no model)', { timeout: 45000 }, async t => {
-  const root = await mkdtemp(join(tmpdir(), 'mlswarm-smoke-harness-'));
+  const root = await mkdtemp(join(tmpdir(), 'minions-smoke-harness-'));
   const store = await openRuntimeStore({ directory: join(root, 'ledger') });
   const principal = { site: 'https://synthetic.example', ownerId: 'synthetic-owner' };
   const coordination = nativeSmokeCoordination(principal);

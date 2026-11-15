@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 // stale/retry, OFF keeps reads and refuses every task write (including receipt replay) without writes,
 // re-enable keeps assignment/history, unlinked checkpoints continue, and toggling never touches agents.
 import { beforeEach, expect, test } from 'vitest';
-import { nativeTasksEnabled } from '@mlswarm/contracts';
+import { nativeTasksEnabled } from '@minions/contracts';
 import { agents, inProject, profiles } from '../src/firestore.js';
 import { configureWorkspace, controlWorkspace } from '../src/projects/store.js';
 import { getNativeTask, listNativeTasks, mutateNativeTask, nativeTasks } from '../src/projects/native-tasks.js';

@@ -3,7 +3,7 @@
 import express from 'express';
 import { deploymentKind } from '../src/deployment.js';
 
-if (deploymentKind() !== 'test' || !process.env.MLSWARM_TEST_SQLITE_PATH) throw new Error('The test API process runs only inside a disposable test session with a shared store.');
+if (deploymentKind() !== 'test' || !process.env.MINIONS_TEST_SQLITE_PATH) throw new Error('The test API process runs only inside a disposable test session with a shared store.');
 const port = Number(process.env.PORT);
 if (!Number.isInteger(port) || port < 1 || port > 65_535) throw new Error('Set PORT for the test API process.');
 const [{ createApi }, { identity, setIdentityProvider }, { serverSessionIdentity }, { sessionRoutes }, { drainProjectControl }] = await Promise.all([

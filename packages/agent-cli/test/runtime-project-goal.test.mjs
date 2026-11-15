@@ -8,7 +8,7 @@ import { ProjectOperations } from '../runtime/project-operations.mjs';
 // The turn prompt carries the goal in the project Card, so the model's own
 // get_project no longer repeats it (owner direction, 9 November 2026).
 test('get_project during a turn leaves out the goal the turn prompt already has', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'mlswarm-goal-'));
+  const root = await mkdtemp(join(tmpdir(), 'minions-goal-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const ops = new ProjectOperations({ url: 'http://127.0.0.1:1', token: 't', runId: 'run-1' }, join(root, 'sends.json'));
   const identity = { projectId: 'p', agentId: 'a', profileId: 'o' };
@@ -24,7 +24,7 @@ test('get_project during a turn leaves out the goal the turn prompt already has'
 
 // The pause update turn runs only while the project is paused; a normal turn only while it is not.
 test('beginParticipationTurn checks the Pause both ways', async t => {
-  const root = await mkdtemp(join(tmpdir(), 'mlswarm-pause-turn-'));
+  const root = await mkdtemp(join(tmpdir(), 'minions-pause-turn-'));
   t.after(() => rm(root, { recursive: true, force: true }));
   const ops = new ProjectOperations({ url: 'http://127.0.0.1:1', token: 't', runId: 'run-1' }, join(root, 'sends.json'));
   let paused = true;

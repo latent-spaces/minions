@@ -1,7 +1,7 @@
 {
-  "name": "mlswarm-workspace",
+  "name": "minions-workspace",
   "private": true,
-  "description": "Repository commands for the separately released MyLittleSwarm components",
+  "description": "Repository commands for the separately released Minions components",
   "engines": {
     "node": ">=22"
   },
@@ -16,7 +16,7 @@
     "test:guards": "npm --prefix tests run test:guards --",
     "test:connector": "npm --prefix packages/agent-cli test",
     "build:contracts": "npm --prefix packages/contracts run build --",
-    "prepare": "npm --workspace @mlswarm/contracts run build",
+    "prepare": "npm --workspace @minions/contracts run build",
     "benchmark": "node tools/benchmarks/run.mjs",
     "test:all": "node tests/all.mjs",
     "test:setup": "node --test \"tools/setup/test/*.test.mjs\""

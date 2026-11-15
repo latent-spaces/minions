@@ -22,7 +22,7 @@ async function until(read,predicate,label) {
   assert.fail(`Timed out: ${label}; ${JSON.stringify(value)}`);
 }
 async function setup(t,{selections,firstResult,hooks={}}={}) {
-  const root=await realpath(await mkdtemp(join(tmpdir(),'mlswarm-native-pause-')));
+  const root=await realpath(await mkdtemp(join(tmpdir(),'minions-native-pause-')));
   const fixtures=await makeMixedNativeFixtures(root,selections,(label)=>[{gate:join(root,`${label}-first`),...(firstResult?{result:firstResult}:{})},{gate:join(root,`${label}-second`)}]);
   const store=await openRuntimeStore({directory:join(root,'ledger')}),adapterFactory=await createNativeAdapterFactory(fixtures);
   // A hook runs before the real store call, so a test can land a control inside that exact window.

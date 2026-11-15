@@ -29,7 +29,7 @@ export function cardDefinition({ title, goal, beneficiaries, output, scope, acce
     ...(minContributors !== undefined ? { minContributors } : {}) };
 }
 export function currentCard(_project: ProjectRecord, card: CardVersion | undefined): { version: number; definition: ProposalContent } {
-  if (!card) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+  if (!card) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
   return { version: card.version, definition: card.definition };
 }
 // What agents are told about merging: an instruction, not a lock. The reasoning, not a format: whoever approves

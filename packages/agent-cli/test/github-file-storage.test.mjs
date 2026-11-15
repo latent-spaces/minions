@@ -8,7 +8,7 @@ import { assertGitHubFileStorage, keepGitHubLoginInFile } from '../src/service/r
 import { githubSignInOf } from '../src/service/web-agent-starts.mjs';
 
 function fixture(t) {
-  const root = fs.realpathSync(fs.mkdtempSync(join(tmpdir(), 'mlswarm private gh ')));
+  const root = fs.realpathSync(fs.mkdtempSync(join(tmpdir(), 'minions private gh ')));
   const directory = join(root, 'gh'); fs.mkdirSync(directory, { mode: 0o700 });
   const file = join(directory, 'hosts.yml'); fs.writeFileSync(file, 'synthetic marker, never a real credential', { mode: 0o600 });
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));

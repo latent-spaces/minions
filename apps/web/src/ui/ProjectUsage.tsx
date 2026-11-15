@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SessionUser } from '../session-identity';
-import type { ProjectUsage as Usage } from '@mlswarm/contracts';
+import type { ProjectUsage as Usage } from '@minions/contracts';
 import { ApiError, read } from '../api';
 
 /** Reads the project's reported token usage while `active`, rereading on each tick. A denied

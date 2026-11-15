@@ -19,7 +19,7 @@ export async function startSelfHostedEngine() {
   const lock = lockSelfHostedStore(config.sqlitePath);
   consumed = true;
   // Use the canonical path both for the lock and the process-wide adapter selection.
-  process.env.MLSWARM_SQLITE_PATH = lock.file;
+  process.env.MINIONS_SQLITE_PATH = lock.file;
   let closeStore: (() => Promise<void>) | undefined;
   let runtime: Awaited<ReturnType<typeof startSelfHostedRuntime>> | undefined;
   try {

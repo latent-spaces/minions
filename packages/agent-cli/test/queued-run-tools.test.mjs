@@ -39,7 +39,7 @@ test('computer status distinguishes cloud freshness from the legacy descriptor f
 test('queued Stop and local commands share a durable operation-ID fence in both directions and after restart',async t=>{
  const {mkdtemp,rm}=await import('node:fs/promises');const {tmpdir}=await import('node:os');const {join}=await import('node:path');
  const {openRuntimeStore}=await import('../src/service/store.mjs');
- const directory=await mkdtemp(join(tmpdir(),'mlswarm-queued-stop-fence-'));
+ const directory=await mkdtemp(join(tmpdir(),'minions-queued-stop-fence-'));
  let store=await openRuntimeStore({directory});t.after(async()=>{await store.close();await rm(directory,{recursive:true,force:true});});
  const bound={...principal,...target};let effects=0;
  const start=operationId=>({version:2,kind:'start',operationId,target:bound,missionId:randomUUID(),payload:{scope:'Synthetic store-only check',deadlineAt:Date.now()+60000,execution:{provider:'codex',model:null}}});

@@ -11,7 +11,7 @@ import {createRuntimeApplication} from '../src/service/application.mjs';
 const target={site:'https://fixture.invalid',ownerId:'owner',projectId:'project',agentId:'agent'};
 const start=()=>({version:2,operationId:randomUUID(),kind:'start',missionId:randomUUID(),target,payload:{scope:'Synthetic review',deadlineAt:Date.now()+300000,execution:{provider:'codex',model:null}}});
 async function fixture(t){
- const directory=await mkdtemp(join(tmpdir(),'mlswarm-report-recovery-'));let store=await openRuntimeStore({directory});
+ const directory=await mkdtemp(join(tmpdir(),'minions-report-recovery-'));let store=await openRuntimeStore({directory});
  t.after(async()=>{await store.close();await rm(directory,{recursive:true,force:true});});
  return {get store(){return store;},async reopen(){await store.close();store=await openRuntimeStore({directory});}};
 }

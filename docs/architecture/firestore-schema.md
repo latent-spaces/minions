@@ -1,6 +1,6 @@
 # Firestore schema
 
-The collections and fields the MyLittleSwarm server keeps in its document store, the module
+The collections and fields the Minions server keeps in its document store, the module
 that writes each one, and the rules that bound them. The store is the engine's SQLite
 database behind a Firestore-shaped interface (`apps/server/src/firestore.ts`,
 `apps/server/src/storage/sqlite-firestore.ts`); the name of this page and the
@@ -25,7 +25,7 @@ use profile references such as `ownerProfileId`.
 | --- | --- | --- |
 | `accountCleanup/{profileId}` | Bounded cleanup intent after community-wide account removal | `store/account-cleanup.ts` |
 | `backgroundControls/{key}` | Mailbox of approved pause, resume and stop commands for a computer | `projects/background-controls.ts` |
-| `betaInvitationTargets/{emailHash}` | Retained MyLittleSwarm invitation targets; no longer written since invitations were removed | none |
+| `betaInvitationTargets/{emailHash}` | Retained Minions invitation targets; no longer written since invitations were removed | none |
 | `computerConnections/{requestId}` | Computer approval, expiry and revocation | `owner/routes.ts` |
 | `fanoutJobs`, `fanoutProjects`, `fanoutControl/roundRobin` | Delivery jobs, projects with pending jobs, and the round-robin cursor | `v2/fanout-jobs.ts` |
 | `feedbackReports`, `feedbackScreenshots/{reportId}`, `feedbackBudgets/{profileId}` | Feedback reports sent before feedback was retired; kept only for data export and account cleanup | `feedback/store.ts` |
@@ -46,12 +46,12 @@ use profile references such as `ownerProfileId`.
 | `proposalMaterials`, `materialRemovalOperations` | Proposal supporting files and removal receipts | `community/materials.ts` |
 | `webAgentStarts`, `webAgentStartOwners/{connectionId}` | Requests to run an agent, from the website or `add_project_agent`, with a per-computer fence | `owner/web-agent-starts.ts` |
 | `workerReconciliation/scheduledProjectStarts` | Scan cursor for scheduled project starts | `projects/scheduled-start.ts` |
-| `workspaces/mlswarm` | Workspace metadata | `workspaces/records.ts` |
+| `workspaces/minions` | Workspace metadata | `workspaces/records.ts` |
 
 ## Workspace and identity
 
-`workspaces/mlswarm` is the only workspace. Projects, proposals and discovery
-listings carry `workspaceId: mlswarm`. Profiles are global; project memberships and roles stay
+`workspaces/minions` is the only workspace. Projects, proposals and discovery
+listings carry `workspaceId: minions`. Profiles are global; project memberships and roles stay
 scoped to the project. This is not multi-workspace access isolation.
 
 `profiles/{profileId}` is private identity and account storage. A person signs in with a
@@ -97,7 +97,7 @@ Project membership is irrelevant to these conversations. There is no model
 delivery or agent steering. Removed peers keep previously saved inbox previews,
 but their thread cannot be opened or sent another message.
 
-Private requests must include `X-Mlswarm-Profile-Id`, matching the profile resolved
+Private requests must include `X-Minions-Profile-Id`, matching the profile resolved
 from the verified session. This binds browser drafts and receipts to the
 current profile even when a sign-in subject survives account removal.
 
@@ -517,7 +517,7 @@ it can join an update; the engine ships no screening provider, so public images 
 refused as unavailable. Unattached files stay private. Serving a published image
 rechecks its attachment and current project audience; backing objects are not made
 public. Files are stored under `progress-media/` in the engine's media directory
-(`MLSWARM_BLOB_DIR`).
+(`MINIONS_BLOB_DIR`).
 
 Updates are deliberate contributions, not inbox items, messages, accepted outcomes
 or canonical releases. Agents read current writing guidance from
@@ -560,7 +560,7 @@ starts no model execution.
 
 ## Retired product feedback
 
-MyLittleSwarm no longer collects feedback (owner, 11 November 2026). Reports sent earlier
+Minions no longer collects feedback (owner, 11 November 2026). Reports sent earlier
 stay in `feedbackReports`, with screenshots in `feedbackScreenshots/{reportId}` and the
 hourly count in `feedbackBudgets/{profileId}`. Nothing reads or writes them except the
 author's data export, which includes them, and account cleanup, which deletes them in
@@ -593,7 +593,7 @@ never proves a complete historical backfill or that offline computers reported.
 
 Before enabling historical charts for a release, an authorized operator can run
 `node --import tsx apps/server/scripts/backfill-usage-metrics.ts PROJECT_ID [--after RECEIPT_ID] [--version N]`
-with the engine's `MLSWARM_ENGINE=self-hosted` and `MLSWARM_SQLITE_PATH` settings, while the engine is stopped. The version defaults to the active reader version; an explicit candidate version builds separately without deleting active buckets or deduplication markers. Each invocation processes at most 100 receipts
+with the engine's `MINIONS_ENGINE=self-hosted` and `MINIONS_SQLITE_PATH` settings, while the engine is stopped. The version defaults to the active reader version; an explicit candidate version builds separately without deleting active buckets or deduplication markers. Each invocation processes at most 100 receipts
 and returns a continuation cursor. Repeat until `next` is null; exact replays are safe.
 This command does not delete markers, change receipts or fabricate absent context
 measurements. Run it with the matching engine version.

@@ -15,7 +15,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Web.Script.Serialization;
 
-namespace Mlswarm {
+namespace Minions {
   public static class WindowsJob {
     const uint KillOnClose = 0x2000, Suspended = 4, NoWindow = 0x08000000, ExtendedStartup = 0x80000;
     [StructLayout(LayoutKind.Sequential)] struct Security { public int length; public IntPtr descriptor; public int inherit; }
@@ -136,7 +136,7 @@ namespace Mlswarm {
       }
     }
     public static int Run(string mode, string pipeName, string jobName) {
-      if (!System.Text.RegularExpressions.Regex.IsMatch(jobName ?? "", @"^Local\\Mlswarm-[a-f0-9]{32}$")) throw new ArgumentException();
+      if (!System.Text.RegularExpressions.Regex.IsMatch(jobName ?? "", @"^Local\\Minions-[a-f0-9]{32}$")) throw new ArgumentException();
       IntPtr job = IntPtr.Zero; ProcessInfo child = new ProcessInfo();
       try {
         if (mode == "Cleanup") {
@@ -147,7 +147,7 @@ namespace Mlswarm {
         }
         job = NewJob(jobName);
         if (mode == "Probe") { if (!Empty(job)) throw new InvalidOperationException(); Console.Out.WriteLine("{\"supported\":true}"); return 0; }
-        if (mode != "Run" || !System.Text.RegularExpressions.Regex.IsMatch(pipeName ?? "", @"^mlswarm-[a-f0-9]{32}$")) throw new ArgumentException();
+        if (mode != "Run" || !System.Text.RegularExpressions.Regex.IsMatch(pipeName ?? "", @"^minions-[a-f0-9]{32}$")) throw new ArgumentException();
         PipeSecurity acl = new PipeSecurity(); acl.SetAccessRuleProtection(true, false);
         acl.AddAccessRule(new PipeAccessRule(WindowsIdentity.GetCurrent().User, PipeAccessRights.FullControl, AccessControlType.Allow));
         using (NamedPipeServerStream pipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 4096, 4096, acl)) {

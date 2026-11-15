@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { NativeTask } from '@mlswarm/contracts';
+import type { NativeTask } from '@minions/contracts';
 import { nestTasks, newestTaskSnapshot } from '../src/task-model';
 import { formatRoute, parseRoute, taskRoute } from '../src/route';
 

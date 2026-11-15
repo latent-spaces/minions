@@ -19,7 +19,7 @@ async function until(read, predicate) {
   assert.fail('Cleanup state did not reach the expected durable boundary.');
 }
 async function setup(t, release) {
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-controller-cleanup-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-controller-cleanup-'));
   const ctx = { directory, store: await openRuntimeStore({ directory }), turns: 0, releases: 0 };
   const cloud = {
     start: async mission => ({ runId: mission.missionId, cloudGeneration: 1 }),

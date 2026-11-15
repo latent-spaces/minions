@@ -9,7 +9,7 @@ import { createServer } from 'vite';
 import { chromium } from 'playwright';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
-const cacheDir = await mkdtemp(join(tmpdir(), 'mlswarm-feature-settings-'));
+const cacheDir = await mkdtemp(join(tmpdir(), 'minions-feature-settings-'));
 const entry = join(root, '__feature-settings-recovery.tsx');
 const source = `
 import { createRoot } from 'react-dom/client';
@@ -51,7 +51,7 @@ try {
   }], server: { host: '127.0.0.1', port: 0, strictPort: true } });
   await server.listen();
   const address = server.httpServer.address();
-  browser = await chromium.launch({ args: ['--single-process'], ...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MLSWARM_TEST_BROWSER_EXECUTABLE } : {}) });
+  browser = await chromium.launch({ args: ['--single-process'], ...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MINIONS_TEST_BROWSER_EXECUTABLE } : {}) });
   const context = await browser.newContext();
   for (const mode of ['current', 'read-failure', 'switch-project']) {
     const page = await context.newPage();

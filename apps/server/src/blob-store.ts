@@ -1,4 +1,4 @@
-// Private media objects in the engine's local media directory (MLSWARM_BLOB_DIR). Callers keep
+// Private media objects in the engine's local media directory (MINIONS_BLOB_DIR). Callers keep
 // their own keys, limits and integrity checks; objects are never exposed through a public URL.
 import { randomUUID } from 'node:crypto';
 import { link, mkdir, open, readFile, rename, unlink } from 'node:fs/promises';
@@ -108,9 +108,9 @@ export function localBlobStore(root: string, linkFile: (existing: string, create
   };
 }
 
-/** The media store for one kind of object: a subdirectory of the absolute MLSWARM_BLOB_DIR (npm run setup sets it). */
+/** The media store for one kind of object: a subdirectory of the absolute MINIONS_BLOB_DIR (npm run setup sets it). */
 export function mediaStore(kind: string, env: NodeJS.ProcessEnv = process.env): BlobStore {
-  const root = env.MLSWARM_BLOB_DIR;
-  if (!root?.trim() || !isAbsolute(root)) throw new Error('MLSWARM_BLOB_DIR must be an absolute directory.');
+  const root = env.MINIONS_BLOB_DIR;
+  if (!root?.trim() || !isAbsolute(root)) throw new Error('MINIONS_BLOB_DIR must be an absolute directory.');
   return localBlobStore(join(root, kind));
 }

@@ -3,7 +3,7 @@ import { prepareProjectJourney } from '../onboarding/journeys.js';
 import { reportsModelWork } from '../onboarding/progress.js';
 import { prepareSteeringEnd } from '../projects/steering.js';
 // An agent's runner: one current run at a time, its contact with the service and its phase.
-import { RUN_LENGTH } from '@mlswarm/contracts';
+import { RUN_LENGTH } from '@minions/contracts';
 import { checkedWorkSignal, workSignalAtStart, taskWorkSignalIn, type WorkSignal } from './work-signals.js';
 import { agentMembership, assertAgentMembership, type ProjectRole, assertProjectWritable } from '../projects/access.js';
 import { agentGroup } from './agent-group.js';

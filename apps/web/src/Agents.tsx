@@ -1,6 +1,6 @@
 import { AgentStatusIcon } from './ui/AgentStatusIcon';
 import { CodingAgentAvatar, CodingAgentLabel } from './ui/CodingAgentAvatar';
-import { personaChoice } from '@mlswarm/contracts';
+import { personaChoice } from '@minions/contracts';
 import { useRemoveAgent } from './ui/RemoveAgent';
 import { AgentRunActions } from './ui/AgentRunControls';
 import { PickerMenu } from './ui/PickerMenu';
@@ -8,7 +8,7 @@ import { Ellipsis } from 'lucide-react';
 import { AgentPersona } from './ui/AgentPersona';
 import { AgentEnvironment } from './ui/AgentEnvironment';
 import { AgentUsage } from './ui/UsageSummary';
-import type { HumanRequest } from '@mlswarm/contracts';
+import type { HumanRequest } from '@minions/contracts';
 import { ChatWork } from './ui/ChatParticipationControls';
 import { COMMUNICATION_AGENT_LABELS, communicationAgentState } from './ui/communication-agent-state';
 // One agent's page; the Agents section's card directory is CommunityDirectory. Unknown stays unknown;

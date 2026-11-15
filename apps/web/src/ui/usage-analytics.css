@@ -38,7 +38,7 @@
 .usage-legend { display:flex; flex-wrap:wrap; gap:6px 16px; margin:0 0 16px; padding:0; list-style:none; font-size:12px; color:var(--text-muted); }
 .usage-legend li { display:flex; align-items:center; gap:6px; }
 .usage-legend li::before { content:''; width:10px; height:10px; border-radius:2px; background-color:var(--swatch); }
-/* Hatched: MyLittleSwarm's own setup (instructions, tool definitions), as in Karma42; light hatch on its quiet grays. */
+/* Hatched: Minions's own setup (instructions, tool definitions), as in Karma42; light hatch on its quiet grays. */
 .usage-analytics [data-setup=true],.usage-analytics button[data-setup=true]:is(:hover,:focus),.usage-legend li[data-setup=true]::before {
  background-image:repeating-linear-gradient(135deg,transparent 0,transparent 4px,rgba(255,255,255,.75) 4px,rgba(255,255,255,.75) 6px);
 }

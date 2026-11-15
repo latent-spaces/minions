@@ -20,7 +20,7 @@ async function port() { const s = portServer(); await new Promise<void>(resolve 
 
 test('actual Tasks tab offers the list and a status board, remembers the choice and moves cards through the real status change', async () => {
   await resetEmulator();
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-tasks-board-')), apiPort = await port(), webPort = await port();
+  const directory = await mkdtemp(join(tmpdir(), 'minions-tasks-board-')), apiPort = await port(), webPort = await port();
   const fixture = await seed({ project: { name: 'Synthetic board', startsAt: Date.now() - 60000 }, profiles: [{ name: 'Demo owner', email: 'owner-board@example.test', role: 'owner' }, { name: 'Demo member', email: 'member-board@example.test' }],
     agents: [{ person: 0, name: 'Demo Fox' }, { person: 0, name: 'Demo Owl' }, { person: 1, name: 'Demo Kit' }] });
   for (const id of fixture.personIds) await profiles.doc(id).update({ onboardingCompletedAt: 100 });
@@ -55,7 +55,7 @@ test('actual Tasks tab offers the list and a status board, remembers the choice 
       try { if ((await fetch(`http://127.0.0.1:${apiPort}/api/needs-you`)).status === 401) break; } catch {}
       if (n > 100) throw new Error(apiOutput || 'API did not start'); await new Promise(resolve => setTimeout(resolve, 100));
     }
-    await web.listen(); browser = await chromium.launch({ headless: true, ...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MLSWARM_TEST_BROWSER_EXECUTABLE } : {}) });
+    await web.listen(); browser = await chromium.launch({ headless: true, ...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MINIONS_TEST_BROWSER_EXECUTABLE } : {}) });
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
     await context.route('**/*', (route: any) => ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
     const page = await context.newPage(); diagnostic = page;

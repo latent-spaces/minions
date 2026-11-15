@@ -4,7 +4,7 @@ import { SqliteFirestore } from '../src/storage/sqlite-firestore.js';
 
 let db: SqliteFirestore;
 const prototype = Object.prototype as Record<string, unknown>;
-const marker = 'mlswarmMapRegression';
+const marker = 'minionsMapRegression';
 beforeEach(() => { db = new SqliteFirestore(); expect(Object.hasOwn(prototype, marker)).toBe(false); });
 afterEach(() => { delete prototype[marker]; db.close(); });
 

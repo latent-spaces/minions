@@ -1,4 +1,4 @@
-import { COMMUNICATION_BOUNDS as B, type CommunicationFields, type CommunicationSettings } from '@mlswarm/contracts';
+import { COMMUNICATION_BOUNDS as B, type CommunicationFields, type CommunicationSettings } from '@minions/contracts';
 
 export type CommunicationDraft = { broadcastAllowed: 'allow' | 'deny'; sendsPerHour: string;
   minimumGapSeconds: string; broadcastsPerHour: string; sharedBroadcastsPerHour: string };

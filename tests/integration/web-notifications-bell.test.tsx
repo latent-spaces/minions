@@ -16,7 +16,7 @@ const reply = (route: any, value: unknown, status = 200) => route.fulfill({ stat
 
 type Reads = { me?: (route: any, uid: string) => Promise<void>; needsYou?: (route: any) => Promise<void> };
 async function bell(run: (page: any) => Promise<void>, notifications: (route: any, url: URL, uid: string) => Promise<void>, reads: Reads = {}) {
-  const { createServer } = web('vite'), { chromium } = web(process.env.MLSWARM_TEST_PLAYWRIGHT ?? 'playwright');
+  const { createServer } = web('vite'), { chromium } = web(process.env.MINIONS_TEST_PLAYWRIGHT ?? 'playwright');
   const html = `<!doctype html><html><meta charset="utf-8"><body><main id="root"></main><script type="module">
     import React,{useState} from 'react'; import {createRoot} from 'react-dom/client';
     import {NotificationsBell} from '/src/ui/NotificationsBell.tsx'; import {session} from '/src/api.ts';
@@ -29,7 +29,7 @@ async function bell(run: (page: any) => Promise<void>, notifications: (route: an
       return React.createElement(QueryClientProvider,{client:queryClient},React.createElement(NotificationsBell,{user,active:true,go:()=>{}}));}
     createRoot(document.getElementById('root')).render(React.createElement(Fixture));
     </script></body></html>`;
-  const cacheDir = await mkdtemp(join(tmpdir(), 'mlswarm-notifications-bell-'));
+  const cacheDir = await mkdtemp(join(tmpdir(), 'minions-notifications-bell-'));
   const vite = await createServer({ root, cacheDir, configFile: false, server: { host: '127.0.0.1', port: 0, fs: { allow: [fileURLToPath(new URL('../../', import.meta.url)), realpathSync(web.resolve('@fontsource-variable/inter/package.json') + '/..')] } },
   plugins: [{ name: 'synthetic-bell', configureServer(server: any) { server.middlewares.use('/__bell.html', (_req: any, res: any) => {
     void server.transformIndexHtml('/__bell.html', html).then((value: string) => { res.setHeader('content-type', 'text/html'); res.end(value); });
@@ -37,7 +37,7 @@ async function bell(run: (page: any) => Promise<void>, notifications: (route: an
   let browser: any;
   try {
     await vite.listen();
-    browser = await chromium.launch({ headless: true, ...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MLSWARM_TEST_BROWSER_EXECUTABLE } : {}) });
+    browser = await chromium.launch({ headless: true, ...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MINIONS_TEST_BROWSER_EXECUTABLE } : {}) });
     const page = await browser.newPage(), errors: string[] = [], wrongProfiles: string[] = [];
     page.on('pageerror', (error: Error) => errors.push(error.message));
     await page.route('**/*', async (route: any) => {
@@ -48,7 +48,7 @@ async function bell(run: (page: any) => Promise<void>, notifications: (route: an
       if (url.pathname === '/api/realtime') return route.fulfill({ status: 200, contentType: 'text/event-stream', body: ': ready\n\n' });
       if (url.pathname === '/community/me') return reads.me ? reads.me(route, uid) : reply(route, { person: { id: `profile-${uid}` } });
       if (url.pathname.startsWith('/api/needs-you') || url.pathname.startsWith('/api/owner/notifications')) {
-        if (route.request().headers()['x-mlswarm-profile-id'] !== `profile-${uid}`) {
+        if (route.request().headers()['x-minions-profile-id'] !== `profile-${uid}`) {
           wrongProfiles.push(`${uid}:${url.pathname}`); return reply(route, { message: 'Wrong profile' }, 403);
         }
         if (url.pathname.startsWith('/api/needs-you')) return reads.needsYou ? reads.needsYou(route) : reply(route, { items: [], next: null });

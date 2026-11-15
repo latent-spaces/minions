@@ -50,7 +50,7 @@ test('the map shows live states from the current-state endpoint, its only status
   const origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
   const webRequire = createRequire(new URL('../../apps/web/package.json', import.meta.url));
   const { createServer } = webRequire('vite');
-  const { chromium } = webRequire(process.env.MLSWARM_TEST_PLAYWRIGHT ?? 'playwright');
+  const { chromium } = webRequire(process.env.MINIONS_TEST_PLAYWRIGHT ?? 'playwright');
   const html = `<!doctype html><html><meta charset="utf-8"><body><main id="root"></main>
     <script type="module">
     import React from 'react'; import {createRoot} from 'react-dom/client';
@@ -62,7 +62,7 @@ test('the map shows live states from the current-state endpoint, its only status
     Object.assign(session,{currentUser:()=>user,currentUid:()=>user.uid});
     createRoot(document.getElementById('root')).render(React.createElement(ProjectCommunication,{user,projectId:${JSON.stringify(TEST_PROJECT)},active:true,agents,onOpenAgent:()=>{},go:()=>{}}));
     </script></body></html>`;
-  const cacheDir = await mkdtemp(join(tmpdir(), 'mlswarm-current-state-browser-'));
+  const cacheDir = await mkdtemp(join(tmpdir(), 'minions-current-state-browser-'));
   const vite = await createServer({ root: fileURLToPath(new URL('../../apps/web', import.meta.url)), cacheDir, configFile: false,
     server: { host: '127.0.0.1', port: 0, proxy: { '/p': origin }, fs: { allow: [fileURLToPath(new URL('../../', import.meta.url)), realpathSync(fileURLToPath(new URL('../../node_modules/@fontsource-variable/inter', import.meta.url)))] } },
     plugins: [{ name: 'current-state-map', configureServer(server: any) {
@@ -74,8 +74,8 @@ test('the map shows live states from the current-state endpoint, its only status
   let browser: any;
   try {
     await vite.listen();
-    browser = await chromium.launch({ headless: true, ...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MLSWARM_TEST_BROWSER_EXECUTABLE } : {}),
-      ...(process.env.MLSWARM_TEST_BROWSER_ARGS ? { args: process.env.MLSWARM_TEST_BROWSER_ARGS.split(' ') } : {}) });
+    browser = await chromium.launch({ headless: true, ...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MINIONS_TEST_BROWSER_EXECUTABLE } : {}),
+      ...(process.env.MINIONS_TEST_BROWSER_ARGS ? { args: process.env.MINIONS_TEST_BROWSER_ARGS.split(' ') } : {}) });
     const base = `http://127.0.0.1:${(vite.httpServer!.address() as { port: number }).port}/__current-state.html`;
     const statusOf = (page: any, name: string, state: string) =>
       page.getByRole('button', { name: new RegExp(`^Select agent ${name}\\. Current status: ${state}\\.`) });

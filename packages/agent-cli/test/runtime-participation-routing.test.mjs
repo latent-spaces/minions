@@ -32,7 +32,7 @@ const action = (record, kind, payload = {}) => ({ operationId: randomUUID(), kin
 const query = record => ({ target: record.target, participationId: record.participationId });
 
 async function fixture(t) {
-  const root = await mkdtemp(join(tmpdir(), 'mlswarm-participation-routing-'));
+  const root = await mkdtemp(join(tmpdir(), 'minions-participation-routing-'));
   // Cleanup is registered before any resource exists: a setup failure must not leave the store worker alive and hang the runner.
   const clients = []; let store, runtime, service;
   t.after(async () => {

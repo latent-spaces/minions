@@ -1,5 +1,5 @@
 import { isPrivateProject } from './schema.js';
-import { projectExecution } from '@mlswarm/contracts';
+import { projectExecution } from '@minions/contracts';
 import { DEFAULT_WORKSPACE_ID } from '../workspaces/schema.js';
 // Anonymous discovery exposes only explicitly published, finalized projects. It never joins,
 // creates an agent, reads a private transcript or starts a model.

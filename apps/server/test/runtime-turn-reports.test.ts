@@ -27,7 +27,7 @@ async function post(token: string, path: string, body: object) {
 const start = (token: string) => post(token, '/runs', { runner_version: 'runtime-cloud-test', client_run_id: randomUUID() });
 const turn = (sequence = 1) => ({ kind: 'work', outcome: 'succeeded', ended_at: 2_000_000_000_500,
   usage: { sequence, model: 'synthetic-model', provider: 'codex', modelSource: 'provider-report', inputSemantics: 'includes-cache', seconds: 1.5,
-    context: {scope:'mlswarm-supplied',coverage:'partial',instructionBytes:10,turnPromptBytes:20,catalogRequests:1,catalogBytes:30,tools:[{category:'coordination',calls:1,argumentBytes:2,responseTextBytes:40,refusals:0}]},
+    context: {scope:'minions-supplied',coverage:'partial',instructionBytes:10,turnPromptBytes:20,catalogRequests:1,catalogBytes:30,tools:[{category:'coordination',calls:1,argumentBytes:2,responseTextBytes:40,refusals:0}]},
     nativeContext:{source:'codex-app-server',coverage:'partial-turn-stream',lastInputTokens:80,lastTotalTokens:90,modelContextWindow:200,observations:1,completedCompactions:1},
     tokens: { input: 11, output: 7, cacheRead: 5, cacheWrite: 2, modelCalls: 1 } } });
 

@@ -98,8 +98,8 @@ test('Needs you is the viewer\'s own and never in the shared rows; there is no s
   expect(a.rows.every(r => r.state !== 'needs_you')).toBe(true);
   expect((await current(bob)).data.needsYou).toEqual([]);
   // The retired kill switch has no effect: setting the old variable still serves the endpoint (no 404 to the feed).
-  process.env.MLSWARM_CURRENT_STATE_ENABLED = 'false';
-  try { expect((await current(alice)).status).toBe(200); } finally { delete process.env.MLSWARM_CURRENT_STATE_ENABLED; }
+  process.env.MINIONS_CURRENT_STATE_ENABLED = 'false';
+  try { expect((await current(alice)).status).toBe(200); } finally { delete process.env.MINIONS_CURRENT_STATE_ENABLED; }
 });
 
 test('a malformed cursor or extra query is refused', async () => {

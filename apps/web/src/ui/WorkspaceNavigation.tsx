@@ -30,7 +30,7 @@ export interface ProjectMenu {
   /** My agents in this project, under Add agent; nothing shows without any. */
   /** Cheat sheet: opens the project's prompts in a popup; absent for a closed project. */
   cheatSheet?: { title: string; started: boolean } | null;
-  myAgents?: { state?: import('@mlswarm/contracts').CommunicationAgentState; provider?: string; personaChoice?: import('@mlswarm/contracts').PersonaChoice | null; id: string; ownerId?: string; name: string; status: string; detail: string; waiting?: boolean; href: string; onNavigate: () => void }[];
+  myAgents?: { state?: import('@minions/contracts').CommunicationAgentState; provider?: string; personaChoice?: import('@minions/contracts').PersonaChoice | null; id: string; ownerId?: string; name: string; status: string; detail: string; waiting?: boolean; href: string; onNavigate: () => void }[];
 }
 export interface WorkspaceNavigationProps {
   /** Global mode: the links above the projects (Explore). */

@@ -1,7 +1,7 @@
 import { isPrivateProject, isConvertedProject } from './schema.js';
 import { runtimeWithCard } from './records.js';
 import { DEFAULT_WORKSPACE_ID } from '../workspaces/schema.js';
-import { projectExecution } from '@mlswarm/contracts';
+import { projectExecution } from '@minions/contracts';
 // Published project projections are readable by invited accounts through projectManagementRoutes.
 // these routes never grant membership, wake agents or make a private message public.
 import express, { type Response } from 'express';

@@ -1,19 +1,19 @@
 import type { PublicPhoto } from './profile-photo-api';
-import type { CommunicationAgentState } from '@mlswarm/contracts';
+import type { CommunicationAgentState } from '@minions/contracts';
 import { COMMUNICATION_AGENT_LABELS, communicationAgentState } from './ui/communication-agent-state';
 // The Community tab's directory (owner request, 19 October 2026): everyone in the project, people and agents,
 // built only from the members and agents pages the project page already loads.
 
-export type DirectoryMember = { id: string; name: string | null; photo?: PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null };
+export type DirectoryMember = { id: string; name: string | null; photo?: PublicPhoto | null; character?: import('@minions/contracts').PersonCharacter | null };
 export type DirectoryAgent = { id: string; name: string; operatorId: string | null; operatorName: string | null; operatorPhoto?: PublicPhoto | null; revokedAt: number | null;
   usage?: { provider?: string } | null;
   state: CommunicationAgentState; freshUntil: number | null;
-  personaChoice?: import('@mlswarm/contracts').PersonaChoice | null;
-  focus?: import('@mlswarm/contracts').AgentFocus | null };
+  personaChoice?: import('@minions/contracts').PersonaChoice | null;
+  focus?: import('@minions/contracts').AgentFocus | null };
 export type DirectoryKind = 'all' | 'people' | 'agents';
 export type DirectoryEntry =
-  | { kind: 'person'; id: string; name: string; photo?: PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null; owner: boolean; agents: number }
-  | { kind: 'agent'; state: CommunicationAgentState; provider?: string; id: string; name: string; ownerId: string | null; ownerName: string | null; operatorPhoto?: PublicPhoto | null; status: string; personaChoice?: import('@mlswarm/contracts').PersonaChoice | null };
+  | { kind: 'person'; id: string; name: string; photo?: PublicPhoto | null; character?: import('@minions/contracts').PersonCharacter | null; owner: boolean; agents: number }
+  | { kind: 'agent'; state: CommunicationAgentState; provider?: string; id: string; name: string; ownerId: string | null; ownerName: string | null; operatorPhoto?: PublicPhoto | null; status: string; personaChoice?: import('@minions/contracts').PersonaChoice | null };
 
 /** The members page lists the owner first on its first page (the service puts the owner there), so `ownerFirst`
  *  marks that entry as the owner; other roles are not in the members data and are left out. */

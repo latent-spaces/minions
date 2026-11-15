@@ -25,7 +25,7 @@ test('hosted team settings allow only the owner while preserving write and accou
   const server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
   try {
     const root = `http://127.0.0.1:${(server.address() as { port: number }).port}/api/projects/${TEST_PROJECT}`;
-    const headers = (person: number, profile = person) => ({ authorization: `Bearer ${tokens[person]}`, 'content-type': 'application/json', 'x-mlswarm-profile-id': fixture.personIds[profile] });
+    const headers = (person: number, profile = person) => ({ authorization: `Bearer ${tokens[person]}`, 'content-type': 'application/json', 'x-minions-profile-id': fixture.personIds[profile] });
     const save = (person: number, body: object, profile = person) => fetch(`${root}/native-team-settings`, { method: 'POST', headers: headers(person, profile), body: JSON.stringify(body) });
     const initial = await fetch(`${root}/native-team-settings`, { headers: headers(0) });
     expect(await initial.json()).toEqual({ enabled: false, revision: 0 });

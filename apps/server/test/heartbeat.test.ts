@@ -1,4 +1,4 @@
-// H2 merged heartbeat prototype (c4-runtime-control.md): OFF unless MLSWARM_V2_HEARTBEAT=1. Disposable emulator.
+// H2 merged heartbeat prototype (c4-runtime-control.md): OFF unless MINIONS_V2_HEARTBEAT=1. Disposable emulator.
 import express from 'express';
 import type { Server } from 'node:http';
 import { randomUUID } from 'node:crypto';
@@ -21,8 +21,8 @@ beforeAll(async () => {
   base = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
 });
 afterAll(async () => { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); });
-beforeEach(async () => { await resetEmulator(); process.env.MLSWARM_V2_HEARTBEAT = '1'; clock += 120_000; });
-afterEach(() => { delete process.env.MLSWARM_V2_HEARTBEAT; });
+beforeEach(async () => { await resetEmulator(); process.env.MINIONS_V2_HEARTBEAT = '1'; clock += 120_000; });
+afterEach(() => { delete process.env.MINIONS_V2_HEARTBEAT; });
 
 const post = async (token: string, path: string, body: unknown) => {
   const res = await fetch(`${base}${path}`, { method: 'POST', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' }, body: JSON.stringify(body) });
@@ -46,7 +46,7 @@ const stored = async (id: string) => {
 
 test('the route is off by default: 404, and the old pair is unchanged', async () => {
   const [a] = await agents(1);
-  delete process.env.MLSWARM_V2_HEARTBEAT;
+  delete process.env.MINIONS_V2_HEARTBEAT;
   expect((await post(a.token, '/heartbeat', { run_id: a.runId, observe: {} })).status).toBe(404);
   expect((await post(a.token, '/wait', { run_id: a.runId })).status).toBe(200);
   expect((await post(a.token, '/worker-session', { ...a.session, run_id: a.runId })).status).toBe(200);

@@ -25,7 +25,7 @@ test('hosted task settings allow only the owner while preserving write and accou
   const server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
   try {
     const root = `http://127.0.0.1:${(server.address() as { port: number }).port}/api/projects/${TEST_PROJECT}`;
-    const headers = (person: number, profile = person) => ({ authorization: `Bearer ${tokens[person]}`, 'content-type': 'application/json', 'x-mlswarm-profile-id': fixture.personIds[profile] });
+    const headers = (person: number, profile = person) => ({ authorization: `Bearer ${tokens[person]}`, 'content-type': 'application/json', 'x-minions-profile-id': fixture.personIds[profile] });
     const save = (person: number, body: object, profile = person) => fetch(`${root}/native-task-settings`, { method: 'POST', headers: headers(person, profile), body: JSON.stringify(body) });
     const off = { enabled: false, expectedRevision: 0, clientRequestId: randomUUID() };
     for (const [person, status] of [[1, 403], [2, 403], [3, 403], [4, 401]]) expect((await save(person, off)).status).toBe(status);

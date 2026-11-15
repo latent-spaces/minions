@@ -1,4 +1,4 @@
-import { combineReportedUsage, normalizeReportedUsage, type ReportedUsage, type UsageMeasure } from '@mlswarm/contracts';
+import { combineReportedUsage, normalizeReportedUsage, type ReportedUsage, type UsageMeasure } from '@minions/contracts';
 import './usage-summary.css';
 
 const compact = new Intl.NumberFormat(undefined, { notation: 'compact', maximumFractionDigits: 2 });

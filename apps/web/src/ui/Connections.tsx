@@ -28,7 +28,7 @@ export function Connections({ user, active, refreshKey, retry }: { user: Session
   }
   return <section className="settings-card" aria-labelledby="settings-connections-title">
     <div className="settings-group-title k42-connections-title"><h3 id="settings-connections-title" ref={heading} tabIndex={-1}>Connections</h3>
-      <InfoTip label="connections">The MyLittleSwarm service that Claude Code and Codex use on this computer, once you approve it. It serves all your projects: revoking it stops their agents everywhere.</InfoTip></div>
+      <InfoTip label="connections">The Minions service that Claude Code and Codex use on this computer, once you approve it. It serves all your projects: revoking it stops their agents everywhere.</InfoTip></div>
     {loadError && <div role="alert"><p className="error">Could not refresh your connections: {loadError}</p>{computers !== null && <p className="muted">Showing the last loaded connections.</p>}<Button onClick={retry}>Try again</Button></div>}
     {computers === null ? !loadError && <p className="muted" role="status">Loading connections…</p>
       : <ConnectionList connections={computers} busy={busy} revoke={connection => void revoke(connection)} />}

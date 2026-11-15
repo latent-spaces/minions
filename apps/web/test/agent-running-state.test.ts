@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import type { AgentObservation } from '@mlswarm/contracts';
+import type { AgentObservation } from '@minions/contracts';
 import { atTokenCap, PAST_END, providerLimitText, TIME_AND_TOKEN_CAP, TOKEN_CAP, tokenUsageNote, waitingTitle, workerAgentStatus } from '../src/ui/agent-running-state';
 import { agentIconState } from '../src/ui/agent-status-icon';
 

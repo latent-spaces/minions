@@ -14,7 +14,7 @@ const parse = reply => {
   return value;
 };
 async function fixture(t, { uniqueAgents = false } = {}) {
-  const root = await mkdtemp(join(tmpdir(), 'mlswarm-bootstrap-'));
+  const root = await mkdtemp(join(tmpdir(), 'minions-bootstrap-'));
   const home = join(root,'service'), credentials = join(root,'credentials'), folder = join(root,'checkout');
   await mkdir(home,{mode:0o700}); await mkdir(credentials,{mode:0o700}); await mkdir(folder);
   let composed;

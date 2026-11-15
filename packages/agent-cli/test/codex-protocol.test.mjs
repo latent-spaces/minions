@@ -56,7 +56,7 @@ function connection(t) {
 }
 
 test('resume requests metadata only, retaining the approved identity and guarded permissions (no model)', async () => {
-  const root = mkdtempSync(join(tmpdir(), 'mlswarm-protocol-'));
+  const root = mkdtempSync(join(tmpdir(), 'minions-protocol-'));
   try {
     const executable = join(root, 'fake-codex'), instructionsFile = join(root, 'instructions.md');
     writeFileSync(executable, `#!${process.execPath}\nconsole.log('[]');\n`, { mode: 0o700 });
@@ -89,7 +89,7 @@ test('native RPC errors retain the stage and code without exposing error text or
   assert.doesNotMatch(JSON.stringify(result), /super-secret|private-cookie|private\/user/);
 });
 test('existing project native config is never newly trusted and all discovered personal/project MCPs stay disabled',async()=>{
-  const root=mkdtempSync(join(tmpdir(),'mlswarm-existing-native-'));
+  const root=mkdtempSync(join(tmpdir(),'minions-existing-native-'));
   try{
     mkdirSync(join(root,'.codex'));writeFileSync(join(root,'.codex','config.toml'),'# Existing native configuration\n');
     const executable=join(root,'fake-codex'),instructionsFile=join(root,'instructions.md');

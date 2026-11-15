@@ -1,7 +1,7 @@
 // Exact historical totals without migration; progress proves quiet/busy reads.
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { combineReportedUsage, type ReportedUsage } from '@mlswarm/contracts';
+import { combineReportedUsage, type ReportedUsage } from '@minions/contracts';
 import { agents, db, inProject, type Transaction } from '../src/firestore.js';
 import { runnerUsage, type LastTurn } from '../src/v2/records.js';
 import { startRun, reportPhase } from '../src/v2/runs.js';

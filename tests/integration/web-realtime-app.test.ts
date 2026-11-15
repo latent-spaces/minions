@@ -22,7 +22,7 @@ import { prepareCurrentStateProgress } from '../../apps/server/src/view/current-
 import { writeAgentGroup } from '../../apps/server/src/v2/agent-group.js';
 test.each(['live','blockers','map'] as const)('actual app realtime acceptance: %s', async scenario => {
   await resetEmulator();
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-realtime-')), apiPort = await port(), webPort = await port();
+  const directory = await mkdtemp(join(tmpdir(), 'minions-realtime-')), apiPort = await port(), webPort = await port();
   const fixture = await seed({ profiles: [{name:'Realtime reviewer',email:'realtime@example.test'}], agents: [{person:0,name:'Live worker'}] });
   await profiles.doc(fixture.personIds[0]).update({onboardingCompletedAt:100});
   const api = spawn(process.execPath, ['--import','tsx','apps/server/test/api-process.ts'], {cwd:root,stdio:['ignore','pipe','pipe'],
@@ -51,7 +51,7 @@ test.each(['live','blockers','map'] as const)('actual app realtime acceptance: %
       try{if((await fetch(`http://127.0.0.1:${apiPort}/api/needs-you`)).status===401)break;}catch{}
       if(attempt>100)throw new Error(output||'API did not start');await new Promise(resolve=>setTimeout(resolve,100));
     }
-    await web.listen();browser=await chromium.launch({headless:true,...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MLSWARM_TEST_BROWSER_EXECUTABLE}:{})});
+    await web.listen();browser=await chromium.launch({headless:true,...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE?{executablePath:process.env.MINIONS_TEST_BROWSER_EXECUTABLE}:{})});
     const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});
     await context.route('**/*',(route:any)=>['127.0.0.1','localhost','[::1]'].includes(new URL(route.request().url()).hostname)?route.continue():route.abort());
     page=await context.newPage();const errors:string[]=[];page.on('pageerror',(error:Error)=>errors.push(error.message));

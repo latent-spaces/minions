@@ -288,13 +288,13 @@ test('real authenticated HTTP create/read binds current profile and reports usef
   const server = app.listen(0, '127.0.0.1'); await once(server, 'listening');
   try {
     const url = `http://127.0.0.1:${(server.address() as {port:number}).port}/api/projects/${TEST_PROJECT}/tasks`;
-    const headers = { 'content-type': 'application/json', authorization: `Bearer ${token}`, 'x-mlswarm-profile-id': f.personIds[0] };
+    const headers = { 'content-type': 'application/json', authorization: `Bearer ${token}`, 'x-minions-profile-id': f.personIds[0] };
     const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(createInput()) });
     expect(response.status).toBe(200); const { task } = await response.json();
     expect((await fetch(`${url}/${task.id}`, { headers })).status).toBe(200);
     const stale = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ operation: 'update', taskId: task.id, clientRequestId: randomUUID(), expectedRevision: 99, title: 'stale' }) });
     expect(stale.status).toBe(409); expect((await stale.json()).error).toBe('intent_conflict');
-    const wrong = await fetch(url, { method: 'POST', headers: { ...headers, 'x-mlswarm-profile-id': f.personIds[1] }, body: JSON.stringify(createInput()) });
+    const wrong = await fetch(url, { method: 'POST', headers: { ...headers, 'x-minions-profile-id': f.personIds[1] }, body: JSON.stringify(createInput()) });
     expect(wrong.status).toBe(401);
     const previousHost = process.env.HOST;
     try {
@@ -376,7 +376,7 @@ test('hosted task lifecycle uses signed-in membership and task authority, never 
   const previousHost=process.env.HOST;process.env.HOST='0.0.0.0';
   try {
     const root=`http://127.0.0.1:${(server.address() as {port:number}).port}/api/projects/${TEST_PROJECT}`;
-    const headers=(i:number,profile=i)=>({'content-type':'application/json',authorization:`Bearer ${tokens[i]}`,'x-mlswarm-profile-id':f.personIds[profile],origin:'https://karma42.ai'});
+    const headers=(i:number,profile=i)=>({'content-type':'application/json',authorization:`Bearer ${tokens[i]}`,'x-minions-profile-id':f.personIds[profile],origin:'https://karma42.ai'});
     const post=(path:string,body:object,i=0,profile=i)=>fetch(root+path,{method:'POST',headers:headers(i,profile),body:JSON.stringify(body)});
     const runBefore=await scope(async()=> (await runs().get()).docs.map(d=>d.data()));
     expect((await fetch(root+'/tasks',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(createInput())})).status).toBe(401);

@@ -13,7 +13,7 @@ const rejects = (promise, code) => assert.rejects(promise, error => error.code =
 test('a killed service leaves durable evidence; a mission between turns survives and one mid-turn needs recovery', { timeout: 10000 }, async t => {
   const { spawn } = await import('node:child_process');
   const { once } = await import('node:events');
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-store-crash-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-store-crash-'));
   const input = start(), working = start({ target: { ...target, agentId: 'synthetic-working' } }), turnId = randomUUID();
   const script = `import {openRuntimeStore} from ${JSON.stringify(new URL('../src/service/store.mjs', import.meta.url).href)}; const s=await openRuntimeStore({directory:process.argv[2]}); const result=await s.accept(JSON.parse(process.argv[3])); const busy=await s.accept(JSON.parse(process.argv[4])); await s.prepareTurn({missionId:busy.mission.missionId,generation:1,turnId:process.argv[5]}); process.send(result);`;
   const scriptPath = join(directory, 'fixture.mjs'); await writeFile(scriptPath, script);
@@ -34,7 +34,7 @@ test('a killed service leaves durable evidence; a mission between turns survives
 
 test('a stalled storage request reopens storage in place without interrupting missions', { timeout: 15000 }, async t => {
   const { DatabaseSync } = await import('node:sqlite');
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-store-stall-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-store-stall-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const lines = [];
   const store = await openRuntimeStore({ directory, requestTimeoutMs: 300, reopenDelayMs: 50, log: line => lines.push(line) });
@@ -63,7 +63,7 @@ test('future, incompatible and corrupt databases are refused without replacing t
   const { DatabaseSync } = await import('node:sqlite');
   const { readFile } = await import('node:fs/promises');
   for (const version of [0, 1, 4, 5, 99]) {
-    const directory = await mkdtemp(join(tmpdir(), 'mlswarm-store-schema-'));
+    const directory = await mkdtemp(join(tmpdir(), 'minions-store-schema-'));
     t.after(() => rm(directory, { recursive: true, force: true }));
     const database = join(directory, 'runtime.sqlite'); const db = new DatabaseSync(database);
     db.exec(`CREATE TABLE preserved(evidence TEXT); INSERT INTO preserved VALUES('must survive'); PRAGMA user_version=${version}`); db.close();
@@ -72,7 +72,7 @@ test('future, incompatible and corrupt databases are refused without replacing t
     assert.equal(check.prepare('PRAGMA user_version').get().user_version, version);
     assert.equal(check.prepare('SELECT evidence FROM preserved').get().evidence, 'must survive'); check.close();
   }
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-store-corrupt-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-store-corrupt-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const database = join(directory, 'runtime.sqlite'); const evidence = Buffer.from('synthetic corrupt database; preserve this evidence');
   await writeFile(database, evidence);

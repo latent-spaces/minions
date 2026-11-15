@@ -9,7 +9,7 @@ import { ProjectOperations } from '../runtime/project-operations.mjs';
 
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aB1cAAAAASUVORK5CYII=', 'base64');
 async function fixture(t) {
-  const root = await mkdtemp(join(tmpdir(), 'mlswarm-image-')), folder = join(root, 'repo');
+  const root = await mkdtemp(join(tmpdir(), 'minions-image-')), folder = join(root, 'repo');
   await mkdir(folder); const filePath = join(folder, 'capture.png'); await writeFile(filePath, PNG);
   const calls = []; let mode = 'ok';
   const server = createServer(async (req, res) => {

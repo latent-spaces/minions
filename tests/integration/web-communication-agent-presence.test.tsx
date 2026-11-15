@@ -30,7 +30,7 @@ const writeAgent = (agentId: string, change: Partial<Agent>) => db.runTransactio
 });
 
 test('real communication card supports avatars, live states, hover, keyboard and mobile without inventing status on failure', async () => {
-  const screenshots = await mkdtemp(join(tmpdir(), 'mlswarm-app-state-bubbles-'));
+  const screenshots = await mkdtemp(join(tmpdir(), 'minions-app-state-bubbles-'));
   await resetEmulator();
   const at = Date.now(), names = ['Demo Fox','Demo Owl','Demo Otter','Demo Panda','Demo Wolf','Demo Dog','Demo Hare'];
   const f = await seed({ project: { startsAt: at - 3600000 }, profiles: [{ name: 'Demo reader', email: 'communication-reader@example.test' }],
@@ -72,7 +72,7 @@ test('real communication card supports avatars, live states, hover, keyboard and
   const origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
   const webRequire = createRequire(new URL('../../apps/web/package.json', import.meta.url));
   const { createServer } = webRequire('vite');
-  const { chromium } = webRequire(process.env.MLSWARM_TEST_PLAYWRIGHT ?? 'playwright');
+  const { chromium } = webRequire(process.env.MINIONS_TEST_PLAYWRIGHT ?? 'playwright');
   const html = `<!doctype html><html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><body>
     <p>Synthetic communication fixture · no running models</p><main id="root" style="max-width:1000px;margin:auto;padding:16px"></main>
     <script type="module">
@@ -103,7 +103,7 @@ test('real communication card supports avatars, live states, hover, keyboard and
   let browser: any;
   try {
     await vite.listen();
-    browser = await chromium.launch({ headless: true, ...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MLSWARM_TEST_BROWSER_EXECUTABLE } : {}) });
+    browser = await chromium.launch({ headless: true, ...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MINIONS_TEST_BROWSER_EXECUTABLE } : {}) });
     const page = await browser.newPage({ viewport: { width: 1280, height: 1000 } });
     await page.route('**/*', (route: any) => ['127.0.0.1','localhost'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
     const errors: string[] = []; page.on('pageerror', (e: Error) => errors.push(e.message));

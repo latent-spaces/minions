@@ -12,7 +12,7 @@ import { signInBrowser } from '../support/browser-session.js';
 import { idTokenFor } from '../../apps/server/test/helpers.js';
 import { seed, TEST_PROJECT } from '../../apps/server/test/helpers.js';
 import { collection, inProject, profiles, db } from '../../apps/server/src/firestore.js';
-import type { NativeTaskMutation, NativeTaskMutationResult } from '@mlswarm/contracts';
+import type { NativeTaskMutation, NativeTaskMutationResult } from '@minions/contracts';
 
 disposableTarget();
 const folder = process.argv[2]; if (!folder) throw new Error('Run node tests/manual/native-tasks-app.mjs.');
@@ -29,7 +29,7 @@ const token = await idTokenFor(email), apiBase = `http://127.0.0.1:${apiPort}/ap
 let api: ReturnType<typeof spawn> | undefined, web: Awaited<ReturnType<typeof createServer>> | undefined, browser: Awaited<ReturnType<typeof chromium.launch>> | undefined;
 const checks: string[] = [], errors: string[] = [], controlCalls: string[] = [];
 async function request(body?: unknown, suffix = '') {
-  return fetch(apiBase + suffix, { method: body ? 'POST' : 'GET', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', 'X-Mlswarm-Profile-Id': fixture.personIds[0] }, ...(body ? { body: JSON.stringify(body) } : {}) });
+  return fetch(apiBase + suffix, { method: body ? 'POST' : 'GET', headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json', 'X-Minions-Profile-Id': fixture.personIds[0] }, ...(body ? { body: JSON.stringify(body) } : {}) });
 }
 async function mutation(body: NativeTaskMutation) { const reply = await request(body); const data = await reply.json(); assert.equal(reply.status, 200, JSON.stringify(data)); return data as NativeTaskMutationResult; }
 try {
@@ -59,7 +59,7 @@ try {
   checks.push('Attributed comment and typed result reference persist');
   const read = await request(undefined, `/${task.id}`); assert.equal(read.status, 200); const detail = await read.json(); assert.equal(detail.task.title, create.title); assert.ok(detail.comments.length); assert.ok(detail.activity.length); checks.push('Detail read returns persisted task, comments and activity');
   web = await createServer({ root: join(root, 'apps/web'), cacheDir: join(folder, 'vite-cache'), configFile: join(root, 'apps/web/vite.config.ts'), server: { fs: { allow: [root] }, host: '127.0.0.1', port: webPort, strictPort: true } }); await web.listen();
-  browser = await chromium.launch({ headless: true, args: ['--single-process'], ...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MLSWARM_TEST_BROWSER_EXECUTABLE } : {}) });
+  browser = await chromium.launch({ headless: true, args: ['--single-process'], ...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MINIONS_TEST_BROWSER_EXECUTABLE } : {}) });
   const context = await browser.newContext({ hasTouch: true, viewport: { width: 1440, height: 1000 } }); context.setDefaultTimeout(15_000);
   await context.route('**/*', route => ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());
   const page = await context.newPage(); page.on('pageerror', error => errors.push(error.message));

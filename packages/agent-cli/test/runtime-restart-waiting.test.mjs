@@ -38,7 +38,7 @@ function fakeCloud() {
 }
 
 async function setup(t, turns) {
-  const root = await realpath(await mkdtemp(join(tmpdir(), 'mlswarm-restart-waiting-')));
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'minions-restart-waiting-')));
   const fixtures = await makeMixedNativeFixtures(root, [['garden', 'claude']], label => turns(label, root));
   const binding = fixtures.bindings[0], cloud = fakeCloud();
   let store, controllers;
@@ -173,7 +173,7 @@ test('a waiting worker restored with time added after its start keeps the 24-hou
 });
 
 test('a cloud worker whose end time is more than 24 hours from now, beyond clock skew, does not start', { timeout: 20000 }, async t => {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'mlswarm-restart-window-')));
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'minions-restart-window-')));
   const store = await openRuntimeStore({ directory: join(root, 'ledger') }), cloud = fakeCloud();
   // This computer's clock runs behind: the same end time is further away by its clock.
   let lag = 120000;
@@ -193,7 +193,7 @@ test('a cloud worker whose end time is more than 24 hours from now, beyond clock
 
 const claims = registryRoot => readdirSync(registryRoot).filter(name => name.startsWith('claim-'));
 test('a waiting worker survives a connector crash: its leftover processes and dead claim are cleaned up before it continues', { timeout: 30000, skip: !['darwin', 'linux'].includes(process.platform) }, async () => {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'mlswarm-restart-crash-'))), directory = join(root, 'ledger');
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'minions-restart-crash-'))), directory = join(root, 'ledger');
   let child, serverPid, store, controllers;
   try {
     const missionId = randomUUID();
@@ -242,7 +242,7 @@ test('a waiting worker survives a connector crash: its leftover processes and de
 
 // A synthetic adapter and an in-process connector restart; `orphanStop` stands in for ending the dead service's leftovers.
 async function fakeService(t, { lag = 0, orphanStop = async () => {}, turn = async () => {}, text = () => 'Synthetic.\nWORK_NEXT: waiting' } = {}) {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'mlswarm-restart-fake-'))), cloud = fakeCloud(), runs = [], orphanStops = [];
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'minions-restart-fake-'))), cloud = fakeCloud(), runs = [], orphanStops = [];
   cloud.news.work = { runnable: true, revision: 1 };
   const adapterFactory = async () => ({ observe: async () => null, release: async () => {},
     run: async options => { runs.push(options.prompt); await turn(runs.length); return { delivery: 'acknowledged', failed: false, interrupted: false, retryable: false, cleanupConfirmed: true, text: text(runs.length) }; } });

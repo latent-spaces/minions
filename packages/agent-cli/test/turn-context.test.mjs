@@ -5,10 +5,10 @@ import {validContextMeasurement} from '../src/context-measurement.mjs';
 import {normalizeCloudTurn} from '../src/service/cloud-reports.mjs';
 import {CONTEXT_TOOL_NAMES} from '../src/turn-context.mjs';
 import {verifyBundle} from '../src/system.mjs';
-import {CONTEXT_TOOL_NAMES as CONTRACT_TOOL_NAMES} from '@mlswarm/contracts';
+import {CONTEXT_TOOL_NAMES as CONTRACT_TOOL_NAMES} from '@minions/contracts';
 
 test('canonical context counters cover every compiled and local worker tool',()=>{
- const names=JSON.parse(verifyBundle().files['project-tools.json']).tools.map(t=>t.name).concat(['upload_project_image','get_mlswarm_guide']);
+ const names=JSON.parse(verifyBundle().files['project-tools.json']).tools.map(t=>t.name).concat(['upload_project_image','get_minions_guide']);
  assert.deepEqual([...CONTEXT_TOOL_NAMES].sort(),names.sort());
  assert.deepEqual([...CONTRACT_TOOL_NAMES],CONTEXT_TOOL_NAMES);
 });
@@ -26,7 +26,7 @@ test('prompt attribution preserves the actual mission/steering prompt with exact
 });
 
 test('fixed source and per-tool summaries survive normalization and reject invented labels',()=>{
- const context={scope:'mlswarm-supplied',coverage:'partial',instructionBytes:10,turnPromptBytes:3,promptSources:{...emptyPromptSources(),steering:3},steeringMessages:1,sessionMode:'resumed',catalogRequests:1,catalogBytes:100,tools:[],
+ const context={scope:'minions-supplied',coverage:'partial',instructionBytes:10,turnPromptBytes:3,promptSources:{...emptyPromptSources(),steering:3},steeringMessages:1,sessionMode:'resumed',catalogRequests:1,catalogBytes:100,tools:[],
  byTool:[{name:'read_thread',catalogDeliveries:1,definitionBytes:80,calls:1,argumentBytes:2,responseTextBytes:17,refusals:0}]};
  assert.equal(validContextMeasurement(context),true);
  const report=normalizeCloudTurn({outcome:{usage:{context}},execution:{provider:'codex'},startedAt:100,endedAt:200,sequence:1});

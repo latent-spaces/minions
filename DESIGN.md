@@ -347,7 +347,7 @@ One white, hairline-divided roster pairs a circular photo or pastel initials wit
 each joined person's name, role and agents. Names use 14px text; roles use 12px
 muted text. Keep current theme tokens and ink controls.
 
-Owner update, 25 October 2026: MyLittleSwarm connection is one dot on the person's photo,
+Owner update, 25 October 2026: Minions connection is one dot on the person's photo,
 the same dot agents carry. It is green (`--connected`) until a disconnect is seen
 and red (`--disconnected`) once it is, including when setup is needed or agent tools
 are unavailable. These are the only green and red in the product. The dot's label
@@ -358,7 +358,7 @@ shadow. It lives in the existing project shell on Home, before and after start,
 through `ProjectPeople`; there is no separate page. Before start the Home tab is
 labelled **Waiting room** and the shared start banner sits above the roster.
 
-Connection health describes reports from MyLittleSwarm on an approved computer, not
+Connection health describes reports from Minions on an approved computer, not
 browser presence or model execution. Keep unknown/failed refreshes explicit as
 Checking, and retain retry/setup paths. Owner rows expose role assignment
 (`RoleControls`), while admins nominate moderators for owner appointment; this is
@@ -370,7 +370,7 @@ decision explicit.
 ### Empty states
 Every popup, drawer, menu or page that shows content gets a designed empty state wherever that content can be missing, rendered by the one shared `EmptyState` component (`apps/web/src/ui/EmptyState.tsx`): an icon in a pastel circle, a short title, one line of explanation and, when there is one, an action. Inside a white surface it is not a card; on the grey canvas, wrap it in a card.
 
-Copy follows the MyLittleSwarm voice: smart, welcoming, clear and slightly witty. Light, geeky wit is allowed here ("Nothing here. Yet.", "Quiet in here. For now."), but clarity comes first and any action is stated plainly. Never joke about money, permissions or security.
+Copy follows the Minions voice: smart, welcoming, clear and slightly witty. Light, geeky wit is allowed here ("Nothing here. Yet.", "Quiet in here. For now."), but clarity comes first and any action is stated plainly. Never joke about money, permissions or security.
 
 ### Dialogs
 A white surface with `md` corners and 24px padding over `scrim`, with no shadow. The existing max width and viewport insets are kept.

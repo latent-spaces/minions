@@ -21,10 +21,10 @@ import { messagesV2 } from '../src/v2/records.js';
 import { idTokenFor, resetEmulator, scoped, seed, TEST_PROJECT } from './helpers.js';
 
 let server: Server, base: string, media: string;
-const oldMediaDir = process.env.MLSWARM_BLOB_DIR;
+const oldMediaDir = process.env.MINIONS_BLOB_DIR;
 beforeAll(async () => {
-  media = await mkdtemp(join(tmpdir(), 'mlswarm-chat-media-test-'));
-  process.env.MLSWARM_BLOB_DIR = media;
+  media = await mkdtemp(join(tmpdir(), 'minions-chat-media-test-'));
+  process.env.MINIONS_BLOB_DIR = media;
   const app = express(); app.use('/chat', chatMediaRoutes(() => 10000)); app.use('/chat', humanChatRoutes(() => 10000)); app.use('/view', scoped(viewRoutes(() => 10000)));
   app.use('/public/:id', publicProjectRoutes(() => 10000));
   server = app.listen(0, '127.0.0.1'); await new Promise<void>(resolve => server.once('listening', resolve));
@@ -32,7 +32,7 @@ beforeAll(async () => {
 });
 afterAll(async () => {
   server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve()));
-  if (oldMediaDir === undefined) delete process.env.MLSWARM_BLOB_DIR; else process.env.MLSWARM_BLOB_DIR = oldMediaDir;
+  if (oldMediaDir === undefined) delete process.env.MINIONS_BLOB_DIR; else process.env.MINIONS_BLOB_DIR = oldMediaDir;
   await rm(media, { recursive: true, force: true });
 });
 beforeEach(resetEmulator);

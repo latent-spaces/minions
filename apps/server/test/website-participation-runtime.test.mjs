@@ -22,7 +22,7 @@ let server, base, root, store, runtime, serverOffset = 0;
 const serverNow = () => Date.now() + serverOffset;
 const site = 'http://127.0.0.1:8787', secondProject = 'b'.repeat(64);
 beforeEach(async () => {
-  await resetEmulator(); serverOffset = 0; root = await mkdtemp(join(tmpdir(), 'mlswarm-web-participation-'));
+  await resetEmulator(); serverOffset = 0; root = await mkdtemp(join(tmpdir(), 'minions-web-participation-'));
   const app = express();
   app.use('/api/owner/participations/sync',participationSnapshotParser('127.0.0.1'));
   app.use(createMcpExpressApp({host:'127.0.0.1'}));
@@ -40,7 +40,7 @@ afterEach(async () => {
 });
 async function browser(token, path, body, profileId) {
   const response = await fetch(base + '/api' + path, { method: body ? 'POST' : 'GET', headers: {
-    authorization: `Bearer ${token}`, 'content-type':'application/json', ...(profileId ? {'X-Mlswarm-Profile-Id':profileId}:{}),
+    authorization: `Bearer ${token}`, 'content-type':'application/json', ...(profileId ? {'X-Minions-Profile-Id':profileId}:{}),
   }, ...(body ? {body:JSON.stringify(body)}:{}) });
   return {status:response.status,body:await response.json()};
 }

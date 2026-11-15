@@ -45,7 +45,7 @@ const command = (mission, kind, payload = {}) => ({ operationId: randomUUID(), k
 const result = value => ({ content: [{ type: 'text', text: JSON.stringify(value) }] });
 
 async function fixture(t) {
-  const root = await realpath(await mkdtemp(join(tmpdir(), 'mlswarm-routing-')));
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'minions-routing-')));
   const native = await makeMixedNativeFixtures(root, undefined, (label, directory) => [{ gate: join(directory, `gate-${label}`) }]);
   const principal = { site: native.bindings[0].target.site, ownerId: native.bindings[0].target.ownerId };
   const workerCalls = [], ownerCalls = [], discoveryCalls = [], issued = new Map();

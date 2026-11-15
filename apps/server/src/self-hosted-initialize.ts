@@ -21,7 +21,7 @@ export const initializationEvidenceHash = (record: Record<string, unknown>) => c
   .update(JSON.stringify(Object.fromEntries(Object.entries(record).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)))).digest('hex');
 
 export function readOwnerConfiguration(file: string): OwnerConfiguration {
-  const text = readOwnerFile(absoluteSelfHostedPath('MLSWARM_OWNER_FILE', file));
+  const text = readOwnerFile(absoluteSelfHostedPath('MINIONS_OWNER_FILE', file));
   try { return ownerConfiguration.parse(JSON.parse(text)); }
   catch { throw new Error('The private owner configuration is invalid. Existing credentials were not changed.'); }
 }
@@ -30,8 +30,8 @@ export async function initializeSelfHostedStore({ sqlitePath, ownerFile, sourceR
   sqlitePath: string; ownerFile: string; sourceRevision: string;
   owner: { name: string; email: string }; now?: () => number;
 }, openStore: (file: string) => Promise<InitializationStore>) {
-  absoluteSelfHostedPath('MLSWARM_SQLITE_PATH', sqlitePath);
-  absoluteSelfHostedPath('MLSWARM_OWNER_FILE', ownerFile);
+  absoluteSelfHostedPath('MINIONS_SQLITE_PATH', sqlitePath);
+  absoluteSelfHostedPath('MINIONS_OWNER_FILE', ownerFile);
   if (sqlitePath === ownerFile) throw new Error('The database and owner configuration need separate paths.');
   if (!/^[a-f0-9]{40}$/.test(sourceRevision)) throw new Error('Initialization requires the exact 40-character source revision of this engine build.');
   const details = ownerDetails.safeParse(owner);

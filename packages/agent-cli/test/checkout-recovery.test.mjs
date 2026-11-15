@@ -24,7 +24,7 @@ async function stopChild(child) {
   const done = once(child, 'exit'); child.kill('SIGKILL'); await done;
 }
 async function fixture(t) {
-  const root = await realpath(await mkdtemp(join(tmpdir(), 'mlswarm-checkout-crash-')));
+  const root = await realpath(await mkdtemp(join(tmpdir(), 'minions-checkout-crash-')));
   const parent = join(root, 'work'), folder = join(parent, 'repo'), child = join(folder, 'subdir');
   const unrelated = join(root, 'unrelated'), registryRoot = join(root, 'registry');
   for (const path of [child, unrelated, registryRoot]) await mkdir(path, { recursive: true, mode: 0o700 });

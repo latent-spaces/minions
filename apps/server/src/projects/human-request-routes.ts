@@ -18,7 +18,7 @@ export function humanRequestRoutes(now: () => number) {
     const token = bearerToken(req.headers.authorization);
     if (!token) { fail(res,new Refusal('unauthorized','Sign in to open Needs you.')); return; }
     void personIdentityFromIdToken(token).then(async ({ person }) => {
-      if (req.get('X-Mlswarm-Profile-Id') !== person.id) throw new Refusal('unauthorized','You’re now signed in to a different MyLittleSwarm account. Reload the page, then try again.');
+      if (req.get('X-Minions-Profile-Id') !== person.id) throw new Refusal('unauthorized','You’re now signed in to a different Minions account. Reload the page, then try again.');
       const delay = limit(person.id,now());
       if (delay > 0) throw new Refusal('rate_limited','Too many requests. Wait a moment, then try again.',Math.ceil(delay/1000));
       res.locals.profileId = person.id; next();

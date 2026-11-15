@@ -27,7 +27,7 @@ function hold(frame) {
   });
 }
 async function setup(t, options = {}) {
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-cloud-controller-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-cloud-controller-'));
   const store = await openRuntimeStore({ directory });
   const ctx = { store, directory, starts: [], observes: 0, sessions: [], phases: [], frames: [], reportsReady: 0,
     paused: false, contact: true, fatal: false, messages: [] };

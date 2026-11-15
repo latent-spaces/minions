@@ -1,5 +1,5 @@
 // Experiment-only direct arm. Uses the production protocol collector and native
-// supervisor; removes only MyLittleSwarm's instructions and generated project MCP.
+// supervisor; removes only Minions's instructions and generated project MCP.
 import {prepareSupervisedModel} from '../src/model-guard.mjs';
 import {modelTurnOutcome} from '../src/native-worker-adapter.mjs';
 import {MISSION_MARK} from '../src/leftover-processes.mjs';

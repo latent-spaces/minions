@@ -27,7 +27,7 @@ async function started(child) {
 const crash = async child => { if (child && child.exitCode === null && child.signalCode === null) { const exited = once(child, 'exit'); child.kill('SIGKILL'); await exited; } };
 
 test('Stop after a connector crash kills the detached mission process, frees the checkout and ends the run', { timeout: 30000, skip: !['darwin', 'linux'].includes(process.platform) }, async () => {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'mlswarm-orphan-stop-'))), directory = join(root, 'ledger');
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'minions-orphan-stop-'))), directory = join(root, 'ledger');
   const unrelated = spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { detached: true, stdio: 'ignore' }); unrelated.unref();
   let child, serverPid, store, controllers;
   try {
@@ -71,7 +71,7 @@ test('Stop after a connector crash kills the detached mission process, frees the
 
 // A claim file written by a connector process that then died, without any model or guard.
 async function deadConnectorClaim(t, phase) {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'mlswarm-orphan-claim-'))), folder = join(root, 'checkout'), registryRoot = join(root, 'claims');
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'minions-orphan-claim-'))), folder = join(root, 'checkout'), registryRoot = join(root, 'claims');
   for (const path of [folder, registryRoot]) mkdirSync(path, { mode: 0o700 });
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const mission = { target: { site: 'https://orphan.invalid', ownerId: 'owner', projectId: 'park', agentId: 'claude' }, missionId: randomUUID(), generation: 1 };
@@ -93,7 +93,7 @@ for (const phase of ['idle', 'spawning', 'running']) test(`the Windows job clean
 });
 
 test('a worker another running connector still owns is never swept or released', async t => {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'mlswarm-orphan-live-'))), folder = join(root, 'checkout'), registryRoot = join(root, 'claims');
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'minions-orphan-live-'))), folder = join(root, 'checkout'), registryRoot = join(root, 'claims');
   for (const path of [folder, registryRoot]) mkdirSync(path, { mode: 0o700 });
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const mission = { target: { site: 'https://orphan.invalid', ownerId: 'owner', projectId: 'park', agentId: 'claude' }, missionId: randomUUID(), generation: 1 };

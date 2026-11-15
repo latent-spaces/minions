@@ -21,7 +21,7 @@ async function until(read, predicate, label, timeoutMs = 8000) {
 
 // `clock` is the controllers' time; tests move it forward to pass a wait without sleeping through it.
 async function setup(t, run, { directory } = {}) {
-  directory ??= await mkdtemp(join(tmpdir(), 'mlswarm-provider-limits-'));
+  directory ??= await mkdtemp(join(tmpdir(), 'minions-provider-limits-'));
   const ctx = { directory, sessions: [], runs: new Map(), offset: 0, missions: [] };
   ctx.now = () => Date.now() + ctx.offset;
   const store = await openRuntimeStore({ directory });

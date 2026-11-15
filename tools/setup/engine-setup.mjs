@@ -14,7 +14,7 @@ import { childEnvironment, connectorCommand, connectorEnvironment, engineEnviron
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const at = (...parts) => join(repository, ...parts);
-const say = text => console.info(`\nMyLittleSwarm setup: ${text}`);
+const say = text => console.info(`\nMinions setup: ${text}`);
 const modified = file => { try { return statSync(file).mtimeMs; } catch { return null; } };
 
 /** Runs Node with these arguments. Quiet runs keep their output and show it only when they fail. */
@@ -57,7 +57,7 @@ function openApp(site) {
 }
 
 /**
- * The engine runs as an owned child with an IPC channel, so `mlswarm-stop` drains it gracefully on every platform.
+ * The engine runs as an owned child with an IPC channel, so `minions-stop` drains it gracefully on every platform.
  * stop() resolves true only when the engine then exits 0 by itself; a force-kill after 15 s or any failure is unclean.
  */
 function startEngine(env, files) {
@@ -84,7 +84,7 @@ function startEngine(env, files) {
   const stop = () => stopping ??= (async () => {
     if (child.exitCode === null && child.signalCode === null) {
       say('Stopping the engine');
-      try { child.send('mlswarm-stop'); } catch { child.kill(); }
+      try { child.send('minions-stop'); } catch { child.kill(); }
     }
     let forced = false;
     const timer = setTimeout(() => { forced = true; child.kill('SIGKILL'); }, 15_000);
@@ -140,13 +140,13 @@ async function main() {
   next('Checking the engine port and files');
   const state = initializationState({ database: existsSync(files.sqlitePath), owner: existsSync(files.ownerFile) });
   if (state === 'incomplete') {
-    throw new Error(`An earlier first run stopped before initialization finished: ${home} holds only one of engine.sqlite and owner.json. Nothing was changed. If nothing there needs keeping, remove that directory (or choose a new MLSWARM_ENGINE_HOME) and run npm run setup again.`);
+    throw new Error(`An earlier first run stopped before initialization finished: ${home} holds only one of engine.sqlite and owner.json. Nothing was changed. If nothing there needs keeping, remove that directory (or choose a new MINIONS_ENGINE_HOME) and run npm run setup again.`);
   }
   if (!await portFree(port)) {
     // Only an engine started with this owner file signs sessions with its secret, so a verified session proves the port is this engine.
     const ours = state === 'existing' && existsSync(engineMain)
       && await run('engine check', [engineMain, 'check-running', '--url', site], { env: engineEnv, stdio: 'ignore' }).then(() => true, () => false);
-    if (!ours) throw new Error(`Port ${port} is occupied. Stop the program using it, or choose another with MLSWARM_ENGINE_PORT. Nothing was started or stopped.`);
+    if (!ours) throw new Error(`Port ${port} is occupied. Stop the program using it, or choose another with MINIONS_ENGINE_PORT. Nothing was started or stopped.`);
     say(`The engine is already running at ${site}. Opening the local app and checking this computer's connection.`);
     openApp(site);
     const result = await connectComputer(site, connectorEnv);

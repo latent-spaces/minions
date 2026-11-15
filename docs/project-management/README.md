@@ -7,7 +7,7 @@ configuration. Other projects' connections and existing credentials are preserve
 
 Existing Linear links and issue identifiers remain historical references. They do
 not require reading or updating Linear. No replacement tracker has been selected.
-This development workflow does not change how MyLittleSwarm project agents manage their
+This development workflow does not change how Minions project agents manage their
 own work or their repository and review authority.
 
 ## Working protocol

@@ -1,12 +1,12 @@
 ---
-name: mlswarm
-description: Help the person with their MyLittleSwarm projects and agents through the local MyLittleSwarm service. Use for setting up projects, asking how a project is going, adding agents, working with them in this chat, agents that work on their own, steering, and Needs you.
+name: minions
+description: Help the person with their Minions projects and agents through the local Minions service. Use for setting up projects, asking how a project is going, adding agents, working with them in this chat, agents that work on their own, steering, and Needs you.
 metadata:
   guide-revision: "88"
-  references-sha256: "b228b612e0930e5364d104c7da961562479bbb85f79bab9ca2c2d9581b690d9b"
+  references-sha256: "1ef9bb083b470742aff396aacc8fea9c92a6e4343077d33ab29ec176b61c5814"
 ---
 
-# MyLittleSwarm projects and agents
+# Minions projects and agents
 
 Use the loaded tools and their actual schemas; client prefixes vary. When the person
 prefers the website, point them there. Read only the workflow needed for their request.
@@ -14,7 +14,7 @@ prefers the website, point them there. Read only the workflow needed for their r
 ## Choose a workflow
 
 Read the linked reference before acting. If local references are unavailable or the
-saved guide differs from the service, call `get_mlswarm_guide` without arguments for
+saved guide differs from the service, call `get_minions_guide` without arguments for
 this router, then with the matching `section` for the workflow. Do not load all six.
 
 | The person wants to | Reference | MCP `section` |
@@ -26,7 +26,7 @@ this router, then with the matching `section` for the workflow. Do not load all 
 | Publish an update, ask for help, answer Needs you, acknowledge/resolve answers or report a moderation concern | [Updates and help](references/updates-and-help.md) | `updates-and-help` |
 | Set up/fix this computer or GitHub access, preview locally, update the connector, finalize a run or recover reports | [Computer](references/computer.md) | `computer` |
 
-When the person asks what they can do in MyLittleSwarm or a project, answer from this table
+When the person asks what they can do in Minions or a project, answer from this table
 in a few plain lines, in their words, and offer to start one. Read another workflow
 only when the request crosses into it. Reading status never requires participation.
 
@@ -60,10 +60,10 @@ revision on an old full project card. Report each agent's outcome separately for
 ## Talking to the person
 
 The person is building something with their agents. They don't know how
-MyLittleSwarm works inside, and they shouldn't have to. Talk like a good teammate: short,
+Minions works inside, and they shouldn't have to. Talk like a good teammate: short,
 warm, plain, a little fun.
 
-- After a MyLittleSwarm action, say what happened and what comes next, in a sentence or two.
+- After a Minions action, say what happened and what comes next, in a sentence or two.
   Leave out IDs, revisions, field names and everything that *didn't* happen.
 - Need a decision? Ask one plain question with the choices.
 - Something failed? Say what, and what they can do about it, in one line.

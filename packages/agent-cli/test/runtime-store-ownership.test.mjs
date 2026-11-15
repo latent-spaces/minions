@@ -10,7 +10,7 @@ import { promisify } from 'node:util';
 const run = promisify(execFile);
 const storeUrl = new URL('../src/service/store.mjs', import.meta.url).href;
 async function fixture(t, preload) {
-  const directory = await mkdtemp(join(tmpdir(), 'mlswarm-store-ownership-'));
+  const directory = await mkdtemp(join(tmpdir(), 'minions-store-ownership-'));
   t.after(() => rm(directory, { recursive: true, force: true }));
   const bootstrap = join(directory, 'bootstrap.mjs');
   await writeFile(bootstrap, preload);
@@ -49,7 +49,7 @@ for (const workerOnly of [false, true]) {
   });
 }
 
-test('missing getuid still rejects symlink directories and database files', {skip: process.platform === 'win32' && !process.env.MLSWARM_TEST_WINDOWS_SYMLINKS}, async t => {
+test('missing getuid still rejects symlink directories and database files', {skip: process.platform === 'win32' && !process.env.MINIONS_TEST_WINDOWS_SYMLINKS}, async t => {
   const runFixture = await fixture(t, 'process.getuid = undefined;');
   await runFixture(`
     const {mkdir, symlink, rm, writeFile} = await import('node:fs/promises');

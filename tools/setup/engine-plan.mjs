@@ -1,10 +1,11 @@
+import { brandedDirectory } from '../../packages/agent-cli/src/brand-paths.mjs';
 // Decisions for the one-command engine setup, kept free of side effects so both platforms can be tested anywhere.
 import path from 'node:path';
 import { connectorCommand as checkoutConnectorCommand } from '../../packages/agent-cli/src/connector-command.mjs';
 
 // Test-session settings make the standalone engine refuse to start; a loopback engine also
 // must not inherit an enrolled HTTPS origin, a proxy setting or a HOST other than 127.0.0.1.
-const REMOVED = ['MLSWARM_TEST_SESSION', 'MLSWARM_TEST_SQLITE_PATH', 'TRUST_PROXY', 'MLSWARM_SELF_HOSTED_ORIGIN', 'HOST', 'PORT', 'NODE_ENV'];
+const REMOVED = ['MINIONS_TEST_SESSION', 'MINIONS_TEST_SQLITE_PATH', 'TRUST_PROXY', 'MINIONS_SELF_HOSTED_ORIGIN', 'HOST', 'PORT', 'NODE_ENV'];
 
 export function requireNode24(version) {
   if (Number(version.replace(/^v/, '').split('.')[0]) < 24) throw new Error(`The engine requires Node.js 24 or newer; this is ${version}.`);
@@ -13,8 +14,8 @@ export function requireNode24(version) {
 /** One private directory holds the engine files and the connector's separate installation. */
 export function engineHome({ env, userHome, platform }) {
   const paths = platform === 'win32' ? path.win32 : path.posix;
-  const chosen = env.MLSWARM_ENGINE_HOME ?? paths.join(userHome, '.mlswarm', 'engine');
-  if (!paths.isAbsolute(chosen)) throw new Error('MLSWARM_ENGINE_HOME must be an absolute path.');
+  const chosen = env.MINIONS_ENGINE_HOME ?? paths.join(brandedDirectory(userHome, { paths }), 'engine');
+  if (!paths.isAbsolute(chosen)) throw new Error('MINIONS_ENGINE_HOME must be an absolute path.');
   return chosen;
 }
 
@@ -28,8 +29,8 @@ export function enginePaths(home, platform = process.platform) {
 }
 
 export function enginePort(env) {
-  const text = env.MLSWARM_ENGINE_PORT ?? '8787';
-  if (!/^\d{1,5}$/.test(text) || Number(text) < 1024 || Number(text) > 65_535) throw new Error('MLSWARM_ENGINE_PORT must be a port from 1024 to 65535.');
+  const text = env.MINIONS_ENGINE_PORT ?? '8787';
+  if (!/^\d{1,5}$/.test(text) || Number(text) < 1024 || Number(text) > 65_535) throw new Error('MINIONS_ENGINE_PORT must be a port from 1024 to 65535.');
   return Number(text);
 }
 
@@ -48,13 +49,13 @@ export function childEnvironment(env, { nodeDirectory, platform = process.platfo
 
 export function engineEnvironment(base, { home, port, platform = process.platform }) {
   const files = enginePaths(home, platform);
-  return { ...base, MLSWARM_ENGINE: 'self-hosted', HOST: '127.0.0.1', PORT: String(port),
-    MLSWARM_SQLITE_PATH: files.sqlitePath, MLSWARM_BLOB_DIR: files.blobDir, MLSWARM_OWNER_FILE: files.ownerFile };
+  return { ...base, MINIONS_ENGINE: 'self-hosted', HOST: '127.0.0.1', PORT: String(port),
+    MINIONS_SQLITE_PATH: files.sqlitePath, MINIONS_BLOB_DIR: files.blobDir, MINIONS_OWNER_FILE: files.ownerFile };
 }
 
 export function connectorEnvironment(base, { home, port, platform = process.platform }) {
   const files = enginePaths(home, platform);
-  return { ...base, MLSWARM_SERVICE_HOME: files.serviceHome, MLSWARM_CREDENTIAL_HOME: files.credentialHome, MLSWARM_SITE_URL: `http://127.0.0.1:${port}` };
+  return { ...base, MINIONS_SERVICE_HOME: files.serviceHome, MINIONS_CREDENTIAL_HOME: files.credentialHome, MINIONS_SITE_URL: `http://127.0.0.1:${port}` };
 }
 
 /** The owner's name and email come from the command line, or from the Git identity of the person running it. */
@@ -66,7 +67,7 @@ export function ownerIdentity(values, gitConfig) {
 
 /** How this desktop opens a page, or null when there is no desktop to open it on. */
 export function pageOpener(platform, env) {
-  if (env.MLSWARM_NO_BROWSER || env.CI || env.SSH_CONNECTION || env.SSH_TTY || (platform === 'linux' && !env.DISPLAY && !env.WAYLAND_DISPLAY)) return null;
+  if (env.MINIONS_NO_BROWSER || env.CI || env.SSH_CONNECTION || env.SSH_TTY || (platform === 'linux' && !env.DISPLAY && !env.WAYLAND_DISPLAY)) return null;
   return platform === 'darwin' ? ['open'] : platform === 'win32' ? ['rundll32', 'url.dll,FileProtocolHandler'] : ['xdg-open'];
 }
 
@@ -99,7 +100,7 @@ export function interruptedByUser({ code, signal } = {}) {
 /** Recovery advice for known engine startup refusals, from its error output. Nothing is removed for the person. */
 export function startupHint(output, { home, sqlitePath }) {
   if (/no completed standalone initialization/.test(output)) {
-    return ` An earlier first run stopped before initialization finished. If nothing in ${home} needs keeping, remove that directory (or choose a new MLSWARM_ENGINE_HOME) and run npm run setup again.`;
+    return ` An earlier first run stopped before initialization finished. If nothing in ${home} needs keeping, remove that directory (or choose a new MINIONS_ENGINE_HOME) and run npm run setup again.`;
   }
   if (/standalone database is locked/.test(output)) {
     return ` If no engine is running (for example after a crash or restart), remove ${sqlitePath}.lock and run npm run setup again.`;
@@ -109,5 +110,5 @@ export function startupHint(output, { home, sqlitePath }) {
 
 /** The checkout connector's command line against this installation's service and credential folders. */
 export function connectorCommand(platform, { node, cli, serviceHome, credentialHome, args }) {
-  return checkoutConnectorCommand(platform, { node, cli, args, env: { MLSWARM_SERVICE_HOME: serviceHome, MLSWARM_CREDENTIAL_HOME: credentialHome } });
+  return checkoutConnectorCommand(platform, { node, cli, args, env: { MINIONS_SERVICE_HOME: serviceHome, MINIONS_CREDENTIAL_HOME: credentialHome } });
 }

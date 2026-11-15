@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canonicalGithubRepo, githubRepositoryUrl } from '@mlswarm/contracts';
+import { canonicalGithubRepo, githubRepositoryUrl } from '@minions/contracts';
 import { CREATE_PRIVATE } from '../src/projects/private.js';
 import { PROPOSAL_CONTENT, STORED_PROPOSAL_CONTENT } from '../src/community/content.js';
 

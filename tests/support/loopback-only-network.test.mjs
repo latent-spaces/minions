@@ -180,11 +180,11 @@ test('proxy settings are switched off while guarded and restored exactly afterwa
 // The preload guards a whole child process (the standalone engine CLI) and reports through a file.
 const preload = new URL('./loopback-only-network-preload.mjs', import.meta.url).href;
 async function guardedChild(t, script, env = {}) {
-  const dir = await mkdtemp(join(tmpdir(), 'mlswarm-guard-preload-'));
+  const dir = await mkdtemp(join(tmpdir(), 'minions-guard-preload-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const log = join(dir, 'refused.json');
   const child = spawn(process.execPath, ['--import', preload, '--input-type=module', '-e', script],
-    { env: { ...process.env, MLSWARM_TEST_NETWORK_LOG: log, ...env } });
+    { env: { ...process.env, MINIONS_TEST_NETWORK_LOG: log, ...env } });
   let stderr = ''; child.stderr.on('data', chunk => { stderr += chunk; });
   const code = await new Promise(resolve => child.once('close', resolve));
   return { code, stderr, refused: await readFile(log, 'utf8').then(JSON.parse, () => null) };
@@ -200,9 +200,9 @@ test('the preload guards a child process from its first line and writes its refu
 });
 
 test('the preload refuses to run without an absolute refusal log path', async t => {
-  const missing = await guardedChild(t, 'process.exit(0);', { MLSWARM_TEST_NETWORK_LOG: 'relative.json' });
+  const missing = await guardedChild(t, 'process.exit(0);', { MINIONS_TEST_NETWORK_LOG: 'relative.json' });
   assert.notEqual(missing.code, 0);
-  assert.match(missing.stderr, /MLSWARM_TEST_NETWORK_LOG/);
+  assert.match(missing.stderr, /MINIONS_TEST_NETWORK_LOG/);
   assert.equal(missing.refused, null);
 });
 

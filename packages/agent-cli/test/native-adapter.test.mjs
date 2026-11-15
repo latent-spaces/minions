@@ -12,7 +12,7 @@ import { createWorkerGuidance } from '../src/worker-guidance.mjs';
 import { execFileSync } from 'node:child_process';
 
 test('actual adapter and process guard resume one thread, request no history and acknowledge each submitted prompt (fake CLI, no model)', { timeout: 10000 }, async () => {
-  const root = mkdtempSync(join(tmpdir(), 'mlswarm-fake-native-')), stateDir = join(root, 'state'), folder = join(root, 'repo'), bin = join(root, 'bin');
+  const root = mkdtempSync(join(tmpdir(), 'minions-fake-native-')), stateDir = join(root, 'state'), folder = join(root, 'repo'), bin = join(root, 'bin');
   for (const path of [stateDir, folder, bin]) mkdirSync(path, { mode: 0o700 });
   execFileSync('git', ['-C', folder, 'init', '--quiet']);
   writeFileSync(join(stateDir, 'instructions.md'), 'Synthetic native protocol verification', { mode: 0o600 });
@@ -35,7 +35,7 @@ createInterface({input:process.stdin}).on('line', line => {
  if (v.method === 'initialize') emit({id:v.id,result:{}});
  if (v.method === 'config/read') emit({id:v.id,result:{layers:[{name:{type:'project',dotCodexFolder:fs.realpathSync.native(v.params.cwd)+'/.codex'},config:{},version:'1'}]}});
  if (v.method === 'thread/start' || v.method === 'thread/resume') {
-  const ruleFile=${JSON.stringify(join(folder,'.codex','rules','mlswarm-worker-merge.rules'))}; fs.appendFileSync(${JSON.stringify(policies)},JSON.stringify({rules:fs.existsSync(ruleFile)?fs.readFileSync(ruleFile,'utf8'):'',method:v.method})+'\\n');
+  const ruleFile=${JSON.stringify(join(folder,'.codex','rules','minions-worker-merge.rules'))}; fs.appendFileSync(${JSON.stringify(policies)},JSON.stringify({rules:fs.existsSync(ruleFile)?fs.readFileSync(ruleFile,'utf8'):'',method:v.method})+'\\n');
   if (v.method === 'thread/resume' && (v.params.excludeTurns !== true || v.params.threadId !== thread)) throw Error('Unexpected resume identity/history request');
   emit({id:v.id,result:{thread:{id:thread},modelProvider:'openai',model:'gpt-6.1-sol'}});
  }
@@ -71,7 +71,7 @@ createInterface({input:process.stdin}).on('line', line => {
     const observed=readFileSync(policies,'utf8').trim().split('\n').map(line=>JSON.parse(line));
     assert.deepEqual(observed.map(value=>value.rules.includes('forbidden')),[true,false,true,false,false,false]);
     assert.deepEqual(observed.map(value=>value.method),['thread/start',...Array(5).fill('thread/resume')]);
-    assert.equal(existsSync(join(folder,'.codex','rules','mlswarm-worker-merge.rules')),false);
+    assert.equal(existsSync(join(folder,'.codex','rules','minions-worker-merge.rules')),false);
     assert.equal(readPrivate(join(stateDir, 'model-session.json'), true).id, '11111111-1111-4111-8111-111111111111');
     const journal = readRunJournal({directory:stateDir,identity});
     assert.equal(journal.availability,'available'); assert.deepEqual(journal.interruptedAttempts,[]);
@@ -88,7 +88,7 @@ createInterface({input:process.stdin}).on('line', line => {
 });
 
 test('Claude submission is persisted before native launch, and a failed persistence callback prevents execution (fake CLI, no model)', { timeout: 10000 }, async () => {
-  const root = mkdtempSync(join(tmpdir(), 'mlswarm-fake-claude-')), stateDir = join(root, 'state'), folder = join(root, 'repo'), bin = join(root, 'bin');
+  const root = mkdtempSync(join(tmpdir(), 'minions-fake-claude-')), stateDir = join(root, 'state'), folder = join(root, 'repo'), bin = join(root, 'bin');
   for (const path of [stateDir, folder, bin]) mkdirSync(path, { mode: 0o700 });
   const marker = join(root, 'native-launched');
   writeFileSync(join(stateDir, 'instructions.md'), 'Synthetic Claude startup check', { mode: 0o600 });
@@ -118,7 +118,7 @@ console.log(JSON.stringify({type:'result',is_error:false,num_turns:1,result:'Syn
 });
 
 test('a Claude turn ends at its result even when a background command keeps the client alive (fake CLI, no model)', { timeout: 30000 }, async () => {
-  const root = mkdtempSync(join(tmpdir(), 'mlswarm-fake-claude-')), stateDir = join(root, 'state'), folder = join(root, 'repo'), bin = join(root, 'bin');
+  const root = mkdtempSync(join(tmpdir(), 'minions-fake-claude-')), stateDir = join(root, 'state'), folder = join(root, 'repo'), bin = join(root, 'bin');
   for (const path of [stateDir, folder, bin]) mkdirSync(path, { mode: 0o700 });
   writeFileSync(join(stateDir, 'instructions.md'), 'Synthetic Claude startup check', { mode: 0o600 });
   writeFileSync(join(bin, 'claude'), `#!${process.execPath}
@@ -140,7 +140,7 @@ setInterval(() => {}, 1000);
 });
 
 test('the Card merge setting decides each turn whether gh pr merge is denied (fake Claude, no model)', { timeout: 10000 }, async () => {
-  const root = mkdtempSync(join(tmpdir(), 'mlswarm-merge-card-')), stateDir = join(root, 'state'), folder = join(root, 'repo'), bin = join(root, 'bin');
+  const root = mkdtempSync(join(tmpdir(), 'minions-merge-card-')), stateDir = join(root, 'state'), folder = join(root, 'repo'), bin = join(root, 'bin');
   for (const path of [stateDir, folder, bin]) mkdirSync(path, { mode: 0o700 });
   const seen = join(root, 'seen.json');
   writeFileSync(join(stateDir, 'instructions.md'), 'Synthetic merge policy check', { mode: 0o600 });

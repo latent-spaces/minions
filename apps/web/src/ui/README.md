@@ -135,7 +135,7 @@ The project's main page is Tasks (the `overview` route section; there is no Home
 after start; private projects disable the other tabs for everyone except the owner
 until start. Before and after start, Tasks shows the project cheat sheet (below).
 [Selected concept](../../../../docs/design/waiting-room/README.md). There is no people
-list, role control or invitation entry: MyLittleSwarm is for one person and their agents
+list, role control or invitation entry: Minions is for one person and their agents
 (owner decision, 10 November 2026).
 
 ## Member project home
@@ -208,7 +208,7 @@ Tasks](#conversations-on-tasks)) once the project is set up. Before
 setup, `ProjectHomePreparation` takes the card's place. the cheat sheet
 (`ProjectCheatSheet.tsx`) lists the main things to ask a coding chat, one short copyable prompt per
 action (`project-chat-prompt.ts`), starting with Add an agent; copying runs nothing. How each
-prompt is done lives in the MyLittleSwarm guide, not in the prompt. It is the Tasks table with
+prompt is done lives in the Minions guide, not in the prompt. It is the Tasks table with
 each prompt in monospace and a copy button, opened in a popup from Cheat sheet in the project
 menu. Tasks does not carry the table: while you have no agent in the project, `AddAgentNudge` shows
 a small Add your agent reminder that opens it at Add an agent, until you add one or close it
@@ -267,7 +267,7 @@ section shows the read-only `Agents` directory to signed-in viewers; guests see 
 sign-in preview.
 
 Web Add agent entry points are hidden in the project header, sidebar, Agents section
-and communication map. People add agents through MyLittleSwarm MCP in their local coding
+and communication map. People add agents through Minions MCP in their local coding
 agent. The unmounted `AddAgent` dialog and existing creation APIs/runtime are retained
 for this visibility-only change (OPE-230); accepted work continues normally. Revisit
 the retained dialog when the owner decides whether web creation will return.
@@ -462,6 +462,6 @@ until Escape or a click elsewhere. There is no Merge rules or Repository screen.
 
 Usage's "Now · latest turn per agent" shows each agent's request as a share of its context
 window, with the window size, when the agent reports them (Codex and Claude agents do;
-others read "Not reported"). MyLittleSwarm's own setup (instructions and tool
+others read "Not reported"). Minions's own setup (instructions and tool
 definitions) is hatched, as in Karma42. There is no supplied-context-by-day chart, no
 per-agent context timeline and no exact-values section.

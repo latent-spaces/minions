@@ -46,7 +46,7 @@ try {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
   web = await createServer({ root: join(root, 'apps/web'), cacheDir: join(folder, 'vite-cache'), configFile: join(root, 'apps/web/vite.config.ts'), server: { host: '127.0.0.1', port: webPort, strictPort: true, fs: { allow: [root] } } }); await web.listen();
-  browser = await chromium.launch({ headless: true, ...(process.env.MLSWARM_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MLSWARM_TEST_BROWSER_EXECUTABLE } : {}) });
+  browser = await chromium.launch({ headless: true, ...(process.env.MINIONS_TEST_BROWSER_EXECUTABLE ? { executablePath: process.env.MINIONS_TEST_BROWSER_EXECUTABLE } : {}) });
   async function open(person: typeof people[number]) {
     const context = await browser!.newContext({ viewport: { width: 1440, height: 1000 } }); context.setDefaultTimeout(45_000);
     await context.route('**/*', route => ['127.0.0.1', 'localhost', '[::1]'].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort());

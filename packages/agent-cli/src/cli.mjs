@@ -21,16 +21,16 @@ import { createSetupScreen, createChatScreen } from './setup-screen.mjs';
 import { GITHUB_LOGIN, keepGitHubLoginInFile, assertGitHubFileStorage } from './service/repository-access.mjs';
 import { BUNDLED_SKILL, bundledGuideFiles, readBundledGuide, skillTextHash } from './skill-bundle.mjs';
 
-export const HELP = `MyLittleSwarm MCP ${VERSION}
+export const HELP = `Minions MCP ${VERSION}
 
-Connect your existing AI coding client to MyLittleSwarm projects.
+Connect your existing AI coding client to Minions projects.
 Setup and current-chat mode do not choose or run a model. Your MCP client may use
 Claude, Codex, DeepSeek or another model supported by that client.
 
 Commands:
   setup [--site WEBSITE] [--wait-seconds N]
       Approve this computer, start its shared local service and connect Claude Code
-      and Codex to it, with the MyLittleSwarm skill. Starts no models.
+      and Codex to it, with the Minions skill. Starts no models.
   mcp-config --client claude|codex|other [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
       Print HTTP registration for another client; changes no client settings.
   service-start / service-status / service-stop
@@ -80,7 +80,7 @@ Commands:
 
 Run setup once on each computer. For a client other than Claude Code or Codex,
 register the entry mcp-config prints. Then open a new conversation in your coding
-agent and start building, or copy prompts from your configured MyLittleSwarm website into it.
+agent and start building, or copy prompts from your configured Minions website into it.
 Project approval happens separately in your browser. No automatic worker launch.
 Optional local workers require explicit client, scope, separate folder and duration approval.
 Codes and tokens are never accepted as command arguments.`;
@@ -135,7 +135,7 @@ export async function main(args, out = console.log, err = console.error) {
     const selectedSite = () => {
       if (values.site) {
         const enrolled = selfHostedWebsiteOrigin();
-        if (enrolled && values.site !== enrolled) throw new Error('--site must match MLSWARM_SELF_HOSTED_ORIGIN. Use a separate shell configuration for another installation.');
+        if (enrolled && values.site !== enrolled) throw new Error('--site must match MINIONS_SELF_HOSTED_ORIGIN. Use a separate shell configuration for another installation.');
         return values.site;
       }
       try { return readInstallation(home).site; } catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -147,8 +147,8 @@ export async function main(args, out = console.log, err = console.error) {
       const screen = command !== 'setup' ? null : process.stdin.isTTY && process.stdout.isTTY ? createSetupScreen() : createChatScreen(out);
       let stopEnter = () => {};
       if (command === 'setup' || command === 'owner-connect') {
-        if (screen) { screen.start(); screen.step(1, 'Approve this computer on MyLittleSwarm'); }
-        const connected = await owner.connect('MyLittleSwarm shared service',site);
+        if (screen) { screen.start(); screen.step(1, 'Approve this computer on Minions'); }
+        const connected = await owner.connect('Minions shared service',site);
         if (command === 'owner-connect') { out(JSON.stringify(connected,null,2)); if (connected.approval_url) openPage(connected.approval_url); return 0; }
         if (connected.approval_url) stopEnter = offerPage(screen, { codeHint: 'Check the page shows this code', code: connected.request_check, label: 'the approval page', url: connected.approval_url });
       }
@@ -165,7 +165,7 @@ export async function main(args, out = console.log, err = console.error) {
       try { status = await startDetachedService({home,site,entryPoint:fileURLToPath(import.meta.url),args:['service-run']}); } finally { stop?.(); }
       if (command === 'service-start') { out(JSON.stringify(status,null,2)); return 0; }
       // Step 2's spinner covers the service starting; only the coding agents are listed.
-      return await finishSetup(home, site, out, !!(values['state-dir'] || process.env.MLSWARM_SERVICE_HOME || selfHostedWebsiteOrigin()), { screen });
+      return await finishSetup(home, site, out, !!(values['state-dir'] || process.env.MINIONS_SERVICE_HOME || selfHostedWebsiteOrigin()), { screen });
     }
     if (command === 'service-status') { out(JSON.stringify(await statusInstalledService({home}),null,2));return 0; }
     if (command === 'service-stop') {
@@ -251,7 +251,7 @@ export async function finishSetup(home, site, out, separate, {screen, connect = 
     return 0;
   }
   if (github === null) { screen.action({ note: 'Your agents need the GitHub CLI to work on project code. Install it, then run setup again.', label: 'Install the GitHub CLI', url: 'https://cli.github.com' }); return 0; }
-  screen.problem('GitHub is not connected yet. Your agents need GitHub to work on project code. Connect it any time from the Connect GitHub step in MyLittleSwarm.');
+  screen.problem('GitHub is not connected yet. Your agents need GitHub to work on project code. Connect it any time from the Connect GitHub step in Minions.');
   return 0;
 }
 // Shows a page to open on the setup screen. Enter opens it, as often as the person likes, until the returned
@@ -288,13 +288,13 @@ export function signInToGitHub(screen, { spawnImpl = spawn, processImpl = proces
       text += chunk;
       const code = /one-time code: ([A-Z0-9]{4}-[A-Z0-9]{4})/.exec(text)?.[1], url = /https:\/\/github\.com\/login\/device/.exec(text)?.[0];
       if (stop || !code || !url) return;
-      const stopEnter = offer(screen, { codeHint: 'Enter this code on GitHub', code, note: 'Use the GitHub account you sign in to MyLittleSwarm with.', label: 'GitHub', url, onInterrupt: onInt });
+      const stopEnter = offer(screen, { codeHint: 'Enter this code on GitHub', code, note: 'Use the GitHub account you sign in to Minions with.', label: 'GitHub', url, onInterrupt: onInt });
       const stopSpinner = screen.waiting('Waiting for GitHub');
       stop = () => { stopSpinner(); stopEnter(); };
     };
     child.stdout.on('data', read); child.stderr.on('data', read);
     child.on('error', () => finish(false));
-    // gh diagnostics are not MyLittleSwarm instructions. The caller reports a fixed
+    // gh diagnostics are not Minions instructions. The caller reports a fixed
     // failure message; never wrap arbitrary stderr in trusted chat markers.
     child.on('close', status => finish(status === 0));
   });

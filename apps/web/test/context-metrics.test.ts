@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import type {ContextSummary,NativeContextObservation} from '@mlswarm/contracts';
+import type {ContextSummary,NativeContextObservation} from '@minions/contracts';
 import {requestPressure,suppliedSources} from '../src/ui/context-metrics.js';
 const native=(input:number|null,window:number|null):NativeContextObservation=>({source:'codex-app-server',coverage:'partial-turn-stream',lastInputTokens:input,lastTotalTokens:null,modelContextWindow:window,observations:1,completedCompactions:0});
 test('request pressure uses only reported input and a positive reported window, including genuine zero input',()=>{
@@ -11,7 +11,7 @@ test('request pressure uses only reported input and a positive reported window, 
 });
 test('measured source groups do not count steering or tool responses twice or invent token attribution',()=>{
  const context={instructionBytes:20,turnPromptBytes:100,promptSources:{steering:10},catalogBytes:30,tools:[],byTool:[
- {name:'get_task',argumentBytes:1,responseTextBytes:100},{name:'read_thread',argumentBytes:2,responseTextBytes:200},{name:'get_mlswarm_guide',argumentBytes:3,responseTextBytes:400},
+ {name:'get_task',argumentBytes:1,responseTextBytes:100},{name:'read_thread',argumentBytes:2,responseTextBytes:200},{name:'get_minions_guide',argumentBytes:3,responseTextBytes:400},
  ]} as unknown as ContextSummary;
  const sources=suppliedSources(context);
  assert.equal(sources.reduce((sum,s)=>sum+s.bytes,0),856);

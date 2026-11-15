@@ -11,7 +11,7 @@ import { commandFingerprint } from '../src/service/contracts.mjs';
 
 const value=result=>JSON.parse(result.content[0].text);
 async function fixture(t){
- const root=await mkdtemp(join(tmpdir(),'mlswarm-participation-')),folder=join(root,'repo'),stateDir=join(root,'private');
+ const root=await mkdtemp(join(tmpdir(),'minions-participation-')),folder=join(root,'repo'),stateDir=join(root,'private');
  await mkdir(folder);await mkdir(stateDir,{mode:0o700});
  const target={site:'http://127.0.0.1:8787',ownerId:'owner',projectId:'project',agentId:'agent'};
  const principal={site:target.site,ownerId:target.ownerId},calls=[];

@@ -15,7 +15,7 @@ import { createWebAgentStarts } from '../../../packages/agent-cli/src/service/we
 // first check, so it leaves the queue and shows as the person's agent. Real server and service code; no model runs.
 test('an agent queued for an offline computer is picked up on the computer’s first check and leaves the queue', async () => {
   await resetEmulator();
-  const now = () => Date.now(), site = 'https://mlswarm.test';
+  const now = () => Date.now(), site = 'https://minions.test';
   const owner = (await seed({ profiles: [{ name: 'Owner', email: 'queue-owner@example.test' }] })).personIds[0], computer = randomUUID();
   await collection('computerConnections').doc(computer).set({ profileId: owner, revokedAt: null, approvedAt: now(), connectionExpiresAt: now() + 86400_000 });
   const workers = () => inProject(TEST_PROJECT, () => listMyWorkers(owner, now));
@@ -25,7 +25,7 @@ test('an agent queued for an offline computer is picked up on the computer’s f
   await createWebAgentStart(owner, { id, connectionId: computer, projectId: TEST_PROJECT, name: 'queued-fox', execution: { provider: 'codex', model: null }, approved: true }, now);
   expect(await workers()).toMatchObject({ agents: [], queued: [{ id, name: 'queued-fox', waitingFor: 'computer' }] });
 
-  const home = await mkdtemp(join(tmpdir(), 'mlswarm-queue-'));
+  const home = await mkdtemp(join(tmpdir(), 'minions-queue-'));
   const service = createWebAgentStarts({ home, principal: { site, ownerId: owner }, intervalMs: 600_000, platform: 'darwin',
     ownerClient: {
       publishRuntimeReadiness: (value) => publishRuntimeReadiness(owner, computer, value, now),

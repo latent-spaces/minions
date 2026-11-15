@@ -18,14 +18,14 @@ export const executable = (packageName, name) => {
 };
 export const runProcess = runOwnedProcess;
 
-const SESSION = /^mlswarm-(tests|benchmarks)-[a-f0-9]{12}$/;
+const SESSION = /^minions-(tests|benchmarks)-[a-f0-9]{12}$/;
 
 /** Shared interlock for destructive test resets: only a disposable test session's own store may be cleared. */
 export function disposableTarget(env = process.env) {
-  const session = env.MLSWARM_TEST_SESSION;
-  if (env.NODE_ENV !== 'test' || !SESSION.test(session ?? '') || env.MLSWARM_ENGINE !== undefined)
+  const session = env.MINIONS_TEST_SESSION;
+  if (env.NODE_ENV !== 'test' || !SESSION.test(session ?? '') || env.MINIONS_ENGINE !== undefined)
     throw new Error('Test resets require an explicitly selected disposable test session.');
-  const store = env.MLSWARM_TEST_SQLITE_PATH ?? ':memory:';
+  const store = env.MINIONS_TEST_SQLITE_PATH ?? ':memory:';
   if (store !== ':memory:' && !isAbsolute(store)) throw new Error('Test resets require an absolute session store path.');
   return { session, store };
 }
@@ -36,7 +36,7 @@ export function testEnvironment(source = process.env) {
     'SystemRoot', 'SYSTEMROOT', 'COMSPEC', 'PATHEXT', 'TEMP', 'TMP', 'TMPDIR',
     'LANG', 'LC_ALL', 'TERM', 'NODE_EXTRA_CA_CERTS',
     // Explicit local browser selection is test configuration, never a credential.
-    'MLSWARM_TEST_BROWSER_EXECUTABLE', 'MLSWARM_TEST_BROWSER', 'MLSWARM_HOSTING_FIXTURES_FILE'];
+    'MINIONS_TEST_BROWSER_EXECUTABLE', 'MINIONS_TEST_BROWSER', 'MINIONS_HOSTING_FIXTURES_FILE'];
   return Object.fromEntries(keys.filter(key => source[key] !== undefined).map(key => [key, source[key]]));
 }
 
@@ -47,10 +47,10 @@ export function testEnvironment(source = process.env) {
 export async function withDisposableSession(command, { kind = 'tests', envPatch = {}, cwd } = {}) {
   if (!['tests', 'benchmarks'].includes(kind)) throw new Error('Unknown disposable study kind.');
   const env = { ...testEnvironment(), ...envPatch };
-  const session = `mlswarm-${kind}-${randomBytes(6).toString('hex')}`;
-  const folder = await mkdtemp(join(tmpdir(), `mlswarm-${kind}-`));
-  Object.assign(env, { MLSWARM_TEST_SESSION: session, NODE_ENV: 'test', HOST: '127.0.0.1',
-    MLSWARM_TEST_SQLITE_PATH: join(folder, 'test-store.sqlite'), MLSWARM_BLOB_DIR: join(folder, 'media') });
+  const session = `minions-${kind}-${randomBytes(6).toString('hex')}`;
+  const folder = await mkdtemp(join(tmpdir(), `minions-${kind}-`));
+  Object.assign(env, { MINIONS_TEST_SESSION: session, NODE_ENV: 'test', HOST: '127.0.0.1',
+    MINIONS_TEST_SQLITE_PATH: join(folder, 'test-store.sqlite'), MINIONS_BLOB_DIR: join(folder, 'media') });
   disposableTarget(env);
   const args = await command({ session, folder, env });
   env.PATH = `${dirname(process.execPath)}${delimiter}${env.PATH ?? ''}`;
