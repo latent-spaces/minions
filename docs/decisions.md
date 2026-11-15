@@ -10,6 +10,22 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## A small, fast test suite — owner decision, 15 November 2026
+
+Source: the owner in chat on 15 November 2026: “can you delete irrelevant tests? it takes too
+much time, we need to do only super fast and minimal tests”. Asked whether that meant one change
+or the whole repository, they chose the whole repository, then “yes cut it all”.
+
+- **Kept.** Typechecks for the engine and web app, and smoke tests: engine standalone smoke,
+  HTTP flow, owner session, owner routes and web agent starts; connector owner client, service
+  bootstrap, MCP configuration, setup screen and Windows command quoting; setup tool checks.
+  `npm run test:all` runs them, and one manual GitHub workflow runs that on Linux and Windows.
+- **Removed.** All other engine, connector and web unit tests, `tests/integration`,
+  `tests/manual`, the test-guard scripts and the portable validation profile.
+- **Rule.** Add a test only when it guards something the typecheck and the core cannot; verify
+  behavior in the actual local app. This replaces the rule to add focused regression tests for
+  platform-specific failures.
+
 ## No computer connections: the engine's one computer is implicit — owner decision, 15 November 2026
 
 Source: the owner in chat on 15 November 2026. They asked whether the computer connection was

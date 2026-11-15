@@ -25,8 +25,8 @@ another absolute path). Do not point tests or scripts at that database.
 
 `npm run test:backend` gives each run its own disposable test session: an in-memory or
 temporary SQLite store, a temporary media folder and local sign-in, with no saved-state
-import or export. It can run beside your engine. [Test ownership](../../tests/README.md)
-describes focused checks.
+import or export. It can run beside your engine. [Tests](../../tests/README.md)
+describes the small, fast core suite.
 
 ### The viewer
 
@@ -93,7 +93,7 @@ design record is kept in the repository's history.
 
 ### Tests
 
-`npm run test:backend` starts a disposable test session with its own SQLite store and local sign-in. Use its file filters for focused checks; see [test ownership](../../tests/README.md). Tests never import or export the engine's saved state.
+`npm run test:backend` starts a disposable test session with its own SQLite store and local sign-in. See [tests](../../tests/README.md) for the fast core suite. Tests never import or export the engine's saved state.
 
 ## Community proposal foundation
 

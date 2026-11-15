@@ -6,8 +6,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "test": "node run.mjs",
-    "test:guards": "node --test support/*.test.mjs"
+    "test": "node run.mjs"
   },
   "devDependencies": {
     "vitest": "5.0.3",

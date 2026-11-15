@@ -7,6 +7,6 @@ export default defineConfig({
     testTimeout: 30_000,
     hookTimeout: 30_000,
     setupFiles: ['test/setup-identity.ts'],
-    include: ['test/**/*.test.{ts,mjs}', '../../tests/integration/**/*.test.{ts,tsx}'],
+    include: ['test/**/*.test.ts'],
   },
 });

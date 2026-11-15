@@ -17,10 +17,6 @@
     "test",
     "scripts",
     "vitest.config.ts",
-    "../../tests/integration",
     "../../tools/benchmarks",
-  ],
-  "exclude": [
-    "../../tests/integration/**/*.test.tsx"
   ]
 }

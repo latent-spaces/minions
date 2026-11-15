@@ -265,16 +265,8 @@ members can read.
 ## Checks
 
 - `npm run build:web` type-checks and builds the app.
-- These tests cover the server routes and the Home card in a real
-  browser. They run in a fresh disposable test session. Run the command from the
-  repository root; the test paths are relative to `apps/server` (see
-  [tests](../../../../../tests/README.md)):
-
-```sh
-node tests/run.mjs test/communication-replay.test.ts \
-  test/communication-agent-status.test.ts test/communication-events.test.ts \
-  ../../tests/integration/web-communication-agent-presence.test.tsx
-```
+- Check the Home card in the actual local app; the map has no automated tests
+  (owner decision, 15 November 2026).
 
 ## Connector comparison lab
 
