@@ -173,6 +173,8 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
       model. Instead the skill should pick a model that fits the agent's mission (a
       smaller model for routine work), warn when the default is a large model such as
       Fable or Opus, and say why it picked what it picked.
+- [x] **Hard cut to the Minions folders** (owner, 16 November 2026). Minions uses only
+      `~/.minions` and `~/minions`; an install in the old `~/.mlswarm` folders is left as it was.
 - [ ] **Develop Minions in Minions.** A project on this repository whose
       agents work in their own clones, preview on an isolated engine with live reload,
       and open PRs; the owner merges and updates their own engine.

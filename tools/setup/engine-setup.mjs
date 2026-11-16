@@ -172,6 +172,8 @@ async function main() {
   const { values } = parseArgs({ args: process.argv.slice(2), options: { 'owner-name': { type: 'string' }, 'owner-email': { type: 'string' }, 'no-register': { type: 'boolean' } }, allowPositionals: false });
   const home = engineHome({ env: process.env, userHome: homedir(), platform: process.platform });
   const files = { home, ...enginePaths(home) };
+  // Hard cut to the Minions folders (owner, 16 November 2026): an install from before the rename is left as it was.
+  if (!process.env.MINIONS_ENGINE_HOME && existsSync(join(homedir(), '.mlswarm'))) say('An install from before the rename is in ~/.mlswarm and ~/mlswarm. It is not used and was left as it was; delete it when nothing there needs keeping.');
   const base = childEnvironment(process.env, { nodeDirectory: dirname(process.execPath) });
   const engineMain = at('apps/server/dist/self-hosted-main.js');
   const steps = 6;

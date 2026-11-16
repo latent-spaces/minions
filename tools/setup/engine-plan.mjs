@@ -1,7 +1,6 @@
 // Decisions for the one-command engine setup, kept free of side effects so both platforms can be tested anywhere.
 import path from 'node:path';
 import { connectorCommand as checkoutConnectorCommand } from '../../packages/agent-cli/src/connector-command.mjs';
-import { brandedDirectory } from '../../packages/agent-cli/src/brand-paths.mjs';
 
 // Test-session settings make the standalone engine refuse to start; a loopback engine also
 // must not inherit an enrolled HTTPS origin, a proxy setting or a HOST other than 127.0.0.1.
@@ -14,7 +13,7 @@ export function requireNode24(version) {
 /** One private directory holds the engine files and the connector's separate installation. */
 export function engineHome({ env, userHome, platform }) {
   const paths = platform === 'win32' ? path.win32 : path.posix;
-  const chosen = env.MINIONS_ENGINE_HOME ?? paths.join(brandedDirectory(userHome, { paths }), 'engine');
+  const chosen = env.MINIONS_ENGINE_HOME ?? paths.join(userHome, '.minions', 'engine');
   if (!paths.isAbsolute(chosen)) throw new Error('MINIONS_ENGINE_HOME must be an absolute path.');
   return chosen;
 }
