@@ -46,7 +46,8 @@ and a Git worktree keep the computer's existing command. Its commands:
 
 - `start [--open]` starts the engine detached and the connector's `service-start`. When
   nothing is built or initialized yet it runs setup instead. It never rebuilds:
-  after pulling yourself, run `minions setup`.
+  after pulling yourself, run `minions update`, which rebuilds when the build is older
+  than the checked-out commit.
 - `stop [--now] [--wait-minutes N]` runs the connector's `service-stop --after-turns`
   (up to 10 minutes by default), then the engine CLI's `stop`. When turns are still
   finishing, the engine is left running so they can complete. `--now` ends them at once.
