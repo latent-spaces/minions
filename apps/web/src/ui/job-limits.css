@@ -20,3 +20,14 @@
 .k42-cap-row input { width: 14rem; max-width: 100%; min-height: 44px; font-size: 16px; font-variant-numeric: tabular-nums; }
 .k42-cap-row input[aria-invalid="true"] { border-color: var(--error); }
 @media (max-width: 600px) { .k42-cap-row input { flex: 1 1 auto; width: auto; } }
+/* The token cap opens in place, in the same row: a small field, Save, and quiet text buttons (owner, 16 November 2026). */
+.k42-cap-editor.is-inline { display:flex; flex-direction:row; align-items:center; flex-wrap:wrap; gap:8px; margin:0; padding:0; }
+.k42-cap-editor.is-inline input { width:120px; height:32px; padding:0 10px; font:inherit; font-size:14px; border:1px solid var(--hairline); border-radius:10px; background:var(--canvas); }
+.k42-cap-editor.is-inline input:focus { outline:none; border-color:var(--ink); }
+.k42-cap-editor.is-inline .primary { min-height:32px; height:32px; padding:0 14px; }
+.k42-cap-text { min-height:32px; height:32px; padding:0 8px; border:0; background:transparent; color:var(--text-muted); font-weight:600; }
+.k42-cap-text:hover { color:var(--ink); background:transparent; }
+.k42-cap-note { flex-basis:100%; font-size:12px; }
+.k42-job-part:has(> .k42-cap-editor) { flex:1 1 auto; min-width:0; }
+.k42-cap-editor.is-inline { flex-wrap:nowrap; white-space:nowrap; }
+.k42-cap-editor.is-inline .k42-cap-note { white-space:normal; }

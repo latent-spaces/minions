@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Check } from 'lucide-react';
+import { Check } from './icons';
 import './picker-menu.css';
 
 export type PickerItem = { key: string; label: ReactNode; checked?: boolean; disabled?: boolean; title?: string; onSelect: () => void; aside?: ReactNode };

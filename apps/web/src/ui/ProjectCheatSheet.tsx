@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { Check, Copy, SquareTerminal } from 'lucide-react';
+import { Check, Copy, SquareTerminal } from './icons';
 import { projectCheatSheet } from '../project-chat-prompt';
 import { Button } from './Button';
 import { CloseButton } from './CloseButton';

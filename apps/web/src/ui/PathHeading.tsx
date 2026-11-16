@@ -1,5 +1,5 @@
 import { useRef, type Ref } from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { MoreHorizontal } from './icons';
 import { formatRoute, mayLeaveProject, type Route } from '../route';
 import { NavLink } from '../shared';
 import './path-heading.css';

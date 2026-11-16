@@ -4,7 +4,7 @@ import type { ProjectWorkersView } from '@minions/contracts';
 import { ApiError, session, owner, ownOwner } from '../api';
 import { agentPlayState, repeatExecution, type PlayState } from './agent-play-state';
 import { workerAgentStatus } from './agent-running-state';
-import { Pause, Play } from 'lucide-react';
+import { Pause, Play } from './icons';
 import { Button } from './Button';
 import { BackgroundWorkerActions } from './BackgroundWorkerControls';
 import { useMyWorkers, type MyWorkers } from './MyWorkerControls';

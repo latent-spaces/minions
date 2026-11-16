@@ -52,7 +52,6 @@
 /* The project menu's hierarchy (owner, 19 October 2026): 8px item radius, 2px between items, 16px between groups. */
 .k42-project-menu ul { display:flex; flex-direction:column; gap:2px; margin:0; padding:0; list-style:none; }
 .k42-project-menu .k42-nav-link { border-radius:8px; }
-.k42-project-menu .k42-nav-back .k42-nav-link { min-height:36px; padding-block:6px; font-size:13px; color:var(--text-muted); }
 .k42-project-menu .k42-nav-project { margin:8px 0 16px; }
 .k42-nav-project-text { display:flex; flex-direction:column; min-width:0; }
 .k42-nav-project-text strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -110,3 +109,45 @@
 .k42-navigation .k42-nav-link:has(.k42-nav-new) { position:relative; }
 .k42-nav-new { margin-left:auto; width:8px; height:8px; border-radius:50%; background:var(--ink); }
 .k42-navigation.is-collapsed .k42-nav-new { position:absolute; top:7px; right:7px; box-shadow:0 0 0 2px var(--canvas-sunken); }
+/* The open project expands in the Projects list: its sections and agents sit indented under its row (owner, 16 November 2026). */
+.k42-shortcuts li.is-open > .k42-nav-open-project { margin: 4px 0 10px 14px; padding-left: 10px; border-left: 1px solid var(--hairline); }
+.k42-shortcuts li.is-open > .k42-nav-open-project .k42-nav-link { min-height: 36px; }
+.k42-navigation.is-collapsed .k42-shortcuts li.is-open > .k42-nav-open-project { margin-left: 0; padding-left: 0; border-left: 0; }
+/* Collapsed menu: only the logo's creature, centred above the expand button (owner, 16 November 2026). */
+.k42-navigation.is-collapsed .k42-nav-brand { flex-direction: column; align-items: center; gap: 12px; }
+.k42-navigation.is-collapsed .k42-nav-brand .wordmark-logo { font-size: 28px; }
+.k42-project-scroll { scrollbar-width: none; }
+.k42-project-scroll::-webkit-scrollbar { display: none; }
+/* Projects open and close like folders: a chevron at the row's end (owner, 16 November 2026). */
+.k42-nav-project-item, .k42-shortcuts li.is-open { position: relative; }
+.k42-nav-chevron { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; min-height: 0; padding: 0; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: var(--text-muted); cursor: pointer; }
+.k42-nav-chevron:hover { background: var(--canvas-soft); color: var(--ink); }
+.k42-nav-chevron:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.k42-nav-project-item > .k42-nav-link .k42-project-kind { margin-right: 26px; }
+.k42-shortcuts > .k42-nav-heading .k42-nav-label { font-size: 13px; font-weight: 600; color: var(--text-muted); }
+/* Foldable group headings in the menu (owner, 16 November 2026). */
+.k42-nav-fold { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 28px; padding: 0 8px 0 0; border: 0; background: transparent; color: var(--text-muted); cursor: pointer; text-align: left; }
+.k42-nav-fold .k42-nav-label { margin: 0; }
+.k42-nav-fold:hover { color: var(--ink); }
+.k42-nav-fold:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; border-radius: 6px; }
+/* Fold arrows show on hover or keyboard focus only (owner, 16 November 2026). */
+.k42-nav-chevron, .k42-nav-fold > svg { opacity: 0; transition: opacity .15s; }
+:is(.k42-nav-project-item, .k42-shortcuts li.is-open):hover > .k42-nav-chevron, .k42-nav-chevron:focus-visible,
+.k42-nav-fold:hover > svg, .k42-nav-fold:focus-visible > svg { opacity: 1; }
+@media (hover: none) { .k42-nav-chevron, .k42-nav-fold > svg { opacity: 1; } }
+/* + beside the Projects heading opens the start prompt in a small panel (owner, 16 November 2026). */
+.k42-shortcuts > .k42-nav-heading { position: relative; display: flex; align-items: center; gap: 4px; }
+.k42-shortcuts > .k42-nav-heading > .k42-nav-fold { flex: 1; }
+.k42-nav-new-project { flex: none; width: 24px; height: 24px; min-height: 0; padding: 0; display: grid; place-items: center; border: 0; border-radius: 6px; background: transparent; color: var(--text-muted); cursor: pointer; }
+.k42-nav-new-project:hover { background: var(--canvas-soft); color: var(--ink); }
+.k42-nav-new-project:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+/* The side menu has rounded right corners, top and bottom (owner, 16 November 2026). */
+.workspace-layout > .project-sidebar:not(.drawer) { border-radius:0 24px 24px 0; }
+/* A white side menu with a very soft shadow instead of a border line (owner, 16 November 2026). */
+.workspace-layout > .project-sidebar:not(.drawer) { background:var(--canvas); border-right:0; box-shadow:2px 0 16px rgba(30, 30, 60, .05); position:relative; z-index:1; }
+/* Credit at the foot of the menu (owner, 16 November 2026). */
+.k42-made-by { display:block; margin:10px 14px 2px; font-size:12px; color:var(--text-muted); text-decoration:none; }
+.k42-made-by strong { font-weight:600; color:var(--ink); }
+.k42-made-by:hover strong { text-decoration:underline; }
+.k42-made-by { font-style:italic; font-weight:300; letter-spacing:.12em; }
+.k42-made-by strong { font-weight:400; letter-spacing:.12em; }

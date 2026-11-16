@@ -5,7 +5,7 @@ import { ApiError, session, projects } from '../api';
 import { Button } from './Button';
 import { CloseButton } from './CloseButton';
 import { EmptyState } from './EmptyState';
-import { FileSearch } from 'lucide-react';
+import { FileSearch } from './icons';
 
 const statusLabel = { discovered:'Found · loading unverified', missing:'Not found', unreadable:'Not inspected', supplied:'Supplied by Minions · native loading unverified' };
 // Opened from the agent page's ⋯ menu (owner, 12 November 2026).

@@ -1,4 +1,4 @@
-import { Bot, Hourglass } from 'lucide-react';
+import { Bot, Hourglass } from './icons';
 import { projectCheatSheet } from '../project-chat-prompt';
 import { CopyCommand } from './ComputerSetup';
 import { useMyWorkers } from './MyWorkerControls';

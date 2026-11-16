@@ -8,7 +8,7 @@ import { hold } from '../route';
 import { Button } from './Button';
 import { confirmAction } from './Confirm';
 import { notify } from './Toast';
-import { Play } from 'lucide-react';
+import { Play } from './icons';
 import './project-controls.css';
 import './agent-run-controls.css';
 import { useMyWorkerControls } from './MyWorkerControls';

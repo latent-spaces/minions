@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw } from './icons';
 import { BUILD, newerBuildServed } from '../build-version';
 import { refreshOnReturn } from '../refresh-on-return';
 import './update-notice.css';

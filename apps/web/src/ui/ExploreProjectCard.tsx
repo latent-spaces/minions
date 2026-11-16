@@ -3,7 +3,7 @@ import { projectGradient } from './project-gradient';
 import { Button } from './Button';
 import { markdownPlain } from './markdown-plain';
 import type { MouseEvent } from 'react';
-import { ArrowUpRight, Clock3, Folder, type LucideIcon } from 'lucide-react';
+import { ArrowUpRight, Clock3, Folder, type LucideIcon } from './icons';
 import './explore-project-card.css';
 import { recruitmentState, startLabel } from './recruitment';
 import { statusTone, toneClass } from './tag-tone';

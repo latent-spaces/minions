@@ -16,7 +16,7 @@ import type {Traffic} from './communication-map/layout';
 import {useCallback,useEffect,useId,useMemo,useRef,useState,type ReactNode} from 'react';
 import type { SessionUser } from '../session-identity';
 import type {CommunicationAgent,CommunicationAgents} from '@minions/contracts';
-import {CircleAlert,Link,Maximize2,Minimize2} from 'lucide-react';
+import {CircleAlert,Link,Maximize2,Minimize2} from './icons';
 import {PersonAvatar} from './PersonAvatar';
 import {AgentAvatar} from './AgentAvatar';
 import {read,type AgentRow,type MessageRow} from '../api';
@@ -164,13 +164,12 @@ function ProjectCommunicationView({user,projectId,projectName,active,agents,go,a
  const content=<section ref={panel} className={`k42-swarm-panel k42-communication${expanded?' is-expanded':''}`} aria-labelledby={`${id}-title`} role={expanded?'dialog':undefined} aria-modal={expanded||undefined}>
   <div className="k42-activity-heading"><h2 id={`${id}-title`} className="visually-hidden">Communication</h2>
    <div ref={setControlsSlot} className="k42-communication-controls-slot"/>
-   <button ref={fullscreenTrigger} type="button" className="k42-communication-fullscreen" aria-pressed={expanded} aria-label={expanded?'Exit full screen':'Full screen'} onClick={toggleFullScreen}>{expanded?<Minimize2 size={18}/>:<Maximize2 size={18}/>}</button>
   </div>
   <p className="k42-communication-refresh-status" role="status" title={readNotice?`Updates will resume shortly.${snapshot?' Showing the last loaded view.':''}`:undefined}>{readNotice&&<>Updates will resume shortly.{snapshot?' Showing the last loaded view.':''}</>}</p>
   {pauseRequest&&!closed&&<ProjectPauseStatus request={pauseRequest} agents={observations?.agents.filter(agent=>liveIds.has(agent.id))??[]} now={now||Date.now()} incomplete={rosterLoading||!!rosterError||statusError||!!liveNodes.length&&(!observations||observedPauseRevision!==pauseRequest.revision||liveNodes.some(node=>!statusById.has(node.id)))} />}
   {error&&<p role="alert">Could not refresh communication. {error} <Button onClick={()=>refresh.current?.()}>Try again</Button></p>}
   <div className="k42-communication-body" aria-busy={loading}><div className="k42-communication-network"><div className="k42-communication-graph">
-   <div className="k42-communication-map-stage" data-status-rounds={statusRounds||undefined}><CommunicationMap key={projectId} crowding="focus-active" controlsSlot={controlsSlot} toolbarStart={toolbarStart} nodes={[...liveNodes.map(n=>({...n,ownerId:ownersById.get(n.id)??null,ownerName:ownerNames.get(ownersById.get(n.id)??'')??null})),...people.map(person=>({id:`person:${person.id}`,personId:person.id,name:person.name,photo:person.photo,character:person.character,ownerId:person.id,ownerName:person.name}))]} traffic={liveTraffic} at={at} running={active&&!closed} speed={1} active={active} replay={false} now={now} observations={statusById} selected={selected} inspected={inspected?.id??null} tooltipId={`${id}-agent-tooltip`}
+   <div className="k42-communication-map-stage" data-status-rounds={statusRounds||undefined}><CommunicationMap key={projectId} toolbarEnd={<button ref={fullscreenTrigger} type="button" className="k42-communication-fullscreen" aria-pressed={expanded} aria-label={expanded?'Exit full screen':'Full screen'} onClick={toggleFullScreen}>{expanded?<Minimize2 size={18}/>:<Maximize2 size={18}/>}</button>} crowding="focus-active" selfPersonId={agents.find(a=>a.operatorId&&statusById.get(a.id)?.mine)?.operatorId??undefined} controlsSlot={controlsSlot} toolbarStart={toolbarStart} nodes={[...liveNodes.map(n=>({...n,ownerId:ownersById.get(n.id)??null,ownerName:ownerNames.get(ownersById.get(n.id)??'')??null})),...people.map(person=>({id:`person:${person.id}`,personId:person.id,name:person.name,photo:person.photo,character:person.character,ownerId:person.id,ownerName:person.name}))]} traffic={liveTraffic} at={at} running={active&&!closed} speed={1} active={active} replay={false} now={now} observations={statusById} selected={selected} inspected={inspected?.id??null} tooltipId={`${id}-agent-tooltip`}
     onInspect={(agentId,anchor,pin)=>{if(pinned.current&&!pin)return;keepTooltip();pinned.current=pin;setInspected({id:agentId,anchor});}} onLeave={leaveTooltip} onDismiss={dismissTooltip}
     onSelect={nodeId=>{if(!nodeId){setSelected(null);return;}const member=people.find(person=>`person:${person.id}`===nodeId);if(member){dismissTooltip();setPerson(member);return;}dismissTooltip();if(document.fullscreenElement===panel.current)void document.exitFullscreen().catch(()=>undefined);setExpanded(false);if(onOpenAgent)onOpenAgent(nodeId);else go(projectRoute(projectId,'agents',nodeId,null));}}
     onEdge={(from,to)=>openConversation(connectionMessageId(traffic,from,to,at))}

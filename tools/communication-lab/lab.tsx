@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
-import {Maximize2,Minimize2} from 'lucide-react';
+import {Maximize2,Minimize2} from '../../apps/web/src/ui/icons';
 import {CommunicationMap} from '../../apps/web/src/ui/communication-map/CommunicationMap';
 import {CommunicationAgentTooltip} from '../../apps/web/src/ui/CommunicationAgentNode';
 import {ConnectionMessagePreview} from '../../apps/web/src/ui/communication-map/ConnectionMessagePreview';

@@ -57,3 +57,21 @@
 /* Phones: the repository row leaves the frozen header and opens the tab's scrolling content (owner, 13 November 2026). */
 .k42-project-repository { margin:0 0 16px; }
 .k42-project-repository .k42-ph-repository { margin-top:0; }
+/* Hierarchy: a larger project name on its own line; status, time and lifecycle buttons on the row under it (owner, 16 November 2026). */
+.k42-ph-title { align-items:flex-start; }
+.k42-ph-stamp { width:52px; height:52px; border-radius:12px; font-size:16px; }
+.k42-ph-text { gap:6px 12px; }
+.k42-ph-text :is(h1, .k42-ph-name) { flex-basis:100%; font-size:28px; line-height:1.15; font-weight:700; }
+.k42-ph-text > .k42-ph-visibility { flex-basis:100%; }
+.k42-ph-head > .k42-ph-repository { margin-top:16px; }
+.k42-ph .k42-ph-head { padding:22px 28px 24px; }
+.k42-ph-title { gap:8px 16px; }
+@media (max-width:600px) { .k42-ph-text :is(h1, .k42-ph-name) { font-size:22px; } .k42-ph-stamp { width:40px; height:40px; } }
+/* Time and tokens sit inside the project header card, not in a card of their own (owner, 16 November 2026). */
+.k42-ph-limits { margin-top:14px; padding-top:14px; border-top:1px solid var(--hairline-soft); }
+.k42-ph-limits .k42-job-bar { margin:0; padding:0; border:0; background:none; box-shadow:none; }
+/* The bottom row holds time, tokens and the project controls; time is shown once, in the limits bar (owner, 16 November 2026). */
+.k42-ph-limits { display:flex; align-items:center; justify-content:space-between; gap:12px 20px; flex-wrap:wrap; }
+.k42-ph-limits > .k42-job-bar { flex:1 1 auto; }
+.k42-ph-limits .k42-status-text, .k42-ph-limits .k42-status-add-time { display:none; }
+.k42-ph-limits .k42-status-panel, .k42-ph-limits .k42-status-line { margin:0; padding:0; border:0; background:none; }

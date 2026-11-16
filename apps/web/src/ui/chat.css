@@ -58,15 +58,10 @@
 @media(max-width:700px) { .k42-chat-actions summary { min-height:44px; } }
 .k42-chat-actions > span { color:var(--muted); }
 .k42-chat-search { padding:12px 20px; border-bottom:1px solid var(--line); }
-.k42-chat-search > button { display:flex; align-items:center; gap:6px; font-size:12px; }
-.k42-chat-search form { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-top:12px; }
-.k42-chat-search label { width:100%; font-size:12px; }
-.k42-chat-search input { flex:1; min-width:120px; }
+.k42-chat-search form { display:flex; margin:0; }
 .k42-chat-search ol { list-style:none; margin:12px 0; padding:0; max-height:240px; overflow-y:auto; }
 .k42-chat-search li > button { display:flex; flex-direction:column; gap:4px; width:100%; text-align:start; padding:8px 16px; margin-bottom:6px; overflow-wrap:anywhere; }
 .k42-chat-search time { font-size:11px; color:var(--muted); }
 .k42-chat-linked { padding:16px 20px; border-bottom:1px solid var(--line); background:var(--highlight); overflow-wrap:anywhere; }
 .k42-chat-linked > header { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; }
 .k42-chat-unread { font-size:12px; color:var(--muted); }
-.k42-chat-search button[aria-label="Close message search"] { width:36px; padding:0; display:inline-flex; align-items:center; justify-content:center; }
-@media(max-width:700px) { .k42-chat-search button[aria-label="Close message search"] { width:44px; } }

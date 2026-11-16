@@ -1,0 +1,5 @@
+.k42-confetti { position:absolute; inset:0; overflow:hidden; pointer-events:none; z-index:5; border-radius:inherit; }
+.k42-confetti i { position:absolute; top:-12px; border-radius:2px; opacity:0; animation:k42-confetti-fall linear forwards; }
+.k42-confetti i.is-round { border-radius:50%; }
+@keyframes k42-confetti-fall { 0% { opacity:1; transform:translate(0,0) rotate(0); } 100% { opacity:0; transform:translate(var(--drift), 640px) rotate(var(--spin)); } }
+@media (prefers-reduced-motion: reduce) { .k42-confetti { display:none; } }

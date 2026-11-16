@@ -5,7 +5,7 @@ import { personaChoice } from '@minions/contracts';
 import { useRemoveAgent } from './ui/RemoveAgent';
 import { AgentRunActions } from './ui/AgentRunControls';
 import { PickerMenu } from './ui/PickerMenu';
-import { Ellipsis } from 'lucide-react';
+import { ArrowLeft, Ellipsis } from './ui/icons';
 import { AgentPersona } from './ui/AgentPersona';
 import { AgentEnvironment } from './ui/AgentEnvironment';
 import { AgentUsage } from './ui/UsageSummary';
@@ -77,7 +77,7 @@ function Detail({ user, id, q, onAgent, mine, tick, active, go }: { user: Sessio
         if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
         if (typeof window.history.state?.at === 'number' && window.history.state.at > 0) window.history.back(); else go(projectRoute(projectId, 'agents', null, q));
-      }}><span aria-hidden="true">← </span>Back</a>
+      }}><ArrowLeft size={16} strokeWidth={2} aria-hidden="true" />Back</a>
     </div>
     {missing && <div className="agent-empty"><h2 id="agent-title">Agent not available</h2><p role="alert">{error.message}</p></div>}
     {error && !missing && <div role="alert"><p className="error">Could not load this agent: {error.message}</p></div>}
@@ -94,6 +94,8 @@ function Detail({ user, id, q, onAgent, mine, tick, active, go }: { user: Sessio
               {a.revokedAt !== null && <span className="badge k42-tone-blush">Removed</span>}</div>
             <p className="agent-meta">{!own && <>{a.operatorName ? `${a.operatorName}’s agent` : 'Agent of a removed person'} · </>}<CodingAgentLabel provider={usage?.provider} />
               {usage?.model && <> · <span className="k42-model-name"><ModelMark model={usage.model} provider={usage.provider} />{usage.model}</span></>} · added {new Date(a.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</p>
+            {/* Persona belongs with who the agent is, in its header (owner, 16 November 2026). */}
+            <AgentPersona key={`${user?.uid ?? 'guest'}:${projectId}:${id}:persona`} user={user} projectId={projectId} agentId={id} agentName={a.name} provider={a.usage?.provider} ownerId={a.operatorId} onSaved={text => setResult(previous => previous ? {...previous, agent: {...previous.agent, personaChoice: personaChoice(text)}} : previous)} active={active} tick={tick} />
           </div>
           {controls && <AgentHeadControls user={user} projectId={projectId} agentId={a.id} agentName={a.name} onEnvironment={() => setEnvironment(true)}
             onRemoved={() => go(projectRoute(projectId, 'agents', null, null))} />}
@@ -106,10 +108,7 @@ function Detail({ user, id, q, onAgent, mine, tick, active, go }: { user: Sessio
       </section>
       {controls && environment && <AgentEnvironment key={`${user.uid}:${projectId}:${id}:environment`} user={user} projectId={projectId} agentId={id} active={active} tick={tick} onClose={() => setEnvironment(false)} />}
       {own && <OwnedTasks user={user} id={id} tick={tick} active={active} go={go} />}
-      <div className="agent-detail-pair">
-        <AgentUsage usage={usage} />
-        <AgentPersona key={`${user?.uid ?? 'guest'}:${projectId}:${id}:persona`} user={user} projectId={projectId} agentId={id} agentName={a.name} provider={a.usage?.provider} ownerId={a.operatorId} onSaved={text => setResult(previous => previous ? {...previous, agent: {...previous.agent, personaChoice: personaChoice(text)}} : previous)} active={active} tick={tick} />
-      </div>
+      <AgentUsage usage={usage} />
     </div>}
   </section>;
 }

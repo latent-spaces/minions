@@ -1,6 +1,7 @@
+import type React from 'react';
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { projectGradient } from './project-gradient';
-import { Bot, Ellipsis, Link, ArrowUpRight, GitPullRequest, GitMerge } from 'lucide-react';
+import { Bot, Ellipsis, Link, ArrowUpRight, GitPullRequest, GitMerge } from './icons';
 import { canonicalGithubRepo, githubRepositoryParts, type ProjectUsage, type RepositorySummary } from '@minions/contracts';
 import { ProjectUsageFigures } from './ProjectUsageFigures';
 import { Button } from './Button';
@@ -19,12 +20,12 @@ export type HeaderMenuItem = { id: string; label: string; icon: ReactNode; dange
  * the stamp, title, status and actions, then the repository and usage as chips.
  * The project's sections are in the menu (owner, 11 November 2026). People, agents and the map live in the map toolbar on Tasks.
  */
-export function ProjectHeader({ id, name, cover, statusPanel, repoUrl, repositorySummary, usage, onCopyLink, menu, onContribute, observed, about, titleLevel = 1, repository = true }: {
+export function ProjectHeader({ id, name, cover, statusPanel, limits, repoUrl, repositorySummary, usage, onCopyLink, menu, onContribute, observed, about, titleLevel = 1, repository = true }: {
   about?: ReactNode;
   /** false leaves the repository row out, for a host that shows ProjectRepository elsewhere (phones scroll it with the tab). */
   repository?: boolean;
   titleLevel?: 1 | 2;
-  id: string; name: string; /** A loaded image URL for the stamp: the screenshot on the newest update. */ cover?: string | null; /** The project status panel, above the repository bar (Noa, 26 October 2026). */ statusPanel?: ReactNode; repoUrl?: string | null;
+  id: string; name: string; /** Time and token limits for the job, in the header with the status (owner, 16 November 2026). */ limits?: React.ReactNode; /** A loaded image URL for the stamp: the screenshot on the newest update. */ cover?: string | null; /** The project status panel, above the repository bar (Noa, 26 October 2026). */ statusPanel?: ReactNode; repoUrl?: string | null;
   repositorySummary?: RepositorySummary | null; usage?: ProjectUsage | null;
   /** Copies the public project's link. */
   onCopyLink?: (() => void) | null; menu: HeaderMenuItem[]; onContribute?: (() => void) | null; observed?: ReactNode;
@@ -38,7 +39,6 @@ export function ProjectHeader({ id, name, cover, statusPanel, repoUrl, repositor
         <div className="k42-ph-text">
           {titleLevel === 1 ? <h1 id={titleId}>{name}</h1> : <h2 id={titleId} className="k42-ph-name">{name}</h2>}
           {/* What kind of project this is, under the title (Noa, 26 October 2026). */}
-          {statusPanel && <div className="k42-ph-visibility">{statusPanel}</div>}
           {about && <p className="k42-ph-links">{about}</p>}
           {observed}
         </div>
@@ -48,6 +48,8 @@ export function ProjectHeader({ id, name, cover, statusPanel, repoUrl, repositor
           {menu.length > 0 && <MoreMenu items={menu} />}
         </div>
       </div>
+      {/* One bottom row: time and tokens, then the project's own controls such as pause and archive (owner, 16 November 2026). */}
+      {(limits || statusPanel) && <div className="k42-ph-limits">{limits}{statusPanel && <div className="k42-ph-visibility">{statusPanel}</div>}</div>}
       {repository && <ProjectRepository repoUrl={repoUrl} summary={repositorySummary} usage={usage} />}
     </div>
   </section>;

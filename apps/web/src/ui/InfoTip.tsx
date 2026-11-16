@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { CircleHelp } from 'lucide-react';
+import { CircleHelp } from './icons';
 import './info-tip.css';
 
 /** A ? button that explains a setting. Hover or focus shows the note; a click (or tap) keeps it open until the next

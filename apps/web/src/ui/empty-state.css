@@ -13,12 +13,10 @@
 .k42-empty.k42-empty-compact { gap:4px; padding:16px; }
 .k42-empty.k42-empty-compact .k42-empty-icon { width:32px; height:32px; margin-bottom:4px; }
 .k42-empty.k42-empty-compact .k42-empty-action { margin-top:2px; }
-/* Large: a whole page with nothing in it yet, in a dashed drop zone (owner, 19 October 2026). */
-.k42-empty.k42-empty-large { gap:10px; padding:64px 32px; margin:8px 0; border:2px dashed var(--hairline-strong, var(--hairline)); border-radius:24px; }
-.k42-empty.k42-empty-large .k42-empty-icon { width:88px; height:88px; margin-bottom:12px; }
-.k42-empty.k42-empty-large .k42-empty-title { font-size:24px; font-weight:700; letter-spacing:-0.01em; }
-.k42-empty.k42-empty-large .k42-empty-text { max-width:46ch; font-size:16px; }
-.k42-empty.k42-empty-large .k42-empty-action { margin-top:14px; font-size:15px; }
+/* Large: a whole page with nothing in it yet. It matches the Teams empty card everywhere: a white card, a small grey
+   icon, a short title and one line (owner, 16 November 2026). */
+.k42-empty.k42-empty-large { padding:28px; margin:0; background:var(--canvas); border:var(--card-border); border-radius:var(--surface-radius); }
+.k42-empty.k42-empty-large .k42-empty-icon { background:var(--canvas-sunken); color:var(--text-muted); }
 /* A quiet one-line empty state, left-aligned in a white card (owner, 21 October 2026). */
 .k42-empty-row { display:flex; align-items:center; gap:14px; padding:18px 20px; background:var(--canvas); border:var(--card-border); border-radius:var(--surface-radius); color:var(--text-muted); font-size:14px; text-align:left; }
 .k42-empty-row-icon { flex:none; width:40px; height:40px; border-radius:12px; display:grid; place-items:center; background:var(--canvas-sunken); color:var(--ink); }

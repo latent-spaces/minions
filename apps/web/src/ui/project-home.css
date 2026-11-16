@@ -36,3 +36,4 @@
 .k42-panel-switch.k42-task-segments { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); width:100%; margin-bottom:12px; }
 .k42-panel-switch .k42-task-segment { display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px; padding:5px 12px; }
 .k42-updates-count { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--ink); color:var(--on-ink,#fff); font-size:11px; font-weight:650; font-variant-numeric:tabular-nums; line-height:1; }
+.k42-panel-crowd { display:flex; align-items:center; gap:8px; padding:4px 4px 10px; }
