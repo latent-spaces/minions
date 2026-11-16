@@ -2,7 +2,6 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { configuredWebsiteOrigin, selfHostedWebsiteOrigin } from './website-origin.mjs';
 import { siteInstanceId } from './site-state.mjs';
-import { brandedDirectory } from './brand-paths.mjs';
 
 // The fixed layout on a person's computer (owner decision, 11 October 2026). The main agent works in
 // main/ and each created agent in its own checkout under projects/<project>/<agent>-<id>/.
@@ -12,7 +11,7 @@ import { brandedDirectory } from './brand-paths.mjs';
 // folder, also when their names differ only by letter case on a disk that ignores it.
 export function workspaceHome(env = process.env, userHome = homedir()) {
   configuredWebsiteOrigin(env);
-  const site = selfHostedWebsiteOrigin(env), root = brandedDirectory(userHome, { privateState: false });
+  const site = selfHostedWebsiteOrigin(env), root = join(userHome, 'minions');
   return site === null ? root : join(root, 'instances', siteInstanceId(site));
 }
 export const layout = root => ({ root, main: join(root, 'main'), projects: join(root, 'projects') });

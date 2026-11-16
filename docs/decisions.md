@@ -10,9 +10,16 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Hard cut to the Minions folders — owner decision, 16 November 2026
+
+Owner: "i can finish the current project and we can do a hard cut", then, with every project stopped, "let's do the hard cut over".
+
+- **Only the new folders.** The connector, the engine setup and agent checkouts use `~/.minions` and `~/minions` (under `%USERPROFILE%` on Windows). The rule that kept using `~/.mlswarm` and `~/mlswarm` while they existed is removed, along with the shared ownership ledger under `~/.mlswarm`.
+- **Nothing is moved.** An install from before the rename stays where it was. Setup names it and leaves it; the owner deletes it when nothing there needs keeping. Its projects do not appear in the new engine.
+
 ## 15 November 2026 — Rename the product to Minions
 
-Owner: rename the package and use Minions everywhere in the project. Product copy uses Minions; packages, commands, skills and identifiers use minions; configuration uses MINIONS_*. The private GitHub repository is latent-spaces/minions, following the owner’s explicit transfer request. Existing private state and worker ownership ledgers remain discoverable under their former paths; no live data is moved by this source change.
+Owner: rename the package and use Minions everywhere in the project. Product copy uses Minions; packages, commands, skills and identifiers use minions; configuration uses MINIONS_*. The private GitHub repository is latent-spaces/minions, following the owner’s explicit transfer request. The former `~/.mlswarm` and `~/mlswarm` folders are no longer used; see the hard cut below.
 
 ## A small, fast test suite — owner decision, 15 November 2026
 

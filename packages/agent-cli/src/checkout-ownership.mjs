@@ -4,11 +4,10 @@ import { join, isAbsolute, basename, resolve, dirname, win32 } from 'node:path';
 import { randomUUID, createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import { ensureHome, readPrivate, writePrivate, assertStateOutsideWorkspace, pathInside, physicalPath } from './state.mjs';
-import { ownershipDirectory } from './brand-paths.mjs';
 
 // This is deliberately independent of --state-dir and HOME overrides. All connector
 // processes for the same OS user arbitrate in one private, local filesystem registry.
-const checkoutOwnershipHome = () => ownershipDirectory(userInfo().homedir);
+const checkoutOwnershipHome = () => join(userInfo().homedir, '.minions', 'worker-ownership');
 let machineIdentity;
 // Raw OS machine identifier, or undefined when this platform cannot provide one.
 export function readMachineId(platform = process.platform, run = execFileSync, read = readFileSync) {

@@ -2,7 +2,6 @@ import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { configuredWebsiteOrigin, selfHostedWebsiteOrigin } from './website-origin.mjs';
-import { brandedDirectory } from './brand-paths.mjs';
 
 // 96 bits keep independent installations distinct without long Windows paths.
 export const siteInstanceId = site => createHash('sha256').update(site).digest('hex').slice(0, 24);
@@ -13,7 +12,7 @@ export function defaultSiteStateHome(kind, env = process.env, userHome = homedir
   if (!['mcp', 'service'].includes(kind)) throw new Error('Unknown private state directory.');
   configuredWebsiteOrigin(env);
   const site = selfHostedWebsiteOrigin(env);
-  const root = brandedDirectory(userHome);
+  const root = join(userHome, '.minions');
   return site === null ? join(root, kind)
     : join(root, 'instances', siteInstanceId(site), kind);
 }
