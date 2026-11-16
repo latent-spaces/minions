@@ -39,7 +39,7 @@ Install and build output is shown only when a step fails. The engine's routine
 activity and errors go to `engine.log` in the engine directory; if the engine stops
 during startup, the command shows what it wrote there. The engine runs detached in
 the background, so it keeps running after the command, the terminal or the coding
-session that ran it ends; `npm run stop` stops it. The port it ran on is saved in
+session that ran it ends; `minions stop` stops it. The port it ran on is saved in
 `engine-settings.json`, so later runs reuse it unless `MINIONS_ENGINE_PORT` names
 another. Running it again later rebuilds, keeps the existing database and connector
 installation, starts the engine and opens the local app again. Running it while
@@ -69,7 +69,7 @@ connector's `tool` command, with which a coding agent calls the same tools from 
 terminal (`tool --list`, then `tool TOOL_NAME '{"field":"value"}'`).
 
 The short closing summary gives the local app's address, says the engine runs in the
-background until `npm run stop`, whether Claude Code was registered, the `tool`
+background until `minions stop`, whether Claude Code was registered, the `tool`
 fallback, and the connector's `mcp-config` command only for clients that were not
 registered (Codex or another client, or Claude Code when it was not registered). It
 reminds you to sign in to GitHub with `gh auth login` for project work. Other clients' settings, the
@@ -127,21 +127,21 @@ setup` uses it to recognize that a busy port is its own engine.
 
 ## Stopping and recovery
 
-Run `npm run stop`. It asks the engine at its saved address to stop, proving itself
+Run `minions stop` (or `npm run stop`). It first stops the connector's shared
+service, letting turns in progress finish (up to 10 minutes; `--now` ends them at
+once), and leaves the engine running when turns are still finishing. Then it asks the engine at its saved address to stop, proving itself
 with a key derived from the owner file's signing secret, so only someone who can
 read that file can stop the engine and no web page can. Windows has no graceful
 signal for a detached process, so every platform uses this same request. Shutdown
 drains held HTTP requests and the delivery worker before closing SQLite, then
-removes the `.lock` file; `npm run stop` waits up to 20 seconds for the engine to
+removes the `.lock` file; the stop waits up to 20 seconds for the engine to
 stop answering. The next start replaces a lock left behind by a crash or a computer
 restart: one whose process no longer exists, or one written before the computer last
 started (its process ID may now belong to another program). Any other lock is refused.
-Stopping the engine does not
-stop the connector's shared service; use the connector's `service-stop` (below)
-for that.
+`minions start` starts both again without rebuilding.
 
 A second engine on the same database is refused by its `.lock` file, and the
-refusal names that file. If `npm run stop` then finds no engine, it names the lock
+refusal names that file. If `minions stop` then finds no engine, it names the lock
 too: the lock is left over from an earlier run and is safe to delete. Nothing
 stops or signals another process to recover a lock. The engine runs its delivery
 worker in the same process. Live views follow the engine's own writes at once; a write that

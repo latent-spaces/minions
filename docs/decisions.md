@@ -10,6 +10,15 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## A `minions` command — owner request, 16 November 2026
+
+Owner: "having a cli command for minions where we can say minions start minions stop or other commands? I think it sounds cute and fun", then chose the commands, the install and the tone.
+
+- **Commands.** `minions start`, `stop`, `status`, `open`, `logs`, plus `setup` (the same as `npm run setup`) and `update` (pull `main` fast-forward only, then rebuild and start with setup). `npm run stop` now runs `minions stop`.
+- **Stop includes the shared service.** `minions stop` lets turns in progress finish (up to 10 minutes; `--now` ends them), stops the connector's shared service, then the engine. When turns are still finishing it leaves the engine running so they can complete. Earlier, `npm run stop` stopped only the engine.
+- **Install.** Setup links the command onto PATH with `npm link`, except for a test engine (`MINIONS_ENGINE_HOME`) or a Git worktree.
+- **Tone.** Full fun at a terminal: original ASCII critters, colors and playful lines. When piped or called by an agent, or with `MINIONS_PLAIN=1`, it prints plain lines.
+
 ## The start prompt names the minions skill — owner request, 16 November 2026
 
 Owner: "fix the prompt in minions starting page, it does not use the skill and does not refer to minions".

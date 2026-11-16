@@ -49,9 +49,9 @@ function lockOwner(lock: string): { pid: number; createdAt: number | null } | nu
   } catch { return null; }
 }
 
-/** The refusal names the lock file, so a lock no engine holds (one npm run stop cannot find) can be removed by hand. */
+/** The refusal names the lock file, so a lock no engine holds (one minions stop cannot find) can be removed by hand. */
 export function lockedMessage(lock: string): string {
-  return `The standalone database is locked by a running engine. Stop it first (npm run stop). If npm run stop finds no engine, `
+  return `The standalone database is locked by a running engine. Stop it first (minions stop). If minions stop finds no engine, `
     + `the lock is left over from an earlier run and is safe to delete: ${lock}`;
 }
 

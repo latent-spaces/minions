@@ -8,8 +8,8 @@ registers one `minions` entry with Claude Code and Codex where they are installe
 (skipped with `--no-register` or for a test engine in its own `MINIONS_ENGINE_HOME`;
 a failure is a warning). The engine runs detached in the
 background, with its output in `engine.log`, so it keeps running after the
-command, the terminal or the coding session that ran it ends; `npm run stop`
-([engine-stop.mjs](engine-stop.mjs)) stops it. The port it ran on is saved in
+command, the terminal or the coding session that ran it ends; `minions stop`
+stops it. The port it ran on is saved in
 `engine-settings.json` and reused by later `setup` and `stop` runs unless
 `MINIONS_ENGINE_PORT` names another; otherwise it is 8787. When another program
 holds the port, setup stops and names that program; it never moves to another port. The summary
@@ -35,5 +35,30 @@ the command runs the engine CLI's `check-running`, which asks the engine for an
 owner session and verifies it with this owner file's secret: only the engine
 running with this owner file can sign one, so success means the engine is already
 running, and the command opens the local app and runs
-the connector's `setup` instead of starting anything. A macOS pass of the command is not Windows acceptance: run it natively
+the connector's `setup` instead of starting anything.
+
+## The `minions` command
+
+[minions.mjs](minions.mjs) is the root package's `minions` bin. At the end of a
+successful run, setup links it onto PATH with `npm link --ignore-scripts`, so npm
+writes the Windows `.cmd` and PowerShell shims; a test engine (`MINIONS_ENGINE_HOME`)
+and a Git worktree keep the computer's existing command. Its commands:
+
+- `start [--open]` starts the engine detached and the connector's `service-start`. When
+  nothing is built or initialized yet it runs setup instead. It never rebuilds:
+  after pulling yourself, run `minions setup`.
+- `stop [--now] [--wait-minutes N]` runs the connector's `service-stop --after-turns`
+  (up to 10 minutes by default), then the engine CLI's `stop`. When turns are still
+  finishing, the engine is left running so they can complete. `--now` ends them at once.
+  `npm run stop` runs it.
+- `status [--json]`, `open`, `logs [--service] [--lines N] [--follow]`.
+- `setup [...]` runs this setup; `update` pulls `main` fast-forward only (refusing
+  another branch or uncommitted tracked changes), stops as `stop` does and runs setup.
+
+At a terminal it draws a few ASCII critters and colors; when piped or called by an
+agent, or with `MINIONS_PLAIN=1`, it prints plain lines, and `NO_COLOR` drops the
+colors. Both commands share [engine-control.mjs](engine-control.mjs) for finding the
+installation and starting, checking and stopping the engine.
+
+A macOS pass of the command is not Windows acceptance: run it natively
 there too.

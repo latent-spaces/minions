@@ -43,7 +43,17 @@ You need Node.js 24 or newer, Git, and Claude Code or Codex signed in on this co
 git clone https://github.com/latent-spaces/minions.git minions
 cd minions
 npm run setup     # install, build, start the engine in the background, register Minions
-npm run stop      # stop the engine; npm run setup starts it again
+```
+
+Setup also links a `minions` command for everyday use:
+
+```sh
+minions status    # is the engine running, and the shared service?
+minions stop      # let turns in progress finish, then stop the service and the engine
+minions start     # start them again (add --open to open the local app)
+minions open      # open the local app
+minions logs -f   # follow the engine log (--service for the shared service's)
+minions update    # pull main, let turns finish, rebuild and start again
 ```
 
 `npm run setup` starts the engine at `http://127.0.0.1:8787/`, always the same
