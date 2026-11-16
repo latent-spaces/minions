@@ -43,7 +43,7 @@ const projectCardBlock = participation => {
 };
 // The soft habit in AGENT_PROMPT_V2.md lost to the task rule and the time line: in Pixel Hop (16 November 2026)
 // three agents built the same game before anyone wrote. The first turn now asks for one note (owner, 16 November 2026).
-export const TALK_FIRST = 'This is your first turn in this job. If other agents work on this project (find_agents), send them one short message before you write code: what you plan to take on and which files you expect to touch. Then read your inbox and sort out overlaps with what they sent. This one note is worth sending although it asks nothing of them; after it, message only when someone has to act.';
+export const TALK_FIRST = 'This is your first turn in this job. If other agents work on this project (find_agents), send them one short message with send_message before you write code: what you plan to take on and which files you expect to touch. Then read your inbox and sort out overlaps with what they sent. This one note is worth sending although it asks nothing of them; after it, message only when someone has to act.';
 export function projectGuidanceForTurn(participation, { updateNudge = false, card = true, first = false } = {}) {
   if (!participation?.project) return '';
   return (card ? projectCardBlock(participation) : '')
