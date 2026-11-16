@@ -35,10 +35,13 @@ const connectorStyles={
  'rubber-tube':{stroke:'#211b27',packet:'#756183',width:.5,radius:0,trail:0,glyph:'tube',shape:'rubber'},
 } as const;
 
+const personScaleOf=(personId:string|undefined,p:{personScale?:number;selfPersonId?:string})=>!personId?1:(p.personScale??1.25)*(personId===p.selfPersonId?1.3:1);
 const focusMode=(mode:Crowding)=>mode==='focus-active'||mode==='focus-ring';
 type Props={
  /** Screen-space person emphasis; agents keep their normal scale. */
  personScale?:number;
+ /** The viewer's own person node, drawn a little larger than other people (owner, 16 November 2026). */
+ selfPersonId?:string;
  labelMode?:'full'|'compact'|'inspect';
  /** Optional presentation projection for viewport layout experiments. Returned
   * coordinates are relative to the viewport centre, in CSS pixels at 1×. */
@@ -109,7 +112,7 @@ export function CommunicationMap(props:Props){
   // from its first render.
   {measure();if(box.width>0&&box.height>0){const raw=projectPoints(display,dimensions,orbit.current.yaw,orbit.current.pitch),projected=viewportLayout?viewportLayout(raw,box.width,box.height,topInset):raw,start=viewportLayout?{x:0,y:0,span:box.height}:fitReadableCamera(projected,box.width,box.height,topInset,1.2);
    lastViewBox=`0 0 ${box.width} ${box.height}`;vector.setAttribute('viewBox',lastViewBox);
-   for(const [i,node] of nodeElements.entries()){const p=screenPoint(projected,i,start,box.width,box.height),scale=positions[i].personId?(props.personScale??1.25):1;node?.setAttribute('transform',`translate(${p.x},${p.y}) scale(${scale})`);}}}
+   for(const [i,node] of nodeElements.entries()){const p=screenPoint(projected,i,start,box.width,box.height),scale=personScaleOf(positions[i].personId,props);node?.setAttribute('transform',`translate(${p.x},${p.y}) scale(${scale})`);}}}
   const post=(data:MapRequest)=>worker.postMessage(data);
   const fail=(message:string)=>{setFailure(message);ready=false;};setFailure('');
   worker.onmessage=({data}:{data:MapReply})=>{
@@ -182,7 +185,7 @@ export function CommunicationMap(props:Props){
    element.dataset.mapDense=String(dense);element.dataset.mapFocused=String(focused);
    // Agents grow and shrink over about 300 ms instead of snapping.
    const scaleBlend=reduced.matches?1:1-Math.exp(-dt/100);
-   const scales=screen.map((_,i)=>{const target=mode==='shrink'?(featured[i]?1:shrink):(mode==='dots'||focusMode(mode))&&dense&&!featured[i]?(positions[i].personId?.45:.3):1;displayScale[i]+=(target-displayScale[i])*scaleBlend;if(Math.abs(target-displayScale[i])<.005)displayScale[i]=target;if(target!==displayScale[i])dirty=true;return displayScale[i]*(positions[i].personId?(c.personScale??1.25):1);});
+   const scales=screen.map((_,i)=>{const target=mode==='shrink'?(featured[i]?1:shrink):(mode==='dots'||focusMode(mode))&&dense&&!featured[i]?(positions[i].personId?.45:.3):1;displayScale[i]+=(target-displayScale[i])*scaleBlend;if(Math.abs(target-displayScale[i])<.005)displayScale[i]=target;if(target!==displayScale[i])dirty=true;return displayScale[i]*personScaleOf(positions[i].personId,c);});
    for(const [i,node] of nodeElements.entries()){
     const transform=`translate(${screen[i].x},${screen[i].y})${scales[i]===1?'':` scale(${scales[i].toFixed(3)})`}`;if(node&&node.getAttribute('transform')!==transform)node.setAttribute('transform',transform);
     const wrapper=node?.parentElement;if(wrapper)wrapper.classList.toggle('is-dot',scales[i]<.6);
@@ -285,7 +288,7 @@ export function CommunicationMap(props:Props){
     aria-haspopup="dialog" aria-expanded={edgeHover?.from===e.from&&edgeHover?.to===e.to} aria-controls={edgeHover?.from===e.from&&edgeHover?.to===e.to?edgeTooltipId:undefined}
     onMouseEnter={event=>inspectEdge(e,event.currentTarget)} onMouseLeave={leaveEdge} onFocus={event=>inspectEdge(e,event.currentTarget)} onBlur={leaveEdge}
     onClick={()=>props.onEdge(e.from,e.to)} onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();props.onEdge(e.from,e.to);}}}><path fill="none" stroke="transparent" strokeWidth="16"/></g>)}
-   {visibleNodes.map(node=><g key={node.id} data-map-id={node.id} data-owner-id={node.ownerId??''} className={highlightedOwner&&node.ownerId!==highlightedOwner?'is-owner-dimmed':undefined} style={{'--owner-color':ownerColor(node.ownerId)} as CSSProperties}>{node.personId ? <PersonMapNode node={node} crowded={crowded} onInspect={anchor=>{closeEdge();props.onInspect(node.id,anchor,false);}} onLeave={props.onLeave} onDismiss={props.onDismiss} onSelect={()=>props.onSelect(node.id)} /> : <CommunicationAgentNode node={node} agent={props.observations.get(node.id)} now={props.now} selected={props.selected===node.id} replay={props.replay} simulated={props.simulatedStates} compact crowded={crowded} ownerLabel={node.ownerId?ownerLabels.get(node.ownerId):'Owner unknown'} tooltipId={props.tooltipId} inspecting={props.inspected===node.id} onInspect={anchor=>{closeEdge();props.onInspect(node.id,anchor,false);}} onLeave={props.onLeave} onDismiss={props.onDismiss} onSelect={()=>props.onSelect(node.id)}/>}</g>)}
+   {visibleNodes.map(node=><g key={node.id} data-map-id={node.id} data-owner-id={node.ownerId??''} className={highlightedOwner&&node.ownerId!==highlightedOwner?'is-owner-dimmed':undefined} style={{'--owner-color':ownerColor(node.ownerId)} as CSSProperties}>{node.personId ? <PersonMapNode node={node} self={node.personId===props.selfPersonId} crowded={crowded} onInspect={anchor=>{closeEdge();props.onInspect(node.id,anchor,false);}} onLeave={props.onLeave} onDismiss={props.onDismiss} onSelect={()=>props.onSelect(node.id)} /> : <CommunicationAgentNode node={node} agent={props.observations.get(node.id)} now={props.now} selected={props.selected===node.id} replay={props.replay} simulated={props.simulatedStates} compact crowded={crowded} ownerLabel={node.ownerId?ownerLabels.get(node.ownerId):'Owner unknown'} tooltipId={props.tooltipId} inspecting={props.inspected===node.id} onInspect={anchor=>{closeEdge();props.onInspect(node.id,anchor,false);}} onLeave={props.onLeave} onDismiss={props.onDismiss} onSelect={()=>props.onSelect(node.id)}/>}</g>)}
   </svg>
   {edgeHover&&hoveredMessage&&<ConnectionPopover id={edgeTooltipId} anchor={edgeHover.anchor}
    title={`${props.nodes.find(n=>n.id===edgeHover.from)?.name??edgeHover.from} → ${props.nodes.find(n=>n.id===edgeHover.to)?.name??edgeHover.to}`}

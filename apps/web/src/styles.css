@@ -172,6 +172,8 @@ progress, input[type="radio"], input[type="range"] { accent-color: var(--ink); }
 .card-form label { display: block; margin: 12px 0 6px; }
 .card-versions { overflow-wrap: anywhere; }
 .card-versions p { margin: 4px 0; }
+/* Each field is its own div here, so the global dt/dd two-column grid would squeeze Rules into the narrow column. */
+.card-versions dl { display: block; }
 .card-versions dl > div { margin-top: 8px; }
 .card-versions dd { margin: 0; white-space: pre-wrap; }
 

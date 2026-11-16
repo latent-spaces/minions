@@ -8,7 +8,7 @@ export function agentGroup(status: string, needsYou = false): AgentGroup {
   if (needsYou) return 'Needs you';
   if (status === 'Working' || status === 'Talking') return 'Working';
   if (status === 'Idle') return 'Idle';
-  if (['Paused', 'Waiting', 'Backoff', 'Starting', 'Pausing'].includes(status)) return 'Paused or starting';
+  if (['Paused', 'Waiting', 'Backoff', 'Starting', 'Pausing', 'Not started'].includes(status)) return 'Paused or starting';
   return ['Stopped', 'Completed', 'Finished', 'Failed', 'Revoked'].includes(status) ? 'Ended' : 'Check status';
 }
 /** A stable sort into AGENT_GROUPS order; agents keep their order within a group. */
@@ -17,7 +17,7 @@ export function groupAgents<T extends { status: string; waiting?: boolean }>(age
     .sort((a, b) => AGENT_GROUPS.indexOf(a.group) - AGENT_GROUPS.indexOf(b.group));
 }
 
-export type AgentStatus = { label: 'Working' | 'Idle' | 'Paused' | 'Waiting' | 'Stopped' | 'Blocked' | 'Offline' | 'Recovery' | 'Stopping' | 'Pausing' | 'Pause unconfirmed' | 'Unknown'; title: string; timeLeft: number | null; pastEnd?: true };
+export type AgentStatus = { label: 'Working' | 'Idle' | 'Paused' | 'Waiting' | 'Stopped' | 'Blocked' | 'Offline' | 'Recovery' | 'Stopping' | 'Pausing' | 'Pause unconfirmed' | 'Not started' | 'Unknown'; title: string; timeLeft: number | null; pastEnd?: true };
 
 // What an agent shows once the job's end time has passed: it is never ended, it finishes its turn and then waits.
 export const PAST_END = { finishing: 'Past the end time, finishing its turn', waiting: 'Time is up. Waiting for more time' } as const;
@@ -105,6 +105,8 @@ export function workerAgentStatus(agent: AgentObservation, now: number): AgentSt
     if (['working', 'waiting', 'blocked'].includes(s.phase)) return activity(s.phase, s.deadlineAt);
   }
   if (run && ['failed', 'expired'].includes(run.state)) return result('Stopped', 'The last start did not complete. Inspect it before trying again.');
+  // No run, no computer snapshot and no session: an agent that was added but has never started, not an uncertain one.
+  if (!run && !b && !s) return result('Not started', 'Not started yet. It runs once the project starts or you press Play.');
   return result('Unknown', 'Not running right now.');
 }
 
@@ -142,7 +144,7 @@ export function workerAvatarState(agent: AgentObservation, now: number, needsYou
   const states: Record<AgentStatus['label'], import('@minions/contracts').CommunicationAgentState> = {
     Working:'working', Idle:'idle', Paused:'paused', Waiting:'waiting', Stopped:'stopped',
     Blocked:'blocked', Offline:'offline', Recovery:'unknown', Stopping:'pausing',
-    Pausing:'pausing', 'Pause unconfirmed':'pause_unconfirmed', Unknown:'unknown',
+    Pausing:'pausing', 'Pause unconfirmed':'pause_unconfirmed', 'Not started':'stopped', Unknown:'unknown',
   };
   const state = states[label];
   return needsYou && ['working','talking','idle','waiting'].includes(state) ? 'needs_you' : state;

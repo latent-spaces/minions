@@ -34,7 +34,7 @@
 /* 4px padding (offset by negative inline margins) keeps focus outlines inside the scroll box. */
 .workspace-layout > .project-sidebar:not(.drawer) .k42-shortcuts { flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain; padding:4px; margin-inline:-4px; }
 .wordmark { display:inline-flex; align-items:center; gap:10px; color:var(--ink); font-size:20px; font-weight:650; line-height:1; letter-spacing:0; text-decoration:none; }
-.wordmark-logo { display:block; color:var(--ink); font-family:'Inter Variable', -apple-system, system-ui, sans-serif; font-size:24px; font-style:italic; font-weight:400; line-height:1; letter-spacing:0; white-space:nowrap; }
+.wordmark-logo { display:block; color:var(--ink); height:1em; width:auto; font-size:24px; }
 .workspace-layout { display:grid; grid-template-columns:248px minmax(0,1fr); gap:0; background:var(--canvas-sunken); }
 .project-sidebar:not(.drawer) { min-height:100%; box-sizing:border-box; background:var(--canvas); border-right:1px solid var(--hairline-shell); padding:24px 12px 16px 16px; }
 /* Collapsible menu (shell polish 2026-10-18, desktop): a 72px icon rail. Collapsed, the column does not clip, so the

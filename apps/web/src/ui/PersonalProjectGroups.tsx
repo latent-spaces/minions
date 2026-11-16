@@ -4,7 +4,6 @@ import { Archive, RotateCcw, Link as LinkIcon, LogOut, Settings, type LucideIcon
 import type { PersonalProjectEntry } from '../project-api';
 import { formatRoute, projectRoute, type Route } from '../route';
 import type { HeaderMenuItem } from './ProjectHeader';
-import { ClaudePromptTile } from './ClaudePromptTile';
 import { ExploreProjectCard } from './ExploreProjectCard';
 import { groupPersonalProjects, personalFilterChips, type PersonalFilter } from './group-personal-projects';
 import { personalProjectStatus } from './personal-project-status';
@@ -30,15 +29,12 @@ export function PersonalFilterChips({ projects, archived, value, disabled = fals
   </div>;
 }
 
-// One grid with no group headings (Noa, 26 October 2026): the Claude prompt first, then every project in the list.
+// One grid with no group headings (Noa, 26 October 2026): every project in the list; the start prompt sits above it in My projects.
 // The card's small tag says which kind it is (Owner, a joined role, or Waiting); the chips only switch to Archived.
-// `searching` is true while the page is filtered by a search: an empty result is then a search result, not an invitation.
-export function PersonalProjectGroups({ projects, covers, go, searching = false, onArchive, onStar, onLeave, disabled = false, archived = false }: { projects: PersonalProjectEntry[]; /** Loaded cover images by project id. */ covers?: Record<string, string>; go: (to: Route) => void; searching?: boolean; onArchive?: (project: PersonalProjectEntry) => void; onStar?: (project: PersonalProjectEntry) => void; onLeave?: (id: string) => void; disabled?: boolean; archived?: boolean }) {
+export function PersonalProjectGroups({ projects, covers, go, onArchive, onStar, onLeave, disabled = false, archived = false }: { projects: PersonalProjectEntry[]; /** Loaded cover images by project id. */ covers?: Record<string, string>; go: (to: Route) => void; onArchive?: (project: PersonalProjectEntry) => void; onStar?: (project: PersonalProjectEntry) => void; onLeave?: (id: string) => void; disabled?: boolean; archived?: boolean }) {
   const grouped = groupPersonalProjects(projects, archived);
   const shown = (['owner', 'joined', 'waiting'] as const).flatMap(key => grouped[key].map(project => ({ project, waiting: key === 'waiting' })));
-  const prompt = !archived && !searching;
   return <div className="personal-project-groups">
-    {prompt && <ClaudePromptTile />}
     {shown.map(({ project, waiting }) => {
       const state = personalProjectStatus(project);
       const act = () => { if (project.kind !== 'proposal') go(projectRoute(project.id, state.settings ? 'control-center' : 'overview')); };

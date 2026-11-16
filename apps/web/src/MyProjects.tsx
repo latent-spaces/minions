@@ -104,19 +104,21 @@ export function MyProjects({ user, active, refreshKey, go, retry, view = 'curren
     else if (view === 'archived') go({ view: 'projects' });
   };
   const chips = page && <div ref={chipRow}><PersonalFilterChips projects={view === 'current' ? page.projects : otherProjects} archived={view === 'archived' ? page.projects : otherProjects} value={groupFilter} disabled={busy} onChange={choose} /></div>;
-  return <ExploreLayout go={go} title="My projects" description="" trail={false} filters={chips}>
+  return <ExploreLayout go={go} title="My projects" description="" trail={false}>
     {notice && <p className="personal-project-notice" role="status">{notice}</p>}
     {identity.error && <div role="alert"><p>{identity.error}</p><Button onClick={identity.retry}>Check account again</Button></div>}
     {writeError && <div role="alert"><p>Could not change your project list: {writeError}</p><div className="actions"><Button disabled={busy || !identity.ready} onClick={() => { if (pending?.kind === 'archive') void changeArchive(pending.project, pending.input); else if (pending?.kind === 'star') void changeStar(pending.project, pending.input); }}>Retry action</Button><Button disabled={busy} onClick={reload}>Reload projects</Button></div></div>}
     {shown?.error && <div role="alert"><p className="error">Could not load your projects: {shown.error}</p><Button disabled={busy} onClick={reload}>Try again</Button></div>}
     {!shown && <p className="muted" role="status">Loading projects…</p>}
     <LeaveProjectFeedback controls={leave} />
+    {/* The welcome stays on top in the current list, with the projects under it (owner, 16 November 2026). */}
+    {page && view === 'current' && first && !query && <ClaudePromptTile firstRun={!page.projects.length && !page.next} />}
+    {/* The welcome replaces the page title; the list's own heading carries All and Archived (owner, 16 November 2026). */}
+    {page && (view === 'archived' || page.projects.length > 0 || !!page.next || !first) && <div className="k42-projects-bar"><h2 className="k42-projects-heading">Your projects</h2>{chips}</div>}
     <div className="project-directory-grid k42-reveal my-projects-grid">
-      {showGroups && <PersonalProjectGroups covers={covers} onLeave={id => void leave.act(id)} projects={matches ?? []} go={go} searching={!!query} archived={view === 'archived'} onArchive={project => void changeArchive(project)} onStar={project => void changeStar(project)} disabled={busy || !!pending || leave.busy || !!leave.pending || !identity.ready || !!shown?.error} />}
+      {showGroups && <PersonalProjectGroups covers={covers} onLeave={id => void leave.act(id)} projects={matches ?? []} go={go} archived={view === 'archived'} onArchive={project => void changeArchive(project)} onStar={project => void changeStar(project)} disabled={busy || !!pending || leave.busy || !!leave.pending || !identity.ready || !!shown?.error} />}
     </div>
-    {page && !showGroups && <div className="project-directory-empty"><p>{query ? 'No projects on this page match your search.' : first && !page.next ? view === 'archived' ? '' : 'No current projects.' : `No ${view} projects on this page.`}</p>{!query && (view === 'archived' ? first && !page.next ? <div className="k42-empty-row"><span className="k42-empty-row-icon" aria-hidden="true"><Archive size={18} /></span><div><strong>Nothing archived.</strong><span>Archive a project from its ··· menu. Restore it any time.</span></div></div> : null : first && !page.next
-      ? <ClaudePromptTile large />
-      : null)}</div>}
+    {page && !showGroups && <div className="project-directory-empty"><p>{query ? 'No projects on this page match your search.' : first && !page.next ? '' : `No ${view} projects on this page.`}</p>{!query && view === 'archived' && first && !page.next && <div className="k42-empty-row"><span className="k42-empty-row-icon" aria-hidden="true"><Archive size={18} /></span><div><strong>Nothing archived.</strong><span>Archive a project from its ··· menu. Restore it any time.</span></div></div>}</div>}
     <Pager first={first} hasNext={!!page?.next} onBack={() => { setSearch(''); setPaging({ view, cursors: cursors.slice(0, -1) }); }} onNext={() => { if (page?.next) { setSearch(''); setPaging({ view, cursors: [...cursors, page.next] }); } }} nextLabel="More projects" />
   </ExploreLayout>;
 }

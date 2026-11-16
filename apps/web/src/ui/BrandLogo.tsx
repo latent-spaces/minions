@@ -1,5 +1,6 @@
-// Minions wordmark (owner rename, 15 November 2026): the text in the type style and color of the
-// earlier Karma42.ai wordmark image (owner selection, 15 October 2026).
+import logo from './assets/brand/minions-logo.png';
+
+// The Minions logo, from the owner's artwork (16 November 2026). Its white areas are transparent, so it sits on light surfaces.
 export function BrandLogo() {
-  return <span className="wordmark-logo">Minions</span>;
+  return <img className="wordmark-logo k42-brand-logo" src={logo} alt="Minions" />;
 }
