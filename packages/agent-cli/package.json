@@ -1,6 +1,6 @@
 {
   "name": "minions",
-  "version": "0.1.0-beta.73",
+  "version": "0.1.0-beta.74",
   "private": true,
   "description": "Model-independent Minions MCP connector for project agents",
   "license": "UNLICENSED",

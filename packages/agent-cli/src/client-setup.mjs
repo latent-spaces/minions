@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -86,7 +86,13 @@ export function withCodexEntry(text, table) {
   return result;
 }
 
+// The pre-rename mlswarm skill that setup installed, unchanged, goes; one the person changed stays.
+function retireOldSkill(path) {
+  if (['current', 'update_available'].includes(installedSkill({ path }, BUNDLED_SKILL).status)) rmSync(dirname(path), { recursive: true, force: true });
+}
+
 function installSkill(path) {
+  retireOldSkill(join(dirname(dirname(path)), 'mlswarm', 'SKILL.md'));
   const installed = installedSkill({ path }, BUNDLED_SKILL), { status } = installed;
   if (status === 'current') return null;
   if (['not_installed', 'update_available', 'incomplete'].includes(status)) {

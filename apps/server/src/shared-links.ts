@@ -29,7 +29,7 @@ export function legacyAppRedirect(req: express.Request, res: express.Response): 
 /** A stable 22-character hash alias. Destination authorization, confirmation and expiry still apply. */
 export async function shortSharedLink(path: string): Promise<string> {
   if (!sharedDestination(path)) throw new Refusal('bad_input', 'Choose a Minions page to share.');
-  const code = createHash('sha256').update(`minions-share-v1:${path}`).digest('base64url').slice(0, 22);
+  const code = createHash('sha256').update(`mlswarm-share-v1:${path}`).digest('base64url').slice(0, 22);
   await db.runTransaction(async tx => {
     const ref = links.doc(code), previous = await tx.get(ref);
     const destination: SharedLink = { path };

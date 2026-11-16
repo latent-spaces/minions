@@ -9,8 +9,9 @@ const quoteWindows = value => /^[\w.:/=+-]+$/.test(value) ? value : `"${value}"`
 
 // Registration describes one existing installation. Reading it cannot start a
 // second service, import credentials into a client config, or select a model.
-// Entries named per engine before 14 November 2026, which setup removes.
-export const RETIRED_NAME = /^minions-[0-9a-f]{8}$/;
+// Entries setup removes: the per-engine mlswarm-xxxxxxxx entries from before 14 November 2026 and the single mlswarm
+// entry from before the rename to Minions (15 November 2026). Consumers: installs set up before the rename.
+export const RETIRED_NAME = /^mlswarm(?:-[0-9a-f]{8})?$/;
 
 export function reusableConfiguration({ client, home = installationHome(), site } = {}) {
   if (!['claude', 'codex', 'other'].includes(client)) throw new Error('Choose --client claude, codex or other. This selects your MCP client, not your model.');
@@ -25,7 +26,7 @@ export function reusableConfiguration({ client, home = installationHome(), site 
   const helperCommand = [process.execPath, helper].map(windows ? quoteWindows : quote).join(' ');
   const url = `http://127.0.0.1:${installation.port}/mcp`;
   // One entry per computer, named minions (owner decision, 14 November 2026). Setup replaces the older
-  // per-engine minions-xxxxxxxx entries; RETIRED_NAME matches them.
+  // per-engine mlswarm-xxxxxxxx entries and the pre-rename mlswarm entry; RETIRED_NAME matches them.
   const name = 'minions';
   const entry = client === 'codex' ? { url, http_headers_helper: helperCommand }
     : { type: 'http', url, headersHelper: helperCommand };
@@ -43,9 +44,9 @@ export function renderReusableConfiguration(config) {
     '',
     `Website: ${config.site}${new URL(config.site).protocol === 'http:' ? ' (local development only)' : ''}.`,
     'Run setup first to sign in to the engine and start its shared service. Claude, Codex and CLI connect to that same service; reconnecting starts no model and adds no time.',
-    `Inspect an existing ${config.name} entry before replacing it. Remove its retired command/args/env fields and use this HTTP entry. Remove older minions-… entries (one per engine, from before 14 November 2026) and their permissions. Preserve other connections and native permissions.`,
+    `Inspect an existing ${config.name} entry before replacing it. Remove its retired command/args/env fields and use this HTTP entry. Remove older mlswarm-… entries (one per engine, from before 14 November 2026) and their permissions. Preserve other connections and native permissions.`,
     'Approve adding or replacing the entry unless already authorized. Defer maintenance until affected work/client sessions are idle; never stop or restart running agents for an update.',
-    config.client === 'codex' ? `Put this table in your user-level ~/.codex/config.toml, replacing only the ${config.name} table and older minions-… tables:`
+    config.client === 'codex' ? `Put this table in your user-level ~/.codex/config.toml, replacing only the ${config.name} table and older mlswarm-… tables:`
       : config.client === 'claude' ? 'Register the existing service in Claude Code’s user-level MCP settings (on Windows, use the JSON entry in the settings editor):'
       : 'This describes the shared HTTP service. Use your client’s documented HTTP and dynamic-header-helper format. If it has no private-file helper support, report that limit; do not use a stdio runtime fallback.',
     config.client === 'codex' ? config.toml : config.command ?? JSON.stringify(config.generic, null, 2),

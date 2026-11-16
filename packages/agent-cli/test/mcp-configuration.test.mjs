@@ -42,3 +42,15 @@ test('Claude and Codex registration share HTTP without exposing installation cre
     assert.match(renderReusableConfiguration(config), /never stop or restart running agents/);
   }
 });
+
+test('setup retires the pre-rename mlswarm entries and keeps the minions one', async () => {
+  const { RETIRED_NAME } = await import('../src/mcp-configuration.mjs');
+  const { withCodexEntry } = await import('../src/client-setup.mjs');
+  for (const name of ['mlswarm', 'mlswarm-0a1b2c3d']) assert.equal(RETIRED_NAME.test(name), true, name);
+  for (const name of ['minions', 'minions-0a1b2c3d', 'mlswarm-extra', 'other']) assert.equal(RETIRED_NAME.test(name), false, name);
+  const before = '[mcp_servers.mlswarm]\nurl = "http://127.0.0.1:1/mcp"\n\n[mcp_servers.mlswarm-0a1b2c3d]\nurl = "http://127.0.0.1:2/mcp"\n\n[mcp_servers.other]\nurl = "http://127.0.0.1:3/mcp"\n';
+  const after = withCodexEntry(before, '[mcp_servers.minions]\nurl = "http://127.0.0.1:8787/mcp"\n');
+  assert.doesNotMatch(after, /mlswarm/);
+  assert.match(after, /\[mcp_servers\.minions\]/);
+  assert.match(after, /\[mcp_servers\.other\]/);
+});

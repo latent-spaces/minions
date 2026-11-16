@@ -579,7 +579,7 @@ their reviewer/attribution instructions; identities and approvals are not indepe
 verified. Claude derives its native denies and Codex derives its native rules from
 the same policy decision. Other native restrictions remain in place.
 
-Codex uses one generated `.codex/rules/minions-worker-merge.rules` file for Human
+Codex uses one generated `.codex/rules/mlswarm-worker-merge.rules` file for Human
 approval, ignored through Git's local exclude file and removed after confirmed native
 exit. Existing native config and rules retain their original trust decision; an
 inactive required layer stops with `merge_policy_unavailable` before a model turn.

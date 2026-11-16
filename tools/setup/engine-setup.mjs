@@ -128,7 +128,7 @@ async function connectorSetup(url, env) {
 
 /**
  * Registers the MCP server as minions with Claude Code and Codex, where they are on this computer, replacing older
- * minions-… entries (owner decisions, 13 and 14 November 2026). Resolves to the register command's lines and whether
+ * mlswarm-… entries (owner decisions, 13 and 14 November 2026). Resolves to the register command's lines and whether
  * anything was registered; a failure is reported and setup carries on.
  */
 function registerClients(env) {

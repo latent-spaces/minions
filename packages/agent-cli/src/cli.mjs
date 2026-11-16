@@ -38,7 +38,7 @@ Commands:
       Print HTTP registration for another client; changes no client settings.
   register [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
       Register this installation's MCP server as minions with Claude Code (through its
-      claude command) and Codex (in its config.toml), replacing older minions-…
+      claude command) and Codex (in its config.toml), replacing older mlswarm-…
       entries. Exit 0 when at least one is registered, 4 when neither is found, 2 when
       a registration failed.
   tool --list [TOOL_NAME]

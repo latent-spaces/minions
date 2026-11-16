@@ -2,7 +2,7 @@
 name: minions
 description: Help the person with their Minions projects and agents through the local Minions service. Use for setting up projects, asking how a project is going, adding agents, working with them in this chat, agents that work on their own, steering, and Needs you.
 metadata:
-  guide-revision: "92"
+  guide-revision: "93"
   references-sha256: "bca95424ba1a2de459b5cb8ffaae413df05edbb78a1ef877a02bfa5d29f6853e"
 ---
 

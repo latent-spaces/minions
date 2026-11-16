@@ -46,12 +46,12 @@ use profile references such as `ownerProfileId`.
 | `proposalMaterials`, `materialRemovalOperations` | Proposal supporting files and removal receipts | `community/materials.ts` |
 | `webAgentStarts`, `webAgentStartOwners/{profileId}` | Requests to run an agent, from the website or `add_project_agent`, with a per-owner fence | `owner/web-agent-starts.ts` |
 | `workerReconciliation/scheduledProjectStarts` | Scan cursor for scheduled project starts | `projects/scheduled-start.ts` |
-| `workspaces/minions` | Workspace metadata | `workspaces/records.ts` |
+| `workspaces/mlswarm` | Workspace metadata | `workspaces/records.ts` |
 
 ## Workspace and identity
 
-`workspaces/minions` is the only workspace. Projects, proposals and discovery
-listings carry `workspaceId: minions`. Profiles are global; project memberships and roles stay
+`workspaces/mlswarm` is the only workspace. Projects, proposals and discovery
+listings carry `workspaceId: mlswarm`. Profiles are global; project memberships and roles stay
 scoped to the project. This is not multi-workspace access isolation.
 
 `profiles/{profileId}` is private identity and account storage. A person signs in with a
