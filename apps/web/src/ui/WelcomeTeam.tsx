@@ -33,12 +33,16 @@ function WelcomeConnection({ from, to }: { from: number; to: number }) {
       const faces = team.querySelectorAll('.k42-character-avatar');
       const a = faces[from]?.getBoundingClientRect(), b = faces[to]?.getBoundingClientRect();
       if (a && b && box.width && box.height) {
-        const elapsed = performance.now() - started, phase = elapsed / 900;
+        const elapsed = performance.now() - started, progress = Math.min(1, elapsed / 1200);
+        // Move quickly at the ends and linger over the crest without stopping abruptly.
+        const phase = progress + .4 * Math.sin(2 * Math.PI * progress) / (2 * Math.PI);
         const sx = a.left + a.width / 2 - box.left, tx = b.left + b.width / 2 - box.left;
-        drawing.globalAlpha = Math.min(1, elapsed / 120);
+        drawing.globalAlpha = 1;
         const height = Math.max(28, Math.min(48, Math.abs(tx - sx) * .2));
         drawTubeConnector(drawing, sx, a.top + a.height / 2 - box.top, tx, b.top + b.height / 2 - box.top,
-          phase < 1 ? [phase] : [], '#211b27', 'rubber', sx < tx ? -height : height);
+          progress < 1 ? [phase] : [], '#211b27', 'rubber', {
+            bend: sx < tx ? -height : height, lineOpacity: .18 * Math.min(1, elapsed / 120), beadScale: 2.5, beadColor: '#141414',
+          });
       }
       if (visible) frame = requestAnimationFrame(draw);
     };

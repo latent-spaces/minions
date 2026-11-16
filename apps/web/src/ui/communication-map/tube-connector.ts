@@ -6,7 +6,8 @@ const shapes={
  // Thinner lines between agents (owner, 16 November 2026).
  rubber:{radius:.6,swell:1.8,spread:11,fill:'#352b3d',ink:.5,bead:1.2},
 };
-export function drawTubeConnector(context:CanvasRenderingContext2D,sx:number,sy:number,tx:number,ty:number,phases:number[],color:string,shape:TubeShape='soft',bend=0){
+export function drawTubeConnector(context:CanvasRenderingContext2D,sx:number,sy:number,tx:number,ty:number,phases:number[],color:string,shape:TubeShape='soft',options:{bend?:number;lineOpacity?:number;beadScale?:number;beadColor?:string}={}){
+ const {bend=0,lineOpacity=1,beadScale=1,beadColor='#ce975e'}=options;
  const dx=tx-sx,dy=ty-sy,length=Math.hypot(dx,dy);if(length<1)return;
  const art=shapes[shape];
  const center=(x:number)=>4*bend*(x/length)*(1-x/length);
@@ -17,6 +18,7 @@ export function drawTubeConnector(context:CanvasRenderingContext2D,sx:number,sy:
   return art.radius+swell;
  };
  context.save();context.translate(sx,sy);context.rotate(Math.atan2(dy,dx));
+ context.save();context.globalAlpha*=lineOpacity;
  context.strokeStyle=color;context.fillStyle=art.fill;context.lineWidth=art.ink;context.lineJoin='round';context.lineCap='round';
  context.beginPath();context.moveTo(0,-art.radius);
  const steps=Math.max(12,Math.ceil(length/1.5));
@@ -27,7 +29,8 @@ export function drawTubeConnector(context:CanvasRenderingContext2D,sx:number,sy:
  // A restrained inner glint gives the flat tube a soft rubbery character.
  context.save();context.globalAlpha*=shape==='rubber'?.08:.55;context.strokeStyle='#fff';context.lineWidth=.8;
  context.beginPath();for(let i=0;i<=steps;i++){const x=length*i/steps,y=center(x)-radius(x)+art.radius*.65;if(i===0)context.moveTo(x,y);else context.lineTo(x,y);}context.stroke();context.restore();
- context.fillStyle='#ce975e';
- for(const phase of phases){context.beginPath();context.arc(phase*length,center(phase*length),art.bead,0,Math.PI*2);context.fill();}
+ context.restore();
+ context.fillStyle=beadColor;
+ for(const phase of phases){context.beginPath();context.arc(phase*length,center(phase*length),art.bead*beadScale,0,Math.PI*2);context.fill();}
  context.restore();
 }
