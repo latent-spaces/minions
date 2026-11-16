@@ -108,11 +108,12 @@ export function MyProjects({ user, active, refreshKey, go, retry, view = 'curren
   // that project, the list is read every 5 seconds (owner, 16 November 2026).
   const isFirstRun = view === 'current' && !!frame && !frame.projects.length && !frame.next && cursors.length === 1;
   const [firstFlow, setFirstFlow] = useState(false), [waitingFirst, setWaitingFirst] = useState(false);
-  // The first project is required: the tour stays until one exists; a replay can be left at any time (owner, 16 November 2026).
-  const [replay, setReplay] = useState(false);
-  const touring = replay || isFirstRun || firstFlow;
+  // The tour can always be skipped: an empty list also means someone who archived or left every project, and with the
+  // menu hidden they had no way out but making a project (review of PR 68, owner, 16 November 2026).
+  const [replay, setReplay] = useState(false), [skipped, setSkipped] = useState(false);
+  const touring = replay || ((isFirstRun || firstFlow) && !skipped);
   const replayTour = () => setReplay(true);
-  const skipTour = () => { setReplay(false); setFirstFlow(false); setWaitingFirst(false); };
+  const skipTour = () => { setReplay(false); setFirstFlow(false); setWaitingFirst(false); setSkipped(true); };
   useEffect(() => { if (isFirstRun) setFirstFlow(true); }, [isFirstRun]);
   useEffect(() => { if (!waitingFirst || !active) return; const timer = setInterval(() => setPoll(value => value + 1), 5000); return () => clearInterval(timer); }, [waitingFirst, active]);
   const showGroups = !!page && !!matches?.length;
@@ -131,7 +132,7 @@ export function MyProjects({ user, active, refreshKey, go, retry, view = 'curren
     {/* The welcome stays on top in both lists; All and Archived only swap the projects under it (owner, 16 November 2026). */}
     {frame && first && !query && (view === 'current' && touring
       ? <FirstProject created={!replay && !isFirstRun && page?.projects[0] ? { id: page.projects[0].id, name: page.projects[0].name } : null} onWaiting={setWaitingFirst}
-          onOpenProject={id => { setReplay(false); setFirstFlow(false); setWaitingFirst(false); go(projectRoute(id, 'overview')); }} onDone={() => { setReplay(false); setFirstFlow(false); setWaitingFirst(false); }} onSkip={replay ? skipTour : undefined} />
+          onOpenProject={id => { setReplay(false); setFirstFlow(false); setWaitingFirst(false); go(projectRoute(id, 'overview')); }} onDone={() => { setReplay(false); setFirstFlow(false); setWaitingFirst(false); }} onSkip={skipTour} />
       : <><WelcomeHero />{view === 'current' && frame && <HomeDashboard user={user} projectIds={frame.projects.map(p => p.id)} />}{view === 'current' && <button type="button" className="k42-replay-tour" onClick={replayTour}>Replay the tour</button>}</>)}
     {/* The welcome replaces the page title; the list's own heading carries All and Archived (owner, 16 November 2026). */}
     {frame && !(view === 'current' && touring) && <div className="k42-projects-bar"><h2 className="k42-projects-heading">Your projects</h2>{chips}</div>}

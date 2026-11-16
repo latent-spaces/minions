@@ -16,7 +16,7 @@ const TOUR = [
   { icon: Users, title: 'They organize themselves', text: 'Give them the problem. They split the work and pick their own roles.' },
   { icon: Eye, title: 'Always see what’s happening', text: 'Updates, previews and a live map, so you follow along without reading every message.' },
 ];
-export function FirstProject({ created, onWaiting, onOpenProject, onDone, onSkip }: { created: Created; onWaiting: (waiting: boolean) => void; onOpenProject: (id: string) => void; onDone: () => void; /** Leaves the tour; only when it is replayed after the first project exists (owner, 16 November 2026). */ onSkip?: () => void }) {
+export function FirstProject({ created, onWaiting, onOpenProject, onDone, onSkip }: { created: Created; onWaiting: (waiting: boolean) => void; onOpenProject: (id: string) => void; onDone: () => void; /** Leaves the tour, on the first run too (review of PR 68, 16 November 2026). */ onSkip?: () => void }) {
   const [tour, setTour] = useState(0);
   // Opening: the name sits in the middle of the white half, then moves up and the tour appears (owner, 16 November 2026).
   const [intro, setIntro] = useState(() => !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
