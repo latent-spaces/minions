@@ -12,9 +12,9 @@ import './first-project.css';
 
 // The tour's words: the three messages chosen for Minions; the last one carries the start button (owner, 16 November 2026).
 const TOUR = [
-  { icon: Zap, title: 'Hard problems, solved faster', text: 'Several agents attack the problem at once, while you just steer.' },
-  { icon: Users, title: 'They organize themselves', text: 'Give them the problem. They split the work and pick their own roles.' },
-  { icon: Eye, title: 'Always see what’s happening', text: 'Updates, previews and a live map, so you follow along without reading every message.' },
+  { icon: Zap, title: 'Hard problems, solved faster', text: 'Different models share the work, review each other and catch more.' },
+  { icon: Users, title: 'They organize themselves', text: 'As models improve, we believe they work better choosing their own roles than following ones we assign.' },
+  { icon: Eye, title: 'Always see what’s happening', text: 'As agents do more, faster, we surface what matters through visual updates, previews and live activity so you can stay in control.' },
 ];
 export function FirstProject({ created, onWaiting, onOpenProject, onDone, onSkip }: { created: Created; onWaiting: (waiting: boolean) => void; onOpenProject: (id: string) => void; onDone: () => void; /** Leaves the tour, on the first run too (review of PR 68, 16 November 2026). */ onSkip?: () => void }) {
   const [tour, setTour] = useState(0);
