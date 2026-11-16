@@ -178,11 +178,11 @@ export async function acceptAgentStart(profileId:string,id:string,input:unknown,
   if(repository && (repository.waitingFor!==waitingFor || repository.code==='ready' || (repository.code==='empty_repository')!==(waitingFor==='empty_repository')))throw new Refusal('bad_input','Repository evidence must match the waiting reason.');
   return db.runTransaction(async tx=>{const ref=webAgentStarts.doc(webStartKey(profileId,id)),r=(await tx.get(ref)).data(),at=now();
     if(!r||r.profileId!==profileId)throw missing();
-    if(r.incarnation!==null&&r.incarnation!==incarnation)throw new Refusal('runtime_conflict','This request was made before MyLittleSwarm restarted on this computer. Add the agent again.');
+    if(r.incarnation!==null&&r.incarnation!==incarnation)throw new Refusal('runtime_conflict','This request was made before Minions restarted on this computer. Add the agent again.');
     if(terminal(r.state))return {request:view(r,at)};
     await access(tx,profileId,r.projectId);
     const ready=(await tx.get(runtimeReadiness.doc(profileId))).data();
-    if(!ready||ready.incarnation!==incarnation||!readinessView(ready,at)?.online)throw new Refusal('runtime_conflict','MyLittleSwarm on this computer restarted or stopped. Add the agent again.');
+    if(!ready||ready.incarnation!==incarnation||!readinessView(ready,at)?.online)throw new Refusal('runtime_conflict','Minions on this computer restarted or stopped. Add the agent again.');
     if(r.state!=='pending')return {request:view(r,at)};
     if(at>=r.pickupByAt){tx.update(ref,{state:'expired'});return {request:view({...r,state:'expired'},at)};}
     const project=await projectWait(r.projectId,at,tx);
@@ -220,7 +220,7 @@ export async function receiptAgentStart(profileId:string,id:string,input:unknown
   parse(uuid,id);const receipt=parse(receiptInput,input);
   return db.runTransaction(async tx=>{const ref=webAgentStarts.doc(webStartKey(profileId,id)),r=(await tx.get(ref)).data(),at=now();
     if(!r||r.profileId!==profileId)throw missing();
-    if(r.incarnation!==receipt.incarnation)throw new Refusal('runtime_conflict','This request was picked up before MyLittleSwarm restarted on this computer. Add the agent again.');
+    if(r.incarnation!==receipt.incarnation)throw new Refusal('runtime_conflict','This request was picked up before Minions restarted on this computer. Add the agent again.');
     if(receipt.agentId!==undefined&&receipt.agentId!==r.agentId)throw new Refusal('forbidden','This receipt belongs to another agent.');
     if(r.state==='working'&&receipt.state==='starting')return {ok:true,request:view(r,at)};
     if(terminal(r.state)){

@@ -27,13 +27,13 @@ try{
  try{const s=fstatSync(fd);if(!s.isFile()||s.nlink!==1||s.size>8192||!owned(s)||!privateMode(s)||s.dev!==named.dev||s.ino!==named.ino)throw Error();value=JSON.parse(readFileSync(fd,'utf8'));}finally{closeSync(fd);}
  if(value.version!==1||!/^[a-f0-9]{64}$/.test(value.token))throw Error();
  process.stdout.write(JSON.stringify({Authorization:'Bearer '+value.token}));
-}catch{process.stderr.write('MyLittleSwarm private service credential is unavailable. Run setup.\\n');process.exitCode=1;}
+}catch{process.stderr.write('Minions private service credential is unavailable. Run setup.\\n');process.exitCode=1;}
 `;
 const fail = message => new Error(message);
 const alive = pid => { try { process.kill(pid, 0); return true; } catch (error) { return error.code !== 'ESRCH'; } };
 export function installationHome() {
-  const home = process.env.MLSWARM_SERVICE_HOME ?? defaultSiteStateHome('service');
-  if (!isAbsolute(home)) throw fail('MLSWARM_SERVICE_HOME must be an absolute private directory.');
+  const home = process.env.MINIONS_SERVICE_HOME ?? defaultSiteStateHome('service');
+  if (!isAbsolute(home)) throw fail('MINIONS_SERVICE_HOME must be an absolute private directory.');
   return home;
 }
 function privateHome(home) {
@@ -102,7 +102,7 @@ async function claimOwnership(home) {
 }
 async function control(config, path, method = 'GET', incarnation) {
   const response = await fetch(`http://127.0.0.1:${config.port}${path}`, { method, redirect: 'error', credentials: 'omit',
-    headers: { Authorization: `Bearer ${config.token}`, Accept: 'application/json', ...(incarnation ? { 'X-Mlswarm-Incarnation': incarnation } : {}) }, signal: AbortSignal.timeout(1500) });
+    headers: { Authorization: `Bearer ${config.token}`, Accept: 'application/json', ...(incarnation ? { 'X-Minions-Incarnation': incarnation } : {}) }, signal: AbortSignal.timeout(1500) });
   if (!response.ok) throw fail('The saved service endpoint did not authenticate. No process was signalled.');
   if (Number(response.headers.get('content-length')) > 8192) throw fail('Invalid service response.');
   let size = 0; const chunks = [];
@@ -159,7 +159,7 @@ export async function stopInstalledService({ home = installationHome(), afterTur
   throw fail('Service shutdown is not confirmed. Inspect status; no process was force-killed.');
 }
 export async function runInstalledService({ home = installationHome(), site, compose } = {}) {
-  if (Number(process.versions.node.split('.')[0]) < 24) throw fail('The shared MyLittleSwarm service requires Node.js 24 or newer.');
+  if (Number(process.versions.node.split('.')[0]) < 24) throw fail('The shared Minions service requires Node.js 24 or newer.');
   if (typeof compose !== 'function') throw new TypeError('A trusted application composition is required.');
   const installation = await ensureInstallation({ home, site });
   const release = await claimOwnership(home);
@@ -190,7 +190,7 @@ export async function startDetachedService({ home = installationHome(), site, en
   let child;
   try {
     child = spawn(process.execPath, [entryPoint, ...args], { detached: true, cwd: home, stdio: ['ignore', fd, fd],
-      env: { ...process.env, MLSWARM_SERVICE_HOME: home, MLSWARM_SITE_URL: installation.site } });
+      env: { ...process.env, MINIONS_SERVICE_HOME: home, MINIONS_SITE_URL: installation.site } });
   } finally { closeSync(fd); }
   let spawnError; child.on('error', error => { spawnError = error; }); child.unref();
   const until = Date.now() + timeoutMs;

@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { refreshAfterChange } from '../refresh-after-change';
 import { useEffect } from 'react';
 import type { SessionUser } from '../session-identity';
-import type { HumanRequestPage } from '@mlswarm/contracts';
+import type { HumanRequestPage } from '@minions/contracts';
 import { needsYou } from '../api';
 import { subscribeRealtime, RECONCILE_MS } from '../realtime';
 

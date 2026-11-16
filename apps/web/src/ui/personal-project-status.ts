@@ -1,5 +1,5 @@
 import { lifecyclePresentation } from './lifecycle-presentation.js';
-import { deriveProjectLifecycle, type ProjectLifecycle, type ProjectLifecycleInput } from '@mlswarm/contracts';
+import { deriveProjectLifecycle, type ProjectLifecycle, type ProjectLifecycleInput } from '@minions/contracts';
 
 type PersonalProjectState = ProjectLifecycleInput & { proposalStatus: string | null; state?: ProjectLifecycle; lifecycle?: string };
 

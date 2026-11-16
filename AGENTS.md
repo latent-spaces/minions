@@ -1,4 +1,4 @@
-# MyLittleSwarm project workflow
+# Minions project workflow
 
 ## Vision alignment and careful evolution
 
@@ -106,7 +106,7 @@ Docs describe the current product. Do not add dated release, evidence, verificat
 
 ## Visual concepts before UI implementation
 
-Before implementing a new screen or a substantial visual change, generate image-model concept mockups and compare a small set of distinct directions. Use the model's visual prior to explore hierarchy, composition and craft, grounded in current product truth and representative UI. Present new concepts before implementing a new visual direction; reuse already approved concepts for integration. Product UI uses MyLittleSwarm (short form mlswarm for identifiers); the repository is `oronanschel/mylittleswarm`; earlier history is in `karma42-swarm`.
+Before implementing a new screen or a substantial visual change, generate image-model concept mockups and compare a small set of distinct directions. Use the model's visual prior to explore hierarchy, composition and craft, grounded in current product truth and representative UI. Present new concepts before implementing a new visual direction; reuse already approved concepts for integration. Product UI uses Minions (short form minions for identifiers); the repository is `latent-spaces/minions`; earlier history is in `karma42-swarm`.
 
 Concept imagery is exploratory, not evidence of supported features or measured state. Correct invented connection/readiness claims, mark synthetic data explicitly and preserve the distinction between project approval and execution. Keep prompts and selected concept references with the design work; verify changes through the actual local application and focused checks. Previously approved concepts and Storybook visuals remain design references; reviewing them does not require running Storybook. Real API and permission behavior remain authoritative.
 
@@ -116,7 +116,7 @@ Follow [the shared development workflow](docs/project-management/README.md) for 
 
 The owner now wants to choose product behavior where real code and the storyboard differ. This supersedes the earlier autonomous visual-selection instruction. Present the concrete difference, alternatives and consequences before implementing the dependent choice. Record explicit answers with source/date in docs/decisions.md and the affected PR. A recommendation, concept, preselected answer or elapsed time is not a decision. Continue independent work while choices are pending; do not turn the whole register into a blanket blocker.
 
-Preserve the approved light design, nested project sidebar and MyLittleSwarm brand. The owner selected Project Card concept 2 (editorial document with side rail) on 7 October; this settles layout only. Card edit/version/capacity behavior, control placement, project admission, beta agent scope, GitHub authority and voting differences retain their own feature gates.
+Preserve the approved light design, nested project sidebar and Minions brand. The owner selected Project Card concept 2 (editorial document with side rail) on 7 October; this settles layout only. Card edit/version/capacity behavior, control placement, project admission, beta agent scope, GitHub authority and voting differences retain their own feature gates.
 
 ## Local-first workflow — owner update, 8 October 2026
 
@@ -127,7 +127,7 @@ Keep one implementation of each integrated UI surface. Production presentation c
 Before starting work, inspect recent commits, status and diff and pull `main` with fast-forward only when the checkout is clean. Never overwrite parallel work. Complete an integrated screen slice with actual local verification and an optional shared design preview; remove superseded markup/styles in that slice. Preserve existing owner-selected policies; discuss concrete behavior differences before changing them.
 
 Use the actual local application and the local engine (`npm run setup`) with an
-isolated `MLSWARM_ENGINE_HOME` and a free `MLSWARM_ENGINE_PORT` for iteration. Default to no model execution; real local model runs must be explicitly selected,
+isolated `MINIONS_ENGINE_HOME` and a free `MINIONS_ENGINE_PORT` for iteration. Default to no model execution; real local model runs must be explicitly selected,
 with a model available to the operator and the existing pause/stop/token visibility. Keep
 local demo data and credentials separate from the owner's own engine and from the
 everyday Karma42 install (`~/.karma42`, port 59698). Do not run resetting tests against

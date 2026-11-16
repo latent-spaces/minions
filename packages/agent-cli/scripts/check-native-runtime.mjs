@@ -23,7 +23,7 @@ import { nativeSmokeCoordination } from './native-smoke-coordination.mjs';
 import { nativeSmokeSummary } from './native-smoke-report.mjs';
 
 const options = nativeSmokeOptions(process.argv.slice(2));
-const root = await realpath(await mkdtemp(join(tmpdir(), 'mlswarm-live-native-')));
+const root = await realpath(await mkdtemp(join(tmpdir(), 'minions-live-native-')));
 const report = { startedAt: new Date().toISOString(), node: process.version, platform: process.platform, architecture: process.arch, osRelease: release(), root, realModels: true, syntheticCoordination: true, deadlineMs: options.timeoutSeconds * 1000, providers: {} };
 const emit = value => console.log(JSON.stringify(value));
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -36,7 +36,7 @@ async function bridge(provider) {
   const route = `/worker/${randomBytes(16).toString('hex')}/mcp`;
   const calls = [];
   const handler = createMcpHandler(() => {
-    const server = new McpServer({ name: 'mlswarm-smoke-project', version: '1.0.0' });
+    const server = new McpServer({ name: 'minions-smoke-project', version: '1.0.0' });
     const tools = { get_project: { name: `Synthetic smoke ${provider}`, rules: 'Only this disposable local smoke task is authorized.', started: true, paused: false }, read_agent_inbox: [], list_human_requests: [] };
     for (const [name, value] of Object.entries(tools)) server.registerTool(name, { inputSchema: z.object({}).passthrough(), annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false } }, async () => {
       calls.push(name); return { content: [{ type: 'text', text: JSON.stringify(value) }] };

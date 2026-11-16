@@ -1,5 +1,5 @@
 import { ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
-import type { ProjectUsage as Usage, UsageMeasure } from '@mlswarm/contracts';
+import type { ProjectUsage as Usage, UsageMeasure } from '@minions/contracts';
 
 const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 2 });
 

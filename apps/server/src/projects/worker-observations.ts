@@ -1,5 +1,5 @@
 import type { Transaction } from '../firestore.js';
-import type { ProjectWorkersView } from '@mlswarm/contracts';
+import type { ProjectWorkersView } from '@minions/contracts';
 import { presence, runnerUsage } from '../v2/records.js';
 
 // Caller has already selected agents owned by the current authenticated project

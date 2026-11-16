@@ -1,6 +1,6 @@
 import {FieldPath} from '../firestore.js';
 import {z} from 'zod';
-import type {KarmaNotification,NotificationPage} from '@mlswarm/contracts';
+import type {KarmaNotification,NotificationPage} from '@minions/contracts';
 import {collection,db,profiles} from '../firestore.js';
 import {Refusal} from '../errors.js';
 import {assertMembership} from './access.js';

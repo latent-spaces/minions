@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import type {CommunicationAgent} from '@mlswarm/contracts';
+import type {CommunicationAgent} from '@minions/contracts';
 import type {MapNode} from '../../apps/web/src/ui/communication-map/protocol';
 import type {Traffic} from '../../apps/web/src/ui/communication-map/layout';
 const names=['sonnet-stars-2','claude-scout','codex-tooling','opus-strategist','sonnet-stars-1','codex-integration','claude-builder','opus-reviewer'];

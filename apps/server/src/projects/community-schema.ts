@@ -28,7 +28,7 @@ function projectPath(id: string) {
 }
 function decodeRecord<T>(schema: z.ZodType<T>, value: unknown): T {
   const parsed = schema.safeParse(value);
-  if (!parsed.success) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+  if (!parsed.success) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
   return parsed.data;
 }
 const decodeCommunitySettings = (value: unknown): CommunitySettings => decodeRecord(COMMUNITY_SETTINGS, value);

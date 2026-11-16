@@ -7,10 +7,10 @@ try{
  const args=process.argv.slice(2);
  for(let i=0;i<args.length;i++){
   const name=args[i];
-  if(!['--direct','--mlswarm','--out'].includes(name)||options[name])throw new Error('Use --direct FILE --mlswarm FILE --out NEW_FILE exactly once each.');
+  if(!['--direct','--minions','--out'].includes(name)||options[name])throw new Error('Use --direct FILE --minions FILE --out NEW_FILE exactly once each.');
   const value=args[++i];if(!value||value.startsWith('--'))throw new Error('Each option requires a file path.');options[name]=resolve(value);
  }
- if(Object.keys(options).length!==3)throw new Error('Use --direct FILE --mlswarm FILE --out NEW_FILE.');
+ if(Object.keys(options).length!==3)throw new Error('Use --direct FILE --minions FILE --out NEW_FILE.');
  const read=async path=>{
   const file=await open(path,'r');
   try{
@@ -20,8 +20,8 @@ try{
    return JSON.parse(data.subarray(0,length).toString('utf8'));
   }finally{await file.close();}
  };
- const [direct,mlswarm]=await Promise.all([read(options['--direct']),read(options['--mlswarm'])]);
- const report=compareContextOverhead(direct,mlswarm);
+ const [direct,minions]=await Promise.all([read(options['--direct']),read(options['--minions'])]);
+ const report=compareContextOverhead(direct,minions);
  const file=await open(options['--out'],'wx',0o600);
  try{await file.writeFile(JSON.stringify(report,null,2)+'\n');}finally{await file.close();}
  console.log('Saved the offline comparison. No model was started or project analytics changed.');

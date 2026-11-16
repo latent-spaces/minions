@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SessionUser } from '../session-identity';
-import type { BackgroundControlInput, BackgroundControlReply, BackgroundControlView } from '@mlswarm/contracts';
+import type { BackgroundControlInput, BackgroundControlReply, BackgroundControlView } from '@minions/contracts';
 import { ApiError, session, projects } from '../api';
 import { Button } from './Button';
 import { backgroundCommandState, type BackgroundCommandState } from './background-command-state';
@@ -16,7 +16,7 @@ export function useBackgroundWorkerControls(user: SessionUser, projectId: string
     setState({ pending: {}, busy: {}, errors: {} });
     if (!projectId) return;
     const current = backgroundCommandState({
-      key: `mlswarm-background-controls:${user.uid}:${projectId}`, projectId, storage: sessionStorage,
+      key: `minions-background-controls:${user.uid}:${projectId}`, projectId, storage: sessionStorage,
       authorized: () => session.currentUid() === user.uid, requestId: () => crypto.randomUUID(),
       send: (agentId, body) => projects<BackgroundControlReply>(user, `/${projectId}/agents/${encodeURIComponent(agentId)}/background-control`, body),
       refused: failure => failure instanceof ApiError && failure.status >= 400 && failure.status < 500 && ![408, 429].includes(failure.status),
@@ -57,7 +57,7 @@ export function BackgroundWorkerActions({ agentId, agentName, view, controls, no
   return <>
     {(canPause || canResume) && <Button type="button" className="soft"
       disabled={disabled || busy || !!pending || awaitingDevice || !view.available || stale}
-      title={stale ? 'Your computer needs to be online with MyLittleSwarm running' : !view.available ? 'Not available for this agent right now' : paused ? 'Resume' : 'Pause'}
+      title={stale ? 'Your computer needs to be online with Minions running' : !view.available ? 'Not available for this agent right now' : paused ? 'Resume' : 'Pause'}
       aria-label={`${paused ? 'Resume' : 'Pause'} ${agentName}`}
       onClick={() => void controls.act(agentId, view, paused ? 'resume' : 'pause')}>{paused ? 'Resume' : 'Pause'}</Button>}
     {view && !ended && !confirmKill && <Button ref={killRef} type="button" className="soft"

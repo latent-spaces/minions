@@ -11,7 +11,7 @@ export const guideFile = section => {
 const normalizeSkillText = text => text.replaceAll('\r\n', '\n').trimEnd() + '\n';
 export const skillTextHash = text => createHash('sha256').update(normalizeSkillText(text)).digest('hex');
 export const referenceHash = files => skillTextHash(JSON.stringify(GUIDE_SECTIONS.map(section => [guideFile(section), normalizeSkillText(files[guideFile(section)])])));
-export const readBundledGuide = section => readFileSync(new URL(`../skills/mlswarm/${guideFile(section)}`, import.meta.url), 'utf8');
+export const readBundledGuide = section => readFileSync(new URL(`../skills/minions/${guideFile(section)}`, import.meta.url), 'utf8');
 export const bundledGuideFiles = () => Object.fromEntries([undefined, ...GUIDE_SECTIONS].map(section => [guideFile(section), readBundledGuide(section)]));
 
 // Inspect only regular files in the skill itself. Do not follow linked skill/reference

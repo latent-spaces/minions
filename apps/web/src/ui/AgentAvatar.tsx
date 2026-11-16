@@ -1,5 +1,5 @@
 import { agentHat } from './agent-hat';
-import type { PersonaChoice, CommunicationAgentState } from '@mlswarm/contracts';
+import type { PersonaChoice, CommunicationAgentState } from '@minions/contracts';
 import { useContext, useEffect, useState, type CSSProperties } from 'react';
 import './agent-avatar.css';
 import { agentCharacter, ownerTone } from './character-set';

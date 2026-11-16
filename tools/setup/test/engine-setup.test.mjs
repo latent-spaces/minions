@@ -28,7 +28,7 @@ async function freePort() {
 function setup(env, args = []) {
   return new Promise((accept, reject) => {
     // A variable given as undefined is left out of the child's environment.
-    const merged = Object.fromEntries(Object.entries({ ...process.env, MLSWARM_NO_BROWSER: '1', ...env }).filter(([, value]) => value !== undefined));
+    const merged = Object.fromEntries(Object.entries({ ...process.env, MINIONS_NO_BROWSER: '1', ...env }).filter(([, value]) => value !== undefined));
     const child = spawn(process.execPath, [script, ...args], { env: merged, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
     let output = '';
     child.stdout.on('data', chunk => { output += chunk; });
@@ -40,7 +40,7 @@ function setup(env, args = []) {
 
 function withHome(run) {
   return async () => {
-    const home = mkdtempSync(join(tmpdir(), 'mlswarm setup '));
+    const home = mkdtempSync(join(tmpdir(), 'minions setup '));
     try { await run(join(home, 'engine')); } finally { rmSync(home, { recursive: true, force: true }); }
   };
 }
@@ -50,7 +50,7 @@ const beforeInstall = output => assert.doesNotMatch(output, /\[2\/6\]/);
 test('an interrupted first run is refused before anything is installed or changed', withHome(async home => {
   mkdirSync(home, { recursive: true });
   writeFileSync(join(home, 'engine.sqlite'), '');
-  const { code, output } = await setup({ MLSWARM_ENGINE_HOME: home, MLSWARM_ENGINE_PORT: String(await freePort()) });
+  const { code, output } = await setup({ MINIONS_ENGINE_HOME: home, MINIONS_ENGINE_PORT: String(await freePort()) });
   assert.equal(code, 1);
   assert.match(output, /stopped before initialization finished.*Nothing was changed/);
   beforeInstall(output);
@@ -59,7 +59,7 @@ test('an interrupted first run is refused before anything is installed or change
 test('a first run without an owner identity stops before installing, not after the builds', withHome(async home => {
   const empty = join(home, '..', 'empty.gitconfig');
   writeFileSync(empty, '');
-  const { code, output } = await setup({ MLSWARM_ENGINE_HOME: home, MLSWARM_ENGINE_PORT: String(await freePort()),
+  const { code, output } = await setup({ MINIONS_ENGINE_HOME: home, MINIONS_ENGINE_PORT: String(await freePort()),
     GIT_CONFIG_GLOBAL: empty, GIT_CONFIG_NOSYSTEM: '1' }, ['--owner-name', 'Ana Lee']);
   assert.equal(code, 1);
   assert.match(output, /--owner-email/);
@@ -69,7 +69,7 @@ test('a first run without an owner identity stops before installing, not after t
 test('a chosen port held by another program is refused, and that program is left alone', withHome(async home => {
   const server = await listen();
   try {
-    const { code, output } = await setup({ MLSWARM_ENGINE_HOME: home, MLSWARM_ENGINE_PORT: String(server.address().port) });
+    const { code, output } = await setup({ MINIONS_ENGINE_HOME: home, MINIONS_ENGINE_PORT: String(server.address().port) });
     assert.equal(code, 1);
     assert.match(output, /is used by .*so the engine could not start there.*Nothing was started or stopped/);
     beforeInstall(output);
@@ -81,7 +81,7 @@ test('a first run with 8787 held stops and names the holder instead of moving to
   // 8787 is held here, or already by another program on this computer; either way it is not this new engine.
   const held = await listen(8787).catch(() => null);
   try {
-    const { code, output } = await setup({ MLSWARM_ENGINE_PORT: undefined, MLSWARM_ENGINE_HOME: home });
+    const { code, output } = await setup({ MINIONS_ENGINE_PORT: undefined, MINIONS_ENGINE_HOME: home });
     assert.equal(code, 1);
     assert.match(output, /Port 8787 is used by .*so the engine could not start there/);
     if (held && process.platform !== 'win32') assert.match(output, new RegExp(`process ${process.pid}\\)`));

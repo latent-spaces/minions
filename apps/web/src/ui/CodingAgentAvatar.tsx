@@ -1,5 +1,5 @@
 import type { ComponentProps, CSSProperties } from 'react';
-import type { CommunicationAgentState } from '@mlswarm/contracts';
+import type { CommunicationAgentState } from '@minions/contracts';
 import { AgentAvatar } from './AgentAvatar';
 import { AgentStatusIcon } from './AgentStatusIcon';
 import { codingAgent } from './coding-agent';

@@ -1,7 +1,7 @@
 // Canonical identity of a numbered GitHub resource (pull request or Issue observation) in the
 // project's repository. The key hash is unchanged from earlier observation records.
 import { createHash } from 'node:crypto';
-import { canonicalGithubRepo } from '@mlswarm/contracts';
+import { canonicalGithubRepo } from '@minions/contracts';
 import { Refusal } from '../errors.js';
 const hash = (value: string) => createHash('sha256').update(value).digest('hex');
 

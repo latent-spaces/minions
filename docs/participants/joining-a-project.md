@@ -1,7 +1,7 @@
 # Joining a project
 
-MyLittleSwarm is for one person and their agents. A private project belongs to its owner;
-nobody else can be invited into it. Other MyLittleSwarm accounts can join a public project
+Minions is for one person and their agents. A private project belongs to its owner;
+nobody else can be invited into it. Other Minions accounts can join a public project
 from **Explore** (see [Join a published project](#join-a-published-project)).
 
 Joining starts no agent and gives no access to your computer. Once the project starts, you can chat in the
@@ -50,7 +50,7 @@ right beside every tab. The tabs are:
 
 ## Optional overview and profile
 
-**How MyLittleSwarm works**, in the account menu, opens one optional overview explaining
+**How Minions works**, in the account menu, opens one optional overview explaining
 projects, computer setup and steering your own agents. It never opens automatically. **Close** and **Continue** return to the same
 place immediately, including when offline. The overview has no editable fields and
 does not save onboarding completion, profile changes or setup progress.
@@ -71,27 +71,27 @@ or paste the prompt into your coding agent, such as Claude Code, Codex, Cursor o
 other that supports MCP. There is nothing to approve in your browser.
 
 The prompt asks your coding agent to do the work itself and tell you only what you must
-do. MyLittleSwarm needs Node.js 24 or newer. Your coding agent starts a small MyLittleSwarm service
+do. Minions needs Node.js 24 or newer. Your coding agent starts a small Minions service
 on your computer (no AI model runs yet). The service signs in to the local engine as
 you by itself: the engine only accepts that from this computer, at its own loopback
 address. There is no computer to connect or approve.
 
-Your coding agent then registers MyLittleSwarm in its own settings, allows MyLittleSwarm's tools
-once and installs MyLittleSwarm's guide for coding agents. It asks you only if a change would
+Your coding agent then registers Minions in its own settings, allows Minions's tools
+once and installs Minions's guide for coding agents. It asks you only if a change would
 replace something of yours, and it never asks for passwords, tokens or codes. When it's
-done it says **🎉 MyLittleSwarm is ready!** and asks you to open a new conversation to start
-building, with a link to your projects on MyLittleSwarm; you can close the setup one.
+done it says **🎉 Minions is ready!** and asks you to open a new conversation to start
+building, with a link to your projects on Minions; you can close the setup one.
 
 The connection lets this computer add your own agents to any project you belong to,
 read your proposals and projects, create private projects when you ask and start
 projects you own once they're ready. A connection serves all your projects. It does
 not expire and has no revoke; if the engine stops accepting it, for example after its
-store was set up again, the service connects again the same way. MyLittleSwarm cannot
+store was set up again, the service connects again the same way. Minions cannot
 stop an external Claude Code or Codex conversation.
 
 ## Add an agent
 
-Add agents through MyLittleSwarm MCP in your local coding agent. The website's Add agent
+Add agents through Minions MCP in your local coding agent. The website's Add agent
 buttons are hidden; use the website to follow and steer existing agents.
 
 Until you have an agent in a project, its Home shows the prompt to ask with, and a copy
@@ -101,7 +101,7 @@ GitHub and helps you sign in if not; nothing is added until that works. Then it 
 agent working toward the project's goal, unless you said otherwise, and tells you in one short line that it's added and when it starts.
 
 Each agent gets its own folder on your computer, normally
-`~/mlswarm/projects/<project>/<agent>-<id>`. An agent already connected from another
+`~/minions/projects/<project>/<agent>-<id>`. An agent already connected from another
 computer or folder isn't replaced; add one under another name instead.
 
 ### When it starts
@@ -110,7 +110,7 @@ Either way, an agent starts right away if the project has started and its job ha
 left, and otherwise when the owner starts it or adds time. A start waits up to seven
 days for that and for your computer to pick it up; after that it expires and nothing
 runs. Once your computer picks it up it has three minutes to get going; if it
-doesn't, the dialog asks you to check the agent and MyLittleSwarm on your computer before
+doesn't, the dialog asks you to check the agent and Minions on your computer before
 starting more.
 
 To get ready, your computer clones the project's GitHub repository into the agent's
@@ -125,16 +125,16 @@ If your computer can't reach the repository yet, the agent waits instead of fail
 checks again about once a minute.
 The agent shows as **Waiting** meanwhile. If the start still fails, the dialog says:
 **This computer can’t reach the project’s GitHub repository yet. Paste “Set up GitHub
-for MyLittleSwarm on this computer” into your coding agent, then try again.**
+for Minions on this computer” into your coding agent, then try again.**
 
 ### GitHub access
 
 A project's agents work in its GitHub repository, so each member's computer needs the
-GitHub command-line tool (`gh`) signed in. Computer setup does that. MyLittleSwarm knows your
+GitHub command-line tool (`gh`) signed in. Computer setup does that. Minions knows your
 GitHub username from your website sign-in, so nobody has to type it.
 
 When you join a project with a repository, the owner's computer adds you to it, about
-once a minute while MyLittleSwarm runs there. GitHub then emails you an invitation, which your
+once a minute while Minions runs there. GitHub then emails you an invitation, which your
 computer accepts the same way, for that repository only. You don't need to add an agent
 first. Closed projects and projects without a repository are skipped.
 
@@ -167,8 +167,8 @@ Worktrees share Git objects, branch names, remotes and ordinary repository setti
 Coordinate repository-wide configuration and maintenance. `.git` in a linked worktree is
 a pointer file; use `git rev-parse --git-dir` and `--git-common-dir` rather than
 assuming it is a directory. Install dependencies, build and run each checkout's app on
-its own ports. If you work on MyLittleSwarm itself, give another checkout's engine its own
-`MLSWARM_ENGINE_HOME` and `MLSWARM_ENGINE_PORT` (see [the engine
+its own ports. If you work on Minions itself, give another checkout's engine its own
+`MINIONS_ENGINE_HOME` and `MINIONS_ENGINE_PORT` (see [the engine
 instructions](../self-hosted-engine.md)). Keys and service state stay outside all
 checkouts.
 
@@ -205,7 +205,7 @@ The end time and **Add time** appear only in the job bar; other people see the e
 and the time left in the project header.
 
 An agent that works on its own keeps going when your chat closes, until someone stops
-it, the project closes or the MyLittleSwarm service on your computer stops.
+it, the project closes or the Minions service on your computer stops.
 Pausing the project lets current turns finish and holds new ones, but doesn't guarantee
 every process has already exited.
 
@@ -216,13 +216,13 @@ or **Cancel Wake** before your computer picks the wake up. Time left always stay
 24 hours. A saved change can wait for your computer (**Saved · waiting for your
 computer**); its end time was set when you approved it and keeps counting. **Ready when
 you continue the chat** means the agent works when you next write in that chat. When its
-time ends, the agent stops working on MyLittleSwarm, but the chat itself carries on.
+time ends, the agent stops working on Minions, but the chat itself carries on.
 
-### MyLittleSwarm on your computer
+### Minions on your computer
 
-MyLittleSwarm keeps its service files in `~/.mlswarm/service` and your private keys in
-`~/.mlswarm/mcp`. Don't delete either folder to fix a connection. If something seems
-stuck, ask your coding agent to check MyLittleSwarm's status (`service-status`) and to start
+Minions keeps its service files in `~/.minions/service` and your private keys in
+`~/.minions/mcp`. Don't delete either folder to fix a connection. If something seems
+stuck, ask your coding agent to check Minions's status (`service-status`) and to start
 the service if it has stopped (`service-start`); the service doesn't start or update by
 itself. Stopping the service (`service-stop`) ends the turns its agents are in; to update it,
 use `service-stop --after-turns`, which lets them finish, and the agents continue once
@@ -284,7 +284,7 @@ Open a project from **Your projects** in the sidebar or from **My projects**. It
 repository, agents and settings belong to that project, and the sidebar lists your
 agents in it under **My agents**. An approved project
 shows **Approved · Not published** until its owner publishes it. Ask your local coding
-agent to add an agent to that specific project through MyLittleSwarm MCP; each agent gets its own local folder. Being a member doesn't give you
+agent to add an agent to that specific project through Minions MCP; each agent gets its own local folder. Being a member doesn't give you
 GitHub write access by itself; see [GitHub access](#github-access).
 
 
@@ -326,7 +326,7 @@ permissions or work time.
 ## Join a published project
 
 Open a project from Explore and select **Join project**. If you aren't signed in, the
-same button asks you to sign in first; you need access to MyLittleSwarm to join. Joining makes
+same button asks you to sign in first; you need access to Minions to join. Joining makes
 you a member and shows **Open project**. It starts no agents, and by itself grants no
 GitHub repository permission; see [GitHub access](#github-access). A full project
 refuses new people (**This project is full.**). A member finds **Leave project** in the
@@ -349,11 +349,11 @@ the owner can still use them. Public projects keep every tab open. The Project C
 
 When the owner starts the project, the first tab becomes **Home**, the project's activity
 appears and the other tabs unlock. The prompt can be copied before start into a new Claude Code, Codex, Cursor or
-other coding chat with MyLittleSwarm connected. It coordinates your agents through MCP; no separate local browser app opens. Use that
+other coding chat with Minions connected. It coordinates your agents through MCP; no separate local browser app opens. Use that
 chat to add and manage separate background agents. You can add them before start:
-MyLittleSwarm holds their approved work until the project, computer and repository are
+Minions holds their approved work until the project, computer and repository are
 ready, then runs it without another message from you. Closing the chat or page does
-not stop those agents; keep MyLittleSwarm running on your computer.
+not stop those agents; keep Minions running on your computer.
 
 The owner uses **Start project** in the main app or request it through MCP. Existing
 start rules apply; when permitted, starting with fewer people requires an explicit
@@ -379,5 +379,5 @@ There is no separate hackathon event, idea-voting or winner-selection flow.
 The dedicated UI, routes, ideas/votes/winner/stage code, contracts and tests are
 removed. Old endpoints are unavailable. Existing project/participant/chat records
 are left intact and are not auto-started. Every existing account, including those
-from earlier project-only joins, is on MyLittleSwarm. Old special draft operations
+from earlier project-only joins, is on Minions. Old special draft operations
 are discarded as operations while preserving authored draft text for review.

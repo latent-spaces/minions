@@ -23,14 +23,14 @@ export function verifyBundle() {
 
 // No desktop to open a page on: remote shells, CI, and Linux without a display.
 export const canOpenPages = ({ platform = process.platform, env = process.env } = {}) =>
-  !(env.MLSWARM_NO_BROWSER || env.CI || env.SSH_CONNECTION || env.SSH_TTY || (platform === 'linux' && !env.DISPLAY && !env.WAYLAND_DISPLAY));
-// Opens only a MyLittleSwarm page or GitHub's sign-in code page, in the person's default browser. Returns whether an
+  !(env.MINIONS_NO_BROWSER || env.CI || env.SSH_CONNECTION || env.SSH_TTY || (platform === 'linux' && !env.DISPLAY && !env.WAYLAND_DISPLAY));
+// Opens only a Minions page or GitHub's sign-in code page, in the person's default browser. Returns whether an
 // attempt was made; the caller still shows the link, because a launched command is not proof that a page appeared.
 export function openPage(address, { platform = process.platform, env = process.env, spawnImpl = spawn } = {}) {
   let url;
   try { url = new URL(address); } catch { return false; }
-  const mlswarm = trustedWebsiteUrl(url) && (url.pathname === '/' || /^\/s\/[A-Za-z0-9_-]{22}$/.test(url.pathname));
-  if (!mlswarm && url.href !== 'https://github.com/login/device' || !canOpenPages({ platform, env })) return false;
+  const minions = trustedWebsiteUrl(url) && (url.pathname === '/' || /^\/s\/[A-Za-z0-9_-]{22}$/.test(url.pathname));
+  if (!minions && url.href !== 'https://github.com/login/device' || !canOpenPages({ platform, env })) return false;
   const [command, args] = platform === 'darwin' ? ['open', [url.href]] : platform === 'win32' ? ['rundll32', ['url.dll,FileProtocolHandler', url.href]] : ['xdg-open', [url.href]];
   try {
     const child = spawnImpl(command, args, { detached: true, stdio: 'ignore' });

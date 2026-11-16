@@ -2,7 +2,7 @@ import { untrusted } from '../v2/untrusted.js';
 import { createHash } from 'node:crypto';
 import { FieldPath, Filter } from '../firestore.js';
 import * as z from 'zod';
-import type { HumanRequest, HumanRequestPage } from '@mlswarm/contracts';
+import type { HumanRequest, HumanRequestPage } from '@minions/contracts';
 import { agents, collection, currentProjectId, db, inProject, profiles, projectDoc } from '../firestore.js';
 import { cardDoc } from './card.js';
 import { Refusal } from '../errors.js';
@@ -52,7 +52,7 @@ function blockerWithinLimits(input: { question: string; context: string }) {
 function missing(): never { throw new Refusal('not_found', 'This request wasn’t found.'); }
 async function personActive(tx: FirebaseFirestore.Transaction, profileId: string) {
   const p = (await tx.get(profiles.doc(profileId))).data();
-  if (!p || p.removedAt !== null) throw new Refusal('unauthorized', 'Your MyLittleSwarm account is no longer active.');
+  if (!p || p.removedAt !== null) throw new Refusal('unauthorized', 'Your Minions account is no longer active.');
 }
 export async function requestHuman(agentId: string, runId: string, raw: unknown, now: () => number) {
   const input = parse(REQUEST_HUMAN, raw), projectId = currentProjectId();
@@ -178,7 +178,7 @@ export async function answerHumanRequest(profileId: string, id: string, raw: unk
       const signalRef = workSignalDoc(saved.agentId);
       const [signalDoc, runDoc] = await Promise.all([tx.get(signalRef),tx.get(runs().doc(saved.agentId))]);
       const signal = await countedWorkSignal(tx,saved.agentId,signalDoc.data());
-      if (signal.revision >= Number.MAX_SAFE_INTEGER || !Number.isSafeInteger(signal.runnableCount + signal.humanAnswerCount + 1)) throw new Refusal('intent_conflict','Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+      if (signal.revision >= Number.MAX_SAFE_INTEGER || !Number.isSafeInteger(signal.runnableCount + signal.humanAnswerCount + 1)) throw new Refusal('intent_conflict','Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
       const at = now();
       const request: HumanRequest = { ...saved, status:'answered', revision:saved.revision+1, updatedAt:at, answer:{profileId,body,at,...selection} };
       tx.set(ref,request); tx.create(op,{fingerprint,request});
@@ -230,9 +230,9 @@ export async function resolveHumanRequest(agentId: string, runId: string, raw: u
     await assertProjectWritable(tx);
     if (saved.revision !== input.expected_revision || saved.status === 'resolved') throw new Refusal('intent_conflict','This request changed. Read it again, then resolve it.');
     const signalRef = workSignalDoc(agentId), signal = await countedWorkSignal(tx,agentId,(await tx.get(signalRef)).data());
-    if (signal.revision >= Number.MAX_SAFE_INTEGER) throw new Refusal('intent_conflict','Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+    if (signal.revision >= Number.MAX_SAFE_INTEGER) throw new Refusal('intent_conflict','Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
     const humanAnswerCount = signal.humanAnswerCount - Number(saved.status === 'answered');
-    if (humanAnswerCount < 0) throw new Refusal('intent_conflict','Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+    if (humanAnswerCount < 0) throw new Refusal('intent_conflict','Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
     const at = now(), request: HumanRequest = {...saved,status:'resolved',revision:saved.revision+1,updatedAt:at,resolution:{body:input.summary,at}};
     const next = {revision:signal.revision+1,runnable:signal.runnableCount+humanAnswerCount>0};
     tx.set(ref,request); tx.create(op,{fingerprint,request});

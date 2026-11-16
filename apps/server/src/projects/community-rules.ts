@@ -14,7 +14,7 @@ const RULES_EDIT = z.object({
 
 // Public readers receive conduct text and its version, not an author's account metadata.
 export function communityRulesView(rules: CommunityRules | undefined) {
-  if (!rules) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+  if (!rules) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
   return { body: rules.body, version: rules.version, updatedAt: rules.createdAt };
 }
 

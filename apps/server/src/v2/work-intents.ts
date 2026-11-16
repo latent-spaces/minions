@@ -63,9 +63,9 @@ export async function recordWorkIntent(agentId: string, runId: string, raw: unkn
     if (prior && prior.taskId !== taskId) throw new Refusal('bad_input', 'Keep an intent linked to the same task; use a new intent for different work.');
     if (taskId !== null && !(await tx.get(nativeTasks().doc(taskId))).exists) throw new Refusal('not_found', 'This task is unavailable in this project.');
     const signal = await countedWorkSignal(tx, agentId, signalSnapshot.data());
-    if (signal.revision >= Number.MAX_SAFE_INTEGER) throw new Refusal('intent_conflict', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+    if (signal.revision >= Number.MAX_SAFE_INTEGER) throw new Refusal('intent_conflict', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
     const runnableCount = signal.runnableCount + Number(input.state === 'runnable') - Number(prior?.state === 'runnable');
-    if (!Number.isSafeInteger(runnableCount) || runnableCount < 0) throw new Refusal('intent_conflict', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+    if (!Number.isSafeInteger(runnableCount) || runnableCount < 0) throw new Refusal('intent_conflict', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
     const runnable = runnableCount + signal.humanAnswerCount > 0;
     const at = now();
     const intent: WorkIntent = { id: input.intent_id, revision: input.expected_revision + 1,

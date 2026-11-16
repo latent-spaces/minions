@@ -1,4 +1,4 @@
-import type { CommunicationAgent, CommunicationAgentState } from '@mlswarm/contracts';
+import type { CommunicationAgent, CommunicationAgentState } from '@minions/contracts';
 
 export const COMMUNICATION_AGENT_LABELS: Record<CommunicationAgentState, string> = {
   working: 'Working', talking: 'Talking', idle: 'Idle', waiting: 'Waiting', needs_you: 'Needs you', blocked: 'Blocked',

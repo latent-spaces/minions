@@ -28,7 +28,7 @@ export function localOwnerSession({ provider, installed, origin, now = Date.now 
       || (remote !== '127.0.0.1' && remote !== '::ffff:127.0.0.1' && remote !== '::1')
       || !host || req.headers.origin !== `http://${host}` || req.headers['content-type'] !== 'application/json'
       || (req.headers['sec-fetch-site'] !== undefined && req.headers['sec-fetch-site'] !== 'same-origin')) {
-      res.status(403).json({ message: 'Open MyLittleSwarm on this computer at its own address.' }); return;
+      res.status(403).json({ message: 'Open Minions on this computer at its own address.' }); return;
     }
     // Bound secret-signing work across this one-owner loopback service.
     if (now() - windowAt >= 60_000) { windowAt = now(); requests = 0; }

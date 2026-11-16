@@ -1,5 +1,5 @@
 import {useRef,useState,type CSSProperties,type FocusEvent,type PointerEvent,type ReactNode} from 'react';
-import type {ContextNow,UsageAnalytics as Data} from '@mlswarm/contracts';
+import type {ContextNow,UsageAnalytics as Data} from '@minions/contracts';
 import {Button} from './Button';
 import {SOURCES,isSetupSource,requestPressure,suppliedSources,type Source} from './context-metrics';
 
@@ -34,7 +34,7 @@ function Spark({values}:{values:(number|null)[]}){
  return <svg className="usage-spark" viewBox="0 0 64 24" aria-hidden="true"><path d={path}/></svg>;
 }
 
-/** Latest measured turn of each agent: what MyLittleSwarm supplied (bytes) beside request pressure (tokens), never stacked together. */
+/** Latest measured turn of each agent: what Minions supplied (bytes) beside request pressure (tokens), never stacked together. */
 export function AgentNow({now}:{now:ContextNow}){
  const rows=now.agents.map(agent=>{
   const latest=[...agent.turns].reverse().find(t=>t.context),sources=suppliedSources(latest?.context??null);
@@ -46,13 +46,13 @@ export function AgentNow({now}:{now:ContextNow}){
  return <Card title="Now · latest turn per agent" className="usage-now" aside={<span className="usage-aside">Supplied context · share of the context window</span>}>{show=><>
   {!rows.length?<p className="usage-empty">No agent turns reported yet.</p>:<>
    <Legend sources={used}/>
-   {/* Hatched marks are MyLittleSwarm setup, as in Karma42 (owner, 11 November 2026). */}
-   {used.some(s=>isSetupSource(s.key))&&<p className="usage-pattern-key"><span aria-hidden="true" data-setup="true"/>Hatched: MyLittleSwarm setup, the same every turn.</p>}
+   {/* Hatched marks are Minions setup, as in Karma42 (owner, 11 November 2026). */}
+   {used.some(s=>isSetupSource(s.key))&&<p className="usage-pattern-key"><span aria-hidden="true" data-setup="true"/>Hatched: Minions setup, the same every turn.</p>}
    <div className="usage-now-row usage-now-column-labels" aria-hidden="true"><span>Agent</span><span>Supplied context</span><span>Size</span><span>Window</span><span>Trend</span></div>
    <div className="usage-now-rows">{rows.map(({agent,latest,sources,total,pressure,pressures,window,input})=>{const name=agent.agentName??'Agent';return <div key={agent.agentId} className="usage-now-row">
     <span className="usage-now-name">{name}</span>
     <div className="usage-stack" style={{width:`${total/max*100}%`}}>{latest?sources.filter(s=>s.bytes>0).map(s=><Button key={s.key} type="button" className="usage-seg" data-setup={isSetupSource(s.key)||undefined} style={{flexGrow:s.bytes,backgroundColor:s.color}}
-      aria-label={`${name} · ${s.label}: ${kb(s.bytes)}, ${share(s.bytes,total)}`} {...show({title:`${name} · ${s.label}`,lines:[`${kb(s.bytes)} · ${share(s.bytes,total)}`,...(isSetupSource(s.key)?['Hatched · MyLittleSwarm setup']:[]),`Turn ${latest.sequence}`]})}/>):<span className="usage-none">Not measured</span>}</div>
+      aria-label={`${name} · ${s.label}: ${kb(s.bytes)}, ${share(s.bytes,total)}`} {...show({title:`${name} · ${s.label}`,lines:[`${kb(s.bytes)} · ${share(s.bytes,total)}`,...(isSetupSource(s.key)?['Hatched · Minions setup']:[]),`Turn ${latest.sequence}`]})}/>):<span className="usage-none">Not measured</span>}</div>
     <span className="usage-total">{latest?kb(total):''}</span><span className="usage-window" title={window!==null&&input!==null?`${input.toLocaleString()} input tokens of a ${window.toLocaleString()}-token context window`:'The agent did not report its context window'}><Ring value={pressure}/><small>{window!==null?`of ${tokens.format(window)}`:'Not reported'}</small></span><Spark values={pressures}/>
    </div>;})}</div>
   </>}

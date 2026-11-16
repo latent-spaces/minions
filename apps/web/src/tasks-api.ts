@@ -1,5 +1,5 @@
 import type { SessionUser } from './session-identity';
-import type { NativeTaskDetail, NativeTaskMutation, NativeTaskMutationResult, NativeTaskPage, NativeTaskStatus } from '@mlswarm/contracts';
+import type { NativeTaskDetail, NativeTaskMutation, NativeTaskMutationResult, NativeTaskPage, NativeTaskStatus } from '@minions/contracts';
 import { authorizedRequest } from './authorized-request';
 
 /** Requests carry the selected profile and are fenced to the signed-in account, like other person-scoped project writes. */

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { RUN_LENGTH, runLengthLabel } from '@mlswarm/contracts';
+import { RUN_LENGTH, runLengthLabel } from '@minions/contracts';
 import { RunLengthChoice } from './RunLengthChoice';
 import type { SessionUser } from '../session-identity';
 import type { Workspace } from '../project-api';

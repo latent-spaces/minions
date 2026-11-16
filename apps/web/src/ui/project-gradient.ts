@@ -12,7 +12,7 @@ function hash(text: string) {
 
 /** A CSS background: four soft colour fields over a light base, picked and placed by the seed. */
 export function projectGradient(seed: string): string {
-  const h = hash(seed || 'mlswarm');
+  const h = hash(seed || 'minions');
   const colours = [0, 1, 2, 3].map(i => PALETTE[(h >>> (i * 3)) % PALETTE.length]);
   const spots = [0, 1, 2, 3].map(i => SPOTS[(h >>> (12 + i * 3)) % SPOTS.length]);
   const fields = colours.map((colour, i) => `radial-gradient(circle at ${spots[i][0]}% ${spots[i][1]}%, ${colour} 0%, ${colour}00 ${62 + (i * 7)}%)`);

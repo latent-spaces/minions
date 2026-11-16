@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import type { SessionUser } from '../session-identity';
-import type { HumanRequest } from '@mlswarm/contracts';
+import type { HumanRequest } from '@minions/contracts';
 import { popupRequestRows } from './agent-request-popup';
 import { session } from '../api';
 import { mayLeaveProject, projectRoute, type Route } from '../route';

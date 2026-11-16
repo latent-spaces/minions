@@ -16,13 +16,13 @@ const secret = () => randomBytes(32).toString('base64url');
 
 test('owner session, project and two agents exchange a message over HTTP and it survives a restart', async () => {
   const root = mkdtempSync(join(tmpdir(), 'engine http flow ')); chmodSync(root, 0o700);
-  const env: NodeJS.ProcessEnv = { ...process.env, MLSWARM_ENGINE: 'self-hosted', HOST: '127.0.0.1', PORT: '0',
-    MLSWARM_SQLITE_PATH: join(root, 'engine.sqlite'), MLSWARM_BLOB_DIR: join(root, 'media'), MLSWARM_OWNER_FILE: join(root, 'owner.json') };
-  for (const name of ['TRUST_PROXY', 'MLSWARM_TEST_SESSION', 'MLSWARM_TEST_SQLITE_PATH']) delete env[name];
+  const env: NodeJS.ProcessEnv = { ...process.env, MINIONS_ENGINE: 'self-hosted', HOST: '127.0.0.1', PORT: '0',
+    MINIONS_SQLITE_PATH: join(root, 'engine.sqlite'), MINIONS_BLOB_DIR: join(root, 'media'), MINIONS_OWNER_FILE: join(root, 'owner.json') };
+  for (const name of ['TRUST_PROXY', 'MINIONS_TEST_SESSION', 'MINIONS_TEST_SQLITE_PATH']) delete env[name];
   const networkLogs: string[] = [];
   const guarded = (args: string[]) => {
     const log = join(root, `network-${networkLogs.length}.json`); networkLogs.push(log);
-    return { argv: ['--import', networkGuard, ...selfHostedCli(args)], env: { ...env, MLSWARM_TEST_NETWORK_LOG: log } };
+    return { argv: ['--import', networkGuard, ...selfHostedCli(args)], env: { ...env, MINIONS_TEST_NETWORK_LOG: log } };
   };
   const engines: { child: ChildProcess; exit: Promise<number | null> }[] = [];
   async function start() {
@@ -36,11 +36,11 @@ test('owner session, project and two agents exchange a message over HTTP and it 
       child.once('exit', () => { clearTimeout(timer); reject(new Error(`Startup exited: ${errors}`)); });
       child.stdout!.on('data', chunk => { output += chunk; const match = /Standalone engine listening on (http:\/\/127\.0\.0\.1:\d+)/.exec(output); if (match) { clearTimeout(timer); resolve(match[1]); } });
     });
-    return { url, stop: async () => { child.send('mlswarm-stop'); expect(await exit).toBe(0); } };
+    return { url, stop: async () => { child.send('minions-stop'); expect(await exit).toBe(0); } };
   }
   const call = async (url: string, path: string, token?: string, body?: object, profile?: string) => {
     const response = await fetch(url + path, { method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json',
-      ...(token ? { authorization: `Bearer ${token}` } : {}), ...(profile ? { 'X-Mlswarm-Profile-Id': profile } : {}) },
+      ...(token ? { authorization: `Bearer ${token}` } : {}), ...(profile ? { 'X-Minions-Profile-Id': profile } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}) });
     return { status: response.status, body: await response.json() };
   };
@@ -112,7 +112,7 @@ test('owner session, project and two agents exchange a message over HTTP and it 
     expect(networkLogs).toHaveLength(3);
     for (const log of networkLogs) expect(JSON.parse(readFileSync(log, 'utf8')), log).toEqual([]);
   } finally {
-    for (const { child, exit } of engines) if (child.exitCode === null) { child.send('mlswarm-stop'); await exit; }
+    for (const { child, exit } of engines) if (child.exitCode === null) { child.send('minions-stop'); await exit; }
     rmSync(root, { recursive: true, force: true });
   }
 }, 90_000);

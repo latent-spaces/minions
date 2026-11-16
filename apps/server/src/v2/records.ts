@@ -71,9 +71,9 @@ export type Run = {
 };
 
 export type Phase = 'idle' | 'turn' | 'backoff' | 'paused' | 'stopping';
-type CoordinationContext = import('@mlswarm/contracts').ContextSummary;
+type CoordinationContext = import('@minions/contracts').ContextSummary;
 export type TurnUsage = {
-  nativeContext?:import('@mlswarm/contracts').NativeContextObservation;
+  nativeContext?:import('@minions/contracts').NativeContextObservation;
   sequence: number; model: string | null; seconds: number; costUsd?: number | null;
   provider?: 'claude' | 'codex'; modelSource?: 'provider-report' | 'client-selected' | 'provider-rerouted' | 'unknown';
   inputSemantics?: 'uncached' | 'includes-cache'; toolCalls?: number; toolScope?: 'provider-stream' | 'mcp-bridge' | 'partial';

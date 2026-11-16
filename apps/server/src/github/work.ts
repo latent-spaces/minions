@@ -78,7 +78,7 @@ export async function ingestGitHub(resource: GitHubResource, raw: Buffer, delive
     const identity = githubNumberIdentity(runtimeOf(project.data())!.repoUrl, incoming.number);
     if (incoming.repoUrl !== identity.repoUrl) throw new Refusal('forbidden', 'The event is outside this project repository.');
     const context = contextSnap.data();
-    if (context?.repoUrl === identity.repoUrl && context.repositoryId !== binding.repositoryId) throw new Refusal('forbidden', 'The project’s GitHub repository changed. Ask the MyLittleSwarm team to reconnect it.');
+    if (context?.repoUrl === identity.repoUrl && context.repositoryId !== binding.repositoryId) throw new Refusal('forbidden', 'The project’s GitHub repository changed. Ask the Minions team to reconnect it.');
     if (receipt.exists) {
       if (receipt.data()!.fingerprint !== fingerprint) throw new Refusal('delivery_conflict', 'This delivery ID has different content.');
       return { ...receipt.data()!.result, replayed: true };

@@ -4,7 +4,7 @@ import { runnerUsage } from '../v2/records.js';
 // no read marker, inbox or cursor moves.
 import { conversationSource } from './conversation-source.js';
 import { conversationEntries, type ConversationEntry } from '../projects/steering.js';
-import { personaChoice } from '@mlswarm/contracts';
+import { personaChoice } from '@minions/contracts';
 import { publicPersonAppearance } from '../community/profile-photo-ref.js';
 import { Refusal } from '../errors.js';
 import { agents, currentProjectId, db, profiles, type Profile } from '../firestore.js';

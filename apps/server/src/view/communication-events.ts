@@ -1,5 +1,5 @@
 import { FieldPath, Filter } from '../firestore.js';
-import type { CommunicationEvent } from '@mlswarm/contracts';
+import type { CommunicationEvent } from '@minions/contracts';
 import { collection, currentProjectId } from '../firestore.js';
 import { Refusal } from '../errors.js';
 import { humanRequests } from '../projects/human-requests.js';

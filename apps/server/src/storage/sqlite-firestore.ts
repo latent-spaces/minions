@@ -287,7 +287,7 @@ export class CollRef extends Query {
 
 export class DocRef {
   // firestore.ts recognizes stored references by this brand without importing this module.
-  get [Symbol.for('mlswarm.sqliteDocumentReference')]() { return true; }
+  get [Symbol.for('minions.sqliteDocumentReference')]() { return true; }
   constructor(public db: SqliteFirestore, public path: string, public converter: any = null) {
     if (path.split('/').length % 2 !== 0) throw new Error(`Invalid document path ${path}`);
   }

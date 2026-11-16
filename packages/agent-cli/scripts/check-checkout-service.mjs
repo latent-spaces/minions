@@ -11,7 +11,7 @@ import { randomUUID, randomBytes } from 'node:crypto';
 import { createRequire } from 'node:module';
 const exec=promisify(execFile), packageRoot=fileURLToPath(new URL('../',import.meta.url));
 const packageVersion=JSON.parse(await readFile(join(packageRoot,'package.json'),'utf8')).version;
-const root=await realpath(await mkdtemp(join(tmpdir(),'mlswarm-checkout-service-')));
+const root=await realpath(await mkdtemp(join(tmpdir(),'minions-checkout-service-')));
 const home=join(root,'service'), credentials=join(root,'credentials');
 let server, cli, env, clients=[], site;
 const cloudRuns=new Map(), stopped=new Set(), ownerId='synthetic-owner';
@@ -58,9 +58,9 @@ try{
     }catch{return reply({error:'synthetic_fixture_error'},500);}
   });
   await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));site=`http://127.0.0.1:${server.address().port}`;
-  env={...process.env,MLSWARM_SERVICE_HOME:home,MLSWARM_CREDENTIAL_HOME:credentials,MLSWARM_SITE_URL:site,MLSWARM_NO_BROWSER:'1'};
+  env={...process.env,MINIONS_SERVICE_HOME:home,MINIONS_CREDENTIAL_HOME:credentials,MINIONS_SITE_URL:site,MINIONS_NO_BROWSER:'1'};
   state.ensureHome(credentials);state.ensureHome(join(credentials,'owners'));state.ensureHome(join(credentials,'owners',state.digest(site)));
-  state.writePrivate(join(credentials,'owners',state.digest(site),'owner.json'),{schema:'mlswarm-owner-1',origin:site,requestId:randomUUID(),token:randomBytes(32).toString('base64url'),status:'approved',personId:ownerId,personName:'Synthetic owner'});
+  state.writePrivate(join(credentials,'owners',state.digest(site),'owner.json'),{schema:'minions-owner-1',origin:site,requestId:randomUUID(),token:randomBytes(32).toString('base64url'),status:'approved',personId:ownerId,personName:'Synthetic owner'});
   for(let i=0;i<2;i++){
     const projectId=String(i+1).repeat(64),agentId=`synthetic-${i}`,url=`${site}/p/${projectId}`,folder=join(root,`checkout-${i}`);await mkdir(folder);
     const token=randomBytes(32).toString('base64url'),id=session.sessionId(url,agentId),dir=state.connectionDir(credentials,id);
@@ -69,7 +69,7 @@ try{
   }
   assert.equal((await run(['--version'])).stdout.trim(),packageVersion);
   const skillBundle=JSON.parse((await run(['skill','--json'])).stdout);
-  for(const [file,text] of Object.entries(skillBundle.files)) assert.equal(await readFile(join(installed,'skills/mlswarm',file),'utf8'),text);
+  for(const [file,text] of Object.entries(skillBundle.files)) assert.equal(await readFile(join(installed,'skills/minions',file),'utf8'),text);
   await assert.rejects(run(['mcp-serve']),()=>true);
   const start=JSON.parse((await run(['service-start'])).stdout);assert.equal(start.running,true);
   const endpointModule=await importInstalled('service/endpoint-file.mjs');const endpoint=endpointModule.readRuntimeEndpoint(home);
@@ -88,15 +88,15 @@ try{
   for(const name of ['get_agent_run_log','get_agent_run_diagnostics','recover_agent_run'])assert.ok(catalogs[0].tools.some(t=>t.name===name));
   const call=async(client,name,args={})=>parse(await client.callTool({name,arguments:args}));
   const guideText=reply=>{assert.ok(!reply.isError);return reply.content[0].text;};
-  assert.equal(guideText(await clients[0].callTool({name:'get_mlswarm_guide',arguments:{}})),skillBundle.content);
+  assert.equal(guideText(await clients[0].callTool({name:'get_minions_guide',arguments:{}})),skillBundle.content);
   for(const file of Object.keys(skillBundle.files).filter(file=>file.startsWith('references/'))){
     const section=file.slice('references/'.length,-3);
-    assert.equal(guideText(await clients[1].callTool({name:'get_mlswarm_guide',arguments:{section}})),skillBundle.files[file]);
+    assert.equal(guideText(await clients[1].callTool({name:'get_minions_guide',arguments:{section}})),skillBundle.files[file]);
     assert.equal((await run(['skill','--section',section])).stdout.trimEnd(),skillBundle.files[file].trimEnd());
   }
   const userHome=join(root,'synthetic-clients');await mkdir(join(userHome,'.codex'),{recursive:true});await mkdir(join(userHome,'.claude'),{recursive:true});
   const {connectClients}=await importInstalled('client-setup.mjs');const connected=connectClients({home,userHome,env:{}});assert.ok(connected.every(result=>result.connected),JSON.stringify(connected));
-  for(const client of ['.claude','.agents'])for(const [file,text]of Object.entries(skillBundle.files))assert.equal(await readFile(join(userHome,client,'skills/mlswarm',file),'utf8'),text);
+  for(const client of ['.claude','.agents'])for(const [file,text]of Object.entries(skillBundle.files))assert.equal(await readFile(join(userHome,client,'skills/minions',file),'utf8'),text);
   // Read the checkout's mission-pinned workflows through a real scoped worker MCP
   // connection, with a synthetic active turn and no native/provider execution.
   const workerGuide=await importInstalled('worker-guidance.mjs');
@@ -115,11 +115,11 @@ try{
   const guideClient=new Client({name:'synthetic-checkout-worker-guide',version:'test'});
   try{
     await guideClient.connect(new StreamableHTTPClientTransport(new URL(workerEndpoint.url),{requestInit:{headers:{Authorization:`Bearer ${workerEndpoint.token}`}}}));
-    const workerNames=(await guideClient.listTools()).tools.map(tool=>tool.name);assert.ok(workerNames.includes('get_mlswarm_guide'));assert.ok(workerNames.includes('upload_project_image'));assert.ok(!workerNames.includes('make_project_public'));assert.ok(!workerNames.includes('control_agent'));
-    assert.equal((await guideClient.callTool({name:'get_mlswarm_guide',arguments:{section:'project-work'}})).isError,true);
+    const workerNames=(await guideClient.listTools()).tools.map(tool=>tool.name);assert.ok(workerNames.includes('get_minions_guide'));assert.ok(workerNames.includes('upload_project_image'));assert.ok(!workerNames.includes('make_project_public'));assert.ok(!workerNames.includes('control_agent'));
+    assert.equal((await guideClient.callTool({name:'get_minions_guide',arguments:{section:'project-work'}})).isError,true);
     await call(guideClient,'get_project');
-    for(const section of workerGuide.WORKER_GUIDE_SECTIONS)assert.ok(guideText(await guideClient.callTool({name:'get_mlswarm_guide',arguments:{section}})).endsWith(skillBundle.files[`references/${section}.md`]));
-    assert.equal((await guideClient.callTool({name:'get_mlswarm_guide',arguments:{section:'computer'}})).isError,true);
+    for(const section of workerGuide.WORKER_GUIDE_SECTIONS)assert.ok(guideText(await guideClient.callTool({name:'get_minions_guide',arguments:{section}})).endsWith(skillBundle.files[`references/${section}.md`]));
+    assert.equal((await guideClient.callTool({name:'get_minions_guide',arguments:{section:'computer'}})).isError,true);
   }finally{await guideClient.close();await workerEndpoint.revoke();await operations.release({kind:'worker',target:workerMission.target,missionId:workerMission.missionId,generation:1});await guideService.close();}
   assert.equal(registrationCalls,0);assert.equal(modelCalls,0);
   const records=[];
@@ -186,12 +186,12 @@ try{
   assert.equal(registrationCalls,2,'Restart must not reactivate participation');assert.equal(modelCalls,0);
   assert.equal(JSON.parse((await run(['service-stop'])).stdout).stopped,true);
   const report={version:packageVersion,checkout:packageRoot,toolCount:catalogs[0].tools.length,catalogCharacters:JSON.stringify(catalogs[0].tools).length,guideRevision:JSON.parse((await run(['skill','--json'])).stdout).guide_revision,projects:2,registrations:registrationCalls,modelRuns:0,passed:['checkout-connector','retired-command-refused','detached-shared-service','two-HTTP-clients','separate-project-identities','explicit-current-chat-grants','durable-terminal-delivery','native-auth-helper-config','stable-restart-no-auto-work','private-run-evidence-restart-read','read-only-recovery-CLI','owner-approved-recovery-CLI-exact-retry','paused-restart-refuses-resume','authenticated-stop']};
-  const output=process.env.MLSWARM_CHECKOUT_EVIDENCE;if(output)await writeFile(output,JSON.stringify(report,null,2)+'\n');
+  const output=process.env.MINIONS_CHECKOUT_EVIDENCE;if(output)await writeFile(output,JSON.stringify(report,null,2)+'\n');
   console.log(JSON.stringify(report,null,2));
 }catch(error){console.error(error.stack);process.exitCode=1;}
 finally{
   await Promise.allSettled(clients.map(c=>c.close()));
   if(cli&&env)try{await run(['service-stop']);}catch{}
   if(server){server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
-  if(!process.env.MLSWARM_KEEP_CHECKOUT_TEST)await rm(root,{recursive:true,force:true});
+  if(!process.env.MINIONS_KEEP_CHECKOUT_TEST)await rm(root,{recursive:true,force:true});
 }

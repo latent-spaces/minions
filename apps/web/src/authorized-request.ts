@@ -14,7 +14,7 @@ const coalescedReads = new WeakMap<SessionUser, Map<string, { until: number; pen
 // in the others. Only the account id, read base and retry time cross tabs, never a response.
 const heldElsewhere = new Map<string, number>();
 const MAX_HOLD_MS = 300_000;
-const tabs = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('mlswarm-read-holds');
+const tabs = typeof BroadcastChannel === 'undefined' ? null : new BroadcastChannel('minions-read-holds');
 (tabs as { unref?: () => void } | null)?.unref?.();
 tabs?.addEventListener('message', event => {
   const { uid, base, until } = (event as MessageEvent).data ?? {};
@@ -65,11 +65,11 @@ async function send<T>(user: SessionUser, base: string, path: string, body: obje
   const timeout = AbortSignal.timeout(body === undefined ? 15_000 : 30_000);
   // A write that times out may still have been applied. Answer like a 5xx, which screens treat as unconfirmed;
   // writes with a client_request_id can safely be sent again (owner selection, 30 October 2026).
-  const unconfirmed = () => new ApiError(504, 'MyLittleSwarm didn’t confirm this change in time. It may still have been saved. Check, then try the same change again.', 'not_confirmed');
+  const unconfirmed = () => new ApiError(504, 'Minions didn’t confirm this change in time. It may still have been saved. Check, then try the same change again.', 'not_confirmed');
   try {
     res = await fetch(`${base}${path}`, {
       method: body === undefined ? 'GET' : 'POST',
-      headers: { authorization: `Bearer ${token}`, ...(ownProfileId ? { 'X-Mlswarm-Profile-Id': ownProfileId } : {}), ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
+      headers: { authorization: `Bearer ${token}`, ...(ownProfileId ? { 'X-Minions-Profile-Id': ownProfileId } : {}), ...(body === undefined ? {} : { 'content-type': 'application/json' }) },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
       signal: signal ?? timeout,
     });

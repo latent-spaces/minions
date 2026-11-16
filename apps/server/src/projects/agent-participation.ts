@@ -1,5 +1,5 @@
 import { prepareCurrentStateProgress } from '../view/current-state-progress.js';
-import type { AgentPersona, AgentParticipationContext } from '@mlswarm/contracts';
+import type { AgentPersona, AgentParticipationContext } from '@minions/contracts';
 import { z } from 'zod';
 import { agents, currentProjectId, db, type Agent } from '../firestore.js';
 import { Refusal } from '../errors.js';

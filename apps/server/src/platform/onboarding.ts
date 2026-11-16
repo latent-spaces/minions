@@ -1,5 +1,5 @@
 import { isPrivateProject } from '../projects/schema.js';
-import { ONBOARDING_STEPS, type OnboardingTimings, type OnboardingStep } from '@mlswarm/contracts';
+import { ONBOARDING_STEPS, type OnboardingTimings, type OnboardingStep } from '@minions/contracts';
 import { z } from 'zod';
 import { db, profiles } from '../firestore.js';
 import { assertCommunityActor, type CommunityActor } from '../community/identity.js';

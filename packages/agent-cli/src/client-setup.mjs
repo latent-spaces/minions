@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -43,7 +43,7 @@ function readJson(path) {
 
 function parses(text) { try { parse(text); return true; } catch { return false; } }
 const replaced = name => entry => entry === name || RETIRED_NAME.test(entry);
-// The settings without the mlswarm entry and the retired per-engine ones, as plain objects to compare; an mcp_servers
+// The settings without the minions entry and the retired per-engine ones, as plain objects to compare; an mcp_servers
 // left empty counts as absent, as in a file that never had it.
 function withoutEntry(settings, name) {
   settings = structuredClone(settings);
@@ -86,7 +86,13 @@ export function withCodexEntry(text, table) {
   return result;
 }
 
+// The pre-rename mlswarm skill that setup installed, unchanged, goes; one the person changed stays.
+function retireOldSkill(path) {
+  if (['current', 'update_available'].includes(installedSkill({ path }, BUNDLED_SKILL).status)) rmSync(dirname(path), { recursive: true, force: true });
+}
+
 function installSkill(path) {
+  retireOldSkill(join(dirname(dirname(path)), 'mlswarm', 'SKILL.md'));
   const installed = installedSkill({ path }, BUNDLED_SKILL), { status } = installed;
   if (status === 'current') return null;
   if (['not_installed', 'update_available', 'incomplete'].includes(status)) {
@@ -97,15 +103,15 @@ function installSkill(path) {
       try {
         const existing = readInstalledGuideFile(root, file);
         const upgradingKnownFile = status === 'update_available' && (file === 'SKILL.md' || installed.references_sha256);
-        if (!upgradingKnownFile && skillTextHash(existing) !== skillTextHash(content)) return `kept your own MyLittleSwarm skill at ${path}`;
-      } catch (error) { if (error.code !== 'ENOENT') return `kept your own MyLittleSwarm skill at ${path}`; }
+        if (!upgradingKnownFile && skillTextHash(existing) !== skillTextHash(content)) return `kept your own Minions skill at ${path}`;
+      } catch (error) { if (error.code !== 'ENOENT') return `kept your own Minions skill at ${path}`; }
     }
     // References first: once the new router is visible, all its links exist.
     for (const [file, content] of Object.entries(files)) if (file !== 'SKILL.md') replace(join(root, file), content);
     replace(path, files['SKILL.md']);
     return null;
   }
-  return `kept your own MyLittleSwarm skill at ${path}`;
+  return `kept your own Minions skill at ${path}`;
 }
 
 function connectClaude({ home, userHome }) {
@@ -116,10 +122,10 @@ function connectClaude({ home, userHome }) {
   if (!isDeepStrictEqual(current[config.name], config.entry) || Object.keys(kept).length !== Object.keys(current).length)
     replace(registry, `${JSON.stringify({ ...servers, mcpServers: { ...kept, [config.name]: config.entry } }, null, 2)}\n`);
   allowTools(userHome, config.name);
-  return installSkill(join(userHome, '.claude', 'skills', 'mlswarm', 'SKILL.md'));
+  return installSkill(join(userHome, '.claude', 'skills', 'minions', 'SKILL.md'));
 }
 
-// MyLittleSwarm asks the person in chat before important actions, so Claude Code need not ask again for each tool.
+// Minions asks the person in chat before important actions, so Claude Code need not ask again for each tool.
 // The retired per-engine permissions go with their entries.
 function allowTools(userHome, name) {
   const path = join(userHome, '.claude', 'settings.json'), settings = readJson(path), allow = settings.permissions?.allow ?? [];
@@ -140,21 +146,21 @@ function writeCodexEntry({ home, codexHome }) {
 
 function connectCodex({ home, userHome, codexHome }) {
   writeCodexEntry({ home, codexHome });
-  return installSkill(join(userHome, '.agents', 'skills', 'mlswarm', 'SKILL.md'));
+  return installSkill(join(userHome, '.agents', 'skills', 'minions', 'SKILL.md'));
 }
 
 const codexFolder = (userHome, env) => isAbsolute(env.CODEX_HOME ?? '') ? env.CODEX_HOME : join(userHome, '.codex');
 
-// Writes the mlswarm table into Codex's user config.toml when Codex is on this computer, replacing the retired
+// Writes the minions table into Codex's user config.toml when Codex is on this computer, replacing the retired
 // per-engine tables (owner decision, 14 November 2026). Returns missing, current or registered.
 export function registerWithCodex({ home, userHome = homedir(), env = process.env } = {}) {
   const codexHome = codexFolder(userHome, env);
-  if (!existsSync(codexHome)) return { status: 'missing', name: 'mlswarm' };
+  if (!existsSync(codexHome)) return { status: 'missing', name: 'minions' };
   return writeCodexEntry({ home, codexHome });
 }
 
 // Connects every coding client found on this computer to the shared service: its registration, its
-// permission for MyLittleSwarm's tools and the bundled skill. A skill the person changed is kept.
+// permission for Minions's tools and the bundled skill. A skill the person changed is kept.
 export function connectClients({ home, userHome = homedir(), env = process.env } = {}) {
   const codexHome = codexFolder(userHome, env);
   const clients = [
@@ -184,7 +190,7 @@ function claudeCommand(args, { env = process.env, platform = process.platform } 
 // Registers this installation's HTTP entry in Claude Code's user settings through the claude command, the way
 // mcp-config tells a person to (owner decision, 13 November 2026). An entry with this installation's address is left
 // as it is; one with another address, from an earlier service, is replaced. The retired per-engine entries are
-// removed, so the computer keeps one mlswarm entry (owner decision, 14 November 2026). Returns missing, current or
+// removed, so the computer keeps one minions entry (owner decision, 14 November 2026). Returns missing, current or
 // registered.
 export function registerWithClaudeCode({ home, userHome = homedir(), run = claudeCommand } = {}) {
   const config = reusableConfiguration({ client: 'claude', home });

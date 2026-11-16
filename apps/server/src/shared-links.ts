@@ -15,8 +15,8 @@ const validCode = /^[A-Za-z0-9_-]{22}$/;
 // the app moved to the root name /viewer/?…; they still resolve, and /viewer/ redirects to the root.
 export function sharedDestination(path: string): boolean {
   if (!/^\/(?:viewer\/)?\?/.test(path) || path.length > 4096 || /[\s\x00-\x1f\x7f\\#]/.test(path)) return false;
-  const url = new URL(path, 'https://mlswarm.invalid');
-  return (url.pathname === '/' || url.pathname === '/viewer/') && url.origin === 'https://mlswarm.invalid';
+  const url = new URL(path, 'https://minions.invalid');
+  return (url.pathname === '/' || url.pathname === '/viewer/') && url.origin === 'https://minions.invalid';
 }
 
 // The app used to live under /viewer/. Saved links, project updates and older connectors still name it, so those
@@ -28,7 +28,7 @@ export function legacyAppRedirect(req: express.Request, res: express.Response): 
 
 /** A stable 22-character hash alias. Destination authorization, confirmation and expiry still apply. */
 export async function shortSharedLink(path: string): Promise<string> {
-  if (!sharedDestination(path)) throw new Refusal('bad_input', 'Choose a MyLittleSwarm page to share.');
+  if (!sharedDestination(path)) throw new Refusal('bad_input', 'Choose a Minions page to share.');
   const code = createHash('sha256').update(`mlswarm-share-v1:${path}`).digest('base64url').slice(0, 22);
   await db.runTransaction(async tx => {
     const ref = links.doc(code), previous = await tx.get(ref);
@@ -53,8 +53,8 @@ export function sharedLinkRoutes(now: () => number) {
       const retry = limit(req.ip ?? 'unknown', now());
       if (retry) { res.set('Retry-After', String(Math.ceil(retry / 1000))).status(429).json({ message: 'Please wait before sharing another link.' }); return; }
       const input = z.object({ path: z.string() }).strict().safeParse(req.body);
-      if (!input.success) { res.status(400).json({ message: 'Choose a MyLittleSwarm page to share.' }); return; }
-      if (!sharedDestination(input.data.path)) throw new Refusal('bad_input', 'Choose a MyLittleSwarm page to share.');
+      if (!input.success) { res.status(400).json({ message: 'Choose a Minions page to share.' }); return; }
+      if (!sharedDestination(input.data.path)) throw new Refusal('bad_input', 'Choose a Minions page to share.');
       await personFromIdToken(token);
       res.json({ path: await shortSharedLink(input.data.path) });
     } catch (error) {

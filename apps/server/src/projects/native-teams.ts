@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { FieldPath, FieldValue, type Transaction } from '../firestore.js';
 import { z } from 'zod';
-import type { NativeTeam, NativeTeamMember, NativeTeamActivity, NativeTeamDetail, NativeTeamMutationResult, NativeTeamPage } from '@mlswarm/contracts';
+import type { NativeTeam, NativeTeamMember, NativeTeamActivity, NativeTeamDetail, NativeTeamMutationResult, NativeTeamPage } from '@minions/contracts';
 import { agents, currentProjectId, db, projectCollection } from '../firestore.js';
 import { Refusal } from '../errors.js';
 import { assertMembership } from './access.js';

@@ -4,7 +4,7 @@ The standalone entry runs the API and delivery worker in one process, backed by
 one local SQLite database and a private media directory. It serves the local app
 on `http://127.0.0.1:8787/` and accepts loopback connections only. Use
 Node.js 24 or newer, Git and a local filesystem; a network share is not supported.
-It needs no cloud account. This engine is the only way MyLittleSwarm runs.
+It needs no cloud account. This engine is the only way Minions runs.
 
 The first initialized profile is an ordinary participant. Local ownership of the
 engine does not grant platform admin or repository review authority. The engine
@@ -22,7 +22,7 @@ npm run setup
 The command:
 
 1. checks the engine port: 8787 (or a port saved by an earlier run, or an explicit
-   `MLSWARM_ENGINE_PORT`). When another program holds it, setup stops, names that
+   `MINIONS_ENGINE_PORT`). When another program holds it, setup stops, names that
    program and stops nothing; it never moves to another port. On a first run it also checks the owner identity (below) before
    installing anything;
 2. runs `npm ci` unless npm's record of a finished install
@@ -40,7 +40,7 @@ activity and errors go to `engine.log` in the engine directory; if the engine st
 during startup, the command shows what it wrote there. The engine runs detached in
 the background, so it keeps running after the command, the terminal or the coding
 session that ran it ends; `npm run stop` stops it. The port it ran on is saved in
-`engine-settings.json`, so later runs reuse it unless `MLSWARM_ENGINE_PORT` names
+`engine-settings.json`, so later runs reuse it unless `MINIONS_ENGINE_PORT` names
 another. Running it again later rebuilds, keeps the existing database and connector
 installation, starts the engine and opens the local app again. Running it while
 the engine already runs (from another window) starts nothing: it opens the local
@@ -50,7 +50,7 @@ connector is already set up. It starts no model.
 The local app has one person, the owner, so it opens without a sign-in step. A
 page the engine serves at its own loopback address gets the owner's session from
 the engine; other websites and other hosts are refused. Without a desktop (over
-SSH, in CI, or with `MLSWARM_NO_BROWSER=1`) the command prints the address to open.
+SSH, in CI, or with `MINIONS_NO_BROWSER=1`) the command prints the address to open.
 
 The connector's `setup` signs in with no human step: it asks the engine for the
 owner's local session the same way and reads the owner's name. The engine's
@@ -73,7 +73,7 @@ background until `npm run stop`, whether Claude Code was registered, the `tool`
 fallback, and the connector's `mcp-config` command only for clients that were not
 registered (Codex or another client, or Claude Code when it was not registered). It
 reminds you to sign in to GitHub with `gh auth login` for project work. Other clients' settings, the
-MyLittleSwarm skill and GitHub sign-in are not changed by this command.
+Minions skill and GitHub sign-in are not changed by this command.
 
 The owner's name and email come from `--owner-name` and `--owner-email`
 (`npm run setup -- --owner-name 'Your Name' --owner-email you@example.com`), or
@@ -83,9 +83,9 @@ prints which identity it used. They are only needed on the first run.
 ### Where the files are
 
 Engine files and the connector's separate credentials live in one private
-directory: `~/.mlswarm/engine` on macOS and Linux, `%USERPROFILE%\.mlswarm\engine`
-on Windows. Set `MLSWARM_ENGINE_HOME` to an absolute path to choose another, and
-`MLSWARM_ENGINE_PORT` to use a port other than 8787 (or the port a first run chose and
+directory: `~/.minions/engine` on macOS and Linux, `%USERPROFILE%\.minions\engine`
+on Windows. Set `MINIONS_ENGINE_HOME` to an absolute path to choose another, and
+`MINIONS_ENGINE_PORT` to use a port other than 8787 (or the port a first run chose and
 saved). Keep both settings the same on later runs: the connector installation is bound
 to the engine address.
 
@@ -109,7 +109,7 @@ Initialization never migrates or repairs a store. A first run interrupted during
 initialization leaves `engine.sqlite` without `owner.json` (or a database without
 its records); the next run refuses it, changes nothing and says so. If nothing in
 the engine directory needs keeping, remove it (or choose a new
-`MLSWARM_ENGINE_HOME`) and run the command again.
+`MINIONS_ENGINE_HOME`) and run the command again.
 
 ## Owner sessions
 
@@ -121,7 +121,7 @@ a minute. Sessions last twelve hours. To end every issued session, replace the
 private signing secret or advance its `validAfter` timestamp and restart the engine.
 
 `node apps/server/dist/self-hosted-main.js check-running --url http://127.0.0.1:8787`,
-with the same `MLSWARM_*` settings the engine was started with, exits 0 only when
+with the same `MINIONS_*` settings the engine was started with, exits 0 only when
 the engine at that address signs sessions with this owner file's secret. `npm run
 setup` uses it to recognize that a busy port is its own engine.
 
@@ -155,11 +155,11 @@ survives a closed terminal.
 ## Connector commands for this installation
 
 The connector installation created by the command keeps its service state and
-credentials apart from a default connector installation in `~/.mlswarm/service` and
-`~/.mlswarm/mcp`, in the two directories above. It is not fully separate: its project
-folders use the same workspace as a default installation, `~/mlswarm/main` and
-`~/mlswarm/projects/<project>` (under `%USERPROFILE%` on Windows), because only an
-enrolled HTTPS origin gets its own `~/mlswarm/instances/<id>` workspace. None of these
+credentials apart from a default connector installation in `~/.minions/service` and
+`~/.minions/mcp`, in the two directories above. It is not fully separate: its project
+folders use the same workspace as a default installation, `~/minions/main` and
+`~/minions/projects/<project>` (under `%USERPROFILE%` on Windows), because only an
+enrolled HTTPS origin gets its own `~/minions/instances/<id>` workspace. None of these
 folders is shared with an everyday Karma42 install (`~/.karma42`, `~/karma42`), the
 product's earlier name; nothing is read from or moved out of those folders. Address the installation with the same
 two settings the command prints:
@@ -167,26 +167,26 @@ two settings the command prints:
 macOS or Linux:
 
 ```sh
-export MLSWARM_SERVICE_HOME="$HOME/.mlswarm/engine/connector-service"
-export MLSWARM_CREDENTIAL_HOME="$HOME/.mlswarm/engine/connector-credentials"
+export MINIONS_SERVICE_HOME="$HOME/.minions/engine/connector-service"
+export MINIONS_CREDENTIAL_HOME="$HOME/.minions/engine/connector-credentials"
 node packages/agent-cli/src/cli.mjs mcp-config --client claude
 ```
 
 Windows PowerShell:
 
 ```powershell
-$env:MLSWARM_SERVICE_HOME = Join-Path $env:USERPROFILE '.mlswarm\engine\connector-service'
-$env:MLSWARM_CREDENTIAL_HOME = Join-Path $env:USERPROFILE '.mlswarm\engine\connector-credentials'
+$env:MINIONS_SERVICE_HOME = Join-Path $env:USERPROFILE '.minions\engine\connector-service'
+$env:MINIONS_CREDENTIAL_HOME = Join-Path $env:USERPROFILE '.minions\engine\connector-credentials'
 node packages/agent-cli/src/cli.mjs mcp-config --client claude
 ```
 
 Use `--client codex` or `--client other` as appropriate and follow the printed
-instructions to add the `mlswarm` connection (a test engine in its own
-`MLSWARM_ENGINE_HOME` is not registered by setup, so this replaces your everyday one). Preserve your
+instructions to add the `minions` connection (a test engine in its own
+`MINIONS_ENGINE_HOME` is not registered by setup, so this replaces your everyday one). Preserve your
 other connections, including an everyday Karma42 install's `karma42` entry, and never
 copy credential-file contents into client settings. Client registration does not approve a background mission; model
 execution still requires its own approval. `service-status` and `service-stop`
-inspect or stop only this installation. Leave `MLSWARM_SELF_HOSTED_ORIGIN` unset:
+inspect or stop only this installation. Leave `MINIONS_SELF_HOSTED_ORIGIN` unset:
 HTTPS origin enrollment is for independently hosted services, and the loopback
 engine uses its literal origin. See the [connector README](../packages/agent-cli/README.md)
 for service lifecycle, client requirements and project workspace behavior.

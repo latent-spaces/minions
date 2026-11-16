@@ -3,7 +3,7 @@ import { FieldPath } from '../firestore.js';
 import { collection, db, currentProjectId } from '../firestore.js';
 import { turnReceipts } from '../v2/records.js';
 import { emptyValues, mergeValues, turnValues } from './values.js';
-import type { AnalyticsValues } from '@mlswarm/contracts';
+import type { AnalyticsValues } from '@minions/contracts';
 export const METRICS_VERSION = 1;
 export type MetricsBucket = AnalyticsValues & {schema:1;day:string;projectId:string;provider:string;model:string|null;projectedAt:number};
 const namespace=(kind:string,version:number)=>{if(!Number.isSafeInteger(version)||version<1||version>999)throw new Error('Invalid metrics projection version.');return `usageMetrics${kind}V${version}`;};

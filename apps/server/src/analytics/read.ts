@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { UsageAnalytics } from '@mlswarm/contracts';
+import type { UsageAnalytics } from '@minions/contracts';
 import { db, currentProjectId } from '../firestore.js';
 import { assertMembership } from '../projects/access.js';
 import { assertCommunityActor, type CommunityActor } from '../community/identity.js';
@@ -42,7 +42,7 @@ async function read(raw:unknown,platform:boolean,now:()=>number):Promise<UsageAn
     for(const [index,group] of [...groups.values()].entries()) group.label=labels[index]?.data()?.definition.title??group.label;
   }
   return {schema:1,timeBasis:'reported-completion-utc',scope:platform?'platform':'project',projectId:projectId??null,
-    from:input.from,to:input.to,generatedAt:now(),lastProjectedAt,coverage:'projected-received-reports',historyCoverage:'not-verified',pendingReports:pending.data().count,pendingReportsCapped:pending.data().count===2001,contextScope:'partial-mlswarm-supplied',
+    from:input.from,to:input.to,generatedAt:now(),lastProjectedAt,coverage:'projected-received-reports',historyCoverage:'not-verified',pendingReports:pending.data().count,pendingReportsCapped:pending.data().count===2001,contextScope:'partial-minions-supplied',
     totals,points:[...points.values()],groups:[...groups.values()].sort((a,b)=>b.reports-a.reports)};
 }
 export async function authorizeProjectAnalytics(operatorId:string) {

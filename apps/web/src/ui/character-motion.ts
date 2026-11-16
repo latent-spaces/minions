@@ -1,5 +1,5 @@
 import { stableHash } from './avatar-tone.js';
-import type { CommunicationAgentState } from '@mlswarm/contracts';
+import type { CommunicationAgentState } from '@minions/contracts';
 
 export type CharacterClip = 'neutral' | 'blink' | 'work-enter' | 'work-loop' | 'stop' | 'needs-you' | 'blocked' | 'message';
 export type PoseBank = 'directions' | 'reactions' | 'actions';

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { COMMUNICATION_BOUNDS } from '@mlswarm/contracts';
+import { COMMUNICATION_BOUNDS } from '@minions/contracts';
 
 export const SETUP_COMMUNICATION = z.object({
   defaults: z.object({ broadcastAllowed: z.boolean(),

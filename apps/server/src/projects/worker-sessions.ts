@@ -1,7 +1,7 @@
 import { prepareCurrentStateProgress } from '../view/current-state-progress.js';
-import { personaChoice } from '@mlswarm/contracts';
-import type { ProjectWorkersView, SteeringView, WorkerSteeringSession } from '@mlswarm/contracts';
-import { RUN_LENGTH } from '@mlswarm/contracts';
+import { personaChoice } from '@minions/contracts';
+import type { ProjectWorkersView, SteeringView, WorkerSteeringSession } from '@minions/contracts';
+import { RUN_LENGTH } from '@minions/contracts';
 import { latestAgentRun, queuedStarts } from '../owner/web-agent-starts.js';
 import { workSettings } from '../onboarding/store.js';
 import type { Transaction } from '../firestore.js';

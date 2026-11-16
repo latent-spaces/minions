@@ -1,6 +1,6 @@
 import type { Transaction } from '../firestore.js';
 import { z } from 'zod';
-import { nativeTeamsEnabled, type NativeTeamSettings } from '@mlswarm/contracts';
+import { nativeTeamsEnabled, type NativeTeamSettings } from '@minions/contracts';
 import { hashToken } from '../auth.js';
 import { db, projectCollection, projectDoc } from '../firestore.js';
 import { Refusal } from '../errors.js';

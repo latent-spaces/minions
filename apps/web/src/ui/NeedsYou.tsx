@@ -2,7 +2,7 @@ import { subscribeRealtime } from '../realtime';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import type { SessionUser } from '../session-identity';
-import type { HumanRequest, HumanRequestPage, HumanRequestStatus } from '@mlswarm/contracts';
+import type { HumanRequest, HumanRequestPage, HumanRequestStatus } from '@minions/contracts';
 import { ApiError, session, needsYou } from '../api';
 import { hold, mayLeaveProject, projectRoute, type Route } from '../route';
 import { NavLink, time } from '../shared';

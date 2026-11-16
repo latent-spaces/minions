@@ -14,7 +14,7 @@ export function hashToken(t: string): string {
 }
 
 // What to tell someone whose request carries no accepted session: the local app opens a new owner session on reload.
-export const SIGN_IN_REQUIRED = 'Reload MyLittleSwarm on this computer.';
+export const SIGN_IN_REQUIRED = 'Reload Minions on this computer.';
 
 export type SignIn = { firebaseUid: string; provider: 'github.com' | 'local-owner'; authTime: number; name: string | null; emails: string[]; githubUsername: string | null };
 
@@ -47,11 +47,11 @@ export async function profileForEmails(emails: string[]): Promise<WithId<Profile
   return found.size === 1 ? { id: found.docs[0].id, ...found.docs[0].data() } : null;
 }
 
-// The signed-in person's MyLittleSwarm account.
+// The signed-in person's Minions account.
 export async function personIdentityFromIdToken(idToken: string): Promise<{ person: WithId<Profile>; adminAuthenticated: boolean; verifiedGithubSession: boolean; firebaseUid: string }> {
   const signIn = await signInFromIdToken(idToken);
   const person = await profileForEmails(signIn.emails);
-  if (!person) throw new Refusal('unauthorized', 'You need an invitation to use MyLittleSwarm. Ask someone who already uses it to invite you.');
+  if (!person) throw new Refusal('unauthorized', 'You need an invitation to use Minions. Ask someone who already uses it to invite you.');
   const verified = { provider: signIn.provider, email: person.email };
   return { firebaseUid: signIn.firebaseUid, person, adminAuthenticated: approvedAdminSession(verified), verifiedGithubSession: trustedReviewerSession(verified) };
 }

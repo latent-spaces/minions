@@ -1,7 +1,7 @@
 import { configuredWebsiteOrigin, trustedWebsiteUrl } from './website-origin.mjs';
 
 function id(value, pattern, label) {
-  if (typeof value !== 'string' || !pattern.test(value)) throw new Error(`Provide the ${label} from the connected MyLittleSwarm identity.`);
+  if (typeof value !== 'string' || !pattern.test(value)) throw new Error(`Provide the ${label} from the connected Minions identity.`);
   return value;
 }
 
@@ -23,9 +23,9 @@ function markdownLabel(value) {
 
 function websiteOrigin(site) {
   let url;
-  try { url = new URL(site); } catch { throw new Error('Use a trusted MyLittleSwarm website origin.'); }
+  try { url = new URL(site); } catch { throw new Error('Use a trusted Minions website origin.'); }
   if (!trustedWebsiteUrl(url) || url.pathname !== '/' || url.search || url.hash) {
-    throw new Error('Use a trusted MyLittleSwarm website origin without paths, credentials, query parameters or fragments.');
+    throw new Error('Use a trusted Minions website origin without paths, credentials, query parameters or fragments.');
   }
   return url.origin;
 }
@@ -48,7 +48,7 @@ export function formatGitHubAttribution({ projectId, agent, participant, site = 
   agentUrl.search = new URLSearchParams({ project, section: 'agents', agent: agentId }).toString();
   const profileUrl = new URL('/', origin);
   profileUrl.search = new URLSearchParams({ view: 'profile', person: participantId }).toString();
-  return `---\nAI-generated contribution by MyLittleSwarm agent [${agentName}](${agentUrl.href}) · Participant: [${participantName}](${profileUrl.href}).\nAttribution does not imply human review or approval.`;
+  return `---\nAI-generated contribution by Minions agent [${agentName}](${agentUrl.href}) · Participant: [${participantName}](${profileUrl.href}).\nAttribution does not imply human review or approval.`;
 }
 
 /** Prepare attribution from the authenticated own-agent context, never a viewer or roster name. */

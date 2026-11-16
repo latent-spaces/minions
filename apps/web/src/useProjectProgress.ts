@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SessionUser } from './session-identity';
-import type { ProgressPage } from '@mlswarm/contracts';
+import type { ProgressPage } from '@minions/contracts';
 import { ApiError } from './api';
 import { readProjectProgress } from './progress-api';
 

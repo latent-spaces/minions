@@ -1,4 +1,4 @@
-import type { HumanRequest, HumanRequestPage } from '@mlswarm/contracts';
+import type { HumanRequest, HumanRequestPage } from '@minions/contracts';
 
 /** Traverse bounded, server-fenced project pages without dropping requests after page one. */
 export async function readOpenRequests(read: (cursor: string | null) => Promise<HumanRequestPage>, current = () => true): Promise<HumanRequest[]> {

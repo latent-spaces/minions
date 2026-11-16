@@ -15,7 +15,7 @@ import {connectionMessageId,readTrafficFrame,reuseTraffic,type TrafficPage,type 
 import type {Traffic} from './communication-map/layout';
 import {useCallback,useEffect,useId,useMemo,useRef,useState,type ReactNode} from 'react';
 import type { SessionUser } from '../session-identity';
-import type {CommunicationAgent,CommunicationAgents} from '@mlswarm/contracts';
+import type {CommunicationAgent,CommunicationAgents} from '@minions/contracts';
 import {CircleAlert,Link,Maximize2,Minimize2} from 'lucide-react';
 import {PersonAvatar} from './PersonAvatar';
 import {AgentAvatar} from './AgentAvatar';

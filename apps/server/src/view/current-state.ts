@@ -4,7 +4,7 @@
 // timer derivation remain independent of the cache. Historical records need no migration (owner, 27 Oct).
 import { createHash, randomBytes } from 'node:crypto';
 import type { QuerySnapshot, Timestamp } from '../firestore.js';
-import { personaChoice, type CommunicationAgent } from '@mlswarm/contracts';
+import { personaChoice, type CommunicationAgent } from '@minions/contracts';
 import { agents, currentProjectId, db, type Agent } from '../firestore.js';
 import { Refusal } from '../errors.js';
 import { activeRecipientOperators, connectionAllowed } from '../projects/access.js';

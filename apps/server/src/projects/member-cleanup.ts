@@ -38,7 +38,7 @@ export async function continueMembershipCleanup(owner: WithId<Profile>, id: stri
     if (job.operatorId !== operatorId || job.projectId !== id || !Number.isSafeInteger(job.epoch) || job.epoch < 1
       || member.data()?.profileId !== operatorId || member.data()?.projectId !== id || membershipEpoch(id, operatorId, member.data(), fence.data()) < job.epoch || !Number.isSafeInteger(job.revoked) || job.revoked < 0
       || typeof job.cursor !== 'string' || (job.cursor !== '' && !/^[A-Za-z0-9_-]{1,200}$/.test(job.cursor))
-      || !['pending', 'done'].includes(job.status)) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+      || !['pending', 'done'].includes(job.status)) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
     if (job.status === 'done') return { status: job.status, revoked: job.revoked };
     let query = agents().where('ownerProfileId', '==', operatorId).where('revokedAt', '==', null).orderBy(FieldPath.documentId()).limit(PAGE);
     if (job.cursor) query = query.startAfter(job.cursor);

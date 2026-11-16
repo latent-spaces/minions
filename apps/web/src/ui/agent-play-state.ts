@@ -9,7 +9,7 @@ export type PlayState = { pending: PlayRequest | null; busy: boolean; error: str
 export function repeatExecution(selection: Selection | null | undefined, runtime: Runtime | null, now: number) {
   if (!selection?.execution) throw new Error('Choose this agent’s provider and model explicitly before starting it.');
   if (!availableProviders(runtime, now).includes(selection.execution.provider))
-    throw new Error('Start MyLittleSwarm and this agent’s coding tool on this computer, then try again.');
+    throw new Error('Start Minions and this agent’s coding tool on this computer, then try again.');
   return { execution: { ...selection.execution } };
 }
 

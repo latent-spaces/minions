@@ -88,7 +88,7 @@ async function main() {
     else throw new Error('Usage: node tests/all.mjs [--logs directory]');
   }
   const steps = validationSteps();
-  logDirectory ??= await mkdtemp(join(tmpdir(), 'mlswarm-validation-'));
+  logDirectory ??= await mkdtemp(join(tmpdir(), 'minions-validation-'));
   console.info(`Validation: Node ${process.version}; ${process.platform}; logs: ${logDirectory}`);
   const controller = new AbortController();
   const interrupt = () => controller.abort();

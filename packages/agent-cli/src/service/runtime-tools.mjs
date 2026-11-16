@@ -39,7 +39,7 @@ const definitions = [
   ['get_agent_run_log', 'Read the private log of one agent run, in pages. It can be incomplete; it isn\'t the full transcript.', missionQuery.extend({ after: z.number().int().min(0).optional(), limit: z.number().int().min(1).max(100).optional() }), true],
   ['get_agent_run_diagnostics', 'Inspect a queued start before launch, including repository failure codes and check freshness, or an interrupted local run and its reports. Do not create replacement agents to get diagnostics.', missionQuery, true],
   ['get_agent_control_result', 'Look up the result of a start, steer, pause, resume, stop or recovery after a lost reply.', operationQuery, true],
-  ['list_agent_reports', 'Read whether an agent run\'s reports reached MyLittleSwarm. Pending or attention means not delivered yet.', missionQuery.extend({ limit: z.number().int().min(1).max(100).optional(), after: z.string().regex(/^[a-f0-9]{64}$/).optional() }), true],
+  ['list_agent_reports', 'Read whether an agent run\'s reports reached Minions. Pending or attention means not delivered yet.', missionQuery.extend({ limit: z.number().int().min(1).max(100).optional(), after: z.string().regex(/^[a-f0-9]{64}$/).optional() }), true],
   ['list_agent_runs', 'List the person\'s agent runs across projects, or in one project.', z.object({ projectId: id.optional(), after: z.uuid().optional(), limit: z.number().int().min(1).max(100).optional() }).strict(), true],
   ['get_computer_status', 'Read local service health and cloudConnection freshness. cloudReady is a legacy transport marker and never measures connectivity. Do not reconnect based on it.', z.object({}).strict(), true],
 ];

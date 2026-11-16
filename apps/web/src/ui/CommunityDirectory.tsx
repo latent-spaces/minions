@@ -10,7 +10,7 @@ import { PersonAvatar } from './PersonAvatar';
 import { CodingAgentAvatar } from './CodingAgentAvatar';
 import { ago, time } from '../observation-time';
 import { statusLabel } from '../task-model';
-import type { CommunicationAgentState } from '@mlswarm/contracts';
+import type { CommunicationAgentState } from '@minions/contracts';
 import { AvatarPokeButton } from './AvatarPoke';
 import './project-tasks.css';
 import './community-directory.css';

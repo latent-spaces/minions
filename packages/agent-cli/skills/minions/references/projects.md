@@ -62,7 +62,7 @@ can be empty while its cursor still leads to more, so follow the cursor.
   project card, repository link and all existing human project chat text, sender names
   and attachment names become public; downloads of chat attachments remain members-only.
   Old agent conversations and updates remain members-only. New explicit updates on the
-  public project follow its public screening rules. Other MyLittleSwarm accounts may
+  public project follow its public screening rules. Other Minions accounts may
   join under public-project limits.
   Repository visibility, current members and execution do not change. Obtain the owner's explicit disclosure/joining approval, then pass both
   confirmations, public listing metadata, the Card version and all three revisions, `approved: true` and

@@ -15,7 +15,7 @@ const now = () => at, PROJECT = 'a'.repeat(64);
 beforeAll(async () => { const app = express(); app.use('/api/owner', ownerRoutes(now)); server = app.listen(0, '127.0.0.1'); await new Promise<void>(r => server.once('listening', r)); base = `http://127.0.0.1:${(server.address() as {port:number}).port}/api/owner`; });
 afterAll(async () => { await new Promise<void>(r => server.close(() => r())); });
 beforeEach(async () => { at = 1000; await resetEmulator(); });
-async function http(path: string, token?: string, body?: object, profileId?: string) { const res = await fetch(base + path, { method: body ? 'POST' : 'GET', headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(profileId ? { 'X-Mlswarm-Profile-Id': profileId } : {}), 'content-type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) }); return { status: res.status, body: await res.text().then(t => { try { return JSON.parse(t); } catch { throw new Error(path + ' ' + res.status + ' ' + t); } }) }; }
+async function http(path: string, token?: string, body?: object, profileId?: string) { const res = await fetch(base + path, { method: body ? 'POST' : 'GET', headers: { ...(token ? { authorization: `Bearer ${token}` } : {}), ...(profileId ? { 'X-Minions-Profile-Id': profileId } : {}), 'content-type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) }); return { status: res.status, body: await res.text().then(t => { try { return JSON.parse(t); } catch { throw new Error(path + ' ' + res.status + ' ' + t); } }) }; }
 // The connector signs in with the owner's local session, like the app (owner decision, 15 November 2026).
 async function fixture() {
   const { personIds } = await seed({ profiles: [{ name: 'Owner', email: 'owner@example.test' }, { name: 'Other', email: 'other@example.test' }] });
@@ -241,7 +241,7 @@ test('retired local browser owner endpoints are absent even for the owner sessio
   for (const path of ['waiting-room', 'task-directory', 'native-task-settings', 'tasks', 'tasks/synthetic-task']) {
     for (const method of path.startsWith('tasks') ? ['POST'] : ['GET', 'POST']) {
       const result = await fetch(`${base}/projects/${PROJECT}/${path}`, { method,
-        headers: { authorization: `Bearer ${f.token}`, 'X-Mlswarm-Profile-Id': f.personIds[0], 'content-type': 'application/json' },
+        headers: { authorization: `Bearer ${f.token}`, 'X-Minions-Profile-Id': f.personIds[0], 'content-type': 'application/json' },
         ...(method === 'POST' ? { body: '{}' } : {}) });
       expect(result.status).toBe(404);
     }

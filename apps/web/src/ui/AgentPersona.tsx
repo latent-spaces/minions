@@ -1,14 +1,14 @@
 import { AgentAvatar } from './AgentAvatar';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { SessionUser } from '../session-identity';
-import type { AgentPersona as Persona } from '@mlswarm/contracts';
+import type { AgentPersona as Persona } from '@minions/contracts';
 import { ApiError, session, projects } from '../api';
 import { hold } from '../route';
 import { Button } from './Button';
 import { ChevronDown, CircleHelp } from 'lucide-react';
 import { PickerMenu } from './PickerMenu';
 import './agent-persona.css';
-import { PERSONA_OPTIONS, personaChoice, type PersonaChoice } from '@mlswarm/contracts';
+import { PERSONA_OPTIONS, personaChoice, type PersonaChoice } from '@minions/contracts';
 
 const PERSONA_CARDS = [
   { id: 'default', label: 'Clean default', description: 'No added instructions.' },

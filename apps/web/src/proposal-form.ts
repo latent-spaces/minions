@@ -1,4 +1,4 @@
-import { githubRepositoryUrl } from '@mlswarm/contracts';
+import { githubRepositoryUrl } from '@minions/contracts';
 
 // The repository as the service stores it. People type or paste it in several shapes (no https://, www., a trailing
 // slash or .git); anything else is not a GitHub repository.

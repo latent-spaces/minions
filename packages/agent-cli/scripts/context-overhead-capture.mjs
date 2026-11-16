@@ -27,7 +27,7 @@ const task='Sum the values in data.json and add the adjustment from conversation
 const conversation='The initial adjustment is 5.';
 const steering='The adjustment is now -2. Recompute the same sum and write STEERING.json as an object with the single numeric field sum. Keep INITIAL.json unchanged. End with WORK_NEXT: waiting.';
 const fixture='{"values":[2,3,7]}\n';
-export const contextCapturePlan={provider:'codex',turnsPerArm:2,task:'Read values [2,3,7] from data.json; get the task and conversation adjustment 5; write INITIAL.json {"sum":17}.',steering:'Change adjustment to -2; write STEERING.json {"sum":10}, preserving INITIAL.json.',direct:'Same facts inline, no MyLittleSwarm instructions or MCP.',mlswarm:'Production instructions, prompt builder, full scoped catalog and task/conversation reads; synthetic coordination only.',limits:'Explicit available model and effort, actual platform, 30–300 seconds for all four controller turns. Each turn may contain several model requests.',interpretation:'One matched scenario, not general project overhead or per-source token shares.'};
+export const contextCapturePlan={provider:'codex',turnsPerArm:2,task:'Read values [2,3,7] from data.json; get the task and conversation adjustment 5; write INITIAL.json {"sum":17}.',steering:'Change adjustment to -2; write STEERING.json {"sum":10}, preserving INITIAL.json.',direct:'Same facts inline, no Minions instructions or MCP.',minions:'Production instructions, prompt builder, full scoped catalog and task/conversation reads; synthetic coordination only.',limits:'Explicit available model and effort, actual platform, 30–300 seconds for all four controller turns. Each turn may contain several model requests.',interpretation:'One matched scenario, not general project overhead or per-source token shares.'};
 export function contextCaptureOptions(args){
  const options={approved:false};
  for(let i=0;i<args.length;i++){
@@ -45,7 +45,7 @@ export async function captureContextOverhead(options,{executables={codex:options
  if(envSource.OPENAI_BASE_URL&&envSource.OPENAI_BASE_URL!=='https://api.openai.com')throw new Error('This comparison cannot preserve a custom model endpoint.');
  signal=AbortSignal.any([signal,AbortSignal.timeout(options.timeoutSeconds*1000)]);
  signal.throwIfAborted();
- const root=await realpath(await mkdtemp(join(tmpdir(),'mlswarm-context-pair-'))),deadline=Date.now()+options.timeoutSeconds*1000;
+ const root=await realpath(await mkdtemp(join(tmpdir(),'minions-context-pair-'))),deadline=Date.now()+options.timeoutSeconds*1000;
  const directMark=hash(root+'direct').slice(0,32);
  let service,adapter,cleanupConfirmed=true,directCleaned=false;
  const bundle=verifyBundle(),folders={};
@@ -56,24 +56,24 @@ export async function captureContextOverhead(options,{executables={codex:options
  let initialConfig,provider;
  const cleanDirect=async()=>{if(provider&&!directCleaned){if(process.platform==='win32')await stopWindowsMission(directMark,{env:provider.environment()});else await stopMarkedProcesses(directMark);directCleaned=true;}};
  try{
-  for(const mode of ['direct','mlswarm']){
+  for(const mode of ['direct','minions']){
    const folder=join(root,mode,'checkout'),stateDir=join(root,mode,'state');folders[mode]={folder,stateDir};
    await mkdir(folder,{recursive:true,mode:0o700});await mkdir(stateDir,{recursive:true,mode:0o700});
    execFileSync('git',['init','-q',folder],{env:checkoutGitEnvironment(envSource),windowsHide:true});
    execFileSync('git',['-C',folder,'remote','add','origin','https://github.com/synthetic/context-pair.git'],{env:checkoutGitEnvironment(envSource),windowsHide:true});
    await writeFile(join(folder,'data.json'),fixture,{mode:0o600});
-   await writeFile(join(stateDir,'instructions.md'),mode==='mlswarm'?bundle.files['AGENT_PROMPT_V2.md']:'',{mode:0o600});
-   if(mode==='mlswarm')await writeFile(join(stateDir,'worker-guides.json'),bundle.files['worker-guides.json'],{mode:0o600});
+   await writeFile(join(stateDir,'instructions.md'),mode==='minions'?bundle.files['AGENT_PROMPT_V2.md']:'',{mode:0o600});
+   if(mode==='minions')await writeFile(join(stateDir,'worker-guides.json'),bundle.files['worker-guides.json'],{mode:0o600});
   }
   provider=createProvider('codex',{codex:executables.codex,model:options.model,effort:options.effort,repoDir:folders.direct.folder,permissionMode:'acceptEdits',passEnv:'',turnBudgetUsd:0},{envSource});
   const clientVersion=(await provider.preflight({signal})).label;
-  for(const mode of ['direct','mlswarm'])await primeWorkspace({provider,...folders[mode],instructionsFile:join(folders.direct.stateDir,'instructions.md'),deadline,signal,clientVersion:VERSION,mark:directMark});
+  for(const mode of ['direct','minions'])await primeWorkspace({provider,...folders[mode],instructionsFile:join(folders.direct.stateDir,'instructions.md'),deadline,signal,clientVersion:VERSION,mark:directMark});
   // The desktop client may observe/register the new threads asynchronously.
   let lastConfig=await configDigest(),stableSince=Date.now();
   while(Date.now()-stableSince<1500){signal.throwIfAborted();await new Promise(resolve=>setTimeout(resolve,100));const next=await configDigest();if(next!==lastConfig){lastConfig=next;stableSince=Date.now();}}
   initialConfig=lastConfig;
   const controllers={getMission:async input=>input.missionId===mission.missionId&&JSON.stringify(input.target)===JSON.stringify(target)?structuredClone(mission):null,health:async()=>({ready:true})};
-  const operations=createWorkerOperations({store:controllers,resolveBinding:async()=>({...folders.mlswarm,url:`${principal.site}/p/${target.projectId}`,token:'synthetic-context-only'}),fetchImpl:async(url,request)=>{
+  const operations=createWorkerOperations({store:controllers,resolveBinding:async()=>({...folders.minions,url:`${principal.site}/p/${target.projectId}`,token:'synthetic-context-only'}),fetchImpl:async(url,request)=>{
    signal.throwIfAborted();if(url!==`${principal.site}/p/${target.projectId}/v2/mcp`)throw new Error('Experiment refused an external destination.');
    const rpc=JSON.parse(request.body);let result;
    if(rpc.method==='tools/list')result={tools:JSON.parse(bundle.files['project-tools.json']).tools.filter(t=>t.name!=='manage_team')};
@@ -89,14 +89,14 @@ export async function captureContextOverhead(options,{executables={codex:options
   }});
   service=await startRuntimeService({controllers,principal,application:createRuntimeApplication({controllers,principal,workerOperations:operations})});
   const bridge=createWorkerBridgeFactory({getService:()=>service,workerOperations:operations});
-  const binding={target,...folders.mlswarm,repository:'synthetic/context-pair',createBridge:m=>bridge.createBridge(m),prepareParticipation:args=>bridge.prepareParticipation(args),readProjectState:async()=>({project:{started:true,paused:false,closed:false},pending:0,acknowledged:0})};
+  const binding={target,...folders.minions,repository:'synthetic/context-pair',createBridge:m=>bridge.createBridge(m),prepareParticipation:args=>bridge.prepareParticipation(args),readProjectState:async()=>({project:{started:true,paused:false,closed:false},pending:0,acknowledged:0})};
   const factory=createNativeAdapterFactory({bindings:[binding],registryRoot:join(root,'claims'),executables,envSource,adapterFactory:args=>createLocalWorkerAdapter({...args,effort:options.effort})});
   const sourceCommit=execFileSync('git',['rev-parse','HEAD'],{cwd:fileURLToPath(new URL('../../../',import.meta.url)),env:checkoutGitEnvironment(envSource),encoding:'utf8',windowsHide:true}).trim();
   const settings={provider:'codex',effort:options.effort,clientVersion,scenarioDigest:hash(JSON.stringify([neutral,task,conversation,steering])),fixtureDigest:hash(fixture),sharedConfigDigest:hash(JSON.stringify({nativeConfig:initialConfig,platform:process.platform,node:process.version,kit:VERSION,model:options.model,effort:options.effort,sandbox:'workspace-write',approval:'on-request',reviewer:'auto_review',hooks:false,apps:false,plugins:false,multiAgent:false})),sessionPhase:'new'};
   const records={},sourceMeasurements=[];
-  for(const mode of ['direct','mlswarm']){
+  for(const mode of ['direct','minions']){
    const turns=[],session=provider.newSession('direct-experiment',folders.direct.folder);let initialResultDigest;
-   if(mode==='mlswarm')adapter=await factory(mission,{signal});
+   if(mode==='minions')adapter=await factory(mission,{signal});
    for(let i=0;i<2;i++){
     onProgress({arm:mode,turn:i+1,phase:'starting'});
     signal.throwIfAborted();if(Date.now()>=deadline)throw new Error('Experiment deadline expired.');
@@ -106,9 +106,9 @@ export async function captureContextOverhead(options,{executables={codex:options
     else{
      mission.currentTurnId=randomUUID();const prompt=controllerPrompt({scope:mission.scope,deadlineAt:deadline,steering:i?[{message:steering}]:[],notices:[]});
      cleanupConfirmed=false;outcome=await adapter.run({...prompt,turnId:mission.currentTurnId,signal,deadline});cleanupConfirmed=outcome.cleanupConfirmed===true;
-     if(!cleanupConfirmed||outcome.failed||outcome.interrupted)throw new Error('MyLittleSwarm turn did not finish with confirmed native cleanup.');
+     if(!cleanupConfirmed||outcome.failed||outcome.interrupted)throw new Error('Minions turn did not finish with confirmed native cleanup.');
      sourceMeasurements.push(outcome.usage?.context??null);
-     if(i===0&&!['get_task','read_thread'].every(name=>outcome.usage?.context?.byTool?.some(t=>t.name===name&&t.calls>0)))throw new Error('MyLittleSwarm did not retrieve the required task and conversation.');
+     if(i===0&&!['get_task','read_thread'].every(name=>outcome.usage?.context?.byTool?.some(t=>t.name===name&&t.calls>0)))throw new Error('Minions did not retrieve the required task and conversation.');
     }
     if(await readFile(join(folders[mode].folder,'data.json'),'utf8')!==fixture)throw new Error('The input fixture changed.');
     const file=await open(join(folders[mode].folder,i?'STEERING.json':'INITIAL.json'),'r');let value,raw;
@@ -125,7 +125,7 @@ export async function captureContextOverhead(options,{executables={codex:options
    if(adapter){await adapter.release({cleanupConfirmed});adapter=null;}
   }
   if(await configDigest()!==initialConfig)throw new Error('Native configuration changed during the experiment.');
-  const report=compareContextOverhead(records.direct,records.mlswarm);
+  const report=compareContextOverhead(records.direct,records.minions);
   for(const [mode,record]of Object.entries(records))await writeFile(join(root,`${mode}.json`),JSON.stringify(record,null,2)+'\n',{mode:0o600,flag:'wx'});
   await writeFile(join(root,'comparison.json'),JSON.stringify({sourceCommit,selectedModel:options.model,syntheticCoordination:true,realModels:!syntheticNative,sourceMeasurements,report},null,2)+'\n',{mode:0o600,flag:'wx'});
   return {root,report};

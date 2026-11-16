@@ -1,7 +1,7 @@
 import { isPrivateProject } from '../projects/schema.js';
 import { createHash } from 'node:crypto';
 import type { Transaction } from '../firestore.js';
-import type { OnboardingStep } from '@mlswarm/contracts';
+import type { OnboardingStep } from '@minions/contracts';
 import { collection, db, inProject, type Profile, type WithId } from '../firestore.js';
 import { projects } from '../projects/records.js';
 import { assertMembership } from '../projects/access.js';

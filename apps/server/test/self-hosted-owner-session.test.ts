@@ -6,7 +6,7 @@ import { localOwnerSession } from '../src/self-hosted-owner-session.js';
 afterEach(() => { vi.unstubAllEnvs(); });
 type Reply = { status: number; body: string; headers: Record<string, string | string[] | undefined> };
 async function fixture(run: (f: { port: number; post(headers?: Record<string, string>): Promise<Reply>; uninstall(): void; issued(): number }) => Promise<void>) {
-  vi.stubEnv('MLSWARM_ENGINE', 'self-hosted');
+  vi.stubEnv('MINIONS_ENGINE', 'self-hosted');
   let origin = '', installed = true, issued = 0;
   const app = express();
   app.use('/api/auth/local-owner', localOwnerSession({ provider: { issueSession: () => `synthetic-session-${++issued}` }, origin: () => origin, installed: () => installed, now: () => 1_800_000_000_000 }));

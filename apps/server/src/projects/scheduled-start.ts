@@ -1,4 +1,4 @@
-import { RUN_LENGTH } from '@mlswarm/contracts';
+import { RUN_LENGTH } from '@minions/contracts';
 import { isPrivateProject } from './schema.js';
 // The private scheduler advances project lifecycle only. It never creates native model work.
 import { FieldPath } from '../firestore.js';

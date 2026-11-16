@@ -1,5 +1,5 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import type { NativeTaskContributor } from '@mlswarm/contracts';
+import type { NativeTaskContributor } from '@minions/contracts';
 import { TaskAgentAvatar } from './TaskAgentAvatar';
 import type { TaskAgent } from './ProjectTasks';
 

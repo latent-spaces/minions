@@ -7,7 +7,7 @@ import express from 'express';
 import { createHash } from 'node:crypto';
 import { publicPersonAppearance } from './profile-photo-ref.js';
 import { githubPhotoSource, profileOperations, preparePhotoPublication, readProfilePhoto } from './profile-photos.js';
-import { PERSON_CHARACTERS, type MyProfile } from '@mlswarm/contracts';
+import { PERSON_CHARACTERS, type MyProfile } from '@minions/contracts';
 import { DISPLAY_NAME } from '../display-name.js';
 
 export const MY_PROFILE = z.object({

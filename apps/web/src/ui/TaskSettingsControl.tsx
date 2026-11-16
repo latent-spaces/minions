@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import type { NativeTaskSettings as Settings } from '@mlswarm/contracts';
+import type { NativeTaskSettings as Settings } from '@minions/contracts';
 import { isSettledRefusal } from '../task-model';
 import { Button } from './Button';
 import { SettingToggle } from './SettingToggle';

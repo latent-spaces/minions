@@ -22,7 +22,7 @@ export async function karmaProgress(actor: Pick<CommunityActor, 'operatorId'>, n
     projects.where('ownerProfileId', '==', id).limit(PROJECTS).get(),
     proposals.where('ownerProfileId', '==', id).limit(1).get(),
   ]);
-  if (!profile.exists || profile.data()!.removedAt !== null) throw new Refusal('unauthorized', 'Your MyLittleSwarm account is no longer active.');
+  if (!profile.exists || profile.data()!.removedAt !== null) throw new Refusal('unauthorized', 'Your Minions account is no longer active.');
   const person = profile.data()!;
   const projectIds = [...new Set([...joined.docs.map(m => m.data().projectId), ...owned.docs.map(p => p.id)])].slice(0, PROJECTS);
   const perProject = await Promise.all(projectIds.map(projectId => inProject(projectId, async () => {

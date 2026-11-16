@@ -1,5 +1,5 @@
 import type { MergeApproval } from './merge-approval';
-import type { ProjectLifecycle } from '@mlswarm/contracts';
+import type { ProjectLifecycle } from '@minions/contracts';
 import type { Overview } from './api';
 export type ProjectRole = 'owner' | 'member';
 /** `cover` names the screenshot on the project's newest update; the stamps show it. */
@@ -15,9 +15,9 @@ export type CardDefinition = { title: string; goal: string; rules?: string; gith
 export type CommunityRulesData = { body: string; version: number; updatedAt: number };
 // definition is the current Card version (cardVersion); version 1 is the approved idea.
 export type Workspace = {
-  startAnnouncement?: import('@mlswarm/contracts').ProjectStartAnnouncement | null;
+  startAnnouncement?: import('@minions/contracts').ProjectStartAnnouncement | null;
   archived?: boolean; archiveRevision?: number; starred?: boolean;
-  setupPlan?: import('@mlswarm/contracts').ProjectSetupPlan; coverImage?: string; cover?: string; conceptImages?: { src: string; title: string }[]; id: string; role: ProjectRole | 'guest'; listed?: boolean; state?: ProjectLifecycle;
+  setupPlan?: import('@minions/contracts').ProjectSetupPlan; coverImage?: string; cover?: string; conceptImages?: { src: string; title: string }[]; id: string; role: ProjectRole | 'guest'; listed?: boolean; state?: ProjectLifecycle;
   /** When the job's time runs out (Unix ms); null until a length is chosen. Agents then finish their turn and wait. */
   endsAt?: number | null;
   /** The job's token cap, one pool for all the owner's agents in the project; null or absent for no cap. */
@@ -27,8 +27,8 @@ export type Workspace = {
   setup?: { required: boolean; finalizedAt: number | null; minContributors: number | null; startDeadline: string | null }; participantCount?: number;
   definition: CardDefinition; cardVersion: number;
   /** Optional native teams, off by default (read with nativeTeamsEnabled). */
-  nativeTeams?: import('@mlswarm/contracts').NativeTeamSettings;
+  nativeTeams?: import('@minions/contracts').NativeTeamSettings;
   /** Optional native tasks, on by default (read with nativeTasksEnabled). */
-  nativeTasks?: import('@mlswarm/contracts').NativeTaskSettings; communityRules: CommunityRulesData; previewUrl?: string | null; previewUpdatedAt?: number | null };
+  nativeTasks?: import('@minions/contracts').NativeTaskSettings; communityRules: CommunityRulesData; previewUrl?: string | null; previewUpdatedAt?: number | null };
 export type CardVersion = { version: number; at: number; editorName: string | null; source: 'edit' | 'approved' | 'created'; definition: CardDefinition };
-export type Member = { operatorId: string; projectId: string; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null; email: string | null; role: Exclude<ProjectRole, 'owner'>; revision: number; removedAt: number | null; banned?: boolean };
+export type Member = { operatorId: string; projectId: string; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null; character?: import('@minions/contracts').PersonCharacter | null; email: string | null; role: Exclude<ProjectRole, 'owner'>; revision: number; removedAt: number | null; banned?: boolean };

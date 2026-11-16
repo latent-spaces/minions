@@ -9,7 +9,7 @@ try {
   # Compile the packaged, fixed helper in memory. No downloaded binary, compiler
   # installation, profile, persistent policy change or model execution is needed.
   Add-Type -Path ([System.IO.Path]::Combine($PSScriptRoot, 'windows-job.cs')) -ReferencedAssemblies 'System.dll', 'System.Core.dll', 'System.Web.Extensions.dll'
-  $result = [Mlswarm.WindowsJob]::Run($Mode, $PipeName, $JobName)
+  $result = [Minions.WindowsJob]::Run($Mode, $PipeName, $JobName)
   exit $result
 } catch {
   [Console]::Error.WriteLine('Windows worker supervision is unavailable. No cleanup success is implied.')

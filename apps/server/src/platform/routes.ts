@@ -16,7 +16,7 @@ export function platformRoutes(now: () => number) {
     res.set('Cache-Control', 'no-store');
     try {
       const token = bearerToken(req.headers.authorization);
-      if (!token) throw new Refusal('unauthorized', 'Sign in with the GitHub account you use for MyLittleSwarm.');
+      if (!token) throw new Refusal('unauthorized', 'Sign in with the GitHub account you use for Minions.');
       const { person, adminAuthenticated, verifiedGithubSession } = await personIdentityFromIdToken(token);
       res.locals.person = person;
       res.locals.actor = { kind: 'person', operatorId: person.id, adminAuthenticated, verifiedGithubSession } satisfies CommunityActor;

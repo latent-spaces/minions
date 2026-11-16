@@ -1,12 +1,12 @@
 import { CONTEXT_TOOL_NAMES, validPromptSources } from './turn-context.mjs';
-// Numeric MyLittleSwarm-supplied context only; not the native client's full context window.
+// Numeric Minions-supplied context only; not the native client's full context window.
 const CONTEXT_CATEGORIES = ['project', 'discovery', 'updates', 'threads', 'messaging', 'checkpoints', 'coordination', 'other'];
 const exact = (value, keys) => value && typeof value === 'object' && !Array.isArray(value)
   && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
 const count = (value, max = 1e15) => Number.isSafeInteger(value) && value >= 0 && value <= max;
 export function validContextMeasurement(value) {
   const optional=['promptSources','steeringMessages','sessionMode','byTool'].filter(key=>Object.hasOwn(value??{},key));
-  const metadata = value?.scope === 'mlswarm-supplied' && value?.coverage === 'partial';
+  const metadata = value?.scope === 'minions-supplied' && value?.coverage === 'partial';
   if (!exact(value, [...optional,...(metadata ? ['scope', 'coverage'] : []), 'instructionBytes', 'turnPromptBytes', 'catalogRequests', 'catalogBytes', 'tools'])
     || !['instructionBytes', 'turnPromptBytes', 'catalogBytes'].every(key => count(value[key]))
     || !count(value.catalogRequests, 1e9) || !Array.isArray(value.tools) || value.tools.length > 8) return false;

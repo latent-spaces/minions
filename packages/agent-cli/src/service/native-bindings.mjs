@@ -106,7 +106,7 @@ export function createNativeAdapterFactory({ bindings, registryRoot, executables
           },
         });
         } finally { if (measuring) { try { context = await issued.endContext?.(); } catch {} } }
-        if (context && result.usage?.context) result.usage.context = { ...result.usage.context, ...context, scope: 'mlswarm-supplied', coverage: 'partial' };
+        if (context && result.usage?.context) result.usage.context = { ...result.usage.context, ...context, scope: 'minions-supplied', coverage: 'partial' };
         else if (result.usage) delete result.usage.context;
         // Also covers preparation failures and cancellation before any guard.
         if (result.cleanupConfirmed === true && turnOpen) endTurn();

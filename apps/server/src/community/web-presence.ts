@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { WEB_PRESENCE_FRESH_MS, type WebPresence, type WebPresencePage } from '@mlswarm/contracts';
+import { WEB_PRESENCE_FRESH_MS, type WebPresence, type WebPresencePage } from '@minions/contracts';
 import { collection, db, profiles } from '../firestore.js';
 import { Refusal } from '../errors.js';
 import type { CommunityActor } from './identity.js';
@@ -18,7 +18,7 @@ export async function reportWebPresence(actor: CommunityActor, body: unknown, no
   if (!parsed.success) throw new Refusal('bad_input', 'Supply up to 100 person IDs.');
   return db.runTransaction(async tx => {
     const own = await tx.get(profiles.doc(actor.operatorId));
-    if (!own.exists || own.data()!.removedAt !== null) throw new Refusal('unauthorized', 'Your MyLittleSwarm account is no longer active.');
+    if (!own.exists || own.data()!.removedAt !== null) throw new Refusal('unauthorized', 'Your Minions account is no longer active.');
     const ids = [...new Set([...parsed.data.profileIds, actor.operatorId])];
     const [people, reports] = await Promise.all([
       tx.getAll(...ids.map(id => profiles.doc(id))), tx.getAll(...ids.map(id => webPresence.doc(id))),
