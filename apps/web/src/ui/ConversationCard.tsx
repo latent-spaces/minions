@@ -5,7 +5,7 @@ import { PersonAvatar } from './PersonAvatar';
 import { SteeringDelivery } from './SteeringDelivery';
 import { AgentAvatar } from './AgentAvatar';
 import { NavLink } from '../shared';
-import { projectRoute, type Route } from '../route';
+import { projectRoute, taskRoute, type Route } from '../route';
 import { fullConversationTitle } from './message-preview';
 import './conversations.css';
 
@@ -26,7 +26,10 @@ export function MessageDirection({ message, projectId, go, deliveryDetails=true 
     {identity(message.sender, true)}<span className="conversation-arrow"><ArrowRight size={16} aria-hidden="true" /><span className="visually-hidden">to</span></span>
     {message.audience.kind === 'project' ? <span className="conversation-agent"><Users size={24} aria-hidden="true" /><span>Whole project</span></span>
       : message.audience.to.length===0 ? <span className="conversation-agent">Conversation reply</span> : <span className="conversation-recipient-group"><span className={`conversation-recipients${multiple ? ' is-multiple' : ''}`}>{message.audience.to.map((agent, index) => <span key={agent.id}>{index > 0 && <span className="visually-hidden">and </span>}{identity(agent, false)}</span>)}</span>{multiple && <span className="conversation-recipient-count">{message.audience.to.length} recipients</span>}</span>}
-  </span>{message.steering&&<SteeringDelivery {...message.steering} details={deliveryDetails}/>}</>;
+  </span>{message.steering&&<SteeringDelivery {...message.steering} details={deliveryDetails}/>}
+    {/* The card heading is a button, so the task is a link only inside the open conversation. */}
+    {message.task&&(projectId&&go ? <NavLink className="conversation-task" to={taskRoute(projectId, message.task.id)} go={go}>Task · {message.task.title}</NavLink>
+      : <span className="muted">Task · {message.task.title}</span>)}</>;
 }
 
 export function ConversationCard({ conversation, observedMessage, title, metadata, preview, expanded, controls, toggleRef, onToggle, children }: {

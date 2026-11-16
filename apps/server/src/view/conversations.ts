@@ -93,6 +93,8 @@ export async function readConversations(value: unknown, now: () => number, profi
   };
 }
 
+// Steering and task messages are written by a person; every other entry by an agent.
+const fromPerson = (m: MessageV2 | ConversationEntry): m is Exclude<ConversationEntry, { kind: 'agent_message' }> => 'kind' in m && (m.kind === 'steering' || m.kind === 'task');
 // Adds each agent's name, owner and persona, for the sender and every recipient alike.
 export async function present(list: (MessageV2 | ConversationEntry)[]) {
   const ids = new Set<string>();
@@ -102,7 +104,7 @@ export async function present(list: (MessageV2 | ConversationEntry)[]) {
   const names = new Map(agentDocs.filter(doc => doc.exists).map(doc => [doc.id, doc.data()!.name]));
   const owners = new Map(agentDocs.filter(doc => doc.exists).map(doc => [doc.id, doc.data()!.ownerProfileId]));
   const personas = new Map(agentDocs.filter(doc => doc.exists).map(doc => [doc.id, personaChoice(doc.data()!.persona?.text ?? '')]));
-  const ownerIds = [...new Set([...owners.values(), ...list.flatMap(m => 'kind' in m && m.kind === 'steering' ? [m.actorProfileId] : [])])];
+  const ownerIds = [...new Set([...owners.values(), ...list.flatMap(m => fromPerson(m) ? [m.actorProfileId] : [])])];
   const ownerDocs = ownerIds.length ? await db.getAll(...ownerIds.map(id => profiles.doc(id))) : [];
   const people = new Map(ownerDocs.filter(doc => doc.exists && doc.data()!.removedAt === null).map(doc => [doc.id, { name: doc.data()!.name, ...publicPersonAppearance(doc.data()! as Profile, doc.id) }]));
   const usage = agentDocs.length ? await db.getAll(...agentDocs.map(doc => runnerUsage().doc(doc.id))) : [];
@@ -114,8 +116,9 @@ export async function present(list: (MessageV2 | ConversationEntry)[]) {
   };
   return list.map((m) => ({
     ...(('kind' in m && m.kind==='steering') ? {steering:{state:m.state,origin:m.origin,observedAt:m.observedAt,...(m.deliveries?{deliveries:m.deliveries.map(d=>({agentId:d.agentId,agentName:d.agentName,state:d.state,observedAt:d.observedAt}))}:{})}}:{}),
+    ...(('kind' in m && m.kind==='task') ? {task:{id:m.taskId,title:m.taskTitle}}:{}),
     id: m.id, threadId: m.threadId, body: m.body, summary: m.summary ?? null, createdAt: m.createdAt,
-    sender: ('kind' in m && m.kind==='steering') ? {id:m.actorProfileId,name:m.actorName,kind:'person' as const,
+    sender: fromPerson(m) ? {id:m.actorProfileId,name:m.actorName,kind:'person' as const,
       photo: people.get(m.actorProfileId)?.photo ?? null, ...(people.get(m.actorProfileId)?.character ? { character: people.get(m.actorProfileId)!.character } : {}) } : { id: m.agentId, name: m.agentName, kind: 'agent' as const, ...agent(m.agentId) },
     audience: m.audience === 'project'
       ? { kind: 'project' as const }

@@ -50,6 +50,7 @@
   .conversation-title { font-size:14px; }
 }
 
+.conversation-task { font-size:12px; overflow-wrap:anywhere; }
 .steering-delivery { color:var(--text-muted); font-size:12px; min-width:0; max-width:100%; }
 .steering-delivery summary { cursor:pointer; padding-block:12px; overflow-wrap:anywhere; }
 .steering-delivery summary:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }

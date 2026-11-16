@@ -88,9 +88,9 @@ export async function communicationTraffic(query:Record<string,unknown>,now:numb
  // deliberately not read. A person ID must match the map's existing person node.
  const traffic=frame.page.flatMap(doc=>{
   const m=doc.data() as ConversationEntry;
-  if(m.kind!=='agent_message'&&m.kind!=='steering')return [];
-  if(m.kind==='steering'&&(!m.actorProfileId||m.audience!=='direct'))return [];
-  return [{id:doc.id,agentId:m.kind==='steering'?`person:${m.actorProfileId}`:m.agentId,to:m.to,audience:m.audience,createdAt:m.createdAt}];
+  if(m.kind!=='agent_message'&&m.kind!=='steering'&&m.kind!=='task')return [];
+  if(m.kind!=='agent_message'&&(!m.actorProfileId||m.audience!=='direct'))return [];
+  return [{id:doc.id,agentId:m.kind!=='agent_message'?`person:${m.actorProfileId}`:m.agentId,to:m.to,audience:m.audience,createdAt:m.createdAt}];
  });
  return {at:frame.at,from:frame.from,traffic,next:frame.next,serverTime:now};
 }
