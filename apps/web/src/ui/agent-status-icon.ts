@@ -7,7 +7,7 @@ export function agentIconState(label: string): CommunicationAgentState {
     Working: 'working', Talking: 'talking', Idle: 'idle', Waiting: 'waiting', Starting: 'waiting', Queued: 'waiting', Backoff: 'waiting',
     'Needs you': 'needs_you', 'Waiting for you': 'needs_you', Blocked: 'blocked',
     Pausing: 'pausing', 'Pausing…': 'pausing', 'Pause unconfirmed': 'pause_unconfirmed', Paused: 'paused',
-    Stopped: 'stopped', Stopping: 'stopped', 'Not running': 'stopped', Failed: 'stopped',
+    Stopped: 'stopped', Stopping: 'stopped', 'Not running': 'stopped', 'Not started': 'stopped', Failed: 'stopped',
     [PAST_END.finishing]: 'working', [PAST_END.waiting]: 'waiting', [TOKEN_CAP]: 'waiting', [TIME_AND_TOKEN_CAP]: 'waiting',
     Finished: 'completed', Completed: 'completed', Offline: 'offline', Revoked: 'revoked',
   };

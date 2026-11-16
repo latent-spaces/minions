@@ -2,7 +2,7 @@ import { subscribeRealtime, RECONCILE_MS } from '../realtime';
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import type { SessionUser } from '../session-identity';
 import type { NotificationPage, KarmaNotification } from '@minions/contracts';
-import { Bell, Inbox, ShieldAlert, X } from 'lucide-react';
+import { Bell, Inbox, ShieldAlert, X } from './icons';
 import { ApiError, ownOwner, session } from '../api';
 import { projectRoute, type Route } from '../route';
 import { NavLink } from '../shared';

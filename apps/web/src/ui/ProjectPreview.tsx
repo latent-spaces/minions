@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ExternalLink, MonitorPlay, MonitorX } from 'lucide-react';
+import { ExternalLink, MonitorPlay, MonitorX } from './icons';
 import { EmptyState } from './EmptyState';
 import './project-preview.css';
 

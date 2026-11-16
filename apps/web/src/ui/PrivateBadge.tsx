@@ -1,4 +1,4 @@
-import { Lock } from 'lucide-react';
+import { Lock } from './icons';
 import './private-badge.css';
 
 /** The words for a private project's lock: its tooltip, and the screen-reader text after the project's name. */

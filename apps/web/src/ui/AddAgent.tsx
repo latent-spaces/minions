@@ -9,7 +9,7 @@ import { availableProviders, computerOnline, validAgentGoal, validAgentModel, re
 import { Button } from './Button';
 import { Dialog } from './Dialog';
 import { CloseButton } from './CloseButton';
-import { Bot, Check, Eye, Plus, SendHorizontal, SlidersHorizontal } from 'lucide-react';
+import { Bot, Check, Eye, Plus, SendHorizontal, SlidersHorizontal } from './icons';
 import { AgentAvatar } from './AgentAvatar';
 import { useMyWorkers } from './MyWorkerControls';
 import { SetupCard, useRuntime } from './ComputerSetup';

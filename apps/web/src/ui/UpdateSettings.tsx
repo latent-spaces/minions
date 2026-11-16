@@ -1,5 +1,4 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { Check } from 'lucide-react';
 import { PROGRESS_LIMITS, UPDATE_EVERY_MINUTES, UPDATE_TOPICS, type ProjectUpdateSettings, type UpdateTopic } from '@minions/contracts';
 import { isSettledRefusal } from '../task-model';
 import { Button } from './Button';
@@ -56,8 +55,10 @@ export function UpdateSettings({ request, projectId, active }: { request: <T>(pa
     <div className="setting-toggle">
       <span className="setting-toggle-label" id={`${id}-topics`}>What to post about</span>
       <div className="update-settings-topics" role="group" aria-labelledby={`${id}-topics`}>
-        {UPDATE_TOPICS.map(topic => { const on = draft.topics.includes(topic); return <Button key={topic} type="button" aria-pressed={on} disabled={busy || (on && draft.topics.length === 1)}
-          onClick={() => change({ topics: UPDATE_TOPICS.filter(other => other === topic ? !on : draft.topics.includes(other)) })}>{on && <Check size={16} aria-hidden="true" />}{TOPICS[topic]}</Button>; })}
+        {/* A plain checkbox list, one topic per line (owner, 16 November 2026). At least one topic stays on. */}
+        {UPDATE_TOPICS.map(topic => { const on = draft.topics.includes(topic); return <label key={topic} className="update-settings-topic">
+          <input type="checkbox" checked={on} disabled={busy || (on && draft.topics.length === 1)}
+            onChange={() => change({ topics: UPDATE_TOPICS.filter(other => other === topic ? !on : draft.topics.includes(other)) })} />{TOPICS[topic]}</label>; })}
       </div>
     </div>
     <SettingToggle label="Slides" info="On lets one update carry up to five images to swipe through. Off keeps one image per update." value={draft.slides} disabled={busy} onChange={slides => change({ slides })} />

@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { X } from './icons';
 import { Button } from './Button';
 import './close-button.css';
 

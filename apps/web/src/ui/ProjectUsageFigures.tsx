@@ -1,4 +1,4 @@
-import { ArrowDownToLine, ArrowUpFromLine } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine } from './icons';
 import type { ProjectUsage as Usage, UsageMeasure } from '@minions/contracts';
 
 const compact = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 2 });

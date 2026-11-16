@@ -1,5 +1,5 @@
 import type { CommunicationAgent } from '@minions/contracts';
-import { Pause } from 'lucide-react';
+import { Pause } from './icons';
 import { communicationAgentState } from './communication-agent-state';
 
 export function ProjectPauseStatus({ request, agents, now, incomplete }: {

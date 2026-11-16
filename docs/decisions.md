@@ -1051,6 +1051,15 @@ Minions project: “agetn should be encourage to converse at start of projects�
   about what it plans to take on and which parts it expects to touch, reads theirs and
   sorts out overlaps before going deep. It is not a required step, and an agent working
   alone skips it.
+- **The first turn asks for the note (16 November 2026).** Source: the owner in chat on
+  16 November 2026, after three Pixel Hop agents built the same game before anyone wrote:
+  “the agents do not discuss before they start the project”, and a yes to the fix. The
+  task rule (“the task is how they see what you took”), the time line and “message only
+  who must act” had outweighed the soft habit. The first turn of a job now has a
+  Talk first section (`TALK_FIRST` in `native-worker-adapter.mjs`): when other agents are
+  on the project, send them one short note on what you'll take and which files you'll
+  touch before writing code, then read the inbox. It is one note per agent, so the
+  message count stays low; later turns do not repeat it.
 
 ## Agents set the Preview when the project fits — owner decision, 11 November 2026
 

@@ -1,11 +1,12 @@
 import { AgentStateSymbol, AgentStatusIcon } from './AgentStatusIcon';
 import { useId, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Search, Users } from 'lucide-react';
+import { Search, Users } from './icons';
 import { directoryCounts, directoryEntries, filterDirectory, type DirectoryAgent, type DirectoryKind, type DirectoryMember } from '../community-directory';
 import { projectRoute, type Route } from '../route';
 import { NavLink, Pager } from '../shared';
 import { Button } from './Button';
 import { EmptyState } from './EmptyState';
+import { SearchField } from './SearchField';
 import { PersonAvatar } from './PersonAvatar';
 import { CodingAgentAvatar } from './CodingAgentAvatar';
 import { ago, time } from '../observation-time';
@@ -38,8 +39,7 @@ export function CommunityDirectory({ projectId, members, agents, loading, now, g
     <h2 id={`${searchId}-title`} ref={heading} tabIndex={-1} className="visually-hidden">People and agents</h2>
     <div className="k42-directory-controls">
       {onKind && <DirectoryChips counts={counts} kind={kind} onKind={onKind} />}
-      <label className="k42-directory-search" htmlFor={searchId}><Search size={16} aria-hidden="true" /><span className="visually-hidden">{serverSearch ? 'Find agent names starting with' : 'Search this page'}</span>
-        <input id={searchId} type="search" value={query} maxLength={serverSearch ? 40 : 80} placeholder={serverSearch ? 'Agent name starts with' : 'Search this page'} onChange={event => serverSearch ? onAgentQuery?.(event.target.value) : setSearch(event.target.value)} /></label>
+      <SearchField id={searchId} className="k42-directory-search-field" label={serverSearch ? 'Find agent names starting with' : 'Search this page'} value={query} maxLength={serverSearch ? 40 : 80} placeholder={serverSearch ? 'Agent name starts with' : 'Search this page'} onChange={event => serverSearch ? onAgentQuery?.(event.target.value) : setSearch(event.target.value)} />
     </div>
     {(['people', 'agents'] as const).filter(lane => kind === 'all' || kind === lane).map(lane => paging?.[lane].error && <p key={lane} className="error" role="alert">Could not refresh {lane}: {paging[lane].error}</p>)}
     {loading && !shown.length && !(['people', 'agents'] as const).some(lane => (kind === 'all' || kind === lane) && paging?.[lane].error) ? <p className="muted" role="status">Loading people and agents…</p>

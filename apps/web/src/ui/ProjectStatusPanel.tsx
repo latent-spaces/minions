@@ -1,5 +1,5 @@
 import { useEffect, useId, useState, type ReactNode } from 'react';
-import { Archive, CircleAlert, Hourglass, Pause, Play, RotateCcw } from 'lucide-react';
+import { Archive, CircleAlert, Hourglass, Pause, Play, RotateCcw } from './icons';
 import type { Workspace } from '../project-api';
 import { Button } from './Button';
 import { Tooltip } from './Tooltip';
@@ -50,7 +50,7 @@ export function ProjectStatusPanel({ workspace, controls, onAddTime }: { workspa
       </div>}
       <div className="k42-status-actions">
         {/* Start lives here, with the project's status (Noa, 26 October 2026). */}
-        {timeUp && manager && onAddTime && <Button type="button" className="k42-ph-thin" onClick={onAddTime}><Hourglass size={16} aria-hidden="true" />Add time</Button>}
+        {timeUp && manager && onAddTime && <Button type="button" className="k42-ph-thin k42-status-add-time" onClick={onAddTime}><Hourglass size={16} aria-hidden="true" />Add time</Button>}
         {canStart && <StartProject id={`${titleId}-length`} className="k42-ph-thin" disabled={controls.locked} controls={controls} />}
         {projectAction && <HeaderIcon label={projectAction === 'pause' ? 'Pause all agents' : 'Resume all agents'} tip={projectAction === 'pause' ? 'Each agent finishes its turn, then waits.' : 'Agents pick up where they stopped.'} disabled={controls.locked} onClick={() => void controls.act(projectAction)}>
           {projectAction === 'pause' ? <Pause size={18} aria-hidden="true" /> : <Play size={18} aria-hidden="true" />}</HeaderIcon>}

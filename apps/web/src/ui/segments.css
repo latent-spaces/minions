@@ -5,3 +5,7 @@
 .k42-task-segment[aria-pressed="true"], .k42-task-segment[aria-pressed="true"]:hover:not(:disabled) { background: var(--canvas); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12), 0 0 0 1px var(--hairline-shell); }
 .k42-task-segment:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 .k42-task-segment:disabled:not([aria-pressed="true"]) { color: var(--text-faint); cursor: not-allowed; }
+/* Segmented controls read on both the gradient and white panels: a faint ink track, and the chosen segment is a
+   white pill with a hairline and a soft shadow (owner, 16 November 2026). */
+.k42-task-segments, .setting-toggle-options { background: rgba(20, 20, 20, .05); border: 0; }
+:is(.k42-task-segments, .setting-toggle-options) > [aria-pressed="true"] { background: var(--canvas); color: var(--ink); box-shadow: 0 0 0 1px rgba(20, 20, 20, .06), 0 1px 3px rgba(20, 20, 20, .12); }

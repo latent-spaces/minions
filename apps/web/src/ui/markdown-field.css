@@ -1,15 +1,9 @@
 .k42-md-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; font-weight: 450; }
-.k42-md-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 8px; }
-.k42-md-tabs { display: flex; gap: 4px; }
-.k42-md-tabs button { min-height: 32px; padding: 2px 12px; border: 1px solid transparent; border-radius: var(--radius-button); background: none; color: var(--text-muted); font: inherit; font-size: 13px; font-weight: 600; }
-.k42-md-tabs button:hover { color: var(--ink); }
-.k42-md-tabs button[aria-selected="true"] { border-color: var(--line); background: var(--canvas); color: var(--ink); }
+.k42-md-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 8px; }
 .k42-md-toolbar { display: flex; align-items: center; gap: 2px; }
 .k42-md-toolbar[hidden] { display: none; }
 .k42-md-toolbar > :not(.k42-md-gap) { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: var(--radius-button); color: var(--text-muted); cursor: pointer; }
 .k42-md-toolbar > :not(.k42-md-gap):hover { background: var(--canvas-soft); color: var(--ink); }
 .k42-md-gap { width: 1px; height: 16px; margin: 0 4px; background: var(--line); }
-:is(.k42-md-tabs button, .k42-md-toolbar > *):focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+.k42-md-toolbar > *:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 .k42-md-field textarea { width: 100%; }
-.k42-md-preview { box-sizing: border-box; padding: 10px 12px; border: var(--field-border); border-radius: var(--field-radius); overflow-wrap: anywhere; }
-.k42-md-empty { margin: 0; color: var(--text-muted); font-size: 14px; }
