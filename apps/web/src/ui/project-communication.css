@@ -52,7 +52,6 @@
 /* Show the agents or their published result. */
 .k42-communication-map-stage[hidden] { display:none; }
 .k42-communication > .k42-activity-heading { justify-content:flex-start; gap:8px; margin-bottom:8px; }
-.k42-communication > .k42-activity-heading .k42-communication-fullscreen { margin-left:auto; }
 
 .k42-communication-add-agent.is-map { position:absolute; right:12px; bottom:12px; z-index:1; }
 
@@ -66,7 +65,6 @@
 .k42-communication > .k42-activity-heading { flex-wrap:wrap; }
 .k42-communication > .k42-activity-heading .k42-communication-controls-slot { flex:1 1 auto; display:flex; min-width:0; }
 .k42-communication > .k42-activity-heading .k42-communication-controls-slot[hidden] { display:none; }
-.k42-communication > .k42-activity-heading:has(.k42-communication-controls-slot:not([hidden])) .k42-communication-fullscreen { margin-left:0; }
 .k42-communication-controls-slot .communication-map-controls { position:static; flex:1; justify-content:flex-start; align-items:center; flex-wrap:wrap; gap:8px; }
 .k42-communication-controls-slot :is(.communication-map-controls > select, .communication-map-zoom > button) { min-height:36px; padding:4px 10px; }
 .k42-communication-controls-slot .communication-map-zoom > button { min-width:36px; }
@@ -106,3 +104,4 @@
 .k42-fit .k42-communication > .k42-activity-heading { flex-wrap:nowrap; align-items:flex-start; }
 .k42-fit .k42-communication > .k42-activity-heading .k42-communication-controls-slot { min-width:0; }
 @media (max-height:640px) { .k42-fit .k42-project-pause-status p { display:none; } .k42-fit .k42-project-pause-status { padding-block:8px; } }
+.communication-map-controls .k42-communication-fullscreen { width:32px; height:32px; } /* beside Fit map (owner, 16 November 2026) */

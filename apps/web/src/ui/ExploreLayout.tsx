@@ -1,7 +1,7 @@
 import { PathHeading } from './PathHeading';
 import type { Route } from '../route';
 import { useId, type ReactNode, type Ref } from 'react';
-import { Search } from 'lucide-react';
+import { Search } from './icons';
 import './explore.css';
 
 // No page search and no Create button here: the top bar searches Explore, and creating starts from the + beside

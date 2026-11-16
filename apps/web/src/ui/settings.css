@@ -1,5 +1,6 @@
 /* Settings uses the existing Gallery Workspace surfaces and controls. */
-.project-settings { max-width: 900px; }
+/* Settings fill the project column, as wide as the project header (owner, 16 November 2026). */
+.project-settings { max-width: none; }
 .settings-category-pages .settings-section { border: 0; margin: 0; padding: 0; }
 .settings-category-pages .settings-card > .settings-section ~ .settings-section { border-top: var(--card-border); margin-top: 28px; padding-top: 24px; }
 .settings-category-pages :is(h3, h4) { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
@@ -19,9 +20,14 @@
 .settings-category-pages .settings-disclosure > summary::after { position: static; margin-left: auto; }
 .settings-category-pages .settings-disclosure > summary > span { display: inline; padding: 0; margin: 0; font-size: 12px; font-weight: 450; }
 .settings-category-pages .settings-disclosure > :not(summary) { margin-top: 16px; }
-.settings-category-pages .settings-readonly { display: grid; gap: 16px; }
+/* One field under the other: name, then description, then rules (owner, 16 November 2026). */
+.settings-category-pages .settings-readonly { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .settings-readonly dt { font-weight: 600; }
 .settings-readonly dd { margin: 4px 0 0; }
+/* The project card uses the page's own type: subheadings like "How often" (14px semibold ink) and 14px body text (owner, 16 November 2026). */
+.settings-category-pages .settings-readonly dt { font-size: 14px; font-weight: 600; color: var(--ink); }
+.settings-category-pages .settings-readonly dd { margin-top: 4px; font-size: 14px; font-weight: 450; line-height: 1.5; color: var(--ink); }
+.settings-category-pages .settings-readonly dd :is(p, ul, ol) { margin: 0; font-size: inherit; }
 /* The owner's Edit button under the read-only project card (owner, 15 November 2026). */
 .card-edit { display: inline-flex; align-items: center; gap: 6px; }
 .settings-category-pages .agent-panel { padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; margin: 28px 0 0; border-top: var(--card-border); padding-top: 24px; }

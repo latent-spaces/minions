@@ -12,7 +12,7 @@ import { useChatHistory } from './useChatHistory';
 import { Button } from './ui/Button';
 import { chatMessageRoute } from './chat-api';
 import { ChatSearch, LinkedChatMessage, useChatUnread, useThreadUnreadCounts } from './ui/ChatFeatures';
-import { RotateCw, MessagesSquare, Pin } from 'lucide-react';
+import { RotateCw, MessagesSquare, Pin } from './ui/icons';
 import type { HumanRequest } from '@minions/contracts';
 import { WaitingRequests } from './ui/NeedsYou';
 import { conversationTitle, messagePreview } from './ui/message-preview';

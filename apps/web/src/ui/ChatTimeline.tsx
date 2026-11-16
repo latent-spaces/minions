@@ -1,5 +1,5 @@
 import { Children, isValidElement, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowDown, Copy } from 'lucide-react';
+import { ArrowDown, Copy } from './icons';
 import { clipText } from './message-preview';
 import Markdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';

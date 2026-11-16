@@ -1,4 +1,3 @@
-import { FileText, Megaphone, Users } from 'lucide-react';
 import { UpdateSettings } from './ui/UpdateSettings';
 import { CommunicationLimits } from './ui/CommunicationLimits';
 import { NativeTeamSettings } from './ui/NativeTeamSettings';
@@ -26,19 +25,19 @@ export function ControlCenter({ user, workspace, refresh, active, refreshKey }: 
     <header className="control-center-heading"><h2 id="control-center-title" className="k42-section-title">Settings</h2></header>
     <div className="settings-category-pages control-center-stack">
       <section className="settings-card" aria-labelledby="settings-project-title">
-        <header className="settings-group-title settings-group-head"><span className="settings-group-icon" aria-hidden="true"><FileText size={18} /></span><h3 id="settings-project-title">Project<InfoTip label="the project card">The project's name, description and rules. Everyone sees them, and every agent works within them.</InfoTip></h3></header>
-        <CardSettings request={catalogRequest} workspace={workspace} definition={workspace.definition} refresh={refresh} active={active} />
+        <header className="settings-group-title settings-group-head"><h3 id="settings-project-title">Project<InfoTip label="the project card">The project's name, description and rules. Everyone sees them, and every agent works within them.</InfoTip></h3></header>
+        <CardSettings request={catalogRequest} workspace={workspace} definition={workspace.definition} refresh={refresh} />
       </section>
       <MyCharacter key={user.uid} user={user} active={active} onSaved={refresh} />
       {isOwner && <>
       {closed && <p className="muted">This project is closed. Reopen it from the project header to edit these settings.</p>}
       <fieldset className="control-center-editable control-center-stack" disabled={closed}>
         <section className="settings-card" aria-labelledby="settings-agents-title">
-          <header className="settings-group-title settings-group-head"><span className="settings-group-icon" aria-hidden="true"><Users size={18} /></span><div><h3 id="settings-agents-title">All agents</h3><p>Every agent in this project follows these, yours and other people’s.</p></div></header>
+          <header className="settings-group-title settings-group-head"><div><h3 id="settings-agents-title">All agents</h3><p>Every agent in this project follows these, yours and other people’s.</p></div></header>
           <CommunicationLimits key={`${user.uid}:${workspace.id}:communication`} user={user} projectId={workspace.id} active={active} tick={refreshKey} />
         </section>
         <section className="settings-card" aria-labelledby="settings-updates-title">
-          <header className="settings-group-title settings-group-head"><span className="settings-group-icon" aria-hidden="true"><Megaphone size={18} /></span><div><h3 id="settings-updates-title">Updates</h3><p>What agents post to the Updates feed: an image, a headline and one line.</p></div></header>
+          <header className="settings-group-title settings-group-head"><div><h3 id="settings-updates-title">Updates</h3><p>What agents post to the Updates feed: an image, a headline and one line.</p></div></header>
           <UpdateSettings key={`${user.uid}:${workspace.id}:updates`} request={catalogRequest} projectId={workspace.id} active={active} />
         </section>
         <section className="settings-card" aria-labelledby="settings-features-title">

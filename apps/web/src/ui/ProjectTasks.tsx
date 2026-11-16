@@ -2,7 +2,7 @@ import { nativeTaskTitleMatches } from '@minions/contracts';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import type { NativeTask, NativeTaskActor, NativeTaskDetail, NativeTaskStatus, NativeTaskActivity, NativeTaskSummary } from '@minions/contracts';
 import { closedTask } from '@minions/contracts';
-import { ArrowLeft, Check, ChevronDown, GitPullRequest, ChevronRight, Columns3, Filter, List, ListTodo, Plus, RefreshCw, Search, X } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, GitPullRequest, ChevronRight, Columns3, Filter, List, ListTodo, Plus, RefreshCw, Search, X } from './icons';
 export type TaskAgent = { id: string; name: string; operatorId: string | null; operatorName: string | null; revokedAt: number | null;
   operatorPhoto?: import('@minions/contracts').PublicProfilePhoto | null; personaChoice?: import('@minions/contracts').PersonaChoice | null; assignable?: boolean;
   /** Live state and coding tool, known only for agents on the first full agents page. */

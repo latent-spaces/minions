@@ -1,4 +1,4 @@
-import { Cpu } from 'lucide-react';
+import { Cpu } from './icons';
 import './model-mark.css';
 
 import { modelFamily } from './model-family';

@@ -1,5 +1,5 @@
-import { Circle, MessageCircle, CircleHelp, Hand, Hourglass, Pause, Settings, Square, Check, WifiOff, Ban } from 'lucide-react';
-import type { LucideProps } from 'lucide-react';
+import { Circle, MessageCircle, CircleHelp, Hand, Hourglass, Pause, Settings, Square, Check, WifiOff, Ban } from './icons';
+import type { LucideProps } from './icons';
 import type { CommunicationAgentState } from '@minions/contracts';
 import { COMMUNICATION_AGENT_LABELS } from './communication-agent-state';
 import { agentIconState } from './agent-status-icon';

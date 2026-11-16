@@ -5,7 +5,7 @@ import type { AgentPersona as Persona } from '@minions/contracts';
 import { ApiError, session, projects } from '../api';
 import { hold } from '../route';
 import { Button } from './Button';
-import { ChevronDown, CircleHelp } from 'lucide-react';
+import { ChevronDown, CircleHelp } from './icons';
 import { PickerMenu } from './PickerMenu';
 import './agent-persona.css';
 import { PERSONA_OPTIONS, personaChoice, type PersonaChoice } from '@minions/contracts';

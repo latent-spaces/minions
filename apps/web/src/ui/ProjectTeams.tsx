@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { NativeTeamDetail, NativeTeamPage, NativeTeamAction } from '@minions/contracts';
-import { ChevronRight, RefreshCw, Search, Users } from 'lucide-react';
+import { ChevronRight, RefreshCw, Users } from './icons';
 import type { TeamsApi } from '../teams-api';
 import { useLabelLookup } from '../label-lookup';
 import { isAccessLoss } from '../task-model';
@@ -8,6 +8,7 @@ import type { TaskAgent, TaskLabelLookup } from './ProjectTasks';
 import { TaskAgentAvatar } from './TaskAgentAvatar';
 import { Button } from './Button';
 import { EmptyState } from './EmptyState';
+import { SearchField } from './SearchField';
 import { CloseButton } from './CloseButton';
 import './segments.css';
 import './project-tasks.css';
@@ -78,7 +79,7 @@ export function ProjectTeams({ api, active, refreshToken = 0, disabledNotice, ag
     {disabledNotice && <p className="muted" role="status">Teams are off. Existing teams, memberships and history are read-only.</p>}
     <div className="k42-teams-toolbar">
       <div className="k42-task-segments" aria-label="Team state"><Button className="k42-task-segment" aria-pressed={!archived} onClick={() => chooseFilter(false)}>Active</Button><Button className="k42-task-segment" aria-pressed={archived} onClick={() => chooseFilter(true)}>Archived</Button></div>
-      <label className="k42-tasks-search"><Search className="k42-tasks-search-icon" size={16} aria-hidden="true" /><span className="visually-hidden">Search teams</span><input value={draft} maxLength={120} onChange={event => setDraft(event.target.value)} placeholder="Search teams…" type="search" /></label>
+      <SearchField label="Search teams" value={draft} maxLength={120} onChange={event => setDraft(event.target.value)} placeholder="Search teams…" />
     </div>
     {current && state.error && <p role="alert" className="error">{state.error} <Button disabled={busy} onClick={() => load()}>Try again</Button></p>}
     {!page && busy && <p className="muted" role="status">Loading teams…</p>}

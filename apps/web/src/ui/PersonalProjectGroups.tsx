@@ -1,9 +1,10 @@
 import { sharedLink } from '../shared-link';
 import { Button } from './Button';
-import { Archive, RotateCcw, Link as LinkIcon, LogOut, Settings, type LucideIcon, Star, StarOff } from 'lucide-react';
+import { Archive, RotateCcw, Link as LinkIcon, LogOut, Settings, type LucideIcon, Star, StarOff } from './icons';
 import type { PersonalProjectEntry } from '../project-api';
 import { formatRoute, projectRoute, type Route } from '../route';
 import type { HeaderMenuItem } from './ProjectHeader';
+import { NewProjectTile } from './NewProjectTile';
 import { ExploreProjectCard } from './ExploreProjectCard';
 import { groupPersonalProjects, personalFilterChips, type PersonalFilter } from './group-personal-projects';
 import { personalProjectStatus } from './personal-project-status';
@@ -29,16 +30,19 @@ export function PersonalFilterChips({ projects, archived, value, disabled = fals
   </div>;
 }
 
-// One grid with no group headings (Noa, 26 October 2026): every project in the list; the start prompt sits above it in My projects.
+// One grid with no group headings (Noa, 26 October 2026): the Claude prompt first, then every project in the list.
 // The card's small tag says which kind it is (Owner, a joined role, or Waiting); the chips only switch to Archived.
-export function PersonalProjectGroups({ projects, covers, go, onArchive, onStar, onLeave, disabled = false, archived = false }: { projects: PersonalProjectEntry[]; /** Loaded cover images by project id. */ covers?: Record<string, string>; go: (to: Route) => void; onArchive?: (project: PersonalProjectEntry) => void; onStar?: (project: PersonalProjectEntry) => void; onLeave?: (id: string) => void; disabled?: boolean; archived?: boolean }) {
+// `searching` is true while the page is filtered by a search: an empty result is then a search result, not an invitation.
+export function PersonalProjectGroups({ projects, covers, go, searching = false, onArchive, onStar, onLeave, disabled = false, archived = false }: { projects: PersonalProjectEntry[]; /** Loaded cover images by project id. */ covers?: Record<string, string>; go: (to: Route) => void; searching?: boolean; onArchive?: (project: PersonalProjectEntry) => void; onStar?: (project: PersonalProjectEntry) => void; onLeave?: (id: string) => void; disabled?: boolean; archived?: boolean }) {
   const grouped = groupPersonalProjects(projects, archived);
   const shown = (['owner', 'joined', 'waiting'] as const).flatMap(key => grouped[key].map(project => ({ project, waiting: key === 'waiting' })));
+  const prompt = !archived && !searching;
   return <div className="personal-project-groups">
+    {prompt && <NewProjectTile />}
     {shown.map(({ project, waiting }) => {
       const state = personalProjectStatus(project);
       const act = () => { if (project.kind !== 'proposal') go(projectRoute(project.id, state.settings ? 'control-center' : 'overview')); };
-      return <ExploreProjectCard key={project.id} cover={covers?.[project.id] ?? project.coverImage ?? null} menu={[...manageMenu(project, go, disabled ? undefined : onStar, disabled ? undefined : onLeave), ...(onArchive && !project.archived && !disabled ? [{ id: 'archive', label: 'Archive for me', icon: <Archive size={18} aria-hidden="true" />, onSelect: () => onArchive(project) }] : [])]} footerAction={onArchive && project.archived ? <Button className="personal-project-restore" disabled={disabled} onClick={() => onArchive(project)} aria-label={`Restore ${project.name}`}><RotateCcw size={16} aria-hidden="true" />Restore</Button> : undefined} headingLevel={2} projectId={project.id} icon={null} private={project.private} title={project.name} summary={project.summary} category={waiting ? 'Waiting' : { owner: 'Owner', member: 'Member' }[project.role]} status={state.label} statusHelp={state.help} visibilityLabel={state.visibility} participantCount={project.participantCount ?? null} minContributors={project.minContributors} startDeadline={project.startDeadline} recruiting={project.state ? project.state.admission !== 'direct_private' && ['recruiting', 'ready_to_start'].includes(project.state.status) : project.listed === true && project.execution === 'ready' && project.lifecycle !== 'setup'} reviewPending={project.kind === 'proposal' && project.proposalStatus === 'submitted'} actionLabel={state.action} onAction={act} />;
+      return <ExploreProjectCard key={project.id} cover={covers?.[project.id] ?? project.coverImage ?? null} menu={[...manageMenu(project, go, disabled ? undefined : onStar, disabled ? undefined : onLeave), ...(onArchive && !project.archived && !disabled ? [{ id: 'archive', label: 'Archive for me', icon: <Archive size={18} aria-hidden="true" />, onSelect: () => onArchive(project) }] : [])]} footerAction={onArchive && project.archived ? <Button className="personal-project-restore" disabled={disabled} onClick={() => onArchive(project)} aria-label={`Restore ${project.name}`}><RotateCcw size={16} aria-hidden="true" />Restore</Button> : undefined} headingLevel={2} projectId={project.id} icon={null} title={project.name} summary={project.summary} category={waiting ? 'Waiting' : { owner: 'Owner', member: 'Member' }[project.role]} status={state.label} statusHelp={state.help} participantCount={project.participantCount ?? null} minContributors={project.minContributors} startDeadline={project.startDeadline} recruiting={project.state ? project.state.admission !== 'direct_private' && ['recruiting', 'ready_to_start'].includes(project.state.status) : project.listed === true && project.execution === 'ready' && project.lifecycle !== 'setup'} reviewPending={project.kind === 'proposal' && project.proposalStatus === 'submitted'} actionLabel={state.action} onAction={act} />;
     })}
   </div>;
 }

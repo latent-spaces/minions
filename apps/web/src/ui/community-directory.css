@@ -5,9 +5,6 @@
 .k42-directory-chips .k42-directory-chip { min-height:36px; padding:0 12px; border:var(--card-border); border-radius:var(--pill-radius); background:var(--canvas); color:var(--ink); font-size:13px; font-weight:600; }
 .k42-directory-chips .k42-directory-chip:hover { border-color:var(--hairline-strong); background:var(--canvas); }
 .k42-directory-chips .k42-directory-chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:var(--on-ink); }
-.k42-directory-search { display:flex; align-items:center; gap:8px; flex:1 1 220px; min-width:0; height:var(--field-height); padding:0 12px; border:var(--field-border); border-radius:var(--field-radius); background:var(--field-bg); color:var(--text-muted); }
-.k42-directory-search:focus-within { border-color:var(--ink); }
-.k42-directory-search input { flex:1; min-width:0; border:0; outline:0; background:transparent; font:inherit; color:var(--ink); }
 .k42-directory-list { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap:16px; }
 .k42-directory-card { display:grid; grid-template-columns:56px minmax(0,1fr); grid-template-rows:auto auto; column-gap:14px; row-gap:14px; align-items:center; min-width:0; padding:18px; min-height:132px; box-sizing:border-box; border:var(--card-border); border-radius:var(--surface-radius); background:var(--canvas); color:var(--ink); text-decoration:none; }
 .k42-directory-card:hover { border-color:var(--card-border-hover); }
@@ -60,3 +57,4 @@
 .k42-directory-task-kind { grid-column:1 / -1; font-size:11px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--text-muted); }
 .k42-directory-task-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink); }
 .k42-directory-task .k42-task-status { font-size:12px; padding:1px 8px; }
+.k42-directory-controls > .k42-tasks-search { flex: 1 1 220px; }

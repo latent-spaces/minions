@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useRef } from 'react';
 import { owner } from '../api';
 import { CHECKOUT, CHECKOUT_PREPARE, computerSetupInstructions, GITHUB_COMMANDS, githubSetupInstructions, setupCommand } from '../setup-instruction';
 import './your-agent.css';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy } from './icons';
 import './first-ai.css';
 
 // The engine's one computer: its shared service's last report, or null before the first (owner decision, 15 November 2026).

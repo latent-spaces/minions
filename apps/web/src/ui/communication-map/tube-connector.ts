@@ -3,7 +3,8 @@ export type TubeShape='soft'|'round'|'rubber';
 const shapes={
  soft:{radius:1.6,swell:4.2,spread:9,fill:'#f4eff7',ink:1,bead:1.9},
  round:{radius:2.2,swell:5,spread:9,fill:'#eee6f5',ink:1.1,bead:2.5},
- rubber:{radius:1.6,swell:3.2,spread:11,fill:'#352b3d',ink:.9,bead:1.8},
+ // Thinner lines between agents (owner, 16 November 2026).
+ rubber:{radius:.6,swell:1.8,spread:11,fill:'#352b3d',ink:.5,bead:1.2},
 };
 export function drawTubeConnector(context:CanvasRenderingContext2D,sx:number,sy:number,tx:number,ty:number,phases:number[],color:string,shape:TubeShape='soft'){
  const dx=tx-sx,dy=ty-sy,length=Math.hypot(dx,dy);if(length<1)return;

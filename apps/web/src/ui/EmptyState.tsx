@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { LucideIcon } from 'lucide-react';
+import type { LucideIcon } from './icons';
 import type { PastelTone } from './avatar-tone';
 import { toneClass } from './tag-tone';
 import './empty-state.css';
@@ -14,7 +14,7 @@ export function EmptyState({ icon: Icon, title, children, action, tone = 'lilac'
   icon: LucideIcon; title: string; children?: ReactNode; action?: ReactNode; tone?: PastelTone | null; size?: 'compact' | 'regular' | 'large';
 }) {
   return <div className={`k42-empty${size === 'compact' ? ' k42-empty-compact' : size === 'large' ? ' k42-empty-large' : ''}`}>
-    <span className={`k42-empty-icon${tone ? toneClass(tone) : ' is-neutral'}`} aria-hidden="true"><Icon size={size === 'compact' ? 16 : size === 'large' ? 36 : 20} /></span>
+    <span className={`k42-empty-icon${tone ? toneClass(tone) : ' is-neutral'}`} aria-hidden="true"><Icon size={size === 'compact' ? 16 : 20} /></span>
     <p className="k42-empty-title">{title}</p>
     {children !== null && children !== undefined && children !== false && <div className="k42-empty-text">{children}</div>}
     {action && <div className="k42-empty-action">{action}</div>}

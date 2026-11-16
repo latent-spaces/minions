@@ -1,0 +1,34 @@
+/* The first-run swarm: agents on a dot grid passing messages (owner, 16 November 2026). */
+.k42-swarm-stage { position:relative; width:100%; max-width:900px; height:320px; border-radius:28px; overflow:hidden;
+  background-color:rgba(255,255,255,.45); background-image:radial-gradient(rgba(90,80,140,.22) 1.2px, transparent 1.3px); background-size:22px 22px;
+  border:1px solid rgba(255,255,255,.7); box-shadow:inset 0 0 60px rgba(255,255,255,.6); }
+.k42-swarm-links { position:absolute; inset:0; width:100%; height:100%; }
+.k42-swarm-links line { stroke:rgba(110,90,190,.18); stroke-width:.25; vector-effect:non-scaling-stroke; stroke-dasharray:3 4; }
+.k42-swarm-agent { position:absolute; width:52px; height:52px; margin:-26px 0 0 -26px; border-radius:16px; background:#fff; box-shadow:0 4px 12px rgba(40,30,90,.12); display:grid; place-items:center; transition:transform .3s, box-shadow .3s; }
+.k42-swarm-agent img { width:44px; height:44px; object-fit:contain; }
+.k42-swarm-agent.is-busy { transform:scale(1.14); box-shadow:0 0 0 3px rgba(0,102,255,.25), 0 8px 18px rgba(40,30,90,.18); }
+.k42-swarm-packet { position:absolute; width:10px; height:10px; margin:-5px 0 0 -5px; border-radius:50%; background:#0066ff; box-shadow:0 0 0 4px rgba(0,102,255,.15);
+  left:var(--x1); top:var(--y1); animation:k42-swarm-packet 1.4s cubic-bezier(.4,0,.2,1) forwards; }
+@keyframes k42-swarm-packet { 0% { left:var(--x1); top:var(--y1); opacity:0; } 12% { opacity:1; } 88% { opacity:1; } 100% { left:var(--x2); top:var(--y2); opacity:0; } }
+@media (max-width: 760px) { .k42-swarm-stage { height:240px; } .k42-swarm-agent { width:38px; height:38px; margin:-19px 0 0 -19px; border-radius:12px; } .k42-swarm-agent img { width:32px; height:32px; } }
+@media (prefers-reduced-motion: reduce) { .k42-swarm-agent { transition:none; } }
+/* Open stage on the page's own dot grid; live links, popups and the person (owner, 16 November 2026). */
+.k42-swarm-stage { height:360px; max-width:none; border:0; border-radius:0; background:none; box-shadow:none; overflow:visible; }
+.k42-swarm-links line { stroke:rgba(110,90,190,.22); }
+.k42-swarm-links line.is-live { stroke:#0066ff; stroke-width:1.6; stroke-dasharray:none; opacity:.55; }
+.k42-swarm-agent.is-human { width:76px; height:76px; margin:-38px 0 0 -38px; border-radius:50%; box-shadow:0 0 0 4px #fff, 0 0 0 7px #a98bff, 0 10px 24px rgba(80,50,180,.25); z-index:2; }
+.k42-swarm-agent.is-human img { width:64px; height:64px; }
+.k42-swarm-agent.is-human b { position:absolute; top:calc(100% + 10px); left:50%; transform:translateX(-50%); padding:2px 10px; border-radius:999px; background:#141414; color:#fff; font-size:12px; }
+.k42-swarm-pop { position:absolute; z-index:3; transform:translate(-50%, calc(-100% - 34px)); padding:6px 10px; border-radius:12px; background:#fff; color:#141414; font-size:12px; font-weight:500; white-space:nowrap; box-shadow:0 6px 16px rgba(40,30,90,.16); animation:k42-pop 1.8s ease-out forwards; pointer-events:none; }
+.k42-swarm-pop.is-below { transform:translate(-50%, 34px); }
+@keyframes k42-pop { 0% { opacity:0; scale:.85; } 12% { opacity:1; scale:1; } 80% { opacity:1; } 100% { opacity:0; } }
+@media (max-width: 760px) { .k42-swarm-stage { height:260px; } .k42-swarm-pop { display:none; } }
+/* Scenes: agents glide to their places; teams get soft areas and names; updates to you stand out (owner, 16 November 2026). */
+.k42-swarm-agent { transition:left 1.2s cubic-bezier(.33,0,.15,1), top 1.2s cubic-bezier(.33,0,.15,1), transform .3s, box-shadow .3s; }
+.k42-swarm-links line { transition:all 1.2s cubic-bezier(.33,0,.15,1); }
+.k42-swarm-team { position:absolute; width:30%; height:42%; transform:translate(-50%,-50%); border-radius:50%; background:radial-gradient(closest-side, rgba(169,139,255,.16), rgba(169,139,255,0)); animation:k42-team-in 1.2s ease-out; }
+.k42-swarm-team b { position:absolute; left:50%; top:-6px; transform:translateX(-50%); padding:3px 10px; border-radius:999px; background:rgba(255,255,255,.9); font-size:11px; font-weight:600; color:#5b47c9; white-space:nowrap; box-shadow:0 1px 3px rgba(40,30,90,.1); }
+@keyframes k42-team-in { from { opacity:0; scale:.8; } to { opacity:1; scale:1; } }
+.k42-swarm-pop.is-you { background:#141414; color:#fff; }
+.is-scene-2 .k42-swarm-agent.is-human { box-shadow:0 0 0 4px #fff, 0 0 0 7px #0066ff, 0 10px 28px rgba(0,80,255,.3); }
+@media (prefers-reduced-motion: reduce) { .k42-swarm-agent, .k42-swarm-links line { transition:none; } .k42-swarm-team { animation:none; } }

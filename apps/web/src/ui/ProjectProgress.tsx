@@ -6,7 +6,7 @@ import { Button } from './Button';
 import { CloseButton } from './CloseButton';
 import { Dialog } from './Dialog';
 import { PersonLink } from './PersonLink';
-import { ArrowUp, ChevronLeft, ChevronRight, ExternalLink, Megaphone } from 'lucide-react';
+import { ArrowUp, ChevronLeft, ChevronRight, ExternalLink, Megaphone } from './icons';
 import { AgentAvatar } from './AgentAvatar';
 import { PersonAvatar } from './PersonAvatar';
 import './project-progress.css';

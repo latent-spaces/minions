@@ -1,4 +1,4 @@
-.control-center { max-width: 760px; min-width: 0; }
+.control-center { min-width: 0; }
 .control-center-heading { margin: 0 0 24px; }
 .control-center-stack { display: grid; gap: 16px; min-width: 0; }
 .control-center-editable { min-width: 0; border: 0; padding: 0; margin: 0; }
@@ -27,19 +27,17 @@
 .control-center .settings-group-head p { margin: 2px 0 0; font-size: 14px; font-weight: 400; color: var(--text-muted); }
 /* A header whose explanation is a ? note: the title and its ? sit centred beside the icon. */
 .control-center .settings-group-head > h3 { display: flex; align-items: center; gap: 4px; align-self: center; }
-.control-center .settings-group-icon { flex: none; display: grid; place-items: center; width: 36px; height: 36px; border-radius: 8px; background: var(--canvas-soft); color: var(--ink); }
 .control-center .settings-card > .settings-group-head + * { padding-top: 20px; }
 /* Updates settings (owner, 12 November 2026): rows of choices, then the owner's own note. */
 .control-center .update-settings { display: grid; gap: 16px; }
 /* Same hairline between setting rows as the Features card; the save row sits right under the note. */
 .control-center .update-settings > :is(.setting-toggle, .update-settings-note) + :is(.setting-toggle, .update-settings-note) { padding-top: 16px; border-top: var(--card-border); }
-.control-center .update-settings-topics { display: flex; flex-wrap: wrap; gap: 6px; }
-/* Topics are a pick-several set: outline chips, a chosen one gets a grey fill and a check, never an ink fill. */
-.control-center .update-settings-topics > button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 1px solid var(--hairline); border-radius: var(--pill-radius); background: var(--canvas); color: var(--text-muted); font: inherit; font-size: 14px; cursor: pointer; }
-.control-center .update-settings-topics > button:hover:not(:disabled):not([aria-pressed="true"]) { background: var(--canvas-soft); color: var(--ink); }
-.control-center .update-settings-topics > button[aria-pressed="true"], .control-center .update-settings-topics > button[aria-pressed="true"]:hover:not(:disabled) { background: var(--canvas-soft); border-color: transparent; color: var(--ink); font-weight: 600; }
-.control-center .update-settings-topics > button:disabled { cursor: not-allowed; }
-.control-center .update-settings-topics > button:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+/* Topics are a pick-several set: a checkbox list, one per line (owner, 16 November 2026). */
+.control-center .setting-toggle:has(> .update-settings-topics) { flex-direction: column; align-items: flex-start; gap: 10px; }
+.control-center .update-settings-topics { display: flex; flex-direction: column; gap: 10px; }
+.control-center .update-settings-topic { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink); cursor: pointer; }
+.control-center .update-settings-topic input { width: 18px; height: 18px; margin: 0; accent-color: var(--ink); cursor: pointer; }
+.control-center .update-settings-topic:has(input:disabled) { cursor: not-allowed; color: var(--text-muted); }
 .control-center .update-settings-note { display: grid; gap: 8px; }
 .control-center .update-settings-note label { font-weight: 600; }
 .control-center .update-settings-note textarea { width: 100%; box-sizing: border-box; }

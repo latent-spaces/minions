@@ -170,12 +170,6 @@ progress, input[type="radio"], input[type="range"] { accent-color: var(--ink); }
 .card-form input:not([type='checkbox']), .card-form textarea { display: block; width: 100%; box-sizing: border-box; }
 .card-form textarea { font: inherit; color: var(--text); padding: 10px; resize: vertical; line-height: 1.5; }
 .card-form label { display: block; margin: 12px 0 6px; }
-.card-versions { overflow-wrap: anywhere; }
-.card-versions p { margin: 4px 0; }
-/* Each field is its own div here, so the global dt/dd two-column grid would squeeze Rules into the narrow column. */
-.card-versions dl { display: block; }
-.card-versions dl > div { margin-top: 8px; }
-.card-versions dd { margin: 0; white-space: pre-wrap; }
 
 /* Public discovery reuses the established light workspace language. */
 /* Disclosures: a stroke chevron at the trailing edge, pointing down and turning up when open (owner direction, 16 October 2026). */
@@ -203,3 +197,13 @@ details[open] > summary::after { transform: rotate(180deg); }
 /* A tab title with its explanation behind a ? note (owner, 11 November 2026). */
 .k42-section-heading { display:flex; align-items:center; gap:4px; }
 .k42-section-heading > .k42-section-title { margin:0; }
+/* Every project page heading row: the same height and the same gap to the content under it (owner, 16 November 2026). */
+:is(.k42-tasks-head, .conversations-heading, .k42-preview-heading, .k42-teams-heading, .usage-analytics-heading, .control-center-heading, .k42-agents-heading) { min-height:44px; margin:0 0 16px; display:flex; align-items:center; }
+/* One dropdown look everywhere (owner, 16 November 2026): a white rounded field with a hairline, a soft chevron, a hover
+   lift and an ink focus ring; the open list stays the browser's own for keyboard and screen readers. */
+select { appearance: none; -webkit-appearance: none; min-height: 36px; padding: 0 36px 0 14px; border: 1px solid #dcdce4; border-radius: 12px; background-color: #fff; color: #141414; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; box-shadow: 0 1px 2px rgba(20,20,40,.04);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 256 256'%3E%3Cpath fill='none' stroke='%236b6b78' stroke-linecap='round' stroke-linejoin='round' stroke-width='20' d='M208 96l-80 80-80-80'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; background-size: 14px; transition: border-color .15s, box-shadow .15s; }
+select:hover:not(:disabled) { border-color: #c4c4d0; box-shadow: 0 2px 6px rgba(20,20,40,.08); }
+select:focus-visible { outline: none; border-color: #141414; box-shadow: 0 0 0 3px rgba(20,20,20,.12); }
+select:disabled { opacity: .55; cursor: not-allowed; }

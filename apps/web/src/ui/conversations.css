@@ -56,3 +56,4 @@
 .steering-delivery-hint { margin-inline-start:8px; text-decoration:underline; text-underline-offset:3px; }
 .steering-delivery ul { list-style:none; margin:0; padding:0 0 8px; display:grid; gap:8px; }
 .steering-delivery li { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 16px; overflow-wrap:anywhere; }
+.conversation-empty:has(> .k42-empty-large) { padding:0; }

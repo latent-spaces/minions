@@ -1,0 +1,120 @@
+/* First run, two pages: choose a path, then copy its prompt (owner, 16 November 2026). */
+.k42-first { display:flex; flex-direction:column; align-items:center; text-align:center; gap:20px; padding:40px 0 64px; color:#141414; }
+.k42-first h2 { margin:8px 0 0; font-size:30px; font-weight:650; letter-spacing:-.01em; }
+.k42-first-path { display:flex; flex-direction:column; align-items:center; gap:8px; width:100%; height:100%; min-height:190px; padding:28px 18px 22px; border:1px solid #e3e3ea; border-radius:20px; background:rgba(255,255,255,.85); color:#141414; font:inherit; cursor:pointer; transition:transform .18s, box-shadow .18s, border-color .18s; }
+.k42-first-path:hover { transform:translateY(-3px); border-color:#cfcfda; box-shadow:0 10px 28px rgba(40,40,90,.10); }
+.k42-first-path:focus-visible { outline:2px solid #141414; outline-offset:3px; }
+.k42-first-path-icon { display:grid; place-items:center; width:52px; height:52px; margin-bottom:6px; border-radius:16px; background:#f1effa; color:#5b47c9; }
+.k42-first-path strong { font-size:15px; font-weight:650; }
+.k42-first-path > span:last-child { font-size:13px; line-height:1.45; color:#6b6b78; }
+.k42-first.is-step { align-items:stretch; max-width:720px; margin:0 auto; text-align:left; }
+.k42-first.is-step .k42-welcome-prompt { margin-top:0; max-width:none; }
+.k42-first-idea { display:flex; flex-direction:column; gap:6px; font-size:14px; font-weight:600; }
+.k42-first-idea input { height:44px; padding:0 14px; border:1px solid #dcdce4; border-radius:14px; font:inherit; font-weight:450; background:#fff; }
+.k42-first-idea input:focus { outline:none; border-color:#141414; }
+.k42-first-steps { list-style:none; margin:4px 0 0; padding:0; display:grid; gap:10px; font-size:14px; color:#3a3a46; }
+.k42-first-steps b { display:inline-grid; place-items:center; width:22px; height:22px; margin-right:10px; border-radius:999px; background:#141414; color:#fff; font-size:12px; }
+@media (prefers-reduced-motion: reduce) { .k42-first-path { transition:none; } .k42-first-path:hover { transform:none; } }
+.k42-first-path.is-single { width:340px; min-height:0; padding:22px 22px 24px; gap:10px; }
+.k42-first-path.is-single .k42-tile-terminal { width:100%; max-width:none; margin:0 0 6px; }
+.k42-first-path.is-single strong { display:inline-flex; align-items:center; gap:6px; font-size:17px; }
+@media (max-width: 760px) { .k42-first h2 { font-size:24px; } .k42-first-path.is-single { width:100%; } }
+/* The hand-off picture on page two (owner, 16 November 2026). Abstract: no product logos. */
+.k42-handoff { display:flex; align-items:center; justify-content:center; gap:0; padding:18px 0 6px; }
+.k42-handoff-node { display:flex; flex-direction:column; align-items:center; gap:8px; font-size:12px; color:#6b6b78; }
+.k42-handoff-node small { font-size:12px; font-weight:600; }
+.k42-handoff-mark { width:56px; height:56px; border-radius:18px; background:linear-gradient(135deg,#ff7ab8,#a98bff 55%,#ffb36b); box-shadow:0 8px 20px rgba(120,80,200,.25); }
+.k42-handoff-window { position:relative; display:flex; align-items:flex-start; gap:3px; width:84px; height:56px; padding:7px 8px; box-sizing:border-box; border-radius:12px; background:#17171c; box-shadow:0 8px 20px rgba(20,20,40,.25); }
+.k42-handoff-window i { width:6px; height:6px; border-radius:50%; background:#ff6b6b; } .k42-handoff-window i:nth-child(2) { background:#ffc65c; } .k42-handoff-window i:nth-child(3) { background:#5ed38a; }
+.k42-handoff-window b { position:absolute; left:10px; bottom:8px; color:#c39bff; font:600 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+.k42-handoff-wire { position:relative; width:150px; height:2px; margin:0 14px 24px; background:repeating-linear-gradient(90deg,#c9c3e6 0 6px,transparent 6px 12px); }
+.k42-handoff-packet { position:absolute; top:-12px; left:0; display:grid; place-items:center; width:26px; height:26px; border-radius:999px; background:#fff; color:#5b47c9; box-shadow:0 2px 8px rgba(40,30,90,.18); animation:k42-handoff 2.4s ease-in-out infinite; }
+@keyframes k42-handoff { 0% { left:0; opacity:0; } 15% { opacity:1; } 85% { opacity:1; } 100% { left:calc(100% - 26px); opacity:0; } }
+@media (prefers-reduced-motion: reduce) { .k42-handoff-packet { animation:none; left:calc(50% - 13px); } }
+@media (max-width: 520px) { .k42-handoff-wire { width:70px; } }
+/* How many agents, for how long, with what token cap (owner, 16 November 2026). */
+.k42-first-job { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:12px; }
+.k42-first-job label { display:flex; flex-direction:column; gap:6px; font-size:14px; font-weight:600; }
+.k42-first-job select { width:100%; height:40px; }
+@media (max-width: 520px) { .k42-first-job { grid-template-columns:1fr; } }
+/* Step two as a popup (owner, 16 November 2026). */
+.k42-first-dialog { width:min(680px, calc(100vw - 32px)); max-height:calc(100vh - 48px); padding:0; border:0; border-radius:24px; background:#fbfaff; color:#141414; box-shadow:0 24px 64px rgba(30,20,80,.25); overflow:auto; }
+.k42-first-dialog::backdrop { background:rgba(20,20,40,.35); backdrop-filter:blur(4px); }
+.k42-first-dialog .k42-first.is-step { position:relative; max-width:none; margin:0; padding:28px 28px 30px; gap:16px; }
+.k42-first-dialog h2 { margin:0; font-size:24px; padding-right:40px; }
+.k42-first-close { position:absolute; top:18px; right:18px; display:grid; place-items:center; width:36px; height:36px; padding:0; border:0; border-radius:999px; background:transparent; color:#6b6b78; cursor:pointer; }
+.k42-first-close:hover { background:rgba(20,20,40,.06); color:#141414; }
+/* Waiting for the first project, then the celebration (owner, 16 November 2026). */
+.k42-first-waiting, .k42-first-ready { display:flex; flex-direction:column; gap:16px; }
+.k42-first-checklist { list-style:none; margin:0; padding:0; display:grid; gap:10px; font-size:15px; color:#9a9aa8; }
+.k42-first-checklist li { display:flex; align-items:center; gap:10px; }
+.k42-first-checklist li svg { flex:none; width:22px; height:22px; padding:4px; box-sizing:border-box; border-radius:999px; background:#efeff4; }
+.k42-first-checklist .is-done { color:#141414; } .k42-first-checklist .is-done svg { background:#141414; color:#fff; }
+.k42-first-checklist .is-now { color:#141414; font-weight:600; } .k42-first-checklist .is-now svg { background:#ece8ff; color:#5b47c9; }
+.k42-first-wait { display:flex; align-items:center; gap:10px; margin:0; font-size:14px; color:#5a5a66; }
+.k42-first-dots { display:inline-flex; gap:4px; }
+.k42-first-dots i { width:7px; height:7px; border-radius:50%; background:#a98bff; animation:k42-dot 1.2s ease-in-out infinite; }
+.k42-first-dots i:nth-child(2) { animation-delay:.15s; } .k42-first-dots i:nth-child(3) { animation-delay:.3s; }
+@keyframes k42-dot { 0%,80%,100% { transform:translateY(0); opacity:.4; } 40% { transform:translateY(-5px); opacity:1; } }
+.k42-first-slow { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:12px 14px; border-radius:14px; background:#fff6e6; font-size:13px; color:#5a4a20; }
+.k42-first-slow button, .k42-first-edit { display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 12px; border:1px solid #e3e3ea; border-radius:999px; background:#fff; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.k42-first-edit { align-self:flex-start; }
+.k42-first-ready { align-items:center; text-align:center; padding:8px 0 4px; }
+.k42-first-ready h2 { padding-right:0; }
+.k42-first-ready p { margin:0; font-size:15px; color:#3a3a46; }
+.k42-first-ready .k42-welcome-face { width:84px; height:84px; animation:k42-hop .6s ease-out 2; }
+@keyframes k42-hop { 50% { transform:translateY(-12px); } }
+.k42-first-open { display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 22px; border-radius:999px; font-size:15px; }
+@media (prefers-reduced-motion: reduce) { .k42-first-dots i, .k42-first-ready .k42-welcome-face { animation:none; } }
+.k42-first-countdown { font-size:13px; color:#6b6b78; }
+/* The tour: white left half with the words, the live swarm on the right half (owner, 16 November 2026). */
+.k42-first.k42-tour { display:grid; grid-template-columns:minmax(320px, 1fr) minmax(0, 1.25fr); align-items:stretch; gap:0; padding:0; margin:-24px -32px -48px; min-height:calc(100vh - 0px); text-align:left; }
+.k42-tour-text { display:flex; flex-direction:column; justify-content:center; gap:16px; padding:48px 56px; background:#fff; box-shadow:8px 0 32px rgba(40,30,90,.06); position:relative; z-index:1; }
+.k42-tour-step { font-size:12px; font-weight:600; letter-spacing:.08em; color:#9a9aa8; }
+.k42-tour-icon { display:grid; place-items:center; width:48px; height:48px; border-radius:16px; background:#f1effa; color:#5b47c9; animation:k42-tour-in .4s ease-out; }
+.k42-tour h2 { margin:0; font-size:36px; line-height:1.12; letter-spacing:-.02em; animation:k42-tour-in .45s ease-out; }
+.k42-tour p { margin:0; font-size:17px; line-height:1.55; color:#4a4a58; max-width:36ch; animation:k42-tour-in .5s ease-out; }
+@keyframes k42-tour-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+.k42-tour-nav { display:flex; gap:10px; margin-top:12px; }
+.k42-tour-next { display:inline-flex; align-items:center; gap:8px; height:44px; padding:0 22px; border-radius:999px; font-size:15px; }
+.k42-tour-back { height:44px; padding:0 18px; border:1px solid #e3e3ea; border-radius:999px; background:#fff; font:inherit; font-weight:600; cursor:pointer; }
+.k42-tour-dots { display:flex; gap:8px; margin-top:20px; }
+.k42-tour-dots button { width:8px; height:8px; min-height:0; padding:0; border:0; border-radius:999px; background:#d9d6e8; cursor:pointer; transition:width .2s, background .2s; }
+.k42-tour-dots button[aria-current="step"] { width:24px; background:#141414; }
+.k42-tour-art { display:flex; align-items:center; padding:24px; }
+.k42-tour-art .k42-swarm-stage { height:min(560px, 80vh); }
+.workspace-layout .workspace-content:has(.k42-tour) { background-image:none; }
+@media (max-width: 900px) { .k42-first.k42-tour { grid-template-columns:1fr; margin:-24px -16px -48px; } .k42-tour-text { padding:32px 24px; } .k42-tour h2 { font-size:28px; } .k42-tour-art .k42-swarm-stage { height:280px; } }
+@media (prefers-reduced-motion: reduce) { .k42-tour h2, .k42-tour p, .k42-tour-icon { animation:none; } }
+/* During the tour there is no side menu; the white half has rounded corners and, when the tour ends, the menu slides
+   back in from the left where the white half was (owner, 16 November 2026). */
+.workspace-layout:has(.k42-tour) { grid-template-columns:0 minmax(0,1fr); }
+.workspace-layout:has(.k42-tour) > .project-sidebar { visibility:hidden; overflow:hidden; padding:0; box-shadow:none; }
+.k42-first.k42-tour { margin:-24px -32px -48px; min-height:100vh; }
+.k42-tour-text { border-radius:0 32px 32px 0; }
+.k42-menu-arrive .workspace-layout > .project-sidebar:not(.drawer) { animation:k42-menu-in .45s cubic-bezier(.2,.8,.2,1); }
+@keyframes k42-menu-in { from { clip-path:inset(0 0 0 0 round 0 32px 32px 0); opacity:.6; transform:translateX(-24px); } to { opacity:1; transform:none; } }
+@media (prefers-reduced-motion: reduce) { .k42-menu-arrive .workspace-layout > .project-sidebar:not(.drawer) { animation:none; } }
+.k42-tour-brand { position:absolute; top:40px; left:56px; right:56px; display:flex; flex-direction:column; gap:10px; }
+.k42-tour-brand .wordmark-logo { font-size:34px; }
+.k42-tour-brand p { margin:0; font-size:16px; font-weight:450; color:#5a5a66; }
+@media (max-width: 900px) { .k42-tour-brand { position:static; margin-bottom:12px; } .k42-tour-brand .wordmark-logo { font-size:28px; } }
+/* The opening: name centred, then it rises to the top and the slides fade in (owner, 16 November 2026). */
+.k42-tour-brand { transition:top 1.6s cubic-bezier(.33,0,.15,1), transform 1.6s cubic-bezier(.33,0,.15,1); transform-origin:left center; }
+.k42-tour-text.is-intro .k42-tour-brand { top:50%; transform:translateY(-50%) scale(1.5); }
+.k42-tour-text > :not(.k42-tour-brand) { transition:opacity .9s ease-out .9s; }
+.k42-tour-text.is-intro > :not(.k42-tour-brand) { opacity:0; transition:none; pointer-events:none; }
+.k42-tour-text.is-intro .k42-tour-brand .wordmark-logo { animation:k42-brand-in .8s ease-out; }
+@keyframes k42-brand-in { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+/* Leave the tour for the app (owner, 16 November 2026). */
+.k42-tour-skip { position:absolute; top:44px; right:40px; display:inline-flex; align-items:center; gap:6px; height:32px; padding:0 12px; border:0; border-radius:999px; background:transparent; color:#6b6b78; font:inherit; font-size:13px; font-weight:600; cursor:pointer; z-index:2; }
+.k42-tour-skip:hover { background:#f3f3f6; color:#141414; }
+.k42-tour-text.is-intro .k42-tour-skip { opacity:0; }
+@media (max-width: 900px) { .k42-tour-skip { top:16px; right:16px; } }
+.k42-first-wait-actions { display:flex; flex-wrap:wrap; gap:8px; }
+/* A quiet way back to the first-run tour (owner, 16 November 2026). */
+.k42-replay-tour { display:block; margin:-24px auto 24px; height:28px; padding:0 12px; border:0; border-radius:999px; background:transparent; color:#6b6b78; font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.k42-replay-tour:hover { background:rgba(20,20,40,.05); color:#141414; }
+/* The tour covers the whole window, above the page, so nothing from My projects shows around or under it (owner, 16 November 2026). */
+.k42-first.k42-tour { position:fixed; inset:0; z-index:50; margin:0; min-height:0; height:100vh; overflow:auto;
+  background:radial-gradient(70% 55% at 10% 0%, #f7e1f1 0%, transparent 70%), radial-gradient(60% 55% at 95% 5%, #dfe5ff 0%, transparent 70%), radial-gradient(80% 60% at 50% 100%, #e6eeff 0%, transparent 70%), #faf9ff; }

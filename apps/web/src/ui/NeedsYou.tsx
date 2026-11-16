@@ -8,7 +8,7 @@ import { hold, mayLeaveProject, projectRoute, type Route } from '../route';
 import { NavLink, time } from '../shared';
 import { Button } from './Button';
 import { PathHeading } from './PathHeading';
-import { Check, LockKeyhole, PenLine, Users, ShieldAlert, CheckCircle2, Circle } from 'lucide-react';
+import { Check, LockKeyhole, PenLine, Users, ShieldAlert, CheckCircle2, Circle } from './icons';
 import { useInvitedProfile } from './use-invited-profile';
 import { needsYouKey, useNeedsYouPage } from './use-needs-you-page';
 import './needs-you.css';

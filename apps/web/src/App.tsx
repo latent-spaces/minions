@@ -18,7 +18,7 @@ import { SessionLoading, SessionUnavailable } from './ui/SessionLoading';
 import { WorkspaceNavigation, type ProjectMenu, type WorkspaceNavItem } from './ui/WorkspaceNavigation';
 import { COMPACT_SHELL, PHONE_HEADER } from './ui/shell-breakpoint';
 import { useMenuCollapsed } from './ui/menu-collapse';
-import { ListTodo, Folder, Settings, Menu, Users, Activity, MonitorPlay, LogOut, MessageSquare, Megaphone, Network, Bot } from 'lucide-react';
+import { ListTodo, Folder, Settings, Menu, Users, Activity, MonitorPlay, LogOut, MessageSquare, Megaphone, Network, Bot } from './ui/icons';
 import { ProjectUpdatesFeed } from './ProjectUpdatesFeed';
 import { NotificationsBell } from './ui/NotificationsBell';
 import { sidebarAgentRoute, menuMode } from './ui/shell-nav';
@@ -56,6 +56,8 @@ import { refreshOnReturn } from './refresh-on-return';
 import { ProjectHeader, ProjectRepository, type HeaderMenuItem } from './ui/ProjectHeader';
 import { useProjectUsage } from './ui/ProjectUsage';
 import { CommunityDirectory } from './ui/CommunityDirectory';
+import { PersonAvatar } from './ui/PersonAvatar';
+import { AgentAvatar } from './ui/AgentAvatar';
 import { ProjectHomePreparation } from './ui/ProjectHomePreparation';
 import { waitingTitle, workerAgentStatus, workerAvatarState } from './ui/agent-running-state';
 import { MyWorkersContext } from './ui/MyWorkerControls';
@@ -111,7 +113,7 @@ const SECTION_NAMES: Record<Section, string> = { overview: 'Tasks', preview: 'Pr
 /** Tabs whose content fits the space below the project header instead of scrolling; the rest scroll on their own. */
 const FIT_SECTIONS: ReadonlySet<Section> = new Set(['preview']);
 // Needs you is reached from the notifications bell.
-const GLOBAL_NAMES: Record<GlobalView, string> = { projects: 'My projects', 'needs-you': 'Needs you' };
+const GLOBAL_NAMES: Record<GlobalView, string> = { projects: 'Home', 'needs-you': 'Needs you' };
 /** Project navigation and own-agent shortcuts; web creation is hidden (OPE-230). */
 type ProjectFacts = { projectId: string; connect: (() => void) | null; addTask?: (() => void) | null; openAgent?: (id: string) => void; myAgents?: { state?: import('@minions/contracts').CommunicationAgentState; provider?: string; id: string; name: string; status: string; detail: string; waiting?: boolean; queued?: boolean }[]; cheatSheet?: { title: string; started: boolean } | null; sections?: { id: Section; current: boolean; locked: boolean; count: number; fresh?: boolean }[] };
 const executionLabel = (p: ProjectEntry) => personalProjectStatus({ ...p, kind: 'project', proposalStatus: null }).label;
@@ -296,7 +298,6 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   const shortcut = (p: ProjectEntry) => ({ id:p.id, name:p.name, href:formatRoute(projectRoute(p.id)), onNavigate:() => go(projectRoute(p.id)), status:executionLabel(p), private:p.private, cover:covers[p.id] ?? null, live:isLive(p) });
   // Projects and agents are created from Claude through local MCP (owner, 10 November 2026).
   const projectMenu: ProjectMenu | null = openProject && { id:openProject.id, name:openProject.name, status:executionLabel(openProject), private:openProject.private, cover:covers[openProject.id] ?? null, live:isLive(openProject),
-    back: { id:'all-projects', label:'All projects', href:formatRoute({ view:'projects' }), onNavigate:() => go({ view:'projects' }) },
     // The project's sections sit in the menu, below New task and above My agents (owner, 11 November 2026).
     sections: (openFacts?.sections ?? []).map(({ id, current, locked, count, fresh }) => { const tab = PROJECT_TABS.find(t => t.id === id)!, Icon = tab.icon, to = projectRoute(openProject.id, id);
       return { id, label: tab.label, icon: <Icon size={18} aria-hidden="true" />, href: formatRoute(to), current, count, fresh, locked: locked ? 'Available when the project starts' : undefined, onNavigate: () => { setNavigationOpen(false); go(to); } }; }),
@@ -311,7 +312,8 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
     {compact && <CloseButton label="Close navigation" onClick={dismiss} />}
     <WorkspaceNavigation collapsed={rail} onCollapsedChange={compact ? undefined : setMenuCollapsed}
       brand={compact ? undefined : <span className="k42-brand-lockup"><NavLink to={{ view:'projects' }} go={go} className="wordmark"><BrandLogo /></NavLink><span className="k42-tagline">Build together, build it better</span></span>}
-      footer={<><NotificationsBell user={user} active={visible} go={go} collapsed={rail} /></>}
+      brandMark={compact ? undefined : <NavLink to={{ view:'projects' }} go={go} className="wordmark"><BrandLogo markOnly /></NavLink>}
+      footer={<><NotificationsBell user={user} active={visible} go={go} collapsed={rail} />{!rail && <a className="k42-made-by" href="https://karma42.ai" target="_blank" rel="noopener noreferrer">Made by <strong>Karma42.ai</strong><span className="visually-hidden"> (opens in a new tab)</span></a>}</>}
       globals={[]} projectsLink={projectsLink} project={projectMenu}
       projects={shortcuts.map(shortcut)}
       projectStatus={listError || !directory ? <>
@@ -345,7 +347,7 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
             <PathHeading id="project-unavailable" headingRef={failureHeading} tabIndex={-1} go={go} title={failed ? failure.removed ? 'You no longer have access to this project' : 'Project not available' : 'Could not open this project'} />
             <p role="alert">{failure.error.message}</p>
             {failed && <p className="muted">{failure.removed ? 'Your membership may have been removed, or the project was deleted.' : 'The project may not exist, or this account is not one of its members.'} Ask the project owner for access.</p>}
-            <div className="actions"><Button onClick={retry}>Try again</Button><NavLink to={{ view: 'projects' }} go={go}>My projects</NavLink></div>
+            <div className="actions"><Button onClick={retry}>Try again</Button><NavLink to={{ view: 'projects' }} go={go}>Home</NavLink></div>
           </section>}
         </main>
       </div>
@@ -558,13 +560,13 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
         {error && !(held && overview) && <div role="alert"><p className="error">Could not load: {error}</p><Button onClick={() => { document.getElementById('content')?.focus({ preventScroll: true }); refresh(); }}>Try again</Button></div>}
         {!overview && !error && <p className="muted" role="status">Loading…</p>}
         {overview && <>
-          {workspace && <ProjectHeader id={projectId} cover={headerCover} name={project?.name ?? workspace.definition.title} statusPanel={<ProjectStatusPanel workspace={workspace} controls={controls} onAddTime={() => go(projectRoute(projectId, 'agents'))} />}
+          {workspace && <ProjectHeader limits={<JobLimitsBar workspace={workspace} controls={controls} />} id={projectId} cover={headerCover} name={project?.name ?? workspace.definition.title} statusPanel={<ProjectStatusPanel workspace={workspace} controls={controls} onAddTime={() => go(projectRoute(projectId, 'agents'))} />}
             repositorySummary={overview.repositorySummary} usage={usage} repoUrl={project?.repoUrl}
             onCopyLink={copyLink}
             menu={menu}
             observed={<>{stale && <p className="warn observation-age">Out of date: last updated {time(overview.generatedAt)}</p>}</>}
             titleLevel={detail ? 2 : 1} repository={!phone} />}
-          {!workspace && <><div className="project-heading"><PathHeading title={project?.name ?? ''} parents={[{label:'My projects',to:{view:'projects'}}]} go={go} />
+          {!workspace && <><div className="project-heading"><PathHeading title={project?.name ?? ''} parents={[{label:'Home',to:{view:'projects'}}]} go={go} />
             <span className={`badge execution${toneClass(statusTone(status))}`}>{status}</span></div></>}
           <LeaveProjectFeedback controls={leave} />
           {workspace && <ProjectControlFeedback controls={controls} />}
@@ -573,7 +575,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
           {workspace && phone && <div className="k42-project-repository"><ProjectRepository repoUrl={project?.repoUrl} summary={overview.repositorySummary} usage={usage} /></div>}
           {workspace && detail && !agent && <div className="project-heading">
             <PathHeading trail={false} title={SECTION_NAMES[currentSection]}
-              parents={[{label:'My projects',to:{view:'projects'}}, {label:project?.name ?? workspace?.definition.title ?? '',to:projectRoute(projectId)},
+              parents={[{label:'Home',to:{view:'projects'}}, {label:project?.name ?? workspace?.definition.title ?? '',to:projectRoute(projectId)},
                 ...(agent ? [{label:SECTION_NAMES[currentSection],to:projectRoute(projectId,currentSection,null,search)}] : [])]} go={go} />
           </div>}
 
@@ -593,8 +595,9 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
             {workspace && <ControlCenter refreshKey={tick} user={user} workspace={workspace} refresh={refreshAll} active={visible && currentSection === 'control-center'} />}
           </div>
           <div hidden={currentSection !== 'agents'}>
-            {/* The cards, with the owner's time and token cap above them and a run icon on the person's own cards (owner, 12 November 2026). */}
-            {workspace && allAgents && <JobLimitsBar workspace={workspace} controls={controls} />}
+            {/* The cards, with a run icon on the person's own cards (owner, 12 November 2026); time and tokens sit in the project header. */}
+            {/* Every project page opens with the same section title (owner, 16 November 2026). */}
+            {workspace && allAgents && <div className="k42-section-heading k42-agents-heading"><h2 className="k42-section-title">Agents</h2></div>}
             {workspace && allAgents && <CommunityDirectory projectId={projectId} members={directoryMembers} agents={directoryAgents} loading={!!project && !directoryBots.page} now={clock} go={go} paging={directoryPaging} ownerFirst={directoryPeople.first} agentQuery={search ?? ''} onAgentQuery={searchAgents}
               agentActions={workspace.execution === 'closed' ? undefined : agentId => <AgentCardRun user={user} projectId={projectId} agentId={agentId} />} />}
             <div hidden={allAgents}><Agents user={user} agent={agent} search={search} onAgent={onAgent} tick={tick + agentTick} active={visible && currentSection === 'agents' && !allAgents} go={go} waiting={openRequests.waiting} /></div>
@@ -613,6 +616,14 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
           {!waiting && project && <div className="k42-task-segments k42-panel-switch" role="group" aria-label="Panel view">
             <button type="button" className="k42-task-segment" aria-pressed={panel === 'updates'} onClick={() => setPanel('updates')}><Megaphone size={16} aria-hidden="true" />Updates{unseen.count>0&&<span className="k42-updates-count" aria-live="polite" aria-label={`${unseenLabel} unseen updates`}>{unseenLabel}</span>}</button>
             <button type="button" className="k42-task-segment" aria-pressed={panel === 'map'} onClick={() => setPanel('map')}><Network size={16} aria-hidden="true" />Map</button>
+          </div>}
+          {/* The same faces and counts as on the map, on Updates too (owner, 16 November 2026). */}
+          {panel === 'updates' && !waiting && project && (taskPeople.length > 0 || firstAgents.length > 0) && <div className="k42-panel-crowd">
+            <ul className="k42-map-crowd" aria-label="People and agents">
+              {taskPeople.slice(0, 4).map(person => <li key={`p${person.id}`} data-tip={person.name ?? 'Project member'}><PersonAvatar id={person.id} name={person.name} size={32} /></li>)}
+              {firstAgents.filter(agent => agent.revokedAt === null).slice(0, 6).map(agent => <li key={`a${agent.id}`} data-tip={agent.name}><AgentAvatar name={agent.name} id={agent.id} persona={agent.personaChoice} ownerName={agent.operatorName} ownerId={agent.operatorId} size={32} decorative /></li>)}
+            </ul>
+            <span className="k42-map-counts">{taskPeople.length} {taskPeople.length === 1 ? 'person' : 'people'} · {firstAgents.filter(agent => agent.revokedAt === null).length} {firstAgents.filter(agent => agent.revokedAt === null).length === 1 ? 'agent' : 'agents'} shown</span>
           </div>}
           <div className="k42-scroll" hidden={panel === 'map' && !waiting && !!project}><ProjectUpdatesFeed key={`${user.uid}:${projectId}`} projectId={projectId} user={user} tick={tick} observe={visible} active={visible && (panel === 'updates' || waiting || !project)} go={go} onUnseenChange={recordUnseen} /></div>
           {panel === 'map' && !waiting && project && <div className="k42-fit"><ProjectActivity user={user} tick={tick} active={visible && panel === 'map'} go={go} projectName={project.name ?? workspace.definition.title} canAddAgent={workspace.role !== 'guest'} readOnly={workspace.execution === 'closed'} pauseRequest={project.paused ? project.pauseRequest : undefined} agentRows={agentRows.page?.items ?? []} onOpenAgent={activateAgent} onCopyLink={copyLink} /></div>}

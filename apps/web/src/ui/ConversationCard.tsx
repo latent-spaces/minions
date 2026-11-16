@@ -1,5 +1,5 @@
 import type { ReactNode, Ref } from 'react';
-import { ArrowRight, ChevronDown, ChevronUp, Users } from 'lucide-react';
+import { ArrowRight, ChevronDown, ChevronUp, Users } from './icons';
 import type { ConversationRow, MessageRow } from '../api';
 import { PersonAvatar } from './PersonAvatar';
 import { SteeringDelivery } from './SteeringDelivery';
