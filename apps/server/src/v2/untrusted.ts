@@ -24,7 +24,7 @@ export type WithSource<T> = Omit<T, 'body' | 'summary'> & { body: Untrusted; sum
 // inbox payload is untyped document data.
 export function messageWithSource<T extends { agentId: string; agentName?: string; body: string; summary?: string }>(message: T): WithSource<T> {
   const { body, summary, ...rest } = message;
-  const source:Source = 'kind' in message && message.kind==='steering' && 'actorProfileId' in message && typeof message.actorProfileId==='string'
+  const source:Source = 'kind' in message && (message.kind==='steering' || message.kind==='task') && 'actorProfileId' in message && typeof message.actorProfileId==='string'
     ? {type:'person',personId:message.actorProfileId} : { type: 'agent', agentId: message.agentId, agentName: message.agentName ?? null };
   return { ...rest, body: untrusted(source, body), ...(summary === undefined ? {} : { summary: untrusted(source, summary) }) };
 }
