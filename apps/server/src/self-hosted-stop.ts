@@ -1,4 +1,4 @@
-// The background engine's graceful stop (owner, 13 November 2026). `npm run stop` runs on the same computer and can
+// The background engine's graceful stop (owner, 13 November 2026). `minions stop` runs on the same computer and can
 // read owner.json, so it proves itself with a key derived from that file's signing secret. Windows has no graceful
 // signal for a detached process, so every platform stops through this one loopback request.
 import { createHmac, timingSafeEqual } from 'node:crypto';
@@ -20,7 +20,7 @@ export function engineStopRoute({ key, requestStop }: { key: string; requestStop
     // Browsers always send Origin on a POST; the stop command never does, so no web page can ask for a stop.
     if (!LOOPBACK_ADDRESSES.includes(req.socket.remoteAddress ?? '') || req.headers.origin !== undefined
       || given.length !== expected.length || !timingSafeEqual(given, expected)) {
-      res.status(403).json({ message: 'Stop the engine with npm run stop on this computer.' }); return;
+      res.status(403).json({ message: 'Stop the engine with minions stop on this computer.' }); return;
     }
     res.status(202).json({ stopping: true });
     res.once('finish', () => setImmediate(requestStop));

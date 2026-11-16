@@ -2,78 +2,16 @@
 // child this script starts is Node itself, without a shell, so checkout paths with spaces and Windows work alike; npm
 // runs the package build scripts as any npm run does. Nothing here runs a model.
 import { spawn, spawnSync } from 'node:child_process';
-import { closeSync, existsSync, openSync, readFileSync, statSync, writeFileSync } from 'node:fs';
-import { connect, createServer } from 'node:net';
+import { existsSync, lstatSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { npmCli } from './npm-cli.mjs';
-import { childEnvironment, connectorCommand, connectorEnvironment, engineEnvironment, engineHome, enginePaths, engineUrl, initializationState,
-  enginePort, holderFromLsof, interruptedByUser, needsInstall, occupiedMessage, ownerIdentity, pageOpener, pidFromNetstat, requireNode24, savedPort, settingsText, startupHint } from './engine-plan.mjs';
+import { connectorCommand, initializationState, interruptedByUser, needsInstall, occupiedMessage, ownerIdentity, requireNode24, settingsText } from './engine-plan.mjs';
+import { at, connectorCli, engineMain, engineState, locate, openPage, portHolder, repository, run, startEngine } from './engine-control.mjs';
 
-const repository = fileURLToPath(new URL('../../', import.meta.url));
-const at = (...parts) => join(repository, ...parts);
 const say = text => console.info(`\nMinions setup: ${text}`);
 const modified = file => { try { return statSync(file).mtimeMs; } catch { return null; } };
-
-/** Runs Node with these arguments. Quiet runs keep their output and show it only when they fail. */
-function run(label, args, { cwd = repository, env, stdio = 'inherit', quiet = false } = {}) {
-  return new Promise((accept, reject) => {
-    const child = spawn(process.execPath, args, { cwd, env, stdio: quiet ? ['ignore', 'pipe', 'pipe'] : stdio, shell: false, windowsHide: true });
-    let output = '';
-    if (quiet) for (const stream of [child.stdout, child.stderr]) stream.on('data', chunk => { output += chunk; });
-    child.once('error', reject);
-    child.once('exit', (code, signal) => {
-      if (code === 0) return accept();
-      if (quiet) process.stderr.write(output);
-      reject(Object.assign(new Error(`${label} failed (${signal ?? `exit ${code}`}).${quiet ? ' Its output is above.' : ''}`), { exit: { code, signal } }));
-    });
-  });
-}
-
-/** Something answers a connection to 127.0.0.1 on this port. */
-function answers(port) {
-  return new Promise(accept => {
-    const socket = connect({ port, host: '127.0.0.1' });
-    socket.setTimeout(1_000, () => { socket.destroy(); accept(false); });
-    socket.once('connect', () => { socket.destroy(); accept(true); });
-    socket.once('error', () => accept(false));
-  });
-}
-
-/**
- * Free only when nothing answers there and 127.0.0.1 can be bound. Binding alone is not enough: macOS lets a program
- * bind 127.0.0.1 on a port another program holds on all addresses (0.0.0.0), and both would then share the port.
- */
-/** The program listening on port, as "name (process 1234)", or null when it cannot be found. */
-function portHolder(port) {
-  const output = (command, args) => spawnSync(command, args, { encoding: 'utf8', shell: false, windowsHide: true, timeout: 10_000 }).stdout ?? '';
-  if (process.platform !== 'win32') return holderFromLsof(output('lsof', ['-nP', `-iTCP:${port}`, '-sTCP:LISTEN', '-Fpc']));
-  const pid = pidFromNetstat(output('netstat', ['-ano', '-p', 'TCP']), port);
-  if (!pid) return null;
-  const name = /^"([^"]+)"/.exec(output('tasklist', ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH']).trim())?.[1];
-  return `${name ?? 'a program'} (process ${pid})`;
-}
-
-async function portFree(port) {
-  if (await answers(port)) return false;
-  return new Promise(accept => {
-    const server = createServer();
-    server.once('error', () => accept(false));
-    server.listen(port, '127.0.0.1', () => server.close(() => accept(true)));
-  });
-}
-
-function openPage(url, env) {
-  const opener = pageOpener(process.platform, env);
-  if (!opener) return false;
-  try {
-    const child = spawn(opener[0], [...opener.slice(1), url], { detached: true, stdio: 'ignore', shell: false, windowsHide: true });
-    child.once('error', () => {}); child.unref();
-    return true;
-  } catch { return false; }
-}
 
 /** Opens the local app, which lets the owner straight in on this computer. */
 function openApp(site) {
@@ -81,42 +19,11 @@ function openApp(site) {
   console.info(openPage(page, process.env) ? 'Your browser is opening the local app.' : `Open ${page} in your browser on this computer.`);
 }
 
-const readText = file => { try { return readFileSync(file, 'utf8'); } catch { return null; } };
-
-/**
- * Starts the engine detached, with its output appended to engine.log, so it keeps running after this command ends,
- * the terminal closes or the coding session that ran setup finishes (owner, 13 November 2026). `npm run stop` stops
- * it gracefully on every platform. Resolves with its address once it listens; rejects if it exits first.
- */
-async function startEngine(env, files) {
-  const offset = existsSync(files.engineLog) ? statSync(files.engineLog).size : 0;
-  const log = openSync(files.engineLog, 'a', 0o600);
-  const child = spawn(process.execPath, [at('apps/server/dist/self-hosted-main.js'), 'start'],
-    { cwd: repository, env, detached: true, stdio: ['ignore', log, log], shell: false, windowsHide: true });
-  closeSync(log);
-  let exit = null, failure = null;
-  child.once('exit', (code, signal) => { exit = { code, signal }; });
-  child.once('error', error => { failure = error; });
-  child.unref();
-  const output = () => (readText(files.engineLog) ?? '').slice(offset);
-  for (const deadline = Date.now() + 120_000; Date.now() < deadline;) {
-    if (failure) throw failure;
-    const url = engineUrl(output());
-    if (url) return url;
-    if (exit) {
-      const text = output().trim();
-      throw new Error(`The engine stopped during startup (${exit.signal ?? `exit ${exit.code}`}).${text ? `\n${text}\n` : ' '}Its log is ${files.engineLog}.${startupHint(text, files)}`);
-    }
-    await new Promise(accept => setTimeout(accept, 200));
-  }
-  throw new Error(`The engine did not report its address within two minutes. It may still be starting; its log is ${files.engineLog}. Stop it with npm run stop.`);
-}
-
 /** The connector's own setup, which signs in as the owner and starts the shared service: 'ready', 'interrupted' (Ctrl+C) or 'failed'. */
 async function connectorSetup(url, env) {
   try {
     // This command registers the coding agent itself, so the connector's own hint for a separate installation is left out.
-    await run('connector setup', [at('packages/agent-cli/src/cli.mjs'), 'setup', '--site', url, '--wait-seconds', '600', '--no-client-hint'], { env });
+    await run('connector setup', [connectorCli, 'setup', '--site', url, '--wait-seconds', '600', '--no-client-hint'], { env });
     return 'ready';
   } catch (error) {
     // During its GitHub sign-in step the connector reads keys in raw mode, so a Ctrl+C there reaches only the connector.
@@ -133,7 +40,7 @@ async function connectorSetup(url, env) {
  */
 function registerClients(env) {
   return new Promise(accept => {
-    const child = spawn(process.execPath, [at('packages/agent-cli/src/cli.mjs'), 'register'],
+    const child = spawn(process.execPath, [connectorCli, 'register'],
       { cwd: repository, env, stdio: ['ignore', 'pipe', 'pipe'], shell: false, windowsHide: true });
     let output = '';
     for (const stream of [child.stdout, child.stderr]) stream.on('data', chunk => { output += chunk; });
@@ -142,12 +49,31 @@ function registerClients(env) {
   });
 }
 
-function summary(url, ready, files, registration) {
-  const connector = args => connectorCommand(process.platform, { node: process.execPath, cli: at('packages/agent-cli/src/cli.mjs'),
+/**
+ * Links this checkout's `minions` command onto PATH with npm link (owner decision, 16 November 2026); npm writes the
+ * Windows .cmd and PowerShell shims itself. A test engine or a Git worktree keeps the computer's existing command.
+ * Resolves to the line the summary shows; a failure is reported and setup carries on.
+ */
+async function linkCommand() {
+  if (process.env.MINIONS_ENGINE_HOME) return 'This is a test engine (MINIONS_ENGINE_HOME), so the minions command was not linked.';
+  let worktree = false;
+  try { worktree = lstatSync(join(repository, '.git')).isFile(); } catch {}
+  if (worktree) return 'This checkout is a Git worktree, so the minions command was not linked; setup in the main checkout links it.';
+  try {
+    await run('npm link', [npmCli(), 'link', '--ignore-scripts', '--no-audit', '--no-fund'], { quiet: true });
+    return 'The minions command is ready: try minions status, minions stop or minions start.';
+  } catch (error) {
+    return `The minions command could not be linked (${error.message}). Run npm link in ${repository} to link it yourself.`;
+  }
+}
+
+function summary(url, ready, files, registration, command) {
+  const connector = args => connectorCommand(process.platform, { node: process.execPath, cli: connectorCli,
     serviceHome: files.serviceHome, credentialHome: files.credentialHome, args });
   const manual = `To register it yourself, run (--client claude, codex or other): ${connector(['mcp-config', '--client', 'claude'])}`;
   say(`${ready ? 'Done' : 'The engine is running; the connector is not set up yet'}. The local app is at ${url}/.
-The engine runs in the background; npm run stop stops it.
+The engine runs in the background; minions stop stops it.
+${command}
 ${registration.lines}
 ${registration.registered
     ? `Until a new session loads the Minions tools, call them with: ${connector(['tool', '--list'])} (then tool NAME '{...}').`
@@ -164,18 +90,16 @@ async function finish(url, ready, files, connectorEnv, values) {
     : values['no-register'] ? { registered: false, lines: 'No coding agent was registered (--no-register).' }
     : process.env.MINIONS_ENGINE_HOME ? { registered: false, lines: 'This is a test engine (MINIONS_ENGINE_HOME), so no coding agent was registered.' }
     : await registerClients(connectorEnv);
-  summary(url, ready, files, registration);
+  summary(url, ready, files, registration, await linkCommand());
 }
 
 async function main() {
   requireNode24(process.version);
   const { values } = parseArgs({ args: process.argv.slice(2), options: { 'owner-name': { type: 'string' }, 'owner-email': { type: 'string' }, 'no-register': { type: 'boolean' } }, allowPositionals: false });
-  const home = engineHome({ env: process.env, userHome: homedir(), platform: process.platform });
-  const files = { home, ...enginePaths(home) };
+  const installation = locate();
+  const { home, files, port, site, base, engineEnv, connectorEnv } = installation;
   // Hard cut to the Minions folders (owner, 16 November 2026): an install from before the rename is left as it was.
   if (!process.env.MINIONS_ENGINE_HOME && existsSync(join(homedir(), '.mlswarm'))) say('An install from before the rename is in ~/.mlswarm and ~/mlswarm. It is not used and was left as it was; delete it when nothing there needs keeping.');
-  const base = childEnvironment(process.env, { nodeDirectory: dirname(process.execPath) });
-  const engineMain = at('apps/server/dist/self-hosted-main.js');
   const steps = 6;
   let step = 0;
   const next = text => say(`[${++step}/${steps}] ${text}`);
@@ -186,13 +110,9 @@ async function main() {
     throw new Error(`An earlier first run stopped before initialization finished: ${home} holds only one of engine.sqlite and owner.json. Nothing was changed. If nothing there needs keeping, remove that directory (or choose a new MINIONS_ENGINE_HOME) and run npm run setup again.`);
   }
   // Always the same address: 8787, unless MINIONS_ENGINE_PORT or an earlier run's saved port says otherwise.
-  const port = enginePort(process.env, savedPort(readText(files.settingsFile)));
-  if (!await portFree(port)) {
-    // Only an engine started with this owner file signs sessions with its secret, so a verified session proves the port is this engine.
-    const ours = state === 'existing' && existsSync(engineMain)
-      && await run('engine check', [engineMain, 'check-running', '--url', `http://127.0.0.1:${port}`], { env: engineEnvironment(base, { home, port }), stdio: 'ignore' }).then(() => true, () => false);
-    if (ours) {
-      const site = `http://127.0.0.1:${port}`, connectorEnv = connectorEnvironment(base, { home, port });
+  const running = await engineState(installation);
+  if (running !== 'free') {
+    if (running === 'running') {
       say(`The engine is already running at ${site}. Opening the local app and checking the connector.`);
       openApp(site);
       const result = await connectorSetup(site, connectorEnv);
@@ -201,9 +121,6 @@ async function main() {
     }
     throw new Error(occupiedMessage(port, portHolder(port)));
   }
-  const engineEnv = engineEnvironment(base, { home, port });
-  const connectorEnv = connectorEnvironment(base, { home, port });
-  const site = `http://127.0.0.1:${port}`;
   // A first run needs the owner's identity and this checkout's revision; check both before minutes of installing.
   let owner, revision;
   if (state === 'new') {

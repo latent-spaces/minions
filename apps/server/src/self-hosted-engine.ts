@@ -11,7 +11,7 @@ import { engineStopKey, engineStopRoute } from './self-hosted-stop.js';
 import { CURRENT_STATE_CUTOVER_RECEIPT, CURRENT_STATE_PROGRESS_SCHEMA, CURRENT_STATE_PROGRESS_EPOCH, USAGE_EPOCH } from './storage/schema.js';
 
 let consumed = false;
-/** requestStop runs when `npm run stop` asks this engine to stop; the caller owns the shutdown and exit code. */
+/** requestStop runs when `minions stop` asks this engine to stop; the caller owns the shutdown and exit code. */
 export async function startSelfHostedEngine({ requestStop }: { requestStop(): void }) {
   const config = selfHostedConfig();
   if (Number(process.versions.node.split('.')[0]) < 24) throw new Error('The standalone engine requires Node.js 24 or newer.');
