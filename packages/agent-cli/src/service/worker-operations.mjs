@@ -15,6 +15,10 @@ const resultValue = reply => {
   try { return JSON.parse(reply.result.content.find(item => item.type === 'text').text); }
   catch { failure('invalid_reply', 'Project context could not be verified.'); }
 };
+// Claude Code defers MCP tools behind tool search. An agent that called send_message before loading it
+// sent `to` as a string and no client_message_id, and the call was refused (Star Jump, 16 November 2026).
+// These stay in the prompt so their schemas are always known; the rest stay deferred to keep context small.
+export const ALWAYS_LOADED = new Set(['find_agents', 'send_message']);
 export function createWorkerOperations({ store, resolveBinding, fetchImpl = fetch }) {
   if (!store || typeof resolveBinding !== 'function') throw new TypeError('A store and trusted worker binding resolver are required.');
   const generated = JSON.parse(verifyBundle().files['project-tools.json'].toString('utf8')).tools;
@@ -110,7 +114,8 @@ export function createWorkerOperations({ store, resolveBinding, fetchImpl = fetc
         if (reply?.error || !Array.isArray(reply?.result?.tools))
           failure('project_unavailable', 'Current project tools could not be verified.');
         const available = new Set(reply.result.tools.map(tool => tool.name));
-        const tools = structuredClone(catalog.filter(tool => tool.name === WORKER_GUIDE_TOOL.name || available.has(tool.name)));
+        const tools = structuredClone(catalog.filter(tool => tool.name === WORKER_GUIDE_TOOL.name || available.has(tool.name)))
+          .map(tool => ALWAYS_LOADED.has(tool.name) ? { ...tool, _meta: { ...tool._meta, 'anthropic/alwaysLoad': true } } : tool);
         context.bridge.recordContext(measurement, { method: 'tools/list' }, { result: { tools } });
         return tools;
       });
