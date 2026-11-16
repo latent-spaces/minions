@@ -1,6 +1,6 @@
 import { FieldPath } from '../firestore.js';
 import { z } from 'zod';
-import type { MergingPerson, ProjectMergingAccess } from '@mlswarm/contracts';
+import type { MergingPerson, ProjectMergingAccess } from '@minions/contracts';
 import { agents, collection, db, inProject, profiles } from '../firestore.js';
 import { Refusal } from '../errors.js';
 import { activeRecipientOperators, assertMembership, connectionAllowed, type Membership } from './access.js';

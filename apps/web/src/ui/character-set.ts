@@ -1,4 +1,4 @@
-import { PERSON_CHARACTERS, type PersonCharacter } from '@mlswarm/contracts';
+import { PERSON_CHARACTERS, type PersonCharacter } from '@minions/contracts';
 import { stableHash, PASTEL_TONES } from './avatar-tone';
 import geometry from './assets/characters/offbeat/geometry.json';
 

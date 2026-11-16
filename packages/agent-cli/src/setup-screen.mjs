@@ -13,7 +13,7 @@ const LOGO = {
 };
 // "my little" above the big SWARM; narrow terminals get the name in one plain line.
 const BIG = ['m y   l i t t l e', ...Array.from({ length: 6 }, (_, row) => [...'SWARM'].map(ch => LOGO[ch][row]).join(''))];
-const SMALL = ['MyLittleSwarm'];
+const SMALL = ['Minions'];
 const READY = ['█▀█ █▀▀ ▄▀█ █▀▄ █▄█ █', '█▀▄ ██▄ █▀█ █▄▀  █  ▄'];
 const FROM = [213, 139, 232], TO = [111, 211, 232];
 const STEPS = 3;
@@ -57,11 +57,11 @@ export function createSetupScreen({ stream = process.stdout, input = process.std
     interactive: !!input.isTTY && typeof input.setRawMode === 'function',
     start() {
       line();
-      if (plain) { line('MyLittleSwarm setup: 3 steps, about 2 minutes.'); return; }
+      if (plain) { line('Minions setup: 3 steps, about 2 minutes.'); return; }
       gradient((stream.columns ?? 80) >= 48 ? BIG : SMALL);
       line(dim('your own little swarm of coding agents'));
       line();
-      line('Let\'s set up MyLittleSwarm on this computer. 3 steps, about 2 minutes.');
+      line('Let\'s set up Minions on this computer. 3 steps, about 2 minutes.');
     },
     step(n, title, why) {
       title = clean(title); why = why ? clean(why) : '';
@@ -103,10 +103,10 @@ export function createSetupScreen({ stream = process.stdout, input = process.std
     ready(projects) {
       projects = clean(projects);
       line();
-      if (plain) { line(`MyLittleSwarm is ready. Next: open a new conversation in your coding agent and start building. Your projects: ${projects}`); return; }
+      if (plain) { line(`Minions is ready. Next: open a new conversation in your coding agent and start building. Your projects: ${projects}`); return; }
       gradient(READY);
       line();
-      line('MyLittleSwarm is ready. Next: open a new conversation in your coding agent and start building.');
+      line('Minions is ready. Next: open a new conversation in your coding agent and start building.');
       this.action({ label: 'Open your projects', url: projects });
       line();
     },
@@ -131,6 +131,6 @@ export function createChatScreen(out) {
     waiting() { return () => {}; },
     done(text) { out(`✔ ${clean(text)}`); },
     problem(text) { out(`! ${clean(text)}`); },
-    ready(projects) { out(`MyLittleSwarm is ready: ${clean(projects)}`); },
+    ready(projects) { out(`Minions is ready: ${clean(projects)}`); },
   };
 }

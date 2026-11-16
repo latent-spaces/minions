@@ -1,8 +1,8 @@
-import type { RepositorySummary } from '@mlswarm/contracts';
+import type { RepositorySummary } from '@minions/contracts';
 import { currentProjectId, db } from '../firestore.js';
 import { mergingGitHubAccess } from '../projects/github-access.js';
 import { projects } from '../projects/records.js';
-import { canonicalGithubRepo } from '@mlswarm/contracts';
+import { canonicalGithubRepo } from '@minions/contracts';
 
 // Reuse approved-computer, membership and repository fences from Merging. The
 // website never calls GitHub or substitutes the retired cloud projection here.

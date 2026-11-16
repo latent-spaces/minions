@@ -1,4 +1,4 @@
-import type { AgentFocus as Focus } from '@mlswarm/contracts';
+import type { AgentFocus as Focus } from '@minions/contracts';
 import { ago, time } from '../observation-time';
 
 export function AgentFocus({ focus, now }: { focus?: Focus | null; now: number }) {

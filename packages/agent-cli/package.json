@@ -1,15 +1,15 @@
 {
-  "name": "mlswarm",
+  "name": "minions",
   "version": "0.1.0-beta.73",
   "private": true,
-  "description": "Model-independent MyLittleSwarm MCP connector for project agents",
+  "description": "Model-independent Minions MCP connector for project agents",
   "license": "UNLICENSED",
   "type": "module",
   "engines": {
     "node": ">=24"
   },
   "bin": {
-    "mlswarm-agent": "./src/cli.mjs"
+    "minions-agent": "./src/cli.mjs"
   },
   "scripts": {
     "test": "node --test --test-concurrency=1 \"test/*.test.mjs\"",
@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/oronanschel/mylittleswarm.git",
+    "url": "git+https://github.com/latent-spaces/minions.git",
     "directory": "packages/agent-cli"
   },
   "devDependencies": {

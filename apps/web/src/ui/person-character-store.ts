@@ -1,5 +1,5 @@
 import { useEffect, useSyncExternalStore } from 'react';
-import type { PersonCharacter } from '@mlswarm/contracts';
+import type { PersonCharacter } from '@minions/contracts';
 
 const choices = new Map<string, PersonCharacter | null>();
 const listeners = new Set<() => void>();

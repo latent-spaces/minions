@@ -11,7 +11,7 @@ import { readRuntime } from '../projects/records.js';
 // no agent is woken.
 import { FieldPath, type DocumentSnapshot } from '../firestore.js';
 import express, { type Response, type Router } from 'express';
-import { personaChoice } from '@mlswarm/contracts';
+import { personaChoice } from '@minions/contracts';
 import { personFromIdToken, SIGN_IN_REQUIRED } from '../auth.js';
 import { bearerToken } from '../bearer.js';
 import { Refusal, sendRefusal } from '../errors.js';
@@ -20,7 +20,7 @@ import { assertMembership, projectRole } from '../projects/access.js';
 import { projects } from '../community/records.js';
 import { agents, currentProjectId, projectCollection, db, profiles, type Agent, type Profile } from '../firestore.js';
 import { nativeTasks } from '../projects/native-tasks.js';
-import type { NativeTask, NativeTaskStatus } from '@mlswarm/contracts';
+import type { NativeTask, NativeTaskStatus } from '@minions/contracts';
 import { encodeCursor } from '../cursor.js';
 import { runnerUsage } from '../v2/records.js';
 import { searchConversationMessages } from '../projects/chat-search.js';
@@ -357,7 +357,7 @@ async function rosterPeople(ids: string[], ownerId: string) {
     .map(d => ({ id: d.id, owner: d.id === ownerId, name: d.get('name'), ...publicPersonAppearance(d.data()! as Profile, d.id) }));
 }
 
-async function peopleOf(personIds: string[]): Promise<Map<string, { name: string; photo: ReturnType<typeof publicProfilePhoto>; character?: import('@mlswarm/contracts').PersonCharacter | null }>> {
+async function peopleOf(personIds: string[]): Promise<Map<string, { name: string; photo: ReturnType<typeof publicProfilePhoto>; character?: import('@minions/contracts').PersonCharacter | null }>> {
   if (personIds.length === 0) return new Map();
   const docs = await db.getAll(...personIds.map((id) => profiles.doc(id)));
   return new Map(docs.filter((d) => d.exists).map((d) => [d.id, { name: d.data()!.name, ...publicPersonAppearance(d.data()! as Profile, d.id) }]));
@@ -374,5 +374,5 @@ async function answer(res: Response, handle: () => Promise<object>): Promise<voi
 function fail(res: Response, error: unknown): void {
   if (error instanceof Refusal) { sendRefusal(res, error); return; }
   console.error('A viewer request failed.', error);
-  if (!res.headersSent) res.status(500).json({ error: 'internal_error', message: 'Something went wrong on MyLittleSwarm. Try again in a moment.' });
+  if (!res.headersSent) res.status(500).json({ error: 'internal_error', message: 'Something went wrong on Minions. Try again in a moment.' });
 }

@@ -1,4 +1,4 @@
-import { combineReportedUsage, type ReportedUsage, type ProjectUsage } from '@mlswarm/contracts';
+import { combineReportedUsage, type ReportedUsage, type ProjectUsage } from '@minions/contracts';
 import type { DocumentData, Transaction } from '../firestore.js';
 import { agents, currentProjectId, db } from '../firestore.js';
 import { runnerUsage } from '../v2/records.js';

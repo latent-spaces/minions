@@ -73,7 +73,7 @@ const SHOT_COMMAND = `node "${fileURLToPath(new URL('./shot.cjs', import.meta.ur
 function projectUpdateGuidance(due, everyMinutes = 5, nudge = false, closing = false, jobStartedAt = null, slides = false, postedTitles = []) {
   const since = Number.isFinite(jobStartedAt) ? new Date(jobStartedAt).toISOString().slice(0, 19) + 'Z' : null;
   const pace = `Project updates: the team posts about one update every ${everyMinutes} minutes of work. `;
-  if (due !== true) return pace + 'You are not asked for one now; post only a blocker or a decision the owner has to make. See get_mlswarm_guide updates-and-help.';
+  if (due !== true) return pace + 'You are not asked for one now; post only a blocker or a decision the owner has to make. See get_minions_guide updates-and-help.';
   return pace + (nudge
     ? 'Your last turn ended without the team\'s update. This turn is only for that: post it now with the steps below, then return WORK_NEXT: waiting. '
     : closing === true
@@ -89,7 +89,7 @@ function projectUpdateGuidance(due, everyMinutes = 5, nudge = false, closing = f
     : 'Steps: 1. Get one image. A screenshot of the real result is best. For a page, run ' + SHOT_COMMAND + ' <address> update.png: the address is the page\'s file path (the command serves its folder, so its scripts run) or its http address, and the image comes out 1080x1350. The command ends within a minute; if it fails, run it once more. The sandbox your commands run in stops the installed Chrome or Edge and the npx playwright screenshot command, so use this command. With nothing to screenshot, draw a simple card as an HTML page and capture it the same way. Delete the page and the image before you commit. '
       + '2. upload_project_image with the image\'s absolute filePath and a new clientRequestId. '
       + '3. publish_project_update with a new clientRequestId, that uploadId in screenshot (with alt text and representation: output_screenshot for a real screenshot, concept_image for one you drew), title (the headline, at most 60 characters), body (one sentence, at most 140 characters; count them before you send, a longer one is refused) and links ([] if none). ')
-    + 'Cover the whole team\'s result, not only your part. Skip it only when nothing changed since the newest post in list_project_updates, and say so. More in get_mlswarm_guide updates-and-help.';
+    + 'Cover the whole team\'s result, not only your part. Skip it only when nothing changed since the newest post in list_project_updates, and say so. More in get_minions_guide updates-and-help.';
 }
 
 export function nativeTeamGuidance(enabled) {
@@ -103,7 +103,7 @@ export function nativeTaskGuidance(enabled, counts = null) {
   const observed = counts ? `Task counts at turn start: ${counts.assignedToYouOpen} open task(s) assigned to you, ${counts.unassignedBacklog} unassigned in Backlog. ` : '';
   return enabled === false
     ? 'Native tasks are OFF for this project this turn: work through the project goal, conversations and results; do not create, claim or update tasks or wait on task status, and do not use GitHub Issues as a tracker. Existing tasks stay readable.\n'
-    : `Native tasks are ON for this project this turn: MyLittleSwarm tasks are the work record; GitHub Issues are not. ${observed}Before starting new work or returning WORK_NEXT: waiting, check list_tasks: continue tasks assigned to you first, then claim_task what you take up from the unassigned backlog. Work that has no task yet gets one before you write code: create_task it and claim it. claim_task answers with teammatesOpen, the other agents' open tasks: if one covers the same piece as yours and was created first, cancel yours and take a different piece. Teammates start at the same moment as you, and the task is how they see what you took.\n`;
+    : `Native tasks are ON for this project this turn: Minions tasks are the work record; GitHub Issues are not. ${observed}Before starting new work or returning WORK_NEXT: waiting, check list_tasks: continue tasks assigned to you first, then claim_task what you take up from the unassigned backlog. Work that has no task yet gets one before you write code: create_task it and claim it. claim_task answers with teammatesOpen, the other agents' open tasks: if one covers the same piece as yours and was created first, cancel yours and take a different piece. Teammates start at the same moment as you, and the task is how they see what you took.\n`;
 }
 
 // Codex saves its scope before the first thread is allocated. That pending record is resumable

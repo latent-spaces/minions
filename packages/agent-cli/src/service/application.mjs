@@ -12,7 +12,7 @@ import { GUIDE_SECTIONS, readBundledGuide } from '../skill-bundle.mjs';
 
 const result = value => ({ content: [{ type: 'text', text: JSON.stringify(value) }] });
 const bootstrap = [
-  { name: 'get_mlswarm_guide', description: 'Read the MyLittleSwarm skill router and shared rules by default. Then request only the section needed: projects, agents, work-in-chat, project-work, updates-and-help or computer.', annotations: { readOnlyHint: true }, inputSchema: { type: 'object', properties: { section: { type: 'string', enum: GUIDE_SECTIONS } }, additionalProperties: false } },
+  { name: 'get_minions_guide', description: 'Read the Minions skill router and shared rules by default. Then request only the section needed: projects, agents, work-in-chat, project-work, updates-and-help or computer.', annotations: { readOnlyHint: true }, inputSchema: { type: 'object', properties: { section: { type: 'string', enum: GUIDE_SECTIONS } }, additionalProperties: false } },
 ];
 const publicParticipationCommand = z.discriminatedUnion('kind', participationCommandSchema.options.map(schema =>
   schema.omit({ version: true }).extend({ target: publicTargetSchema })));
@@ -24,7 +24,7 @@ export function createRuntimeApplication({ controllers, principal, ownerClient, 
   const runtime = createRuntimeTools({ controllers, principal, evidence, steering, ownerClient, connectionStatus });
   const runtimeNames = new Set(runtime.listTools().map(tool => tool.name));
   const participationTools = participation ? [
-    { name: 'work_in_this_chat', description: 'Work with the person in this chat on a project, for an agreed time: claim starts it, extend adds time, release ends it (End), and wake brings back an ended one with a new ID. Retry a lost reply with the same input. When time runs out you stop working on MyLittleSwarm; the chat itself carries on.', inputSchema: z.toJSONSchema(publicParticipationCommand) },
+    { name: 'work_in_this_chat', description: 'Work with the person in this chat on a project, for an agreed time: claim starts it, extend adds time, release ends it (End), and wake brings back an ended one with a new ID. Retry a lost reply with the same input. When time runs out you stop working on Minions; the chat itself carries on.', inputSchema: z.toJSONSchema(publicParticipationCommand) },
     { name: 'get_chat_work', description: 'Read one of your in-chat work windows: what it covers and its time left.', annotations: passive, inputSchema: z.toJSONSchema(publicParticipationQuery) },
     { name: 'list_chat_work', description: 'List the in-chat work windows of the person\'s agents, across projects or in one.', annotations: passive, inputSchema: z.toJSONSchema(z.object({ projectId: z.string().min(1).max(256).optional(), limit: z.number().int().min(1).max(100).optional(), after: z.uuid().optional() }).strict()) },
     { name: 'get_chat_work_result', description: 'Look up the result of a claim, extend, release or wake after a lost reply.', annotations: passive, inputSchema: z.toJSONSchema(z.object({ target: publicTargetSchema, operationId: z.uuid() }).strict()) },
@@ -92,12 +92,12 @@ export function createRuntimeApplication({ controllers, principal, ownerClient, 
           return await participation.callTool(name, input, { signal });
         }
         if (runtimeNames.has(name)) return result(await runtime.callTool(name, input, { signal }));
-        if (name === 'get_mlswarm_guide') return { content: [{ type: 'text', text: input.section === undefined && guide !== undefined ? guide : readBundledGuide(input.section) }] };
+        if (name === 'get_minions_guide') return { content: [{ type: 'text', text: input.section === undefined && guide !== undefined ? guide : readBundledGuide(input.section) }] };
         if (DISCOVERY_TOOLS.some(item => item.name === name)) return result(await requirePort(discovery).call(name, input));
         const client = requirePort(ownerClient);
         if (name === 'add_project_agent') {
           const { start = true, provider = 'claude', model = null, task, ...add } = input;
-          const added = await client.addAgent(add, 'MyLittleSwarm shared runtime', { expectedProfileId: identity.ownerId });
+          const added = await client.addAgent(add, 'Minions shared runtime', { expectedProfileId: identity.ownerId });
           const record = added.record, projectId = add.project_id ?? record.service.split('/p/')[1];
           // Adding means the agent will work: its first run waits for the project to start and for this computer.
           let run = null;
@@ -124,7 +124,7 @@ export function createRuntimeApplication({ controllers, principal, ownerClient, 
         // at all (nothing was sent, so nothing happened); other failures stay unconfirmed.
         const safe = error instanceof RuntimeError ? { code: error.code, message: error.message }
           : error?.unreachable === true ? { code: 'engine_unreachable', message: error.message }
-          : error?.refusal ? { code: error.code, message: error.message, ...(error.limit ? { limit: error.limit, retryable: false } : {}) } : { code: signal?.aborted ? 'cancelled' : 'operation_failed', message: 'MyLittleSwarm couldn’t confirm whether that happened. Check before trying again, and reuse the same request ID if you do.' };
+          : error?.refusal ? { code: error.code, message: error.message, ...(error.limit ? { limit: error.limit, retryable: false } : {}) } : { code: signal?.aborted ? 'cancelled' : 'operation_failed', message: 'Minions couldn’t confirm whether that happened. Check before trying again, and reuse the same request ID if you do.' };
         return { ...result({ error: safe }), isError: true };
       }
     },

@@ -1,7 +1,7 @@
 import { prepareCurrentStateProgress } from '../view/current-state-progress.js';
 import { z } from 'zod';
 import { assertProjectWritable } from './access.js';
-import { AGENT_TEXT_LIMIT, type AgentFocus } from '@mlswarm/contracts';
+import { AGENT_TEXT_LIMIT, type AgentFocus } from '@minions/contracts';
 import { agents, db, projectDocument } from '../firestore.js';
 import { hashToken } from '../auth.js';
 import { Refusal } from '../errors.js';

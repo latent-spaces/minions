@@ -1,4 +1,4 @@
-import { githubRepositoryUrl } from '@mlswarm/contracts';
+import { githubRepositoryUrl } from '@minions/contracts';
 import { z } from 'zod';
 import { SETUP_PLAN } from '../projects/setup-schema.js';
 

@@ -15,7 +15,7 @@ export function createRuntimeClient({ home = installationHome() } = {}) {
     if (closing) throw failure();
     connecting ??= (async () => {
       descriptor = readRuntimeEndpoint(home);
-      client = new Client({ name: 'mlswarm-cli', version: VERSION });
+      client = new Client({ name: 'minions-cli', version: VERSION });
       const endpoint = new URL(descriptor.url);
       const transport = new StreamableHTTPClientTransport(endpoint, {
         requestInit: { headers: { Authorization: `Bearer ${descriptor.token}` }, redirect: 'error' },

@@ -31,7 +31,7 @@ const hash = (token: string) => createHash('sha256').update(token).digest('hex')
 // that with validAfter. Revocation therefore moves validAfter to a whole second, as Firebase's tokensValidAfterTime does.
 const nextSecond = (ms: number) => Math.ceil(ms / 1000) * 1000;
 
-/** One subject per GitHub account, so signing in again reaches the same MyLittleSwarm person. */
+/** One subject per GitHub account, so signing in again reaches the same Minions person. */
 export const subjectForGithub = (githubId: string) => `github-${githubId}`;
 
 /** `emails` are the ones GitHub reported verified, primary first; they are stored normalized. */

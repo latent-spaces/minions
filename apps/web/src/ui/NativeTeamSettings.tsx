@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import type { NativeTeamSettings as Settings } from '@mlswarm/contracts';
+import type { NativeTeamSettings as Settings } from '@minions/contracts';
 import type { SessionUser } from '../session-identity';
 import { session } from '../api';
 import { authorizedRequest } from '../authorized-request';

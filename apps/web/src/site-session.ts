@@ -1,4 +1,4 @@
-// This page's session: the MyLittleSwarm engine's own local owner session (server-session.ts), bound to the browser.
+// This page's session: the Minions engine's own local owner session (server-session.ts), bound to the browser.
 import { createServerSession } from './server-session';
 
 export const siteSession = createServerSession({

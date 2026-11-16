@@ -1,12 +1,12 @@
 # MCP and backend architecture
 
-MyLittleSwarm coordinates people and their agents through a cloud backend and a shared service on each person's computer. The cloud owns project records, membership, authorization, communication and accepted execution windows. The local service owns managed Claude Code and Codex execution, checkout ownership, process supervision and durable recovery. MCP connects coding clients to those capabilities; an MCP connection is not itself an execution grant or a durable worker.
+Minions coordinates people and their agents through a cloud backend and a shared service on each person's computer. The cloud owns project records, membership, authorization, communication and accepted execution windows. The local service owns managed Claude Code and Codex execution, checkout ownership, process supervision and durable recovery. MCP connects coding clients to those capabilities; an MCP connection is not itself an execution grant or a durable worker.
 
 This reference explains the current implementation and its consequences for reliability, privacy, performance and operations. It is intended for the owner, contributors and reviewers who need to follow an operation across the website, connector, local runtime and backend.
 
-**Source baseline:** `842385da8bdb79ccc8429a27cbc4b167d146204b`. The connector at this baseline is version 0.1.0-beta.66, with guide revision 61; since 10 November 2026 it is the private local package `mlswarm`. This is a maintained architecture reference, not a new product decision or permission to operate production. Since 10 November 2026 this repository no longer deploys to a live site ([decision](../decisions.md#disconnect-from-the-live-site--owner-decision-10-november-2026)), and since Level 2 the local engine is the only way the backend runs: one process with the API, the website, the delivery worker, a SQLite database and a media directory (section 21). Where this reference says “cloud” records or the “cloud” API, it means the engine's server side, as opposed to the connector on the person's computer. Earlier released artifacts are listed in [the release history](../release/deployment.md#release-history); performance targets are distinct from measured acceptance.
+**Source baseline:** `842385da8bdb79ccc8429a27cbc4b167d146204b`. The connector at this baseline is version 0.1.0-beta.66, with guide revision 61; since 10 November 2026 it is the private local package `minions`. This is a maintained architecture reference, not a new product decision or permission to operate production. Since 10 November 2026 this repository no longer deploys to a live site ([decision](../decisions.md#disconnect-from-the-live-site--owner-decision-10-november-2026)), and since Level 2 the local engine is the only way the backend runs: one process with the API, the website, the delivery worker, a SQLite database and a media directory (section 21). Where this reference says “cloud” records or the “cloud” API, it means the engine's server side, as opposed to the connector on the person's computer. Earlier released artifacts are listed in [the release history](../release/deployment.md#release-history); performance targets are distinct from measured acceptance.
 
-The central product constraints are in [VISION.md](../../VISION.md): the person's steering conversation stays separate from background work; each person steers their own agents; native tasks belong to MyLittleSwarm; and visible progress must not be mistaken for permission or proof of execution.
+The central product constraints are in [VISION.md](../../VISION.md): the person's steering conversation stays separate from background work; each person steers their own agents; native tasks belong to Minions; and visible progress must not be mistaken for permission or proof of execution.
 
 A quick reading route: owners can start with sections 1–3, 6 and 20–21; connector contributors with 4–11; backend contributors with 12–19. Section 24 maps implementation questions to source. The diagrams describe ownership and ordering, while the tables distinguish durable guarantees from process-local optimizations.
 
@@ -44,13 +44,13 @@ There are two independent paths from the person's computer to the backend:
 - The browser uses human-facing HTTP APIs, authenticated by a server session issued for the person's verified GitHub identity (or the engine's local owner sign-in).
 - The local connector uses its computer credential for owner operations and project-agent credentials for agent operations.
 
-The website and, in the steering journey, the coding chat are control clients. Neither replaces the local execution service. A chat can separately join as an explicit current-chat participant (section 8), doing project work without giving MyLittleSwarm ownership of its model process. Conversely, a local process or a private SQLite row does not grant project membership or permission to mutate cloud records.
+The website and, in the steering journey, the coding chat are control clients. Neither replaces the local execution service. A chat can separately join as an explicit current-chat participant (section 8), doing project work without giving Minions ownership of its model process. Conversely, a local process or a private SQLite row does not grant project membership or permission to mutate cloud records.
 
 ```mermaid
 flowchart TB
   subgraph Computer["Person's computer"]
     Chat["Claude Code or Codex steering chat"]
-    Local["Shared MyLittleSwarm service"]
+    Local["Shared Minions service"]
     Ledger["Private SQLite ledger and journals"]
     Guard["Mission guard and checkout claim"]
     Model["Managed Claude Code or Codex process"]
@@ -62,7 +62,7 @@ flowchart TB
     Model --> Repo
     Model -->|"Scoped worker MCP"| Local
   end
-  Browser["MyLittleSwarm website"] -->|"Human HTTP APIs"| API["Engine API"]
+  Browser["Minions website"] -->|"Human HTTP APIs"| API["Engine API"]
   Local -->|"Computer-credential HTTP APIs"| API
   Local -->|"Agent HTTP and project MCP"| API
   API <--> Store["SQLite authoritative records"]
@@ -74,7 +74,7 @@ flowchart TB
 
 The backend runs **project coordination**, not the person's Claude Code or Codex turns. The private delivery worker processes durable delivery and lifecycle work; it is not a hosted coding agent.
 
-There is no separate local MyLittleSwarm browser application. The main website provides project views and controls. A game or application produced by an agent may have its own local preview, but that preview is an output of the project, not a second MyLittleSwarm runtime.
+There is no separate local Minions browser application. The main website provides project views and controls. A game or application produced by an agent may have its own local preview, but that preview is an output of the project, not a second Minions runtime.
 
 ## 2 Components and ownership
 
@@ -87,7 +87,7 @@ There is no separate local MyLittleSwarm browser application. The main website p
 | `apps/server/src/self-hosted-main.ts` | Standalone engine: API, website and delivery worker in one process | Local model execution |
 | `apps/server/src/v2/local-fanout.ts` | In-process delivery queue and reconciliation timer: dispatch hints and independent recovery rounds | Browser sessions, model permissions, or whether a delivery job is complete |
 | SQLite document store (`apps/server/src/storage/sqlite-firestore.ts`) | Durable shared project, identity, run, message, progress and receipt records, behind the Firestore-shaped interface in `firestore.ts` | Local process ownership |
-| GitHub and local `gh` | Repository access, commits, branches and pull requests under their own authority | MyLittleSwarm task assignment or execution consent |
+| GitHub and local `gh` | Repository access, commits, branches and pull requests under their own authority | Minions task assignment or execution consent |
 
 The standalone engine runs the API and the delivery worker on one computer. The connector runs from a checkout of this repository and is not published; releasing the website does not change installed connectors.
 
@@ -138,7 +138,7 @@ A tool's public arguments normally select `{projectId, agentId}`. The installed 
 
 Human-facing routes verify server sessions with revocation checking (`apps/server/src/identity/`). GitHub sign-in is the participant path: the server asks GitHub for the account's verified emails and keeps that mapping, because a self-declared email is insufficient for the repository's identity policy.
 
-An active MyLittleSwarm profile is resolved from those verified emails. Administrator and reviewer privileges use their own verified-session checks. A session-store outage propagates as a retryable server failure rather than falsely telling an invited person that they lack an invitation.
+An active Minions profile is resolved from those verified emails. Administrator and reviewer privileges use their own verified-session checks. A session-store outage propagates as a retryable server failure rather than falsely telling an invited person that they lack an invitation.
 
 Human mutations that bind a selected profile also check that profile against the authenticated identity. The browser's selected account is not trusted merely because it was selected when an asynchronous request began.
 
@@ -170,7 +170,7 @@ Setup combines a guided experience with distinct underlying checks:
 - The connector can sign in to the engine as the owner, using a local-owner session the engine issues only to this computer at its loopback address.
 - Claude Code or Codex is installed and its provider sign-in is usable.
 - Git and GitHub access work for the selected repository.
-- The coding client is registered to use MyLittleSwarm's MCP tools.
+- The coding client is registered to use Minions's MCP tools.
 - The installed connector and bundled guide are consistent.
 
 These are separate facts. Local health does not prove cloud connectivity. GitHub API access does not prove Git transport works. Signing in as the owner is not permission to execute an agent. A successful client-registration command is not inferred from the provider being installed.
@@ -179,7 +179,7 @@ The returned `cloudConnection` observation reports cloud connectivity and its ti
 
 ### 4.2 Local service installation
 
-The default installation is under `~/.mlswarm/service`. It holds a stable loopback installation description and private authentication material, a runtime endpoint description, ownership information, the ledger, per-agent state, saved start intents and managed update state.
+The default installation is under `~/.minions/service`. It holds a stable loopback installation description and private authentication material, a runtime endpoint description, ownership information, the ledger, per-agent state, saved start intents and managed update state.
 
 The endpoint description is discovery information. Starting, stopping or trusting a process requires the service's authenticated identity and incarnation checks, not only a PID or a file that happens to name a port.
 
@@ -191,7 +191,7 @@ The installed service resolves a canonical project repository and a bound checko
 
 GitHub setup uses `gh`'s file-based credential path under the selected GitHub account policy. The code checks storage location and, on POSIX, ownership, links, permissions and directory ancestry. It verifies successful active authentication and the same account before and after credential persistence. Explicit environment-token authentication is preserved rather than silently copied into a file.
 
-Repository access synchronization can perform the selected repository-access workflow for project participants. This is a separate capability from an agent's task permissions. Native tasks do not become GitHub Issues, and a GitHub pull-request merge does not complete a MyLittleSwarm task.
+Repository access synchronization can perform the selected repository-access workflow for project participants. This is a separate capability from an agent's task permissions. Native tasks do not become GitHub Issues, and a GitHub pull-request merge does not complete a Minions task.
 
 **Source:** [setup CLI](../../packages/agent-cli/src/cli.mjs), [setup screen](../../packages/agent-cli/src/setup-screen.mjs), [installation lifecycle](../../packages/agent-cli/src/service/installation.mjs), [endpoint validation](../../packages/agent-cli/src/service/endpoint-file.mjs), [GitHub storage and access](../../packages/agent-cli/src/service/repository-access.mjs).
 
@@ -201,7 +201,7 @@ Repository access synchronization can perform the selected repository-access wor
 
 ### 5.1 Local owner MCP
 
-The coding client's MyLittleSwarm connection reaches the loopback service at `/mcp` using the local owner bearer. The server validates the exact Host and, when supplied, Origin. It listens on `127.0.0.1`, not a public interface.
+The coding client's Minions connection reaches the loopback service at `/mcp` using the local owner bearer. The server validates the exact Host and, when supplied, Origin. It listens on `127.0.0.1`, not a public interface.
 
 The transport delegates to `createRuntimeApplication`. That application binds the owner principal, validates strict tool schemas and dispatches to owner operations, runtime controls, discovery or explicitly scoped chat participation.
 
@@ -383,7 +383,7 @@ The person explicitly claims a project participation window through `work_in_thi
 
 The service checks that reference against saved state before forwarding tools. It verifies the cloud's participant identity, not only the reference's syntax. Deadline expiry or release invalidates the local context and aborts pending coordination requests.
 
-MyLittleSwarm does not own the host conversation's model turns or operating-system process. Ending project participation ends MyLittleSwarm coordination authority; it does not close the person's chat application. An external coding chat also cannot be truthfully reported as interrupted merely because someone requested project pause.
+Minions does not own the host conversation's model turns or operating-system process. Ending project participation ends Minions coordination authority; it does not close the person's chat application. An external coding chat also cannot be truthfully reported as interrupted merely because someone requested project pause.
 
 An approved extension changes an existing live window with its expected old deadline. A wake after an ended window is a new explicit authorization and identity. A service restart does not silently reactivate old chat participation.
 
@@ -722,9 +722,9 @@ The MCP surface exposes domain operations; it is not an unrestricted database tu
 
 ### 17.1 Native tasks
 
-MyLittleSwarm owns native task records, comments and activity. Project settings can make tasks unavailable or read-only. Agent operations are limited by the agent's current project/run authority; people have their own assignment and editing permissions.
+Minions owns native task records, comments and activity. Project settings can make tasks unavailable or read-only. Agent operations are limited by the agent's current project/run authority; people have their own assignment and editing permissions.
 
-Task updates use expected revisions and idempotent request identities. Agent self-claim and self-release do not confer authority to assign other people's agents. A task assignment does not start a model, and merging a GitHub PR does not automatically mark a MyLittleSwarm task done.
+Task updates use expected revisions and idempotent request identities. Agent self-claim and self-release do not confer authority to assign other people's agents. A task assignment does not start a model, and merging a GitHub PR does not automatically mark a Minions task done.
 
 There is task change-feed implementation in the backend, but that does not establish that the current website consumes it. Do not extend the status cutover's incremental-read claim to every task or project view.
 
@@ -901,7 +901,7 @@ person opens it in that browser. See [preview](../../apps/server/src/projects/pr
 
 The connector requires Node 24 for its current local ledger implementation.
 
-The connector is the private local package `mlswarm`. It is not published and runs from a checkout of this repository (owner decision, 10 November 2026). It has no self-update: a person updates by pulling the checkout once affected work is idle and restarting its service. Services installed from the earlier npm package keep running with their private state and are not updated by MyLittleSwarm; the API accepts and discards the update report they still send with readiness.
+The connector is the private local package `minions`. It is not published and runs from a checkout of this repository (owner decision, 10 November 2026). It has no self-update: a person updates by pulling the checkout once affected work is idle and restarting its service. Services installed from the earlier npm package keep running with their private state and are not updated by Minions; the API accepts and discards the update report they still send with readiness.
 
 An engine update cannot silently replace local files, and a pulled checkout does not prove an already-running computer restarted into it. Runtime readiness must report the actual service version and incarnation.
 

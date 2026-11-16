@@ -1,5 +1,5 @@
 {
-  "name": "mlswarm-tests",
+  "name": "minions-tests",
   "private": true,
   "type": "module",
   "engines": {

@@ -1,6 +1,6 @@
-import type { PublishedUpdate } from '@mlswarm/contracts';
+import type { PublishedUpdate } from '@minions/contracts';
 export type UpdateSeen = {id:string;publishedAt:number};
-export const updateSeenKey = (userId:string,projectId:string) => `mlswarm:updates-seen:v1:${encodeURIComponent(userId)}:${encodeURIComponent(projectId)}`;
+export const updateSeenKey = (userId:string,projectId:string) => `minions:updates-seen:v1:${encodeURIComponent(userId)}:${encodeURIComponent(projectId)}`;
 export function parseUpdateSeen(value:string|null):UpdateSeen|null {
   try { const marker=JSON.parse(value??'null');return marker&&typeof marker.id==='string'&&marker.id.length>0&&marker.id.length<=200&&Number.isFinite(marker.publishedAt)&&marker.publishedAt>=0?{id:marker.id,publishedAt:marker.publishedAt}:null; }
   catch { return null; }

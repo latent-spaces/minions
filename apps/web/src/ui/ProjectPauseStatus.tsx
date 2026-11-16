@@ -1,4 +1,4 @@
-import type { CommunicationAgent } from '@mlswarm/contracts';
+import type { CommunicationAgent } from '@minions/contracts';
 import { Pause } from 'lucide-react';
 import { communicationAgentState } from './communication-agent-state';
 

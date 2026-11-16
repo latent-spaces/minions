@@ -4,7 +4,7 @@ import { promisify } from 'node:util';
 import { createHash } from 'node:crypto';
 
 const runFile = promisify(execFile);
-export const MISSION_MARK = 'MLSWARM_MISSION_MARK';
+export const MISSION_MARK = 'MINIONS_MISSION_MARK';
 // Stable across service/adapter reconstruction, separate across every mission
 // generation and project/owner. Never derive it from a volatile turn or PID.
 export const missionMark = ({ target, missionId, generation }) => createHash('sha256').update(JSON.stringify([target.site, target.ownerId,

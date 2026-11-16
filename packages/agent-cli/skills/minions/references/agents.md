@@ -3,7 +3,7 @@
 ## Coordinate from your coding chat
 
 When the person asks about a project, use `list_my_projects` to find it and
-`list_working_agents` with its project ID to check their agents. People follow the project in the main MyLittleSwarm app;
+`list_working_agents` with its project ID to check their agents. People follow the project in the main Minions app;
 there is no separate local browser app to open. Do not spend model turns polling
 for project start or promise a local desktop notification.
 
@@ -25,7 +25,7 @@ anything waiting for them. Offer to steer, add time, pause or stop. Check again 
 ask; don't poll in a loop.
 
 The owner can start projects from the main app or through `control_project`;
-read [Projects](projects.md), or `get_mlswarm_guide` with `section: "projects"`,
+read [Projects](projects.md), or `get_minions_guide` with `section: "projects"`,
 for its readiness, approval, revision and retry rules. Starting can release
 already-approved queued workers; it adds no agents or new work approval.
 
@@ -117,7 +117,7 @@ For an approved team in a project the person owns, check their agents in
 `register_my_agents`. Then add each one with `add_project_agent`; registering alone
 creates no folder or connection. In projects they joined, call `add_project_agent` for
 each approved name (registering a team needs the owner). Agents choose their own roles and plans unless the
-person assigns them. Your own subagents don't become MyLittleSwarm agents.
+person assigns them. Your own subagents don't become Minions agents.
 
 `set_agent_limits` saves how an agent works (with the person in chat, or on its own),
 from its next start. It doesn't change an agent that's already working.
@@ -211,4 +211,4 @@ needed. Logs can be incomplete, and pending or attention reports haven't arrived
 Don't redo work just because its result or transcript is missing.
 
 For recovery that finalizes a run or retries/archives a report, read
-[Computer](computer.md), or call `get_mlswarm_guide` with `section: "computer"`.
+[Computer](computer.md), or call `get_minions_guide` with `section: "computer"`.

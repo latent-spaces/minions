@@ -11,7 +11,7 @@ import { readProjectUpdateSettings, saveProjectUpdateSettings } from '../project
 
 import { CARD_EDIT } from '../projects/card.js';
 import { PUBLIC_CONVERSION, convertProjectToPublic, readPublicConversion } from '../projects/public-conversion.js';
-import { deriveProjectLifecycle } from '@mlswarm/contracts';
+import { deriveProjectLifecycle } from '@minions/contracts';
 // Replies keep the next step once, as nextStep, instead of three copies of the same text.
 const withoutCopy = ({ help: _help, next: { description: _description, ...next }, ...state }: ReturnType<typeof deriveProjectLifecycle>) => ({ ...state, next });
 import { registerAgentTeam } from '../onboarding/registration.js';
@@ -53,7 +53,7 @@ function projectStatus(id: string, w: Awaited<ReturnType<typeof readWorkspace>>)
 }
 function fail(res: Response, error: unknown) {
   if (error instanceof Refusal) sendRefusal(res, error);
-  else { console.error('Owner request failed.', error); res.status(500).json({ error: 'internal_error', message: 'Something went wrong on MyLittleSwarm. Try again in a moment.' }); }
+  else { console.error('Owner request failed.', error); res.status(500).json({ error: 'internal_error', message: 'Something went wrong on Minions. Try again in a moment.' }); }
 }
 // Mounted before the SDK's default 100 KiB parser for this one bounded route.
 // Preserve its Host-before-body protection when listening on loopback.
@@ -81,17 +81,17 @@ export function ownerRoutes(now: () => number) {
   // The owner's browser reads below have no budget: the one local owner's viewing is never refused.
   router.get('/notifications', (req,res)=>answer(res,async()=>{
     const person=await browserPerson(req);
-    if(req.get('X-Mlswarm-Profile-Id')!==person.id)throw new Refusal('unauthorized','Your selected account changed.');
+    if(req.get('X-Minions-Profile-Id')!==person.id)throw new Refusal('unauthorized','Your selected account changed.');
     return readNotifications(person.id,req.query);
   }));
   router.post('/notifications/read-all', (req,res)=>answer(res,async()=>{
     const person=await browserPerson(req);personAdmission(person.id);parse(z.object({}).strict(),req.body);
-    if(req.get('X-Mlswarm-Profile-Id')!==person.id)throw new Refusal('unauthorized','Your selected account changed.');
+    if(req.get('X-Minions-Profile-Id')!==person.id)throw new Refusal('unauthorized','Your selected account changed.');
     return markAllNotificationsRead(person.id,now);
   }));
   router.post('/notifications/:id/read', (req,res)=>answer(res,async()=>{
     const person=await browserPerson(req);personAdmission(person.id);parse(z.object({}).strict(),req.body);
-    if(req.get('X-Mlswarm-Profile-Id')!==person.id)throw new Refusal('unauthorized','Your selected account changed.');
+    if(req.get('X-Minions-Profile-Id')!==person.id)throw new Refusal('unauthorized','Your selected account changed.');
     return markNotificationRead(person.id,String(req.params.id),now);
   }));
   // The connector reads the owner's identity here too: it signs in with the same local session as the app.
@@ -100,7 +100,7 @@ export function ownerRoutes(now: () => number) {
   router.get('/runtime', (req,res) => answer(res, async () => { const person=await browserPerson(req); return {runtime:readinessView((await runtimeReadiness.doc(person.id).get()).data(),now())}; }));
   router.post('/web-agent-starts',(req,res)=>answer(res,async()=>{
     const person=await browserPerson(req);personAdmission(person.id);
-    if(req.get('X-Mlswarm-Profile-Id')!==person.id)throw new Refusal('unauthorized','MyLittleSwarm now signs in a different account. Check which account you meant, then try again.');
+    if(req.get('X-Minions-Profile-Id')!==person.id)throw new Refusal('unauthorized','Minions now signs in a different account. Check which account you meant, then try again.');
     return createWebAgentStart(person.id,req.body,now);
   }));
   router.get('/web-agent-starts/:id',(req,res)=>answer(res,async()=>{const person=await browserPerson(req);return readWebAgentStart(person.id,String(req.params.id),now);}));
@@ -140,13 +140,13 @@ export function ownerRoutes(now: () => number) {
   const projectId = (value: string) => { if (!validProjectId(value)) throw new Refusal('bad_input', 'Choose one of your projects.'); return value; };
   router.get('/needs-you', (req,res) => answer(res, () => readHumanRequests(res.locals.owner.id,req.query)));
   router.post('/needs-you/:id/answer', (req,res) => answer(res, () => {
-    if (req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized','MyLittleSwarm now signs in a different account. Check which account you meant, then try again.');
+    if (req.get('X-Minions-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized','Minions now signs in a different account. Check which account you meant, then try again.');
     const {approved:_,...input} = parse(ANSWER_HUMAN.extend({approved:z.literal(true)}),req.body);
     return answerHumanRequest(res.locals.owner.id,String(req.params.id),input,now);
   }));
   router.post('/projects/private', (req, res) => answer(res, async () => {
     const { approved: _approved, ...input } = parse(CREATE_PRIVATE.extend({ approved: z.literal(true) }), req.body);
-    if (req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'MyLittleSwarm now signs in a different account. Check which account you meant, then try again.');
+    if (req.get('X-Minions-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'Minions now signs in a different account. Check which account you meant, then try again.');
     const created = await createPrivateProject(res.locals.owner, input, now) as { id: string; memberLimit: number; messageProtection: string; replayed: boolean };
     return { ...created, ...projectStatus(created.id, await readWorkspace(res.locals.owner, created.id)), projectPagePath: await shortSharedLink(`/?project=${created.id}`) };
   }));
@@ -169,7 +169,7 @@ export function ownerRoutes(now: () => number) {
   router.get('/proposals/:id', (req, res) => answer(res, async () => { const result = await getProposal({ kind: 'person', operatorId: res.locals.owner.id }, projectId(req.params.id)); const state = deriveProjectLifecycle({ kind: 'proposal', role: 'owner', proposalStatus: result.proposal.status }); return { ...result, state: withoutCopy(state), status: state.status, nextStep: state.next.description, reviewerFeedback: result.proposal.feedback }; }));
   const selectedProject = (req: express.Request, res: Response) => {
     const id = projectId(String(req.params.id));
-    if (req.method === 'POST' && req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'MyLittleSwarm now signs in a different account. Check which account you meant, then try again.');
+    if (req.method === 'POST' && req.get('X-Minions-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'Minions now signs in a different account. Check which account you meant, then try again.');
     return id;
   };
   const owned = async (req: express.Request, res: Response) => {
@@ -193,11 +193,11 @@ export function ownerRoutes(now: () => number) {
     const { approved: _, ...input } = parse(PUBLIC_CONVERSION.extend({ approved: z.literal(true) }), req.body);
     return convertProjectToPublic(res.locals.owner, selectedProject(req, res), input, now);
   }));
-  router.post('/projects/:id/steering', (req,res)=>answer(res,()=>{if(req.get('X-Mlswarm-Profile-Id')!==res.locals.owner.id)throw new Refusal('unauthorized','MyLittleSwarm now signs in a different account.');return inProject(projectId(req.params.id),()=>submitSteering(res.locals.owner.id,req.body,now));}));
+  router.post('/projects/:id/steering', (req,res)=>answer(res,()=>{if(req.get('X-Minions-Profile-Id')!==res.locals.owner.id)throw new Refusal('unauthorized','Minions now signs in a different account.');return inProject(projectId(req.params.id),()=>submitSteering(res.locals.owner.id,req.body,now));}));
   router.get('/projects/:id/steering/:operationId', (req,res)=>answer(res,()=>inProject(projectId(req.params.id),()=>steeringResult(res.locals.owner.id,String(req.params.operationId)))));
   router.get('/projects/:id/my-workers', (req, res) => answer(res, () => inProject(projectId(req.params.id), () => listMyWorkers(res.locals.owner.id, now))));
   router.post('/projects/:id/agents/:agentId/participation',(req,res)=>answer(res,()=>{
-    if(req.get('X-Mlswarm-Profile-Id')!==res.locals.owner.id) throw new Refusal('unauthorized','MyLittleSwarm now signs in a different account. Check which account you meant, then try again.');
+    if(req.get('X-Minions-Profile-Id')!==res.locals.owner.id) throw new Refusal('unauthorized','Minions now signs in a different account. Check which account you meant, then try again.');
     return inProject(projectId(req.params.id),()=>requestParticipationControl(res.locals.owner.id,String(req.params.agentId),req.body,now));
   }));
   router.post('/projects/:id/project-update-settings', (req, res) => answer(res, () => inProject(projectId(req.params.id), () => saveProjectUpdateSettings(res.locals.owner.id, req.body, now))));
@@ -235,13 +235,13 @@ export function ownerRoutes(now: () => number) {
   router.post('/projects/:id/agents/:agentId/persona', (req, res) => answer(res, async () =>
     inProject(projectId(req.params.id), () => saveAgentPersona(res.locals.owner.id, String(req.params.agentId), req.body, now))));
   router.post('/projects/:id/control', (req, res) => answer(res, async () => {
-    if (req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'MyLittleSwarm now signs in a different account. Check which account you meant, then try again.');
+    if (req.get('X-Minions-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'Minions now signs in a different account. Check which account you meant, then try again.');
     const { approved: _, ...input } = parse(CONTROL.extend({ approved: z.literal(true) }), req.body);
     return controlWorkspace(res.locals.owner, projectId(req.params.id), input, now);
   }));
   // Archive only hides the project from this person's own list; nothing about the project changes.
   router.post('/projects/:id/personal-archive', (req, res) => answer(res, async () => {
-    if (req.get('X-Mlswarm-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'MyLittleSwarm now signs in a different account. Check which account you meant, then try again.');
+    if (req.get('X-Minions-Profile-Id') !== res.locals.owner.id) throw new Refusal('unauthorized', 'Minions now signs in a different account. Check which account you meant, then try again.');
     const { approved: _, ...input } = parse(PERSONAL_ARCHIVE.extend({ approved: z.literal(true) }), req.body);
     return setPersonalArchive(res.locals.owner, projectId(req.params.id), input, now);
   }));

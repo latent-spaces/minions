@@ -1,12 +1,12 @@
 import type { Transaction } from '../firestore.js';
 import { z } from 'zod';
-import type { ProjectMergePolicy, MergePolicyTarget, MergePolicyView, MergePolicyCode } from '@mlswarm/contracts';
+import type { ProjectMergePolicy, MergePolicyTarget, MergePolicyView, MergePolicyCode } from '@minions/contracts';
 import { collection, db, githubAccounts, inProject, profiles } from '../firestore.js';
 import { hashToken } from '../auth.js';
 import { Refusal } from '../errors.js';
 import { activeRecipientOperators, assertMembership, assertProjectWritable, type Membership } from './access.js';
 import { projects } from './records.js';
-import { canonicalGithubRepo } from '@mlswarm/contracts';
+import { canonicalGithubRepo } from '@minions/contracts';
 
 const profileId = z.string().regex(/^[A-Za-z0-9_-]{1,200}$/);
 const policySchema = z.object({ revision: z.number().int().nonnegative(), mode: z.enum(['existing', 'selected_people']), selected: z.array(z.object({ profileId, epoch: z.number().int().nonnegative() }).strict()).max(100) }).strict();

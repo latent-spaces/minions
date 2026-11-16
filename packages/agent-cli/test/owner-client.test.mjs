@@ -44,7 +44,7 @@ test('GitHub observations use the signed-in account and fixed read/report routes
 test('the connector signs in with the engine session, reads the owner profile and saves nothing about this computer',async()=>{
  const f=fixture();try{
   // A credential saved by an earlier connector is left alone and unused.
-  const dir=join(f.home,'owners',digest(new URL(site).origin)), old=JSON.stringify({schema:'mlswarm-owner-1',origin:site,token:'t'.repeat(43),status:'approved'});
+  const dir=join(f.home,'owners',digest(new URL(site).origin)), old=JSON.stringify({schema:'minions-owner-1',origin:site,token:'t'.repeat(43),status:'approved'});
   mkdirSync(dir,{recursive:true});writeFileSync(join(dir,'owner.json'),old);
   f.lose();await assert.rejects(f.client.signIn(),/can’t be reached/);
   const account=await f.client.signIn();
@@ -139,7 +139,7 @@ test('project lifecycle controls require approval and send exact action, revisio
    assert.equal(f.requests.length,count);
    await f.client.operation('control_project',args);
    assert.ok(f.requests.at(-1).url.endsWith('/projects/'+P+'/control'));
-   assert.equal(f.requests.at(-1).headers['X-Mlswarm-Profile-Id'],'owner');
+   assert.equal(f.requests.at(-1).headers['X-Minions-Profile-Id'],'owner');
    assert.deepEqual(JSON.parse(f.requests.at(-1).body),{expected_revision:3,client_request_id:args.client_request_id,action,approved:true});
   }
  }finally{f.close();}
@@ -345,7 +345,7 @@ test('an engine that is not running is named as such; a reply lost after sending
   const down=createOwnerClient({home:f.home,workspace:f.workspace,site,fetchImpl:async()=>{throw refused;}});
   const error=await down.operation('list_my_projects',{}).catch(e=>e);
   assert.equal(error.unreachable,true);assert.equal(error.code,'engine_unreachable');
-  assert.equal(error.message,`The MyLittleSwarm engine isn’t running at ${site}. Start it with npm run setup.`);
+  assert.equal(error.message,`The Minions engine isn’t running at ${site}. Start it with npm run setup.`);
   assert.notEqual(error.refusal,true);
   const lost=createOwnerClient({home:f.home,workspace:f.workspace,site,fetchImpl:async()=>{throw new TypeError('fetch failed',{cause:Object.assign(new Error('socket hang up'),{code:'ECONNRESET'})});}});
   const uncertain=await lost.operation('list_my_projects',{}).catch(e=>e);

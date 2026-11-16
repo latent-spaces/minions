@@ -1,13 +1,13 @@
 import type { SessionUser } from './session-identity';
 import { ApiError, session } from './api';
-export type PublicPhoto = import('@mlswarm/contracts').PublicProfilePhoto;
-export type PhotoCandidate = import('@mlswarm/contracts').ProfilePhotoCandidate;
+export type PublicPhoto = import('@minions/contracts').PublicProfilePhoto;
+export type PhotoCandidate = import('@minions/contracts').ProfilePhotoCandidate;
 export type PhotoSelection = { id: string; publicConsent: true } | null;
 export async function profilePhotoRequest(user: SessionUser, personId: string, path: string, body?: File | object, requestId?: string): Promise<Response> {
   const token = await user.getIdToken();
   if (session.currentUid() !== user.uid) throw new ApiError(401, 'Your signed-in account changed.');
   const response = await fetch(path, { method: body === undefined ? 'GET' : 'POST', headers: {
-    authorization: `Bearer ${token}`, 'X-Mlswarm-Profile-Id': personId,
+    authorization: `Bearer ${token}`, 'X-Minions-Profile-Id': personId,
     ...(body instanceof File ? { 'content-type': body.type, 'X-Upload-Id': requestId! } : body ? { 'content-type': 'application/json' } : {}),
   }, body: body instanceof File ? body : body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(30_000) });
   if (session.currentUid() !== user.uid) throw new ApiError(401, 'Your signed-in account changed.');

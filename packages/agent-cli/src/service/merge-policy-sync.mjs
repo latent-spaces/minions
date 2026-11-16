@@ -4,7 +4,7 @@ import { githubRepositoryUrl, isGithubRepositoryUrl } from '../github-repository
 const hash = /^[a-f0-9]{64}$/;
 const accountId = value => Number.isSafeInteger(value) && value > 0;
 const fail = code => Object.assign(new Error(code), { code });
-const nameFor = target => `MyLittleSwarm merge access ${target.projectId}`;
+const nameFor = target => `Minions merge access ${target.projectId}`;
 // REST contract pinned to X-GitHub-Api-Version 2026-03-10. Individual User actors
 // and PR-only bypass: https://docs.github.com/en/rest/repos/rules#create-a-repository-ruleset
 export function mergeAccessRuleset(target) {
@@ -63,7 +63,7 @@ export async function syncMergePolicy(target, { request = createGitHubRequest(),
     if (repo?.permissions?.admin !== true) throw fail('github_permissions');
     const rows = await list();
     // Two projects cannot silently impose incompatible merge allowlists on one repository.
-    if (rows.some(row => row.name?.startsWith('MyLittleSwarm merge access ') && row.name !== nameFor(target))) throw fail('conflicting_rulesets');
+    if (rows.some(row => row.name?.startsWith('Minions merge access ') && row.name !== nameFor(target))) throw fail('conflicting_rulesets');
     const owned = rows.filter(row => row.name === nameFor(target));
     if (owned.length > 1 || owned.some(row => !accountId(row.id) || row.source_type !== 'Repository')) throw fail('conflicting_rulesets');
     const existing = owned[0], path = existing ? `${root}/rulesets/${existing.id}` : `${root}/rulesets`;

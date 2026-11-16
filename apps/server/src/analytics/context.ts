@@ -1,6 +1,6 @@
 import { FieldPath } from '../firestore.js';
 import { z } from 'zod';
-import { PROMPT_SOURCES, type ContextNow, type ContextRunPage, type ContextSummary, type ContextTurnPage } from '@mlswarm/contracts';
+import { PROMPT_SOURCES, type ContextNow, type ContextRunPage, type ContextSummary, type ContextTurnPage } from '@minions/contracts';
 import { agents, db, inProject } from '../firestore.js';
 import { runHistory, turnReceipts, type RunHistory } from '../v2/records.js';
 import { encodeCursor, decodeCursor } from '../cursor.js';

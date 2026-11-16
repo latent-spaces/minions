@@ -18,7 +18,7 @@ if (!digestLine.test(guideFiles['SKILL.md'])) throw new Error('The router must d
 const router = guideFiles['SKILL.md'].replace(digestLine, `  references-sha256: "${referenceHash(guideFiles)}"`);
 const bundledSkill = skillMetadata(router);
 if (metadata.version !== VERSION || bundledSkill.guide_revision !== GUIDE_REVISION) throw new Error('Package version and skill guide revision must match their declarations.');
-if (router !== guideFiles['SKILL.md']) writeFileSync(join(root, 'skills/mlswarm/SKILL.md'), router);
+if (router !== guideFiles['SKILL.md']) writeFileSync(join(root, 'skills/minions/SKILL.md'), router);
 const dest = join(root, 'runtime');
 const workerGuides = createWorkerGuidance({ core: readFileSync(join(dest, 'AGENT_PROMPT_V2.md'), 'utf8'), guideRevision: GUIDE_REVISION,
   sections: Object.fromEntries(WORKER_GUIDE_SECTIONS.map(name => [name, guideFiles[`references/${name}.md`]])) });
@@ -34,8 +34,8 @@ for (const name of names) {
 const serverRequire = createRequire(new URL('../../../apps/server/package.json', import.meta.url));
 // Listing tools opens no saved database: a throwaway in-memory test session, never the engine's own file.
 function catalogEnvironment() {
-  const env = { ...process.env, NODE_ENV: 'test', MLSWARM_TEST_SESSION: `mlswarm-tests-${randomBytes(6).toString('hex')}` };
-  for (const key of ['MLSWARM_ENGINE', 'MLSWARM_SQLITE_PATH', 'MLSWARM_TEST_SQLITE_PATH']) delete env[key];
+  const env = { ...process.env, NODE_ENV: 'test', MINIONS_TEST_SESSION: `minions-tests-${randomBytes(6).toString('hex')}` };
+  for (const key of ['MINIONS_ENGINE', 'MINIONS_SQLITE_PATH', 'MINIONS_TEST_SQLITE_PATH']) delete env[key];
   return env;
 }
 const catalog = execFileSync(process.execPath, ['--import', pathToFileURL(serverRequire.resolve('tsx')).href, join(root, '../../apps/server/scripts/export-project-tool-catalog.ts')], { encoding: 'utf8', env: catalogEnvironment(), timeout: 30000 });

@@ -1,5 +1,5 @@
 {
-  "name": "@mlswarm/server",
+  "name": "@minions/server",
   "private": true,
   "type": "module",
   "engines": {
@@ -15,7 +15,7 @@
     "prebuild:backend": "npm --prefix ../../packages/contracts run build"
   },
   "dependencies": {
-    "@mlswarm/contracts": "0.0.0",
+    "@minions/contracts": "0.0.0",
     "@modelcontextprotocol/sdk": "1.32.1",
     "express": "5.2.1",
     "firebase-admin": "14.5.0",

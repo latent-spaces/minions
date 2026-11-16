@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { Transaction } from '../firestore.js';
-import { PROGRESS_LIMITS, UPDATE_TOPICS, type ProjectUpdateSettings, type UpdateEveryMinutes } from '@mlswarm/contracts';
+import { PROGRESS_LIMITS, UPDATE_TOPICS, type ProjectUpdateSettings, type UpdateEveryMinutes } from '@minions/contracts';
 import { db, projectDocument } from '../firestore.js';
 import { hashToken } from '../auth.js';
 import { Refusal } from '../errors.js';

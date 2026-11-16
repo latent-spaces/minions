@@ -91,7 +91,7 @@ export async function continueAccountCleanup(operatorId: string, now: () => numb
       if (!member.exists || member.data()!.profileId !== operatorId || member.data()!.projectId !== id)
         throw new Refusal('bad_input', 'An account membership needs explicit maintenance.');
       const epoch = membershipEpoch(id, operatorId, member.data(), fence.data());
-      if (epoch < 0 || epoch === Number.MAX_SAFE_INTEGER) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+      if (epoch < 0 || epoch === Number.MAX_SAFE_INTEGER) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
       return { id, mirror, member, epoch, capacity, counter };
     }));
     const emailCleanup = await prepareInvitationEmailCleanup(tx, operatorId, job.invitationEmailCursor);

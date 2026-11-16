@@ -1,11 +1,11 @@
-import type {ContextSummary, NativeContextObservation} from '@mlswarm/contracts';
+import type {ContextSummary, NativeContextObservation} from '@minions/contracts';
 
 export function requestPressure(native: NativeContextObservation|null|undefined): number|null {
   const input=native?.lastInputTokens, window=native?.modelContextWindow;
   return typeof input==='number'&&Number.isFinite(input)&&input>=0&&typeof window==='number'&&Number.isFinite(window)&&window>0 ? input/window*100 : null;
 }
 // Fixed order and colors: a source keeps its color across agents, days and filters. The six per-turn sources take
-// validated categorical slots 1-6 in bar order; MyLittleSwarm's setup is quiet hatched gray, so the variable parts stand out.
+// validated categorical slots 1-6 in bar order; Minions's setup is quiet hatched gray, so the variable parts stand out.
 export const SOURCES=[
   {key:'instructions',label:'Instructions',color:'var(--setup-1)'},{key:'prompt',label:'Turn prompt',color:'var(--series-1)'},
   {key:'steering',label:'Steering',color:'var(--series-2)'},{key:'definitions',label:'Tool definitions',color:'var(--setup-2)'},
@@ -14,7 +14,7 @@ export const SOURCES=[
   {key:'unsplit',label:'Tool results · unsplit',color:'var(--series-other)'},
 ] as const;
 export type Source=typeof SOURCES[number];
-/** The two sources that are MyLittleSwarm's own setup, hatched in charts: standing instructions and tool definitions. */
+/** The two sources that are Minions's own setup, hatched in charts: standing instructions and tool definitions. */
 export const isSetupSource=(key:Source['key'])=>key==='instructions'||key==='definitions';
 const taskTools=['list_tasks','get_task','create_task','update_task','claim_task','release_task','comment_task','link_task'],conversationTools=['read_thread','read_agent_inbox'];
 /** Measured supplied bytes per source, in fixed order; sources a report did not measure are absent, not zero. */

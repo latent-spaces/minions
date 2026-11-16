@@ -14,7 +14,7 @@ import { childEnvironment, connectorCommand, connectorEnvironment, engineEnviron
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
 const at = (...parts) => join(repository, ...parts);
-const say = text => console.info(`\nMyLittleSwarm setup: ${text}`);
+const say = text => console.info(`\nMinions setup: ${text}`);
 const modified = file => { try { return statSync(file).mtimeMs; } catch { return null; } };
 
 /** Runs Node with these arguments. Quiet runs keep their output and show it only when they fail. */
@@ -127,8 +127,8 @@ async function connectorSetup(url, env) {
 }
 
 /**
- * Registers the MCP server as mlswarm with Claude Code and Codex, where they are on this computer, replacing older
- * mlswarm-… entries (owner decisions, 13 and 14 November 2026). Resolves to the register command's lines and whether
+ * Registers the MCP server as minions with Claude Code and Codex, where they are on this computer, replacing older
+ * minions-… entries (owner decisions, 13 and 14 November 2026). Resolves to the register command's lines and whether
  * anything was registered; a failure is reported and setup carries on.
  */
 function registerClients(env) {
@@ -150,19 +150,19 @@ function summary(url, ready, files, registration) {
 The engine runs in the background; npm run stop stops it.
 ${registration.lines}
 ${registration.registered
-    ? `Until a new session loads the MyLittleSwarm tools, call them with: ${connector(['tool', '--list'])} (then tool NAME '{...}').`
+    ? `Until a new session loads the Minions tools, call them with: ${connector(['tool', '--list'])} (then tool NAME '{...}').`
     : manual}
 For agents that work on repositories, sign in to GitHub with gh auth login.`);
 }
 
 /**
  * After the connector's own setup: registers the coding agents, then prints the summary. A test engine in its own
- * MLSWARM_ENGINE_HOME never replaces the computer's mlswarm entry (owner decision, 14 November 2026).
+ * MINIONS_ENGINE_HOME never replaces the computer's minions entry (owner decision, 14 November 2026).
  */
 async function finish(url, ready, files, connectorEnv, values) {
   const registration = !ready ? { registered: false, lines: 'No coding agent was registered: the connector is not set up yet.' }
     : values['no-register'] ? { registered: false, lines: 'No coding agent was registered (--no-register).' }
-    : process.env.MLSWARM_ENGINE_HOME ? { registered: false, lines: 'This is a test engine (MLSWARM_ENGINE_HOME), so no coding agent was registered.' }
+    : process.env.MINIONS_ENGINE_HOME ? { registered: false, lines: 'This is a test engine (MINIONS_ENGINE_HOME), so no coding agent was registered.' }
     : await registerClients(connectorEnv);
   summary(url, ready, files, registration);
 }
@@ -181,9 +181,9 @@ async function main() {
   next('Checking the engine port and files');
   const state = initializationState({ database: existsSync(files.sqlitePath), owner: existsSync(files.ownerFile) });
   if (state === 'incomplete') {
-    throw new Error(`An earlier first run stopped before initialization finished: ${home} holds only one of engine.sqlite and owner.json. Nothing was changed. If nothing there needs keeping, remove that directory (or choose a new MLSWARM_ENGINE_HOME) and run npm run setup again.`);
+    throw new Error(`An earlier first run stopped before initialization finished: ${home} holds only one of engine.sqlite and owner.json. Nothing was changed. If nothing there needs keeping, remove that directory (or choose a new MINIONS_ENGINE_HOME) and run npm run setup again.`);
   }
-  // Always the same address: 8787, unless MLSWARM_ENGINE_PORT or an earlier run's saved port says otherwise.
+  // Always the same address: 8787, unless MINIONS_ENGINE_PORT or an earlier run's saved port says otherwise.
   const port = enginePort(process.env, savedPort(readText(files.settingsFile)));
   if (!await portFree(port)) {
     // Only an engine started with this owner file signs sessions with its secret, so a verified session proves the port is this engine.

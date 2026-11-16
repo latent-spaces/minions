@@ -1,4 +1,4 @@
-import type { HumanRequestPage } from '@mlswarm/contracts';
+import type { HumanRequestPage } from '@minions/contracts';
 
 /** Count the visible bounded page, including shared decisions; mark agents with visible outstanding requests. */
 export function projectRequestSignals(page: HumanRequestPage, profileId: string) {

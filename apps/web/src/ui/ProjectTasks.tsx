@@ -1,17 +1,17 @@
-import { nativeTaskTitleMatches } from '@mlswarm/contracts';
+import { nativeTaskTitleMatches } from '@minions/contracts';
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react';
-import type { NativeTask, NativeTaskActor, NativeTaskDetail, NativeTaskStatus, NativeTaskActivity, NativeTaskSummary } from '@mlswarm/contracts';
-import { closedTask } from '@mlswarm/contracts';
+import type { NativeTask, NativeTaskActor, NativeTaskDetail, NativeTaskStatus, NativeTaskActivity, NativeTaskSummary } from '@minions/contracts';
+import { closedTask } from '@minions/contracts';
 import { ArrowLeft, Check, ChevronDown, GitPullRequest, ChevronRight, Columns3, Filter, List, ListTodo, Plus, RefreshCw, Search, X } from 'lucide-react';
 export type TaskAgent = { id: string; name: string; operatorId: string | null; operatorName: string | null; revokedAt: number | null;
-  operatorPhoto?: import('@mlswarm/contracts').PublicProfilePhoto | null; personaChoice?: import('@mlswarm/contracts').PersonaChoice | null; assignable?: boolean;
+  operatorPhoto?: import('@minions/contracts').PublicProfilePhoto | null; personaChoice?: import('@minions/contracts').PersonaChoice | null; assignable?: boolean;
   /** Live state and coding tool, known only for agents on the first full agents page. */
-  state?: import('@mlswarm/contracts').CommunicationAgentState; provider?: string | null; focus?: import('@mlswarm/contracts').AgentFocus | null };
+  state?: import('@minions/contracts').CommunicationAgentState; provider?: string | null; focus?: import('@minions/contracts').AgentFocus | null };
 import { hold, projectRoute, taskRoute, type Route } from '../route';
 import { NavLink } from '../navigation-link';
 import type { PublicPhoto } from '../profile-photo-api';
 import { TASK_STATUSES, isAccessLoss, isConflict, isTasksDisabled, isSettledRefusal, taskReferenceView, newestTaskSnapshot, taskSourceHref, taskReferenceFromUrl, statusLabel, statusChangeBlock, taskMutation, singleFlight, readTasksView, writeTasksView, nestTasks, taskFromPrompt, type TasksApi, type TasksView } from '../task-model';
-import type { NativeTaskMutation } from '@mlswarm/contracts';
+import type { NativeTaskMutation } from '@minions/contracts';
 import { PickerMenu } from './PickerMenu';
 import { TaskAgentAvatar } from './TaskAgentAvatar';
 import { TaskAgentHover, TaskContributorAvatars } from './TaskContributorAvatars';
@@ -25,7 +25,7 @@ import { relativeTime } from '../observation-time';
 import './segments.css';
 import './project-tasks.css';
 
-export type TaskPerson = { id: string; name: string | null; photo?: PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null };
+export type TaskPerson = { id: string; name: string | null; photo?: PublicPhoto | null; character?: import('@minions/contracts').PersonCharacter | null };
 /** Labels by id for actors the directory walks have not reached (at most 60 ids per call). */
 export type TaskLabelLookup = { agents: (ids: string[]) => Promise<TaskAgent[]>; members: (ids: string[]) => Promise<TaskPerson[]> };
 export interface ProjectTasksProps {

@@ -2,16 +2,17 @@ import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { configuredWebsiteOrigin, selfHostedWebsiteOrigin } from './website-origin.mjs';
 import { siteInstanceId } from './site-state.mjs';
+import { brandedDirectory } from './brand-paths.mjs';
 
 // The fixed layout on a person's computer (owner decision, 11 October 2026). The main agent works in
 // main/ and each created agent in its own checkout under projects/<project>/<agent>-<id>/.
 // New same-repository agents default to sibling worktrees from a stable base clone (owner, 18 October 2026);
 // existing clones stay in place. This module assigns paths; it does not provision Git checkouts. Private credentials
-// stay in ~/.mlswarm, outside all of it. <id> is the start of the agent's ID, so two agents never share a
+// stay in ~/.minions, outside all of it. <id> is the start of the agent's ID, so two agents never share a
 // folder, also when their names differ only by letter case on a disk that ignores it.
 export function workspaceHome(env = process.env, userHome = homedir()) {
   configuredWebsiteOrigin(env);
-  const site = selfHostedWebsiteOrigin(env), root = join(userHome, 'mlswarm');
+  const site = selfHostedWebsiteOrigin(env), root = brandedDirectory(userHome, { privateState: false });
   return site === null ? root : join(root, 'instances', siteInstanceId(site));
 }
 export const layout = root => ({ root, main: join(root, 'main'), projects: join(root, 'projects') });

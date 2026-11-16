@@ -1,4 +1,4 @@
-// Standalone engine smoke test, storage and delivery slice: with MLSWARM_ENGINE=self-hosted the server keeps its
+// Standalone engine smoke test, storage and delivery slice: with MINIONS_ENGINE=self-hosted the server keeps its
 // data in one SQLite file, and the in-process delivery worker delivers an agent message, all while the
 // loopback-only guard refuses any outside connection. The launcher slice (sign-in, HTTP, restart through the CLI)
 // builds on this once the standalone entry point lands. No model or outside network is used.
@@ -10,10 +10,10 @@ import { installLoopbackOnlyNetwork } from '../../../tests/support/loopback-only
 
 // The guard and the environment come first: firestore.ts chooses its store when it is imported.
 const guard = installLoopbackOnlyNetwork();
-const dir = mkdtempSync(join(tmpdir(), 'mlswarm-standalone-'));
+const dir = mkdtempSync(join(tmpdir(), 'minions-standalone-'));
 const file = join(dir, 'engine.sqlite');
-delete process.env.MLSWARM_TEST_SESSION;
-Object.assign(process.env, { MLSWARM_ENGINE: 'self-hosted', MLSWARM_SQLITE_PATH: file });
+delete process.env.MINIONS_TEST_SESSION;
+Object.assign(process.env, { MINIONS_ENGINE: 'self-hosted', MINIONS_SQLITE_PATH: file });
 
 const { db, agents, inProject, profiles } = await import('../src/firestore.js');
 const { deploymentKind } = await import('../src/deployment.js');

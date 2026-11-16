@@ -1,5 +1,5 @@
 import { repositoryWaitMessage } from './repository-readiness';
-import type { RepositoryReadiness, StartWait } from '@mlswarm/contracts';
+import type { RepositoryReadiness, StartWait } from '@minions/contracts';
 import type { Runtime } from './ui/ComputerSetup';
 export const validAgentModel = (model: string) => model.trim() === '' || /^[A-Za-z0-9_:.-]{1,150}$/.test(model.trim());
 // The task is optional: the server defaults an absent one to the project's goal.
@@ -14,9 +14,9 @@ export const availableProviders = (runtime?: Runtime | null, now = Date.now()): 
 export function startMessage(request: StartRequest): string {
   if (request.state === 'working') return 'Your agent started. Open it to follow along.';
   if (request.state === 'expired') return 'Your agent couldn’t start in time. Nothing is running. Start a new request to try again.';
-  if (request.state === 'recovery_required') return 'This needs a look on your computer. Check the agent and MyLittleSwarm before starting more.';
+  if (request.state === 'recovery_required') return 'This needs a look on your computer. Check the agent and Minions before starting more.';
   if (request.state === 'failed' && request.code === 'cancelled') return 'This queued start was stopped. It will not launch.';
-  if (request.state === 'failed') return 'Your computer could not start this agent. Check MyLittleSwarm, your coding agent’s sign-in and project access, then try again.';
+  if (request.state === 'failed') return 'Your computer could not start this agent. Check Minions, your coding agent’s sign-in and project access, then try again.';
   if (request.state === 'pending' && request.waitingFor === 'project') return 'Your agent starts when the owner starts the project.';
   if (request.state === 'pending' && request.waitingFor === 'time') return 'Your agent starts when the project has more time.';
   if (request.state === 'pending' && request.waitingFor === 'computer') return 'Your agent starts when your computer is online.';

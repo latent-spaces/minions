@@ -1,5 +1,5 @@
 import {useContext,useEffect,useLayoutEffect,useRef,useState,useSyncExternalStore} from 'react';
-import type {CommunicationAgentState} from '@mlswarm/contracts';
+import type {CommunicationAgentState} from '@minions/contracts';
 import {CharacterMotion,characterTiming,neutralPose,staticCharacterPose,type CharacterPose,type PoseBank} from './character-motion';
 import {CharacterAmbient,GAZE_STATES,ambientTiming,characterPointer,gazeCell,subscribeCharacterPointer} from './character-ambient';
 import {CharacterPoke,choosePoke,POKE_WEIGHTS,rarePokeGate,SQUASH,SQUASH_MS,type PokeReaction} from './character-poke';

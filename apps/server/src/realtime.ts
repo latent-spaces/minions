@@ -88,7 +88,7 @@ export function realtimeRoutes() {
     // Explicit topic subscriptions let already-open clients retain their known
     // event vocabulary while newer clients follow additional project features.
     const topics = requestedTopics === undefined ? defaults : [...new Set((requestedTopics as string).split(','))] as RealtimeTopic[];
-    if (req.get('X-Mlswarm-Profile-Id') && req.get('X-Mlswarm-Profile-Id') !== person.id) throw new Refusal('unauthorized', 'Your signed-in account changed.');
+    if (req.get('X-Minions-Profile-Id') && req.get('X-Minions-Profile-Id') !== person.id) throw new Refusal('unauthorized', 'Your signed-in account changed.');
     let role = project ? await inProject(project, () => db.runTransaction(tx => assertMembership(tx, person.id))) : null;
     const retry = admission(person.id, Date.now());
     if (retry || (active.get(person.id) ?? 0) >= 8 || total >= 256) throw new Refusal('rate_limited', 'Updates will reconnect shortly.', Math.max(5, Math.ceil(retry / 1000)));

@@ -19,7 +19,7 @@ export function UpdateNotice() {
   }, [stale]);
   if (!stale) return null;
   return <div className="k42-update-notice" role="status">
-    <span>MyLittleSwarm was updated. Reload to get the new version.</span>
+    <span>Minions was updated. Reload to get the new version.</span>
     <button type="button" className="primary" onClick={() => window.location.reload()}><RefreshCw size={16} aria-hidden="true" />Reload</button>
   </div>;
 }

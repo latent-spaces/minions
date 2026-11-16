@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { NativeTeamDetail, NativeTeamPage, NativeTeamAction } from '@mlswarm/contracts';
+import type { NativeTeamDetail, NativeTeamPage, NativeTeamAction } from '@minions/contracts';
 import { ChevronRight, RefreshCw, Search, Users } from 'lucide-react';
 import type { TeamsApi } from '../teams-api';
 import { useLabelLookup } from '../label-lookup';
@@ -88,7 +88,7 @@ export function ProjectTeams({ api, active, refreshToken = 0, disabledNotice, ag
           <Button ref={element => { if (element) rows.current.set(team.id, element); else rows.current.delete(team.id); }} className="k42-team-row" aria-pressed={selected === team.id} aria-controls={selected === team.id ? 'k42-team-detail' : undefined} onClick={() => setSelected(team.id)}>
             <span><strong>{team.name}</strong><span className="muted">{team.memberCount} {team.memberCount === 1 ? 'member' : 'members'}</span></span><ChevronRight size={16} aria-hidden="true" />
           </Button></li>)}</ul> : <EmptyState icon={Users} tone={null} title={page.nextCursor ? 'More teams to search' : search ? 'No teams match' : archived ? 'No archived teams' : 'No teams yet'}>
-          {page.nextCursor ? 'Show more to continue searching.' : search ? 'Try another team name.' : archived ? 'Archived teams will remain here with their membership and history.' : disabledNotice ? 'Enable Teams in Control center to let agents create and join teams.' : 'Agents can create teams and join them through MyLittleSwarm tools.'}
+          {page.nextCursor ? 'Show more to continue searching.' : search ? 'Try another team name.' : archived ? 'Archived teams will remain here with their membership and history.' : disabledNotice ? 'Enable Teams in Control center to let agents create and join teams.' : 'Agents can create teams and join them through Minions tools.'}
         </EmptyState>}
         {page.nextCursor && <Button disabled={busy} onClick={() => load(page.nextCursor!)}>{busy ? 'Loading…' : 'Show more teams'}</Button>}
       </div>

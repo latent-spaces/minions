@@ -21,31 +21,31 @@ import { createSetupScreen, createChatScreen } from './setup-screen.mjs';
 import { GITHUB_LOGIN, keepGitHubLoginInFile, assertGitHubFileStorage } from './service/repository-access.mjs';
 import { BUNDLED_SKILL, bundledGuideFiles, readBundledGuide, skillTextHash } from './skill-bundle.mjs';
 
-export const HELP = `MyLittleSwarm MCP ${VERSION}
+export const HELP = `Minions MCP ${VERSION}
 
-Connect your existing AI coding client to MyLittleSwarm projects.
+Connect your existing AI coding client to Minions projects.
 Setup and current-chat mode do not choose or run a model. Your MCP client may use
 Claude, Codex, DeepSeek or another model supported by that client.
 
 Commands:
   setup [--site WEBSITE] [--wait-seconds N] [--no-client-hint]
-      Sign in to the local MyLittleSwarm engine as its owner (waiting up to N seconds,
+      Sign in to the local Minions engine as its owner (waiting up to N seconds,
       default 120, for the engine to answer), start its shared local service and connect
-      Claude Code and Codex to it, with the MyLittleSwarm skill. Starts no models.
+      Claude Code and Codex to it, with the Minions skill. Starts no models.
       --no-client-hint: for a separate installation, leave the coding agents to the
       caller (npm run setup registers them itself).
   mcp-config --client claude|codex|other [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
       Print HTTP registration for another client; changes no client settings.
   register [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
-      Register this installation's MCP server as mlswarm with Claude Code (through its
-      claude command) and Codex (in its config.toml), replacing older mlswarm-…
+      Register this installation's MCP server as minions with Claude Code (through its
+      claude command) and Codex (in its config.toml), replacing older minions-…
       entries. Exit 0 when at least one is registered, 4 when neither is found, 2 when
       a registration failed.
   tool --list [TOOL_NAME]
   tool TOOL_NAME ['JSON_ARGUMENTS']
       Call one of the running shared service's MCP tools, as your coding agent would,
       and print its JSON result; exit 1 when the tool reports an error. Use it until
-      your coding agent is restarted and loads the MyLittleSwarm tools itself.
+      your coding agent is restarted and loads the Minions tools itself.
   service-start / service-status / service-stop
       Start, inspect or explicitly stop the shared service. Stop ends turns in progress.
   service-stop --after-turns [--wait-minutes N]
@@ -92,7 +92,7 @@ Commands:
 
 Run setup once on each computer. For a client other than Claude Code or Codex,
 register the entry mcp-config prints. Then open a new conversation in your coding
-agent and start building, or copy prompts from your configured MyLittleSwarm website into it.
+agent and start building, or copy prompts from your configured Minions website into it.
 Project approval happens separately in your browser. No automatic worker launch.
 Optional local workers require explicit client, scope, separate folder and duration approval.
 Codes and tokens are never accepted as command arguments.`;
@@ -152,8 +152,8 @@ export async function main(args, out = console.log, err = console.error) {
         try { outcome = register({ home }); } catch (error) { failed = true; out(`${client} could not be registered: ${error.message}`); continue; }
         if (outcome.status === 'missing') { out(`${client} was not found, so it was not registered.`); continue; }
         found = true;
-        out(outcome.status === 'current' ? `${client} already has MyLittleSwarm (${outcome.name}).`
-          : `Registered MyLittleSwarm (${outcome.name}) with ${client}. A new ${client} session loads its tools.`);
+        out(outcome.status === 'current' ? `${client} already has Minions (${outcome.name}).`
+          : `Registered Minions (${outcome.name}) with ${client}. A new ${client} session loads its tools.`);
       }
       return failed ? 2 : found ? 0 : 4;
     }
@@ -162,7 +162,7 @@ export async function main(args, out = console.log, err = console.error) {
     const selectedSite = () => {
       if (values.site) {
         const enrolled = selfHostedWebsiteOrigin();
-        if (enrolled && values.site !== enrolled) throw new Error('--site must match MLSWARM_SELF_HOSTED_ORIGIN. Use a separate shell configuration for another installation.');
+        if (enrolled && values.site !== enrolled) throw new Error('--site must match MINIONS_SELF_HOSTED_ORIGIN. Use a separate shell configuration for another installation.');
         return values.site;
       }
       try { return readInstallation(home).site; } catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -175,10 +175,10 @@ export async function main(args, out = console.log, err = console.error) {
       const nested = values['no-client-hint'] === true;
       const screen = command !== 'setup' ? null : !nested && process.stdin.isTTY && process.stdout.isTTY ? createSetupScreen() : createChatScreen(out);
       // The connector signs in with the engine's local owner session; nothing about this computer is saved (owner decision, 15 November 2026).
-      if (screen && !nested) { screen.start(); screen.step(1, 'Signing in to MyLittleSwarm'); }
+      if (screen && !nested) { screen.start(); screen.step(1, 'Signing in to Minions'); }
       const account = await signInWhenReady(owner, site, { seconds: waitSeconds });
       if (screen) screen.done(`Signed in as ${account.account_name}`);
-      const separate = !!(values['state-dir'] || process.env.MLSWARM_SERVICE_HOME || selfHostedWebsiteOrigin());
+      const separate = !!(values['state-dir'] || process.env.MINIONS_SERVICE_HOME || selfHostedWebsiteOrigin());
       // A separate installation changes no coding agent here, so there is no step 2 to show.
       if (screen && !separate) screen.step(2, 'Connecting your coding agents');
       const stop = screen?.waiting();
@@ -268,7 +268,7 @@ export async function finishSetup(home, site, out, separate, {screen, clientHint
     return 0;
   }
   if (github === null) { screen.action({ note: 'Your agents need the GitHub CLI to work on project code. Install it, then run setup again.', label: 'Install the GitHub CLI', url: 'https://cli.github.com' }); return 0; }
-  screen.problem('GitHub is not connected yet. Your agents need GitHub to work on project code. Connect it any time from the Connect GitHub step in MyLittleSwarm.');
+  screen.problem('GitHub is not connected yet. Your agents need GitHub to work on project code. Connect it any time from the Connect GitHub step in Minions.');
   return 0;
 }
 // Shows a page to open on the setup screen. Enter opens it, as often as the person likes, until the returned
@@ -305,21 +305,21 @@ export function signInToGitHub(screen, { spawnImpl = spawn, processImpl = proces
       text += chunk;
       const code = /one-time code: ([A-Z0-9]{4}-[A-Z0-9]{4})/.exec(text)?.[1], url = /https:\/\/github\.com\/login\/device/.exec(text)?.[0];
       if (stop || !code || !url) return;
-      const stopEnter = offer(screen, { codeHint: 'Enter this code on GitHub', code, note: 'Use the GitHub account you sign in to MyLittleSwarm with.', label: 'GitHub', url, onInterrupt: onInt });
+      const stopEnter = offer(screen, { codeHint: 'Enter this code on GitHub', code, note: 'Use the GitHub account you sign in to Minions with.', label: 'GitHub', url, onInterrupt: onInt });
       const stopSpinner = screen.waiting('Waiting for GitHub');
       stop = () => { stopSpinner(); stopEnter(); };
     };
     child.stdout.on('data', read); child.stderr.on('data', read);
     child.on('error', () => finish(false));
-    // gh diagnostics are not MyLittleSwarm instructions. The caller reports a fixed
+    // gh diagnostics are not Minions instructions. The caller reports a fixed
     // failure message; never wrap arbitrary stderr in trusted chat markers.
     child.on('close', status => finish(status === 0));
   });
 }
 // The service's MCP tools from a terminal, with the service's own credential, for a coding agent whose session started
-// before MyLittleSwarm was registered and so has not loaded the tools yet.
+// before Minions was registered and so has not loaded the tools yet.
 export async function callServiceTool(values, positionals, out, err, { client = createRuntimeClient } = {}) {
-  const unreachable = 'MyLittleSwarm’s local service didn’t answer. Check it with service-status, or start it with npm run setup. If the tool changes something, check before repeating it.';
+  const unreachable = 'Minions’s local service didn’t answer. Check it with service-status, or start it with npm run setup. If the tool changes something, check before repeating it.';
   if (values.list ? positionals.length > 1 : positionals.length < 1 || positionals.length > 2) { err('Use tool --list [TOOL_NAME], or tool TOOL_NAME [\'JSON_ARGUMENTS\'].'); return 2; }
   let args = {};
   if (!values.list && positionals[1] !== undefined) {
@@ -333,7 +333,7 @@ export async function callServiceTool(values, positionals, out, err, { client = 
       if (!tools) { err(unreachable); return 1; }
       if (positionals[0] === undefined) { out(JSON.stringify(tools.map(({ name, description }) => ({ name, description })), null, 2)); return 0; }
       const tool = tools.find(item => item.name === positionals[0]);
-      if (!tool) { err(`There is no MyLittleSwarm tool named ${positionals[0]}. Run tool --list to see them.`); return 2; }
+      if (!tool) { err(`There is no Minions tool named ${positionals[0]}. Run tool --list to see them.`); return 2; }
       out(JSON.stringify(tool, null, 2)); return 0;
     }
     const reply = await runtime.callTool(positionals[0], args).catch(() => null);

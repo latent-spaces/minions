@@ -8,7 +8,7 @@ const LOOPBACK_ADDRESSES = ['127.0.0.1', '::ffff:127.0.0.1', '::1'];
 
 /** The stop key for this owner file. It authorizes nothing but stopping this engine. */
 export function engineStopKey(signingSecretHex: string): string {
-  return createHmac('sha256', Buffer.from(signingSecretHex, 'hex')).update('mlswarm-engine-stop-v1').digest('base64url');
+  return createHmac('sha256', Buffer.from(signingSecretHex, 'hex')).update('minions-engine-stop-v1').digest('base64url');
 }
 
 export function engineStopRoute({ key, requestStop }: { key: string; requestStop(): void }) {

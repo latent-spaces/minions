@@ -1,4 +1,4 @@
-// The local owner's session on the MyLittleSwarm engine. The local app has one person and no sign-in step
+// The local owner's session on the Minions engine. The local app has one person and no sign-in step
 // (owner decision, 10 November 2026): this page asks its own engine for the owner's session. The contract:
 //   POST /api/auth/local-owner/session  { } → { token }; only this engine's own page on this computer gets one
 //   GET  /api/auth/session              Bearer → { subject, email, displayName }; 401 once expired
@@ -6,7 +6,7 @@
 import { ApiError } from './authorized-request';
 import type { SessionClient, SessionUser } from './session-identity';
 
-export const SESSION_STORAGE_KEY = 'mlswarm.session';
+export const SESSION_STORAGE_KEY = 'minions.session';
 // The single owner's signed `lo1.<payload>.<HMAC-SHA256>` session, or an opaque engine session (the test engine's people).
 const TOKEN = /^(?:[A-Za-z0-9_-]{20,512}|lo1\.[A-Za-z0-9_-]{1,512}\.[A-Za-z0-9_-]{43})$/;
 

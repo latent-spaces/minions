@@ -10,7 +10,7 @@ import { projects } from './records.js';
 const PAGE_SIZE = 100, CHAT_PAGE_SIZE = 75;
 
 // Closing a project ends its agents' work. Background agents see the project closed and stop on their
-// computers; chat sessions end here, so their next MyLittleSwarm call says to stop; queued runs are cancelled.
+// computers; chat sessions end here, so their next Minions call says to stop; queued runs are cancelled.
 // A localhost preview is cleared: its server ended with the agents, and the tab would show a dead address
 // (wave 10, 13 November 2026). An https preview is hosted elsewhere and stays.
 // Best effort after the close itself committed: a retry of the same close repeats it safely.

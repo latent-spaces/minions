@@ -1,4 +1,4 @@
-import type { CommunicationAgentState } from '@mlswarm/contracts';
+import type { CommunicationAgentState } from '@minions/contracts';
 import { PAST_END, TIME_AND_TOKEN_CAP, TOKEN_CAP } from './agent-running-state';
 
 /** Presentation adapter only: does not resolve runtime state or enable controls. */

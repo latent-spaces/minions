@@ -1,5 +1,5 @@
 // The New dot beside Preview: the page changed since this person last opened Preview in this browser (owner, 15 November 2026).
-export const previewSeenKey = (userId: string, projectId: string) => `mlswarm:preview-seen:v1:${encodeURIComponent(userId)}:${encodeURIComponent(projectId)}`;
+export const previewSeenKey = (userId: string, projectId: string) => `minions:preview-seen:v1:${encodeURIComponent(userId)}:${encodeURIComponent(projectId)}`;
 export function readPreviewSeen(key: string): number | null {
   try { const value = Number(localStorage.getItem(key)); return Number.isFinite(value) && value > 0 ? value : null; } catch { return null; }
 }

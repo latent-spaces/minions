@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { agents, db, projectCollection, type Agent, type WithId } from '../firestore.js';
 import { assertMembership, assertAgentMembership } from './access.js';
 import { Refusal } from '../errors.js';
-import type { AgentEnvironmentReport, AgentEnvironmentView } from '@mlswarm/contracts';
+import type { AgentEnvironmentReport, AgentEnvironmentView } from '@minions/contracts';
 
 const text = z.string().min(1).max(1024).refine(v => !/[\x00-\x1f\x7f]/.test(v));
 const REPORT = z.object({

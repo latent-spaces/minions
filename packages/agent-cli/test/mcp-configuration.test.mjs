@@ -7,7 +7,7 @@ import { reusableConfiguration, renderReusableConfiguration } from '../src/mcp-c
 import { ensureInstallation, readInstallation } from '../src/service/installation.mjs';
 
 async function installation(t) {
-  const home = mkdtempSync(join(tmpdir(), 'mlswarm-configuration-'));
+  const home = mkdtempSync(join(tmpdir(), 'minions-configuration-'));
   t.after(() => rmSync(home, { recursive: true, force: true }));
   await ensureInstallation({ home, site: 'http://127.0.0.1:8787' });
   return home;
@@ -17,8 +17,8 @@ test('Claude and Codex registration share HTTP without exposing installation cre
   const home = await installation(t), privateRecord = readInstallation(home);
   const claude = reusableConfiguration({ client: 'claude', home });
   const codex = reusableConfiguration({ client: 'codex', home });
-  // One mlswarm entry per computer (owner decision, 14 November 2026).
-  assert.equal(claude.name, 'mlswarm');
+  // One minions entry per computer (owner decision, 14 November 2026).
+  assert.equal(claude.name, 'minions');
   assert.equal(codex.name, claude.name);
   assert.equal(claude.entry.url, codex.entry.url);
   assert.equal(claude.entry.type, 'http');

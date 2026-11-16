@@ -1,6 +1,6 @@
 import type { Transaction } from '../firestore.js';
 import { collection } from '../firestore.js';
-import { deriveProjectLifecycle, projectExecution } from '@mlswarm/contracts';
+import { deriveProjectLifecycle, projectExecution } from '@minions/contracts';
 import type { ProjectRecord } from '../projects/records.js';
 import { runtimeWithCard } from '../projects/records.js';
 

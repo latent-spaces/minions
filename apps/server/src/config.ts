@@ -27,5 +27,5 @@ export const V2_LIMITS = {
 };
 // Editable communication settings stay within this first-slice envelope.
 // These bounds are independent of project defaults and current agent allowances.
-export { COMMUNICATION_BOUNDS } from '@mlswarm/contracts';
+export { COMMUNICATION_BOUNDS } from '@minions/contracts';
 

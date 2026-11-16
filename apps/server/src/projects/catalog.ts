@@ -1,6 +1,6 @@
 import { isPrivateProject } from './schema.js';
 import { DEFAULT_WORKSPACE_ID } from '../workspaces/schema.js';
-import { deriveProjectLifecycle, projectExecution, type ProjectLifecycle } from '@mlswarm/contracts';
+import { deriveProjectLifecycle, projectExecution, type ProjectLifecycle } from '@minions/contracts';
 import { FieldPath } from '../firestore.js';
 import { z } from 'zod';
 import { hashToken } from '../auth.js';

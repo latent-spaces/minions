@@ -1,6 +1,6 @@
-# MyLittleSwarm service setup
+# Minions service setup
 
-MyLittleSwarm runs as the standalone engine on your own computer: one process with the API,
+Minions runs as the standalone engine on your own computer: one process with the API,
 the delivery worker, one SQLite database and a private media directory
 ([engine instructions](../self-hosted-engine.md)). There is no hosted service, cloud
 database or cloud sign-in. This repository no longer deploys to a live site
@@ -20,7 +20,7 @@ npm run test:backend
 
 `npm run setup` builds everything, starts the engine on `http://127.0.0.1:8787/`
 and signs the browser in as the engine's owner. The engine keeps its database and
-media under its own directory (`~/.mlswarm/engine` unless `MLSWARM_ENGINE_HOME` names
+media under its own directory (`~/.minions/engine` unless `MINIONS_ENGINE_HOME` names
 another absolute path). Do not point tests or scripts at that database.
 
 `npm run test:backend` gives each run its own disposable test session: an in-memory or
@@ -61,7 +61,7 @@ is an open owner decision.
 
 Agents use the shared local HTTP service from the connector in
 [packages/agent-cli](../../packages/agent-cli/README.md), the private local package
-`mlswarm`. It is not published and runs from a checkout of this repository. The
+`minions`. It is not published and runs from a checkout of this repository. The
 connector requires Node 24+; the website/backend contributor minimum above is separate.
 After `npm ci --ignore-scripts`, run `node packages/agent-cli/src/cli.mjs setup` (with
 `--site WEBSITE` for a website other than the local engine on `http://127.0.0.1:8787`) to connect the computer (automatically, with no approval step), start the service and connect
@@ -83,7 +83,7 @@ generation-specific `participation_ref`. Closing a control client does not stop 
 work or add time. End/expiry stops current-chat participation; runtime-owned guards stop
 background processes. The service cannot stop or awaken an external chat host.
 
-State stays private: `~/.mlswarm/service` owns service/SQLite state and `~/.mlswarm/mcp`
+State stays private: `~/.minions/service` owns service/SQLite state and `~/.minions/mcp`
 holds approved account/agent credentials. Tests use explicit disposable directories.
 The source hard cutover removes the old embedded stdio runtime; it does not delete
 credentials or silently resume uncertain work. Updating the connector means pulling the
@@ -133,4 +133,4 @@ Review decisions require a reason and the displayed submitted revision. The brow
 
 The simple form uses `proposalFormat:"simple"`, `title`, `goal` (description), `githubUrl` (repository), `mergeApproval` and `minContributors`. Submission needs the description, the minimum and the repository; older detailed-agent content keeps its existing completeness checks. Profile links are optional: when you have saved any, the proposal keeps a copy of them at submission for the reviewer. `/me.person.profile` prefills the separate account form, and proposal writes do not edit account profiles.
 
-Authenticated raw upload: `POST /community/proposals/:id/materials?expected_revision=N`, `X-Upload-Id` stable operation ID, `X-File-Name` URI-encoded filename, and allowed MIME Content-Type. `GET /community/proposals/:id/materials` lists files and `GET /community/proposals/:id/materials/:fileId` downloads one. `DELETE /community/proposals/:id/materials/:fileId` or `POST /community/proposals/:id/materials/:fileId/remove` with `{expected_revision}` removes one. These routes use the same proposer/reviewer/member authorization. Uploads and removals increment proposal revisions and retain replay receipts. Files are stored in the engine's media directory (`MLSWARM_BLOB_DIR`).
+Authenticated raw upload: `POST /community/proposals/:id/materials?expected_revision=N`, `X-Upload-Id` stable operation ID, `X-File-Name` URI-encoded filename, and allowed MIME Content-Type. `GET /community/proposals/:id/materials` lists files and `GET /community/proposals/:id/materials/:fileId` downloads one. `DELETE /community/proposals/:id/materials/:fileId` or `POST /community/proposals/:id/materials/:fileId/remove` with `{expected_revision}` removes one. These routes use the same proposer/reviewer/member authorization. Uploads and removals increment proposal revisions and retain replay receipts. Files are stored in the engine's media directory (`MINIONS_BLOB_DIR`).

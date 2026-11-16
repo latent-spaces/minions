@@ -1,5 +1,5 @@
 import express, { type Request, type Response, type NextFunction } from 'express';
-import { PROGRESS_LIMITS } from '@mlswarm/contracts';
+import { PROGRESS_LIMITS } from '@minions/contracts';
 import { personFromIdToken } from '../auth.js';
 import { bearerToken } from '../bearer.js';
 import { Refusal, sendRefusal } from '../errors.js';

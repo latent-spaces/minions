@@ -1,8 +1,8 @@
 import { prepareCurrentStateProgress } from '../view/current-state-progress.js';
 import { createHash, randomUUID } from 'node:crypto';
-import { RUN_LENGTH, validRunMinutes } from '@mlswarm/contracts';
+import { RUN_LENGTH, validRunMinutes } from '@minions/contracts';
 import type { Transaction } from '../firestore.js';
-import type { ParticipationControlView, ParticipationControlKind, ParticipationControlState } from '@mlswarm/contracts';
+import type { ParticipationControlView, ParticipationControlKind, ParticipationControlState } from '@minions/contracts';
 import { z } from 'zod';
 import { agents, collection, currentProjectId, db, inProject, projectCollection } from '../firestore.js';
 import { Refusal } from '../errors.js';
@@ -136,7 +136,7 @@ export async function requestParticipationControl(actorId: string, agentId: stri
     if (v.kind !== 'release' && v.kind !== 'cancel_wake') await assertProjectWritable(tx);
     const ref = snapshots().doc(agentId), saved = (await tx.get(ref)).data(), receiptRef = mailbox.doc(key(profileId,v.id));
     const receipt = (await tx.get(receiptRef)).data(), at = now();
-    if (!saved || saved.target.ownerId !== profileId) throw new Refusal('not_found','Update MyLittleSwarm on this computer, then try again.');
+    if (!saved || saved.target.ownerId !== profileId) throw new Refusal('not_found','Update Minions on this computer, then try again.');
     const pendingRef = saved.pendingId ? mailbox.doc(key(profileId,saved.pendingId)) : null;
     const pending = pendingRef ? (await tx.get(pendingRef)).data() : undefined;
     if (receipt) {
@@ -192,7 +192,7 @@ export async function requestParticipationControl(actorId: string, agentId: stri
     if (v.kind === 'extend') {
       await prepareChatExtension(tx,agentId,saved.participationId,{clientRequestId:v.id,expectedDeadlineAt:saved.deadlineAt,approvedAt:at,deadlineAt:deadlineAt!},now);
     } else if (v.kind === 'release' && run?.runId === saved.participationId && run.mode === 'current_chat' && run.endedAt === null) {
-      if (!history || history.mode !== 'current_chat') throw new Refusal('runtime_conflict','Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+      if (!history || history.mode !== 'current_chat') throw new Refusal('runtime_conflict','Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
       const statusProgress = await prepareCurrentStateProgress(tx, [presence().doc(agentId)]);
       tx.update(runRef,{endedAt:at,endReason:'operator'});
       // The status document's run group records the end with the run (stage E1); a blind merge, as at the start.

@@ -1,11 +1,11 @@
 import type { Transaction } from '../firestore.js';
 import { z } from 'zod';
-import type { GitHubAccessObservation, GitHubCachedFacts, GitHubPullRequestCounts, ProjectMergingAccess } from '@mlswarm/contracts';
+import type { GitHubAccessObservation, GitHubCachedFacts, GitHubPullRequestCounts, ProjectMergingAccess } from '@minions/contracts';
 import { collection, db, inProject } from '../firestore.js';
 import { Refusal } from '../errors.js';
 import { activeRecipientOperators, assertMembership } from './access.js';
 import { projects } from './records.js';
-import { canonicalGithubRepo } from '@mlswarm/contracts';
+import { canonicalGithubRepo } from '@minions/contracts';
 import { runtimeReadiness, readinessView } from '../owner/web-agent-starts.js';
 
 const login = z.string().regex(/^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$/);

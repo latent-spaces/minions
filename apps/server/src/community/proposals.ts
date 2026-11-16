@@ -134,7 +134,7 @@ export async function reviewProposal(actor: CommunityActor, input: ReviewInput, 
     decision: input.decision, feedback }));
   return db.runTransaction(async tx => {
     const { operator, canReview } = await assertCommunityActor(tx, actor);
-    if (!canReview) throw new Refusal('forbidden', 'Only a moderator or the MyLittleSwarm team can review proposals.');
+    if (!canReview) throw new Refusal('forbidden', 'Only a moderator or the Minions team can review proposals.');
     const [receipt, current, project] = await Promise.all([
       tx.get(proposalOperations.doc(receiptId)), tx.get(proposals.doc(input.proposalId)), tx.get(projects.doc(input.proposalId)),
     ]);
@@ -145,7 +145,7 @@ export async function reviewProposal(actor: CommunityActor, input: ReviewInput, 
     if (!current.exists) throw new Refusal('not_found', 'No submitted proposal has this ID.');
     const before = current.data()!;
     const proposer = await tx.get(profiles.doc(before.ownerProfileId));
-    if (!proposer.exists || proposer.data()!.removedAt !== null) throw new Refusal('forbidden', 'The person who sent this proposal no longer has an active MyLittleSwarm account.');
+    if (!proposer.exists || proposer.data()!.removedAt !== null) throw new Refusal('forbidden', 'The person who sent this proposal no longer has an active Minions account.');
     if (before.revision !== input.expectedRevision) throw new Refusal('proposal_conflict', `This proposal changed (now revision ${before.revision}). Reload it, then try again.`);
     if (before.status !== 'submitted' || before.submittedRevision !== before.revision) throw new Refusal('proposal_state', 'This proposal changed. Review its latest version.');
     if (input.decision === 'approved' && project.exists) throw new Refusal('proposal_conflict', 'This proposal was already approved and has a project. Open the project instead.');
@@ -182,7 +182,7 @@ export async function getProposal(actor: CommunityActor, id: string, cursor?: st
     let approved = null;
     if (project?.exists) {
       const record = project.data()!, original = (await tx.get(approvalOriginalDoc(project.id))).data();
-      if (!original || !record.approval) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+      if (!original || !record.approval) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
       // Beta connector/browser DTO stays stable; storage has one current ownership authority.
       approved = { id: project.id, definition: original.definition, adminOperatorId: record.ownerProfileId,
         approvedByOperatorId: record.approval.reviewerProfileId, proposalId: record.approval.proposalId,
@@ -199,7 +199,7 @@ export async function getProposal(actor: CommunityActor, id: string, cursor?: st
 export async function listProposals(actor: CommunityActor, cursor?: string, reviewQueue: false | true | 'approved' = false, size = PAGE) {
   return db.runTransaction(async tx => {
     const { operator, canReview } = await assertCommunityActor(tx, actor);
-    if (reviewQueue && !canReview) throw new Refusal('forbidden', 'Only a moderator or the MyLittleSwarm team can see the review queue.');
+    if (reviewQueue && !canReview) throw new Refusal('forbidden', 'Only a moderator or the Minions team can see the review queue.');
     const queueStatus = reviewQueue === 'approved' ? 'approved' : 'submitted';
     const scope = `${reviewQueue === 'approved' ? 'queue-approved' : reviewQueue ? 'queue' : 'own'}:${operator.id}`, after = cursorAfter(cursor, scope);
     let query = proposals.where('workspaceId', '==', DEFAULT_WORKSPACE_ID).where(reviewQueue ? 'status' : 'ownerProfileId', '==', reviewQueue ? queueStatus : operator.id)

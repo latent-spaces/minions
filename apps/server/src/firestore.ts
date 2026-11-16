@@ -10,7 +10,7 @@ import type {
 } from 'firebase-admin/firestore';
 import { readProjectRecord, type ProjectRecord } from './projects/schema.js';
 import { deploymentKind } from './deployment.js';
-import type { AgentPersona } from '@mlswarm/contracts';
+import type { AgentPersona } from '@minions/contracts';
 
 // The only module that imports firebase-admin/firestore: server code takes the database API from here. The engine
 // stores documents in SQLite (storage/sqlite-firestore.ts), which implements this API; firebase-admin supplies the
@@ -22,20 +22,20 @@ export {
 } from 'firebase-admin/firestore';
 export type { DocumentData } from 'firebase-admin/firestore';
 
-// MyLittleSwarm runs as the self-hosted engine, whose documents live in one local SQLite file. Server tests run as a
+// Minions runs as the self-hosted engine, whose documents live in one local SQLite file. Server tests run as a
 // disposable test session (tests/run.mjs) with their own file, or an in-memory store per process.
 export async function openDatabase(env: NodeJS.ProcessEnv = process.env): Promise<Firestore> {
   const kind = deploymentKind(env);
   let file: string;
   if (kind === 'self-hosted') {
-    file = env.MLSWARM_SQLITE_PATH ?? '';
-    if (!isAbsolute(file)) throw new Error('A self-hosted engine needs MLSWARM_SQLITE_PATH: the absolute path of its database file.');
+    file = env.MINIONS_SQLITE_PATH ?? '';
+    if (!isAbsolute(file)) throw new Error('A self-hosted engine needs MINIONS_SQLITE_PATH: the absolute path of its database file.');
   } else if (kind === 'test') {
     // One file per session lets processes a test starts share its documents; otherwise each process gets its own.
-    file = env.MLSWARM_TEST_SQLITE_PATH ?? ':memory:';
-    if (file !== ':memory:' && !isAbsolute(file)) throw new Error('MLSWARM_TEST_SQLITE_PATH must be an absolute path.');
+    file = env.MINIONS_TEST_SQLITE_PATH ?? ':memory:';
+    if (file !== ':memory:' && !isAbsolute(file)) throw new Error('MINIONS_TEST_SQLITE_PATH must be an absolute path.');
   } else {
-    throw new Error('MyLittleSwarm runs as the self-hosted engine: set MLSWARM_ENGINE=self-hosted and MLSWARM_SQLITE_PATH (npm run setup does this).');
+    throw new Error('Minions runs as the self-hosted engine: set MINIONS_ENGINE=self-hosted and MINIONS_SQLITE_PATH (npm run setup does this).');
   }
   const { SqliteFirestore } = await import('./storage/sqlite-firestore.js');
   return new SqliteFirestore(file) as unknown as Firestore;
@@ -43,7 +43,7 @@ export async function openDatabase(env: NodeJS.ProcessEnv = process.env): Promis
 export const db = await openDatabase();
 
 // Brand set by storage/sqlite-firestore.ts on its references, so this check never has to load node:sqlite.
-const SQLITE_DOCUMENT_REFERENCE = Symbol.for('mlswarm.sqliteDocumentReference');
+const SQLITE_DOCUMENT_REFERENCE = Symbol.for('minions.sqliteDocumentReference');
 /** True for a stored document reference. */
 export function isDocumentReference(value: unknown): value is DocumentReference {
   return typeof value === 'object' && value !== null && (value as Record<symbol, unknown>)[SQLITE_DOCUMENT_REFERENCE] === true;
@@ -70,11 +70,11 @@ export type Project = {
 };
 
 export type Profile = {
-  character?: import('@mlswarm/contracts').PersonCharacter | null;
+  character?: import('@minions/contracts').PersonCharacter | null;
   // Private account preference: first confirmed tour skip/finish, shared across devices.
   onboardingCompletedAt?: number;
-  // MyLittleSwarm invitations this person may have pending or accepted at once. Super admins set it; absent means none.
-  mlswarmInvites?: number;
+  // Minions invitations this person may have pending or accepted at once. Super admins set it; absent means none.
+  minionsInvites?: number;
   photoPreparationRevision?: number;
   photo?: { id: string; publicConsent: true; publishedAt: number } | null;
   profile?: { linkedinProfileUrl: string | null; bio?: string };
@@ -106,7 +106,7 @@ export type Agent = {
   // How the operator wants this agent to work once connected; absent reads as the default.
   workSettings?: WorkSettings;
   persona?: AgentPersona;
-  focus?: import('@mlswarm/contracts').AgentFocus & { runId: string; sequence?: number };
+  focus?: import('@minions/contracts').AgentFocus & { runId: string; sequence?: number };
 };
 
 export type WorkSettings = { involvement: 'with_me' | 'on_own' };

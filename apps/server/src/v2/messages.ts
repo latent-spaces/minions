@@ -13,7 +13,7 @@ import { activeRecipientOperators, connectionAllowed, assertAgentMembership } fr
 import { assertRunInTransaction } from './runs.js';
 import { communicationUsageDoc, resolveCommunication, sharedBroadcastLimit } from '../projects/communication.js';
 import { messageWithSource, type WithSource } from './untrusted.js';
-import { AGENT_TEXT_LIMIT } from '@mlswarm/contracts';
+import { AGENT_TEXT_LIMIT } from '@minions/contracts';
 import { decodeCursor, encodeCursor } from '../cursor.js';
 
 const HOUR_MS = 3_600_000;

@@ -1,5 +1,5 @@
 import type { SessionUser } from './session-identity';
-import type { NativeTeamDetail, NativeTeamPage } from '@mlswarm/contracts';
+import type { NativeTeamDetail, NativeTeamPage } from '@minions/contracts';
 import { authorizedRequest } from './authorized-request';
 
 export function teamsApi(user: SessionUser, projectId: string, profileId?: string, currentUid?: () => string | undefined) {

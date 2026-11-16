@@ -1,6 +1,6 @@
 import { runnerUsage } from '../v2/records.js';
 import type { Transaction } from '../firestore.js';
-import type { PublishedUpdate } from '@mlswarm/contracts';
+import type { PublishedUpdate } from '@minions/contracts';
 import { agents, currentProjectId, profiles, type Agent, type Profile, type WithId } from '../firestore.js';
 import { Refusal } from '../errors.js';
 import { assertMembership } from './access.js';
@@ -18,7 +18,7 @@ export async function authorizeProgressPublisher(tx: Transaction, actor: Progres
   const profileId = actor.kind === 'person' ? actor.person.id : actor.agent.ownerProfileId;
   await assertMembership(tx, profileId);
   const profile = (await tx.get(profiles.doc(profileId))).data();
-  if (!profile) throw new Refusal('unauthorized', 'This person’s MyLittleSwarm account is no longer active.');
+  if (!profile) throw new Refusal('unauthorized', 'This person’s Minions account is no longer active.');
   let agentRef: PublishedUpdate['author']['agent'] = null;
   if (actor.kind === 'agent') {
     if (!actor.runId) throw new Refusal('bad_input', 'This agent isn’t working right now, so it can’t publish an update.');

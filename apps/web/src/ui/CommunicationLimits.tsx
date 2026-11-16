@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { SessionUser } from '../session-identity';
-import { COMMUNICATION_BOUNDS as B, type CommunicationSettings } from '@mlswarm/contracts';
+import { COMMUNICATION_BOUNDS as B, type CommunicationSettings } from '@minions/contracts';
 import { ApiError, session, projects } from '../api';
 import { hold } from '../route';
 import { Button } from './Button';

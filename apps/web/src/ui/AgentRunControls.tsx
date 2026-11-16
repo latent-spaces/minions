@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SessionUser } from '../session-identity';
-import type { ProjectWorkersView } from '@mlswarm/contracts';
+import type { ProjectWorkersView } from '@minions/contracts';
 import { ApiError, session, owner, ownOwner } from '../api';
 import { agentPlayState, repeatExecution, type PlayState } from './agent-play-state';
 import { workerAgentStatus } from './agent-running-state';
@@ -23,7 +23,7 @@ export function PlayAgent({ user, projectId, agent, disabled, refresh, compact =
   const latest = useRef({ agent, refresh }); latest.current = { agent, refresh };
   useEffect(() => {
     const current = agentPlayState({
-      key: `mlswarm-agent-play:${user.uid}:${projectId}:${agent.agentId}`, projectId, agentId: agent.agentId,
+      key: `minions-agent-play:${user.uid}:${projectId}:${agent.agentId}`, projectId, agentId: agent.agentId,
       storage: sessionStorage, authorized: () => session.currentUid() === user.uid,
       prepare: async () => {
         const { runtime } = await owner<{ runtime: Runtime | null }>(user, '/runtime');

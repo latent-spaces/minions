@@ -1,4 +1,4 @@
-import type { BackgroundControlInput, BackgroundControlReply, BackgroundControlView } from '@mlswarm/contracts';
+import type { BackgroundControlInput, BackgroundControlReply, BackgroundControlView } from '@minions/contracts';
 
 export type BackgroundRequest = BackgroundControlInput & { agentId: string };
 export type BackgroundCommandState = {

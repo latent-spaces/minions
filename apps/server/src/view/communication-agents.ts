@@ -1,5 +1,5 @@
-import { personaChoice } from '@mlswarm/contracts';
-import type { CommunicationAgent, CommunicationAgentState, CommunicationAgents } from '@mlswarm/contracts';
+import { personaChoice } from '@minions/contracts';
+import type { CommunicationAgent, CommunicationAgentState, CommunicationAgents } from '@minions/contracts';
 import type { DocumentData, DocumentReference, DocumentSnapshot, Query } from '../firestore.js';
 import { agents, currentProjectId, db, type Agent } from '../firestore.js';
 import { Refusal } from '../errors.js';

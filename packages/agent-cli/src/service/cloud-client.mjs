@@ -46,7 +46,7 @@ export function createCloudClient({ target, url, token, fetchImpl = fetch, timeo
   return {
     async start(mission, { signal } = {}) {
       assertMission(mission);
-      const receipt = await request('/runs', { client_run_id: mission.missionId, runner_version: 'mlswarm-runtime-v2' }, signal);
+      const receipt = await request('/runs', { client_run_id: mission.missionId, runner_version: 'minions-runtime-v2' }, signal);
       if (receipt.protocol !== 2 || receipt.run_id !== mission.missionId || !Number.isSafeInteger(receipt.generation) || receipt.generation < 1
         || !Number.isSafeInteger(receipt.poll_seconds) || receipt.poll_seconds < 1 || receipt.poll_seconds > 3600) throw failure('invalid_receipt');
       return { runId: receipt.run_id, cloudGeneration: receipt.generation, pollSeconds: receipt.poll_seconds };

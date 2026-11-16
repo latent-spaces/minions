@@ -39,6 +39,6 @@ export function samePath(a: string, b: string, paths: Pick<typeof path, 'resolve
 }
 
 export function selfHostedPaths(env: NodeJS.ProcessEnv = process.env, paths: Pick<typeof path, 'isAbsolute'> = path) {
-  return { sqlitePath: absoluteSelfHostedPath('MLSWARM_SQLITE_PATH', env.MLSWARM_SQLITE_PATH, paths),
-    blobRoot: absoluteSelfHostedPath('MLSWARM_BLOB_DIR', env.MLSWARM_BLOB_DIR, paths) };
+  return { sqlitePath: absoluteSelfHostedPath('MINIONS_SQLITE_PATH', env.MINIONS_SQLITE_PATH, paths),
+    blobRoot: absoluteSelfHostedPath('MINIONS_BLOB_DIR', env.MINIONS_BLOB_DIR, paths) };
 }

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { FieldPath } from '../firestore.js';
-import type { PublishUpdateInput, PublishUpdateReceipt, PublishedUpdate, ProgressPage, ProgressScreenshot, ProgressSource, ProjectUpdateSettings, UpdateTopic } from '@mlswarm/contracts';
-import { PROGRESS_LIMITS as L } from '@mlswarm/contracts';
+import type { PublishUpdateInput, PublishUpdateReceipt, PublishedUpdate, ProgressPage, ProgressScreenshot, ProgressSource, ProjectUpdateSettings, UpdateTopic } from '@minions/contracts';
+import { PROGRESS_LIMITS as L } from '@minions/contracts';
 import { collection, db, inProject, profiles, projectDocument, type Profile } from '../firestore.js';
 import { hashToken } from '../auth.js';
 import { Refusal } from '../errors.js';
@@ -79,7 +79,7 @@ export async function readProjectUpdateContext(projectId: string, active: boolea
   const closingFrom = job.endsAt === undefined ? null : job.endsAt - Math.min(CLOSING_MS, (job.endsAt - startsAt) / 2);
   const closing = active && closingFrom !== null && now >= closingFrom && (lastPublishedAt ?? 0) < closingFrom;
   const due = active && (now - Math.max(lastPublishedAt ?? 0, startsAt) >= settings.everyMinutes * 60_000 || closing);
-  return { ...settings, maxSlides: settings.slides ? L.slides : 1, writingGuidance: writingGuidance(settings), guide: 'get_mlswarm_guide updates-and-help',
+  return { ...settings, maxSlides: settings.slides ? L.slides : 1, writingGuidance: writingGuidance(settings), guide: 'get_minions_guide updates-and-help',
     lastPublishedAt, jobStartedAt: job.startsAt ?? null, postedTitles, due, closing, yours: due && await inProject(projectId, () => takeUpdateTurn(agentId, lastPublishedAt, settings.everyMinutes * 60_000, now)) };
 }
 
@@ -161,7 +161,7 @@ function publicUpdate(record: StoredUpdate, projectId: string, profile: Profile 
     author: { profile: { id: author.profile.id, name: author.profile.name, ...(profile ? publicPersonAppearance(profile,author.profile.id) : {photo:null}) }, agent: author.agent ? { id: author.agent.id, name: author.agent.name, ...(author.agent.provider ? { provider: author.agent.provider } : {}) } : null },
     title, body, links: links.map(link => ({ url: link.url, label: link.label, purpose: link.purpose, availability: 'unknown' })),
     screenshot: screenshot ? publicImage(screenshot) : null, slides, publishedAt };
-  if (record.projectId !== projectId || kind !== 'authored_update' || bytes(safe) > L.itemBytes) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+  if (record.projectId !== projectId || kind !== 'authored_update' || bytes(safe) > L.itemBytes) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
   return safe;
 }
 
@@ -197,7 +197,7 @@ export async function readProgressUpdates(projectId: string, actor: ProgressActo
       if (bytes(candidate) > L.pageBytes || bytes({ ...candidate, items: candidate.items.map(measureItem) }) > L.pageBytes) break;
       page.items.push(item); page.next = next;
     }
-    if (records.length && !page.items.length) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+    if (records.length && !page.items.length) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
     return page;
   }));
 }

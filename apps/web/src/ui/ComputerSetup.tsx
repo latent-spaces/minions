@@ -85,7 +85,7 @@ function ConnectSteps({ intro, command, commandLabel, then, prompt, promptLabel 
 }
 export function SetupSteps() {
   const prompt = useMemo(setupPrompt, []), command = useMemo(() => setupCommand(window.location.origin), []);
-  return <ConnectSteps intro={`In ${CHECKOUT}, run ${CHECKOUT_PREPARE}, then run this in your terminal. It sets up MyLittleSwarm, your coding agents and GitHub.`} command={command} commandLabel="Copy setup command" prompt={prompt} promptLabel="Copy setup prompt" />;
+  return <ConnectSteps intro={`In ${CHECKOUT}, run ${CHECKOUT_PREPARE}, then run this in your terminal. It sets up Minions, your coding agents and GitHub.`} command={command} commandLabel="Copy setup command" prompt={prompt} promptLabel="Copy setup prompt" />;
 }
 export function GitHubSteps() {
   return <ConnectSteps intro="Run these in your terminal:" command={GITHUB_COMMANDS.join('\n')} commandLabel="Copy GitHub commands" then="sign in to GitHub" prompt={githubSetupInstructions()} promptLabel="Copy GitHub prompt" />;

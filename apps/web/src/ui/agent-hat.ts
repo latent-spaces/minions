@@ -1,4 +1,4 @@
-import { PERSONA_OPTIONS, type PersonaChoice } from '@mlswarm/contracts';
+import { PERSONA_OPTIONS, type PersonaChoice } from '@minions/contracts';
 import { characterGeometry } from './character-set';
 import geometry from './assets/characters/offbeat/geometry.json';
 const sprites = import.meta.glob<string>('./assets/characters/offbeat/hats/*.png', { eager: true, query: '?url', import: 'default' });

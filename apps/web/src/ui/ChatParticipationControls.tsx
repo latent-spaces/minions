@@ -1,7 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
-import { RUN_LENGTH, validRunMinutes } from '@mlswarm/contracts';
+import { RUN_LENGTH, validRunMinutes } from '@minions/contracts';
 import type { SessionUser } from '../session-identity';
-import type { ParticipationControlView, ParticipationControlInput } from '@mlswarm/contracts';
+import type { ParticipationControlView, ParticipationControlInput } from '@minions/contracts';
 import { ApiError, session, projects } from '../api';
 import { Button } from './Button';
 
@@ -24,7 +24,7 @@ const validSaved = (value: unknown, lane: Lane): value is Request => {
 // One controller is shared by the desktop/mobile cards. Ending has its own lane:
 // a lost Extend/Wake response must never prevent an explicit End request.
 export function useChatParticipationControls(user: SessionUser, projectId: string | null, refresh: (agentId?: string, participation?: ParticipationControlView) => void) {
-  const key = `mlswarm-chat-controls:${user.uid}:${projectId}`;
+  const key = `minions-chat-controls:${user.uid}:${projectId}`;
   const [pending, setPending] = useState<Partial<Record<Lane, Request>>>({});
   const [busy, setBusy] = useState<Partial<Record<Lane, boolean>>>({});
   const [error, setError] = useState(''), [notice, setNotice] = useState('');

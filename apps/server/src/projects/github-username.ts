@@ -1,6 +1,6 @@
 import { mergePolicySnapshot } from './merge-policy.js';
-import type { MergePolicyTarget } from '@mlswarm/contracts';
-import { canonicalGithubRepo, type GitHubAccessTarget } from '@mlswarm/contracts';
+import type { MergePolicyTarget } from '@minions/contracts';
+import { canonicalGithubRepo, type GitHubAccessTarget } from '@minions/contracts';
 import { z } from 'zod';
 import { collection, db, inProject, profiles, type Profile } from '../firestore.js';
 import { membershipsOf, activeRecipientOperators, type Membership } from './access.js';

@@ -10,7 +10,7 @@ const execute = promisify(execFile);
 const helper = fileURLToPath(new URL('./windows-job.ps1', import.meta.url));
 const jobName = mark => {
   if (!/^[a-f0-9]{32}$/.test(mark)) throw new Error('Invalid Windows mission identity.');
-  return `Local\\Mlswarm-${mark}`;
+  return `Local\\Minions-${mark}`;
 };
 const invocation = (mode, mark, env, pipe) => ({ command: windowsPowerShell(env), args: ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', helper, '-Mode', mode, '-JobName', jobName(mark), ...(pipe ? ['-PipeName', pipe] : [])] });
 
@@ -41,8 +41,8 @@ export async function stopWindowsMission(mark, { env = process.env, signal } = {
 // authenticated same-user named pipe carries only launch/control and scalar
 // lifecycle receipts. Native stdout/stdin remain byte streams, including RPC.
 export function prepareWindowsModel(options) {
-  const mark = options.env?.MLSWARM_MISSION_MARK ?? randomBytes(16).toString('hex');
-  const pipe = `mlswarm-${randomBytes(16).toString('hex')}`;
+  const mark = options.env?.MINIONS_MISSION_MARK ?? randomBytes(16).toString('hex');
+  const pipe = `minions-${randomBytes(16).toString('hex')}`;
   const { command, args } = invocation('Run', mark, options.env, pipe);
   const child = spawn(command, args, { cwd: options.cwd, env: windowsHelperEnvironment(options.env), windowsHide: true, stdio: options.stdio });
   const guard = new EventEmitter();

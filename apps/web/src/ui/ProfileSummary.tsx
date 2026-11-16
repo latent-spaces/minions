@@ -7,7 +7,7 @@ import { GitHubIcon } from './GitHubIcon';
 import { LinkedInIcon } from './LinkedInIcon';
 import { PokeAvatar } from './AvatarPoke';
 
-export function ProfileSummary({ profile, own = false, hideName = false, children }: { profile: Pick<MyProfileData, 'name' | 'bio' | 'githubUsername' | 'linkedinProfileUrl'> & { id?: string; photo?: PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null }; own?: boolean; hideName?: boolean; children?: ReactNode }) {
+export function ProfileSummary({ profile, own = false, hideName = false, children }: { profile: Pick<MyProfileData, 'name' | 'bio' | 'githubUsername' | 'linkedinProfileUrl'> & { id?: string; photo?: PublicPhoto | null; character?: import('@minions/contracts').PersonCharacter | null }; own?: boolean; hideName?: boolean; children?: ReactNode }) {
   return <div className="k42-profile-summary">
     <div className="k42-profile-identity"><PokeAvatar name={profile.name}><PersonAvatar id={profile.id} name={profile.name} photo={profile.photo} character={profile.character} size={56} /></PokeAvatar><div>{!hideName && <h2>{profile.name}</h2>}
       <p className={profile.bio ? 'body' : 'muted'}>{profile.bio || (own ? 'Add a short bio to introduce yourself.' : 'No bio added yet.')}</p></div></div>

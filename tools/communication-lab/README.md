@@ -1,6 +1,6 @@
 # Map review lab
 
-Run `npm run communication:lab`. `MLSWARM_LAB_PORT` optionally sets its port.
+Run `npm run communication:lab`. `MINIONS_LAB_PORT` optionally sets its port.
 
 The root URL shows the expanded map and a 390 × 844 phone viewport side by side.
 Both receive one shared synthetic clock, participant roster and message stream.

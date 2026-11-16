@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { ContextNow, UsageAnalytics as Data } from '@mlswarm/contracts';
+import type { ContextNow, UsageAnalytics as Data } from '@minions/contracts';
 import { UsageAnalyticsView, type AnalyticsFilters as Filters } from './ui/UsageAnalytics';
 type Request = <T>(path:string)=>Promise<T>;
 const initial=():Filters=>{const to=new Date().toISOString().slice(0,10);return {to,from:new Date(Date.parse(to)-6*86400000).toISOString().slice(0,10),provider:'',model:'',projectId:'',groupBy:'project'};};

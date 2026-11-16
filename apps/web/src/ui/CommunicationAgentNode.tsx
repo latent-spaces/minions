@@ -1,7 +1,7 @@
 import { agentCharacter, ownerTone } from './character-set';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { CommunicationAgent } from '@mlswarm/contracts';
+import type { CommunicationAgent } from '@minions/contracts';
 import { AgentStateBubble } from './AgentStateBubble';
 import { agentHat } from './agent-hat';
 import { AgentAvatar } from './AgentAvatar';
@@ -88,7 +88,7 @@ export function CommunicationAgentTooltip({ id, anchor, name, ownerLabel, ownerI
       <div className="k42-communication-tooltip-who"><strong>{name}</strong>
         <small>{[agent?.mine ? 'Your agent' : ownerLabel ? `Agent of ${ownerLabel}` : null, `${simulated ? 'Simulated: ' : ''}${agent?.projectPause ? COMMUNICATION_AGENT_LABELS[state] : ownStatus ?? COMMUNICATION_AGENT_LABELS[state]}`].filter(Boolean).join(' · ')}</small></div></div>
     {agent?.projectPause && <p className="k42-communication-tooltip-note">Pause requested: {time(agent.projectPause.requestedAt, true, now)}.
-      {state === 'paused' ? ' Runtime confirmed that work has paused.' : agent.projectPause.externalChat ? ' This external chat must be paused directly; MyLittleSwarm cannot confirm its execution has stopped.' : ' Waiting for the runtime to confirm that work has paused.'}</p>}
+      {state === 'paused' ? ' Runtime confirmed that work has paused.' : agent.projectPause.externalChat ? ' This external chat must be paused directly; Minions cannot confirm its execution has stopped.' : ' Waiting for the runtime to confirm that work has paused.'}</p>}
     {replay && <p className="k42-communication-tooltip-note">{simulated ? "Simulated state for this lab. It is not a recorded status or live agent activity." : "Messages are replayed. Persona, status and focus are the latest."}</p>}
     <div className="k42-communication-tooltip-section">
       <p className="k42-communication-tooltip-label">Focus{agent?.focus && <> · <time dateTime={new Date(agent.focus.updatedAt).toISOString()} title={time(agent.focus.updatedAt, false)}>{ago(agent.focus.updatedAt, now) || new Date(agent.focus.updatedAt).toLocaleDateString()}</time></>}</p>

@@ -39,7 +39,7 @@ import { ProjectTasks, type TaskAgent } from './ui/ProjectTasks';
 import { tasksApi } from './tasks-api';
 import { teamsApi } from './teams-api';
 import { ProjectTeams } from './ui/ProjectTeams';
-import { nativeTasksEnabled, nativeTeamsEnabled } from '@mlswarm/contracts';
+import { nativeTasksEnabled, nativeTeamsEnabled } from '@minions/contracts';
 import './ui/project-home.css';
 import { ControlCenter } from './ControlCenter';
 import { AgentCardRun } from './ui/AgentRunControls';
@@ -113,7 +113,7 @@ const FIT_SECTIONS: ReadonlySet<Section> = new Set(['preview']);
 // Needs you is reached from the notifications bell.
 const GLOBAL_NAMES: Record<GlobalView, string> = { projects: 'My projects', 'needs-you': 'Needs you' };
 /** Project navigation and own-agent shortcuts; web creation is hidden (OPE-230). */
-type ProjectFacts = { projectId: string; connect: (() => void) | null; addTask?: (() => void) | null; openAgent?: (id: string) => void; myAgents?: { state?: import('@mlswarm/contracts').CommunicationAgentState; provider?: string; id: string; name: string; status: string; detail: string; waiting?: boolean; queued?: boolean }[]; cheatSheet?: { title: string; started: boolean } | null; sections?: { id: Section; current: boolean; locked: boolean; count: number; fresh?: boolean }[] };
+type ProjectFacts = { projectId: string; connect: (() => void) | null; addTask?: (() => void) | null; openAgent?: (id: string) => void; myAgents?: { state?: import('@minions/contracts').CommunicationAgentState; provider?: string; id: string; name: string; status: string; detail: string; waiting?: boolean; queued?: boolean }[]; cheatSheet?: { title: string; started: boolean } | null; sections?: { id: Section; current: boolean; locked: boolean; count: number; fresh?: boolean }[] };
 const executionLabel = (p: ProjectEntry) => personalProjectStatus({ ...p, kind: 'project', proposalStatus: null }).label;
 /** Live: running, with job time left (owner, 13 November 2026). */
 const isLive = (p: ProjectEntry, now = Date.now()) => p.execution === 'active' && typeof p.endsAt === 'number' && p.endsAt > now;
@@ -284,8 +284,8 @@ export function Viewer({ user, account }: { user: SessionUser; account: Communit
   };
   const location = route.view === 'project' ? `${projectShown ? selected!.name : 'Project'} / ${SECTION_NAMES[section]}${agent ? ` / ${agentLabel}` : ''}` : GLOBAL_NAMES[route.view];
   useEffect(() => {
-    document.title = `${location} · MyLittleSwarm`;
-    return () => { document.title = 'MyLittleSwarm'; };
+    document.title = `${location} · Minions`;
+    return () => { document.title = 'Minions'; };
   }, [location]);
   const failed = failure && failure.error instanceof ApiError && [400, 401, 403, 404].includes(failure.error.status) ? failure : null;
   // Projects first in the menu: the global menu, or inside a project that project's sections and Switch project.
@@ -426,7 +426,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   // The people chat stays docked beside every section.
   const communityAgents = currentSection === 'agents';
   const allAgents = communityAgents && !agent;
-  const members = usePages<{ id: string; owner?: boolean; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null }>(user, membersPath, tick, visible && !!workspace);
+  const members = usePages<{ id: string; owner?: boolean; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null; character?: import('@minions/contracts').PersonCharacter | null }>(user, membersPath, tick, visible && !!workspace);
   // Full agent rows are the page's costliest read and change with every status flip of a busy project, so live
   // changes refresh them at most every 15 s. The map follows statuses through its own lighter read.
   const agentStatusTick = useRealtimeTick(user, projectId, 'agents', visible && !!project, AGENT_ROWS_LIVE_MS);
@@ -458,7 +458,7 @@ function ProjectContent({ suppliedProfileId, user, projectId, section, chooseSec
   // Directory cursors belong to this surface. Paging never replaces the first-page
   // observations used by the project header or its contextual shortcuts.
   const directoryShown = visible && allAgents;
-  const directoryPeople = usePages<{ id: string; owner?: boolean; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null; character?: import('@mlswarm/contracts').PersonCharacter | null }>(user,
+  const directoryPeople = usePages<{ id: string; owner?: boolean; name: string | null; photo?: import('./profile-photo-api').PublicPhoto | null; character?: import('@minions/contracts').PersonCharacter | null }>(user,
     cursor => `/members${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`, tick, directoryShown && !!workspace);
   const directoryBots = usePages<AgentRow>(user, cursor => {
     const params = new URLSearchParams();

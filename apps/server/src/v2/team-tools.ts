@@ -1,7 +1,7 @@
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
-import type { NativeTeam } from '@mlswarm/contracts';
+import type { NativeTeam } from '@minions/contracts';
 import { getNativeTeam, listNativeTeams, mutateNativeTeam } from '../projects/native-teams.js';
 import type { ProgressActor } from '../projects/progress-authority.js';
 import { untrusted } from './untrusted.js';

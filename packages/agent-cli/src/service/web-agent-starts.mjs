@@ -162,7 +162,7 @@ export function createWebAgentStarts({home,principal,ownerClient,controllers,add
     if(last&&now()-last<60000)return false;
     let record=registered;
     if(!record&&request.agentId){
-      ({record}=await addAgent({project_id:request.projectId,agent_name:request.name},'MyLittleSwarm website',{expectedProfileId:principal.ownerId,exact:request.agentId}));
+      ({record}=await addAgent({project_id:request.projectId,agent_name:request.name},'Minions website',{expectedProfileId:principal.ownerId,exact:request.agentId}));
       if(record.agentId!==request.agentId||record.ownerProfileId!==principal.ownerId||record.agentName!==request.name)throw failure('preparation_failed');
     }
     // Without a folder yet, the checkout itself reports any missing access at launch.
@@ -200,7 +200,7 @@ export function createWebAgentStarts({home,principal,ownerClient,controllers,add
     let registered=null;
     if(request.state==='pending'&&request.agentId===null&&!early.has(request.id)){
       early.add(request.id);
-      ({record:registered}=await addAgent({project_id:request.projectId,agent_name:request.name},'MyLittleSwarm website',{expectedProfileId:principal.ownerId,webStartId:request.id}));
+      ({record:registered}=await addAgent({project_id:request.projectId,agent_name:request.name},'Minions website',{expectedProfileId:principal.ownerId,webStartId:request.id}));
       if(registered.webStartId!==request.id||registered.ownerProfileId!==principal.ownerId||registered.agentName!==request.name||registered.service!==`${principal.site}/p/${request.projectId}`)throw failure('preparation_failed');
     }
     if(request.state==='pending'&&!await waitForRepository(request,registered))return;
@@ -220,7 +220,7 @@ export function createWebAgentStarts({home,principal,ownerClient,controllers,add
       live();
       // A run for an agent that already exists reuses its connection and folder; otherwise the web start creates it.
       const existing=intent.request.agentId??grant.agentId??registered?.agentId;
-      const added=registered?{record:registered}:await addAgent({project_id:grant.projectId,agent_name:grant.name},'MyLittleSwarm website',{expectedProfileId:principal.ownerId,...(existing?{exact:existing}:{webStartId:grant.id})});
+      const added=registered?{record:registered}:await addAgent({project_id:grant.projectId,agent_name:grant.name},'Minions website',{expectedProfileId:principal.ownerId,...(existing?{exact:existing}:{webStartId:grant.id})});
       const record=added.record;
       if((existing?record.agentId!==existing:record.webStartId!==grant.id)||record.ownerProfileId!==principal.ownerId||record.agentName!==grant.name||record.service!==`${principal.site}/p/${grant.projectId}`)throw failure('preparation_failed');
       intent.agentId=record.agentId;save(intent);

@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { mediaStore, type BlobStore } from '../blob-store.js';
 import type { Transaction } from '../firestore.js';
 import { normalizeStillImage as normalize } from './image-codec.js';
-import { PROGRESS_LIMITS, type ProgressScreenshot, type ProgressUploadReceipt, type ScreenshotInput } from '@mlswarm/contracts';
+import { PROGRESS_LIMITS, type ProgressScreenshot, type ProgressUploadReceipt, type ScreenshotInput } from '@minions/contracts';
 import { db, inProject, projectCollection } from '../firestore.js';
 import { Refusal } from '../errors.js';
 import { authorizeProgressPublisher, assertNewProgressAction, authorizeProgressRead, progressPublisherKey, type ProgressActor } from './progress-authority.js';

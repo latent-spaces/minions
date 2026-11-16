@@ -130,7 +130,7 @@ export function createWorkerOperations({ store, resolveBinding, fetchImpl = fetc
           try { guides = readWorkerGuidance(join(context.stateDir, `mission-${caller.missionId}-${caller.generation}`)); }
           catch { failure('guide_unavailable', 'This mission workflow snapshot could not be verified. Preserve its saved work and report the blocker.'); }
           if (!guides) failure('guide_unavailable', 'This earlier mission has no workflow snapshot. Keep its original instructions; do not substitute the current package guide.');
-          return measured({ content: [{ type: 'text', text: `MyLittleSwarm background-agent workflow (guide ${guides.guide_revision}, snapshot ${guides.sha256}). Apply only background-agent paths; owner/in-chat management is unavailable.\n\n${guides.sections[input.section]}` }] });
+          return measured({ content: [{ type: 'text', text: `Minions background-agent workflow (guide ${guides.guide_revision}, snapshot ${guides.sha256}). Apply only background-agent paths; owner/in-chat management is unavailable.\n\n${guides.sections[input.section]}` }] });
         }
         // A failed refresh may throw inside the prepared persona snapshot before
         // returning a reply. Revoke prior verification before that boundary.

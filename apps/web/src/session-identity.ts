@@ -1,5 +1,5 @@
 // The local owner as the web app uses them: a stable account ID, the profile fields shown in the UI and a
-// bearer token for the service. The MyLittleSwarm engine issues the session (src/server-session.ts).
+// bearer token for the service. The Minions engine issues the session (src/server-session.ts).
 export type SessionUser = {
   /** The owner account ID the engine issued; the server's `subject`. */
   readonly uid: string;

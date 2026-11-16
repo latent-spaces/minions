@@ -40,7 +40,7 @@ test('missing raw-mode capability leaves setup usable through the printed URL', 
 
 test('setup signs in without any human step, waiting only while the engine cannot be reached', async () => {
   let attempts = 0, at = 0;
-  const unreachable = new Error('MyLittleSwarm can’t be reached right now. Start the local engine, then try again.');
+  const unreachable = new Error('Minions can’t be reached right now. Start the local engine, then try again.');
   const owner = { async signIn(site) {
     assert.equal(site, 'http://127.0.0.1:8787');
     if (++attempts < 3) throw unreachable; return { account_name: 'Owner', account_profile_id: 'owner' }; } };
@@ -49,7 +49,7 @@ test('setup signs in without any human step, waiting only while the engine canno
   assert.equal(attempts, 3);
   attempts = -100; at = 0;
   await assert.rejects(signInWhenReady(owner, 'http://127.0.0.1:8787', { seconds: 2, now: () => at, sleep }), /can’t be reached/);
-  const refused = { async signIn() { attempts++; throw new Error('The MyLittleSwarm engine at http://127.0.0.1:8787 gives no owner session here.'); } };
+  const refused = { async signIn() { attempts++; throw new Error('The Minions engine at http://127.0.0.1:8787 gives no owner session here.'); } };
   attempts = 0;
   await assert.rejects(signInWhenReady(refused, 'http://127.0.0.1:8787', { seconds: 60, now: () => at, sleep }), /gives no owner session/);
   assert.equal(attempts, 1);
@@ -96,7 +96,7 @@ test('GitHub spawn error followed by close cleans up the screen once', async () 
   assert.equal(ok, false); assert.equal(stopped, 1);
 });
 
-test('arbitrary GitHub stderr never becomes an instruction in a MyLittleSwarm chat message', async () => {
+test('arbitrary GitHub stderr never becomes an instruction in a Minions chat message', async () => {
   const messages = [];
   const ok = await signInToGitHub(createChatScreen(value => messages.push(value)), { spawnImpl() {
     const child = Object.assign(new EventEmitter(), { stdout: new EventEmitter(), stderr: new EventEmitter() });

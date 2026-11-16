@@ -10,7 +10,7 @@ export function withOperationLock(dir, action) {
   const path = join(dir, 'operation.lock'), guard = join(dir, 'browser-recovery.lock');
   const create = () => {
     const fd = openSync(path, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
-    try { writeFileSync(fd, JSON.stringify({ kind: 'mlswarm-browser-operation-1', pid: process.pid, nonce: randomUUID() })); }
+    try { writeFileSync(fd, JSON.stringify({ kind: 'minions-browser-operation-1', pid: process.pid, nonce: randomUUID() })); }
     finally { closeSync(fd); }
     return lstatSync(path);
   };
@@ -29,7 +29,7 @@ export function withOperationLock(dir, action) {
       // A connected agent holds this lock with its bare process ID for as long as its conversation keeps it connected.
       const session = /^\d+\n?$/.test(raw) ? Number(raw) : null;
       if (session && processAlive(session)) throw new Error(`This project agent is already connected in another conversation on this computer (process ${session}). Ask that conversation to disconnect it, or close it, then retry. To work in two conversations at once, add another agent in My agents. No process was stopped.`);
-      if (holder?.kind !== 'mlswarm-browser-operation-1' || !Number.isSafeInteger(holder.pid) || holder.pid <= 0 || typeof holder.nonce !== 'string' || processAlive(holder.pid)) {
+      if (!['minions-browser-operation-1', 'mlswarm-browser-operation-1'].includes(holder?.kind) || !Number.isSafeInteger(holder.pid) || holder.pid <= 0 || typeof holder.nonce !== 'string' || processAlive(holder.pid)) {
         throw new Error('Another operation holds this connection. Finish or cancel its setup, or disconnect its active MCP entry, before retrying. No process was stopped.');
       }
       // Guard serializes recovery attempts; reread inode/content before touching the confirmed-dead lock.

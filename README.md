@@ -1,29 +1,29 @@
-# MyLittleSwarm
+# Minions
 
 **Your own little swarm of coding agents: start a few, let them run, review, continue.**
 
-MyLittleSwarm runs on your computer. You give a project a goal, add a handful of
+Minions runs on your computer. You give a project a goal, add a handful of
 Claude Code or Codex agents, and they work in the background in their own folders,
 talking to each other through the project. You follow their progress, answer when
 they need you, and pause or kill them when you choose. No cloud account, no hosted
 database: one local engine and one SQLite file.
 
-> MyLittleSwarm was called Karma42 until 10 November 2026. It does not deploy to or
+> Minions was previously MyLittleSwarm, and Karma42 before 10 November 2026. It does not deploy to or
 > connect to `karma42.ai`. The earlier history lives in the private `karma42-swarm`
 > repository.
 
 ---
 
-## What is MyLittleSwarm?
+## What is Minions?
 
-Most coding-agent tools give you one agent in one chat. MyLittleSwarm gives you a
+Most coding-agent tools give you one agent in one chat. Minions gives you a
 small team of them working on one project, while you keep steering from the chat
 you already use.
 
 - **Projects with a goal.** A project card holds the name, description and rules the
   agents work within.
 - **Background agents.** Each agent is a Claude Code or Codex process in its own
-  checkout under `~/mlswarm/projects/<project>/<agent>-<id>`. It keeps working
+  checkout under `~/minions/projects/<project>/<agent>-<id>`. It keeps working
   when your chat closes, until you pause or kill it or its job limit is reached.
 - **Agents talk to each other.** Project messaging, native tasks and an updates
   feed let them coordinate and let you follow along without reading every message.
@@ -40,9 +40,9 @@ See [VISION.md](VISION.md) for the product principles.
 You need Node.js 24 or newer, Git, and Claude Code or Codex signed in on this computer.
 
 ```sh
-git clone https://github.com/oronanschel/mylittleswarm.git
-cd mylittleswarm
-npm run setup     # install, build, start the engine in the background, register MyLittleSwarm
+git clone https://github.com/latent-spaces/minions.git minions
+cd minions
+npm run setup     # install, build, start the engine in the background, register Minions
 npm run stop      # stop the engine; npm run setup starts it again
 ```
 
@@ -50,15 +50,15 @@ npm run stop      # stop the engine; npm run setup starts it again
 address, and opens it in your browser, with no sign-in: the app is yours on this
 computer. When another program holds port 8787, setup stops and names it. The engine
 keeps running in the background after the command, the terminal or your coding chat
-ends. Setup registers one `mlswarm` connection with Claude Code and Codex by itself; it starts no model. Details are in [Run the standalone engine locally](docs/self-hosted-engine.md).
+ends. Setup registers one `minions` connection with Claude Code and Codex by itself; it starts no model. Details are in [Run the standalone engine locally](docs/self-hosted-engine.md).
 
 Then, in Claude Code or Codex, ask for what you want, for example:
 
 ```text
-Create a private MyLittleSwarm project for this repository and add three agents.
+Create a private Minions project for this repository and add three agents.
 ```
 
-A chat that was already open during setup gets the MyLittleSwarm tools after you
+A chat that was already open during setup gets the Minions tools after you
 restart it; until then it can use the connector's `tool` command that setup prints.
 
 ## Runtimes
@@ -88,13 +88,13 @@ a model per agent; otherwise the provider's default is used.
        ┌───────────────┐            ┌────────────────────────────────┐
        │ engine.sqlite │            │  Claude Code · Codex workers   │
        │   + media/    │            │  one checkout per agent under  │
-       └───────────────┘            │  ~/mlswarm/projects/           │
+       └───────────────┘            │  ~/minions/projects/           │
                                     └────────────────────────────────┘
 ```
 
 Everything runs on one computer and listens on loopback only. The engine owns the
 project record: projects, agents, messages, tasks and updates. The shared local
-service holds this computer's connection, exposes MyLittleSwarm's tools to your coding
+service holds this computer's connection, exposes Minions's tools to your coding
 client, and runs the background workers, ending their whole process tree on Pause,
 Kill or stop.
 
@@ -128,7 +128,7 @@ dependency folders.
 
 | Command | What it does |
 | --- | --- |
-| `npm run setup` | Build, start the engine and register MyLittleSwarm with your coding agents |
+| `npm run setup` | Build, start the engine and register Minions with your coding agents |
 | `npm run build:web` / `npm run build:backend` | Build the web app / the engine |
 | `npm run typecheck:backend` | Typecheck the engine |
 | `npm run test:all` | The fast core: typechecks plus engine, connector and setup smoke tests |
@@ -136,7 +136,7 @@ dependency folders.
 | `npm run test:self-hosted` | Build the standalone engine and exercise it with fresh data |
 
 Test runners and focused commands are described in [tests](tests/README.md).
-Settings are named `MLSWARM_*`; use `MLSWARM_ENGINE_HOME` and `MLSWARM_ENGINE_PORT`
+Settings are named `MINIONS_*`; use `MINIONS_ENGINE_HOME` and `MINIONS_ENGINE_PORT`
 for an isolated engine.
 
 ### Repository map
@@ -173,7 +173,7 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
       model. Instead the skill should pick a model that fits the agent's mission (a
       smaller model for routine work), warn when the default is a large model such as
       Fable or Opus, and say why it picked what it picked.
-- [ ] **Develop MyLittleSwarm in MyLittleSwarm.** A project on this repository whose
+- [ ] **Develop Minions in Minions.** A project on this repository whose
       agents work in their own clones, preview on an isolated engine with live reload,
       and open PRs; the owner merges and updates their own engine.
 - [x] **Update a connector without stopping agents.** `service-stop --after-turns` lets
@@ -198,8 +198,8 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
 - [x] **Readable turn prompts for agents** (owner, 14 November 2026). The prompt the
       controller gives an agent each turn is Markdown with quoted steering, so people can
       review what an agent was told.
-- [x] **One MyLittleSwarm connection per computer** (owner, 14 November 2026). Setup leaves
-      one `mlswarm` MCP entry in Claude Code and Codex, removes the older per-engine ones,
+- [x] **One Minions connection per computer** (owner, 14 November 2026). Setup leaves
+      one `minions` MCP entry in Claude Code and Codex, removes the older per-engine ones,
       and always uses `http://127.0.0.1:8787/`.
 - [x] **Ask the owner when all agents finish early** (owner, 14 November 2026). When every
       agent is finished while time is left, the owner gets one Needs you message asking for
@@ -219,7 +219,7 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
 - [ ] **Give the experiment waves a home.** The `experiment-waves/` runbook and tools are
       not in any repository yet.
 
-## Why "MyLittleSwarm"?
+## Why "Minions"?
 
 Because it is small on purpose. One person, a handful of agents, one computer, one
 file of state. Big enough to get a job done faster, small enough to understand

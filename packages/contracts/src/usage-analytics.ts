@@ -1,5 +1,5 @@
 export const PROMPT_SOURCES = ["mission", "runtime", "steering", "deliveryNotices", "permissions", "project", "persona", "attribution", "unattributed"] as const;
-export const CONTEXT_TOOL_NAMES = ["get_project", "find_agents", "read_agent_inbox", "send_message", "set_agent_status", "read_thread", "list_tasks", "get_task", "create_task", "update_task", "claim_task", "release_task", "comment_task", "link_task", "request_human_help", "list_human_requests", "acknowledge_human_answer", "resolve_human_request", "record_work_intent", "list_work_intents", "publish_project_update", "list_project_updates", "read_teams", "manage_team", "upload_project_image", "set_project_preview", "get_mlswarm_guide"] as const;
+export const CONTEXT_TOOL_NAMES = ["get_project", "find_agents", "read_agent_inbox", "send_message", "set_agent_status", "read_thread", "list_tasks", "get_task", "create_task", "update_task", "claim_task", "release_task", "comment_task", "link_task", "request_human_help", "list_human_requests", "acknowledge_human_answer", "resolve_human_request", "record_work_intent", "list_work_intents", "publish_project_update", "list_project_updates", "read_teams", "manage_team", "upload_project_image", "set_project_preview", "get_minions_guide"] as const;
 export type PromptSource = typeof PROMPT_SOURCES[number];
 export type ContextToolName = typeof CONTEXT_TOOL_NAMES[number];
 export const CONTEXT_TOOL_CATEGORIES = ['project','discovery','updates','threads','messaging','checkpoints','coordination','other'] as const;
@@ -14,12 +14,12 @@ export type AnalyticsValues = { nativeReports:number;nativeLastInputMax:number|n
 export type UsageAnalytics = {
   schema: 1; timeBasis: 'reported-completion-utc'; scope: 'project'|'platform'; projectId: string|null;
   from: string; to: string; generatedAt: number; lastProjectedAt: number|null;
-  coverage: 'projected-received-reports'; historyCoverage: 'not-verified'; pendingReports: number; pendingReportsCapped: boolean; contextScope: 'partial-mlswarm-supplied';
+  coverage: 'projected-received-reports'; historyCoverage: 'not-verified'; pendingReports: number; pendingReportsCapped: boolean; contextScope: 'partial-minions-supplied';
   totals: AnalyticsValues; points: (AnalyticsValues & {day:string})[];
   groups: (AnalyticsValues & {key:string;label:string;provider:string;model:string|null;projectId:string|null})[];
 };
 export type ContextSummary = {
-  scope?:'mlswarm-supplied';coverage?:'partial';instructionBytes:number;turnPromptBytes:number;catalogRequests:number;catalogBytes:number;
+  scope?:'minions-supplied';coverage?:'partial';instructionBytes:number;turnPromptBytes:number;catalogRequests:number;catalogBytes:number;
   promptSources?:Record<PromptSource,number>;steeringMessages?:number;sessionMode?:'new'|'resumed';
   tools:({category:ContextToolCategory}&ContextToolTotals)[];
   byTool?:({name:ContextToolName}&McpToolTotals)[];

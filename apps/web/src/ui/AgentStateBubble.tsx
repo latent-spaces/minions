@@ -1,5 +1,5 @@
 import { AgentStateSymbol } from './AgentStatusIcon';
-import type { CommunicationAgentState } from '@mlswarm/contracts';
+import type { CommunicationAgentState } from '@minions/contracts';
 import './agent-state-bubble.css';
 
 /** State is supplied by the host; this presentation never infers work from traffic. */

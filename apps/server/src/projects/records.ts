@@ -37,7 +37,7 @@ export type WorkspaceProject = RuntimeState & Pick<Project, 'name' | 'mission' |
 export function runtimeOf(record: ProjectRecord | undefined): RuntimeState | undefined {
   if (!record || record.setup.configuredAt === null) return undefined;
   const { setup, execution } = record;
-  if (!setup.repoUrl || !setup.configuredByProfileId) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+  if (!setup.repoUrl || !setup.configuredByProfileId) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
   return { repoUrl: setup.repoUrl, configuredAt: record.setup.configuredAt!,
     configuredBy: setup.configuredByProfileId, revision: record.revision,
     startsAt: execution.startsAt, paused: execution.paused, started: execution.started, awaitingKickoff: execution.awaitingKickoff,
@@ -52,7 +52,7 @@ export function runtimeOf(record: ProjectRecord | undefined): RuntimeState | und
 export function runtimeWithCard(record: ProjectRecord | undefined, card: { version: number; definition: ProposalContent } | undefined): WorkspaceProject | undefined {
   const runtime = runtimeOf(record);
   if (!runtime) return undefined;
-  if (!card) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the MyLittleSwarm team.');
+  if (!card) throw new Refusal('bad_input', 'Something went wrong saving this. Try again in a moment; if it keeps happening, tell the Minions team.');
   return { ...runtime, cardVersion: card.version, ...agentText(card.definition) };
 }
 export function recordWithRuntime(record: ProjectRecord, runtime: RuntimeState): ProjectRecord {
