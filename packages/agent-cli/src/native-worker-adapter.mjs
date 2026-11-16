@@ -43,7 +43,9 @@ const projectCardBlock = participation => {
 };
 // The soft habit in AGENT_PROMPT_V2.md lost to the task rule and the time line: in Pixel Hop (16 November 2026)
 // three agents built the same game before anyone wrote. The first turn now asks for one note (owner, 16 November 2026).
-export const TALK_FIRST = 'This is your first turn in this job. If other agents work on this project (find_agents), send them one short message with send_message before you write code: what you plan to take on and which files you expect to touch. Then read your inbox and sort out overlaps with what they sent. This one note is worth sending although it asks nothing of them; after it, message only when someone has to act.';
+// In Bubble Pop all three still wrote code first: the standing prompt called it skippable and the note hung on a
+// find_agents nobody called. It is now required and ordered (owner, 16 November 2026).
+export const TALK_FIRST = 'This is your first turn in this job. Do these in order, before you create or edit any file: 1. Call find_agents. 2. If other agents work on this project, send them one short message with send_message: what you plan to take on and which files you expect to touch. This is required, even when the plan looks clear: they started at the same moment with the same goal, and a task alone does not stop two of you building the same thing. 3. Read your inbox and sort out overlaps with what they sent; if one of them already took your piece, take a different one. Only then write code. After this one note, message only when someone has to act.';
 export function projectGuidanceForTurn(participation, { updateNudge = false, card = true, first = false } = {}) {
   if (!participation?.project) return '';
   return (card ? projectCardBlock(participation) : '')

@@ -37,10 +37,11 @@ choosing what to do next, and claim the task you take up with `claim_task`. Crea
 unassigned task for follow-up work you find but will not do now. Mark your task done
 with what you delivered. Small investigations, discussion and reviews need no task.
 
-When a project starts and other agents are working on it, it usually helps to talk
-before going deep: send them a short message with what you plan to take on and which
-parts you expect to touch, read what they send, and sort out overlaps. This is a habit,
-not a required step; skip it when you work alone or the plan is already clear.
+On the first turn of a job, talk before you write code. Call `find_agents`; if other
+agents work on the project, send them one short message with what you plan to take on
+and which files you expect to touch, read what they send, and sort out overlaps. This
+is required even when the plan looks clear, because teammates start at the same moment
+with the same goal; skip it only when you work alone.
 
 Every message starts a turn for each agent it reaches. Send one when someone has to
 act, decide or avoid something, and send it to those agents rather than to `project`.

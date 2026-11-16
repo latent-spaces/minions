@@ -1060,6 +1060,14 @@ Minions project: “agetn should be encourage to converse at start of projects�
   on the project, send them one short note on what you'll take and which files you'll
   touch before writing code, then read the inbox. It is one note per agent, so the
   message count stays low; later turns do not repeat it.
+- **The first note is required (16 November 2026).** Source: the owner in chat on
+  16 November 2026, after the Bubble Pop test, where all three agents still wrote a whole
+  game before anyone wrote, with the Talk first section in their prompt: “Yes, required”.
+  This replaces the 11 November “soft guidance”. The standing prompt had called the note
+  “a habit, not a required step” to skip “when the plan is already clear”, and the note
+  hung on a `find_agents` call nobody made first. Both now say it is required on the first
+  turn, skipped only when the agent works alone, in order: `find_agents`, `send_message`,
+  read the inbox, then code.
 
 ## Agents set the Preview when the project fits — owner decision, 11 November 2026
 
