@@ -15,7 +15,8 @@ const DEFAULT_JOB: Job = { agents: 3, minutes: 30, tokens: 500_000 };
 const MINUTES = [15, 30, 60, 120], TOKENS: (number | null)[] = [250_000, 500_000, 1_000_000, 2_000_000, null];
 const duration = (minutes: number) => minutes < 60 ? `${minutes} minutes` : minutes === 60 ? '1 hour' : `${minutes / 60} hours`;
 const tokenText = (tokens: number | null) => tokens === null ? 'No cap' : tokens >= 1_000_000 ? `${tokens / 1_000_000}M tokens` : `${tokens / 1000}k tokens`;
-const ideaPrompt = (idea: string, job: Job) => `Open a private GitHub repo and add ${job.agents} Claude Sonnet ${job.agents === 1 ? 'agent' : 'agents'} for ${duration(job.minutes)}${job.tokens === null ? '' : ` with a ${job.tokens.toLocaleString('en-US')} token cap`} to build me ${idea.trim().replace(/[.\s]+$/, '') || 'a small web app'}.`;
+// It names the skill and Minions, so the coding agent loads the minions skill instead of guessing (from main, 16 November 2026).
+const ideaPrompt = (idea: string, job: Job) => `Use the minions skill: create a Minions project in a new private GitHub repo, and add ${job.agents} Claude Sonnet ${job.agents === 1 ? 'agent' : 'agents'} for ${duration(job.minutes)}${job.tokens === null ? '' : ` with a ${job.tokens.toLocaleString('en-US')} token cap`} to build me ${idea.trim().replace(/[.\s]+$/, '') || 'a small web app'}.`;
 
 export type Created = { id: string; name: string } | null;
 export function NewProjectDialog({ open, onClose, created = null, onWaiting, onOpenProject }: { open: boolean; onClose: () => void; created?: Created; onWaiting?: (waiting: boolean) => void; onOpenProject?: (id: string) => void }) {

@@ -16,7 +16,7 @@ export async function conversationSource(profileId?: string) {
   const ownedIds = new Set<string>();
   if (!profileId) queries.push(conversationEntries());
   else {
-    queries.push(conversationEntries().where('kind', '==', 'steering').where('actorProfileId', '==', profileId));
+    for (const kind of ['steering', 'task']) queries.push(conversationEntries().where('kind', '==', kind).where('actorProfileId', '==', profileId));
     const owned = await agents().where('ownerProfileId', '==', profileId).select().get();
     for (const doc of owned.docs) ownedIds.add(doc.id);
     for (let offset = 0; offset < owned.size; offset += 30) {
@@ -27,7 +27,7 @@ export async function conversationSource(profileId?: string) {
   const scoped = (threadId?: string) => queries.map(query => threadId ? query.where('threadId', '==', threadId) : query);
   return {
     matches(row: ConversationEntry) {
-      return !profileId || (row.kind === 'steering' ? row.actorProfileId === profileId : ownedIds.has(row.agentId));
+      return !profileId || (row.kind === 'agent_message' ? ownedIds.has(row.agentId) : row.actorProfileId === profileId);
     },
     async window({ threadId, after, startAt, ascending = false, limit }: {
       threadId?: string; after?: [number, string] | null; startAt?: [number, string]; ascending?: boolean; limit: number;

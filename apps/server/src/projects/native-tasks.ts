@@ -11,7 +11,7 @@ import { assertRunInTransaction } from '../v2/runs.js';
 import { backlog, deliver, readTargets, type Target } from '../v2/inbox.js';
 import { LIMITS, V2_LIMITS } from '../config.js';
 import { assertNewProgressAction, type ProgressActor } from './progress-authority.js';
-import { conversationEntries } from './steering.js';
+import { conversationEntries, type TaskMessage } from './steering.js';
 import { projects, runtimeOf } from './records.js';
 
 const ID = z.string().regex(/^[A-Za-z0-9_-]{1,200}$/);
@@ -356,6 +356,8 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
     const at = now();
     let task: NativeTask, before: NativeTask | undefined, comment: NativeTaskComment | undefined, notice: Target[] = [];
     let closedParent: NativeTask | undefined, closedNotice: Target[] = [], created: Target[] = [];
+    // The person's message as Conversations shows it: who it reached and which task it is about.
+    let shown: { id: string; to: string[]; agentName: string } | undefined;
     if (input.operation === 'create') {
       let parentId: string | undefined;
       if (input.parentId) {
@@ -374,6 +376,8 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
       if (message !== undefined && actor.kind === 'person') {
         created = await readTargets(tx, await ownAgentIds(tx, actor.person.id), `task-created-${task.id}`);
         assertInboxRoom(created);
+        if (created.length) shown = { id: `task-created-${task.id}`, to: created.map(target => target.agentId),
+          agentName: (await tx.get(agents().doc(created[0]!.agentId))).data()!.name };
         comment = { id: `comment_${String(task.revision).padStart(16, '0')}_${key}`, taskId: task.id, author, body: message, createdAt: at, updatedAt: at };
       }
     } else {
@@ -413,6 +417,7 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
           if (actor.kind === 'person') notice = await readTargets(tx, [input.assignedAgentId], `task-assigned-${task.id}-${task.revision}`);
           if (message !== undefined) {
             assertInboxRoom(notice);
+            shown = { id: `task-assigned-${task.id}-${task.revision}`, to: [input.assignedAgentId], agentName: target.name };
             comment = { id: `comment_${String(task.revision).padStart(16, '0')}_${key}`, taskId: task.id, author, body: message, createdAt: at, updatedAt: at };
           }
         }
@@ -482,6 +487,9 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
     const fields = (['title','description','status','assignedAgentId','priority','contributors','references','proposed'] as const).filter(field => !before || JSON.stringify(before[field]) !== JSON.stringify(task[field]));
     tx.create(activity(task.id).doc(eventId), { id: eventId, taskId: task.id, actor: author, action: input.operation, revision: task.revision, at, fields, task, ...(comment ? { comment } : {}) });
     tx.create(receipts().doc(key), { actor: author, fingerprint, result });
+    if (shown && message !== undefined && actor.kind === 'person') tx.set(conversationEntries().doc(shown.id), { id: shown.id, threadId: shown.id, kind: 'task',
+      agentId: shown.to[0]!, agentName: shown.agentName, actorProfileId: actor.person.id, actorName: actor.person.name, taskId: task.id, taskTitle: task.title,
+      body: message, to: shown.to, audience: 'direct', createdAt: at, protocol: 2 } satisfies TaskMessage);
     deliver(tx, notice, { sourceId: `task-assigned-${task.id}-${task.revision}`, kind: 'task_assigned', messageId: null,
       payload: { type: 'task_assigned', taskId: task.id, title: task.title, titleAuthor: task.titleAuthor, assignedBy: author, revision: task.revision, ...(message !== undefined ? { message } : {}) } }, at);
     deliver(tx, created, { sourceId: `task-created-${task.id}`, kind: 'task_created', messageId: null,

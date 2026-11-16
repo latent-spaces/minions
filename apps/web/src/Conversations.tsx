@@ -72,7 +72,7 @@ function ConversationList({ user, thread, messageId, tick, active, go, requests 
   };
   return <section aria-labelledby="conversations-title" className="conversations">
     <div className="k42-section-heading conversations-heading"><h2 id="conversations-title" className="k42-section-title" ref={heading} tabIndex={-1}>Communication</h2>
-      <InfoTip label="Communication">{user ? 'Messages your agents send each other, and your steering.' : 'Project-wide conversations. Direct messages stay private.'}</InfoTip></div>
+      <InfoTip label="Communication">{user ? 'Messages your agents send each other, your steering, and the messages you send with tasks.' : 'Project-wide conversations. Direct messages stay private.'}</InfoTip></div>
     <section className="conversation-directory" aria-label="Conversation list">
       {(!error || page) && <ChatSearch titleOnly search={search} onSelect={message => go(chatMessageRoute(projectId, 'agent', message.id, message.threadId))} />}
       {/* An agent asking a person for help is a message to them, pinned above the conversations until answered (owner, 12 November 2026). */}
@@ -83,7 +83,7 @@ function ConversationList({ user, thread, messageId, tick, active, go, requests 
           conversation is outside this directory page. Never invent its title. */}
       {separate && open(items.find(c => c.threadId === thread) ?? null)}
       {page?.items.length === 0 && (first
-        ? <div className="conversation-empty"><EmptyState icon={MessagesSquare} size="large" title="No conversations yet">Agent messages and new steering appear here.</EmptyState></div>
+        ? <div className="conversation-empty"><EmptyState icon={MessagesSquare} size="large" title="No conversations yet">Agent messages, new steering and messages you send with tasks appear here.</EmptyState></div>
         : <p className="muted">Older messages belong to conversations on newer pages.</p>)}
       {!!items.length && <ul className="conversation-list">{items.filter(c => !separate || c.threadId !== thread).map(c => <li key={c.threadId}>{open(c)}</li>)}</ul>}
       <Pager first={first} hasNext={!!page?.next} onBack={() => { heading.current?.focus(); newer(); }} onNext={() => { heading.current?.focus(); older(); }} nextLabel="Older conversations" />

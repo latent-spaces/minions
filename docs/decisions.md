@@ -10,6 +10,12 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## The start prompt names the minions skill — owner request, 16 November 2026
+
+Owner: "fix the prompt in minions starting page, it does not use the skill and does not refer to minions".
+
+- The example prompt on My projects now reads: “Use the minions skill: create a Minions project in a new private GitHub repo, and add 3 Claude Sonnet agents for 5 minutes to build me a 2D game.” Edit still changes the repository, the number of agents and what to build. This replaces the wording in the 10 November entry below.
+
 ## Hard cut to the Minions folders — owner decision, 16 November 2026
 
 Owner: "i can finish the current project and we can do a hard cut", then, with every project stopped, "let's do the hard cut over".
@@ -1036,6 +1042,15 @@ Minions project: “agetn should be encourage to converse at start of projects�
   about what it plans to take on and which parts it expects to touch, reads theirs and
   sorts out overlaps before going deep. It is not a required step, and an agent working
   alone skips it.
+- **The first turn asks for the note (16 November 2026).** Source: the owner in chat on
+  16 November 2026, after three Pixel Hop agents built the same game before anyone wrote:
+  “the agents do not discuss before they start the project”, and a yes to the fix. The
+  task rule (“the task is how they see what you took”), the time line and “message only
+  who must act” had outweighed the soft habit. The first turn of a job now has a
+  Talk first section (`TALK_FIRST` in `native-worker-adapter.mjs`): when other agents are
+  on the project, send them one short note on what you'll take and which files you'll
+  touch before writing code, then read the inbox. It is one note per agent, so the
+  message count stays low; later turns do not repeat it.
 
 ## Agents set the Preview when the project fits — owner decision, 11 November 2026
 

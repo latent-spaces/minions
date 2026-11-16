@@ -13,7 +13,10 @@ export type SharedSteering = MessageV2 & { kind: 'steering'; actorProfileId: str
 export type SteeringRecipient = { agentId: string; agentName: string; operationId: string; missionId: string; generation: number;
   state: SharedSteering['state']; observedAt: number | null; receiptSequence: number };
 export const steeringRecipients = (m: SharedSteering): SteeringRecipient[] => m.deliveries ?? [m];
-export type ConversationEntry = MessageV2 & { kind: 'agent_message' } | SharedSteering;
+// A person's message about a task they added or assigned to their agents. The inbox item delivers it; this entry
+// only shows it in Conversations, with the task it belongs to.
+export type TaskMessage = MessageV2 & { kind: 'task'; actorProfileId: string; actorName: string | null; taskId: string; taskTitle: string };
+export type ConversationEntry = MessageV2 & { kind: 'agent_message' } | SharedSteering | TaskMessage;
 export const conversationEntries = () => projectCollection<ConversationEntry>('conversationEntries');
 const commands = (agent: string, mission: string) => projectCollection<{ entryId: string; state: SharedSteering['state']; createdAt: number }>(`steeringDeliveries/${agent}/runs/${mission}/commands`);
 const key = (person: string, id: string) => `steer_${person}_${id}`;

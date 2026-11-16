@@ -173,6 +173,8 @@ What we want to do next. Add to it, reorder it, cross things off as they land.
       model. Instead the skill should pick a model that fits the agent's mission (a
       smaller model for routine work), warn when the default is a large model such as
       Fable or Opus, and say why it picked what it picked.
+- [x] **The start prompt names the minions skill** (owner, 16 November 2026). The example prompt
+      on My projects starts with "Use the minions skill" and asks for a Minions project.
 - [x] **Hard cut to the Minions folders** (owner, 16 November 2026). Minions uses only
       `~/.minions` and `~/minions`; an install in the old `~/.mlswarm` folders is left as it was.
 - [ ] **Develop Minions in Minions.** A project on this repository whose

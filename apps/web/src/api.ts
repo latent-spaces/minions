@@ -52,7 +52,7 @@ export type Audience =
   | { kind: 'direct', to: (Named & AgentIdentity)[] }
   | { kind: 'project' };
 
-export type MessageRow = { id: string, threadId: string, body: string, summary?: string | null, createdAt: number, steering?: {state: 'queued'|'received'|'included'|'uncertain'|'ended';origin:'coding_chat'|'local_app';observedAt:number|null;deliveries?:{agentId:string;agentName:string|null;state:'queued'|'received'|'included'|'uncertain'|'ended';observedAt:number|null}[]}; sender: Named & AgentIdentity & {kind?:'person'|'agent'; photo?: import('./profile-photo-api').PublicPhoto | null; character?: import('@minions/contracts').PersonCharacter | null }, audience: Audience };
+export type MessageRow = { id: string, threadId: string, body: string, summary?: string | null, createdAt: number, task?: { id: string; title: string }, steering?: {state: 'queued'|'received'|'included'|'uncertain'|'ended';origin:'coding_chat'|'local_app';observedAt:number|null;deliveries?:{agentId:string;agentName:string|null;state:'queued'|'received'|'included'|'uncertain'|'ended';observedAt:number|null}[]}; sender: Named & AgentIdentity & {kind?:'person'|'agent'; photo?: import('./profile-photo-api').PublicPhoto | null; character?: import('@minions/contracts').PersonCharacter | null }, audience: Audience };
 // A conversation is listed with its first message (null if it cannot be read) and its latest one.
 export type ConversationRow = { threadId: string, count: number, first: MessageRow | null, latest: MessageRow };
 
