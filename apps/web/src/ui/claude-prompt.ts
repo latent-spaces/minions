@@ -6,5 +6,6 @@ export const DEFAULT_PROMPT_CHOICES: PromptChoices = { visibility: 'private', ag
 export function claudePrompt({ visibility, agents, goal }: PromptChoices): string {
   const count = Number.isFinite(agents) ? Math.min(MAX_PROMPT_AGENTS, Math.max(1, Math.round(agents))) : DEFAULT_PROMPT_CHOICES.agents;
   const what = goal.trim().replace(/[.\s]+$/, '') || DEFAULT_PROMPT_CHOICES.goal;
-  return `Open a ${visibility} GitHub repo and add ${count} Claude Sonnet ${count === 1 ? 'agent' : 'agents'} for 5 minutes to build me ${what}.`;
+  // It names the skill and Minions, so the coding agent loads the minions skill instead of guessing (owner, 16 November 2026).
+  return `Use the minions skill: create a Minions project in a new ${visibility} GitHub repo, and add ${count} Claude Sonnet ${count === 1 ? 'agent' : 'agents'} for 5 minutes to build me ${what}.`;
 }
