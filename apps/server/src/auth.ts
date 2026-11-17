@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { approvedAdminSession, trustedReviewerSession } from './admin-auth.js';
 import { Refusal } from './errors.js';
 import { githubAccounts, profiles, type Profile, type WithId } from './firestore.js';
-import { identity, type IdentityAccount } from './identity/index.js';
+import { identity } from './identity/index.js';
 import { LOCAL_OWNER_PROVIDER, localOwnerSubject } from './identity/local-owner.js';
 
 export function newToken(): string {
@@ -17,17 +17,6 @@ export function hashToken(t: string): string {
 export const SIGN_IN_REQUIRED = 'Reload Minions on this computer.';
 
 export type SignIn = { firebaseUid: string; provider: 'github.com' | 'local-owner'; authTime: number; name: string | null; emails: string[]; githubUsername: string | null };
-
-// The emails a sign-in account has proven: for GitHub, those GitHub verified at the latest sign-in;
-// for the owner of a single-owner engine, the email the engine itself vouches for.
-export async function verifiedEmails(user: Pick<IdentityAccount, 'subject' | 'email' | 'emailVerified' | 'githubId'>): Promise<string[]> {
-  if (user.githubId) {
-    const account = (await githubAccounts.doc(user.githubId).get()).data();
-    return account?.firebaseUid === user.subject ? account.emails : [];
-  }
-  const ownerSubject = localOwnerSubject(identity());
-  return ownerSubject !== null && user.subject === ownerSubject && user.email && user.emailVerified ? [user.email.toLowerCase()] : [];
-}
 
 export async function signInFromIdToken(idToken: string): Promise<SignIn> {
   const session = await identity().verifySession(idToken);

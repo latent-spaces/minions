@@ -262,12 +262,6 @@ async function readNativeTaskChanges<T extends { id: string }>(actor: ProgressAc
 export function listNativeTaskChanges(actor: ProgressActor, query: unknown = {}, now: () => number = Date.now) {
   return readNativeTaskChanges(actor, query, now, visibleTask);
 }
-export function listNativeTaskSummaryChanges(actor: ProgressActor, query: unknown = {}, now: () => number = Date.now) {
-  return readNativeTaskChanges<NativeTaskSummary>(actor, query, now, async (_tx, task) => ({
-    id: task.id, title: task.title, status: task.status, assignedAgentId: task.assignedAgentId, priority: task.priority, revision: task.revision, ...subtaskFields(task),
-  }), ['id', 'title', 'status', 'assignedAgentId', 'priority', 'revision', 'parentId', 'proposed']);
-}
-
 // People may nest without a fixed limit; this bounds the parent walk against corrupt cycles.
 const MAX_TASK_DEPTH = 50;
 const SUBTASK_LIMIT = 100;
