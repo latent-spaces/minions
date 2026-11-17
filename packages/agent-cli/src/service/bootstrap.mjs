@@ -10,7 +10,7 @@ import { mkdirSync } from 'node:fs';
 import { sessionHome } from '../session.mjs';
 import { createOwnerClient } from '../owner-client.mjs';
 import { createDiscovery } from '../discovery.mjs';
-import { ensureHome, digest, writePrivate, connectionDir, readPrivate, lstatExists, assertStateOutsideWorkspace } from '../state.mjs';
+import { ensureHome, digest, writePrivate, connectionDir, readPrivate, lstatExists, assertStateOutsideWorkspace, physicalPath } from '../state.mjs';
 import { verifyBundle } from '../system.mjs';
 import { openRuntimeStore } from './store.mjs';
 import { createCloudRuntime } from './cloud-runtime.mjs';
@@ -105,7 +105,8 @@ export async function composeInstalledRuntime({ home, site, getService, credenti
     const application = createRuntimeApplication({ connectionStatus:()=>webStarts.status(), steering, controllers:runtime.controllers, principal, ownerClient,
       discovery:createDiscovery({site}), workerOperations, participation:runtime.participation,
       evidence:createRunEvidence({controllers:runtime.controllers,principal,resolveBinding,
-        resolveJournalDirectory:mission=>join(home,'agents',digest(key(mission.target)),`mission-${mission.missionId}-${mission.generation}`)}) });
+        // Native bindings write journals under the physical state folder, and the journal refuses a linked parent.
+        resolveJournalDirectory:mission=>join(physicalPath(home),'agents',digest(key(mission.target)),`mission-${mission.missionId}-${mission.generation}`)}) });
     return { application, principal, controllers:runtime.controllers,
       async close() { if (closed) return; closed=true; try { await Promise.all([webStarts?.close(), githubObservations?.close()]); await runtime.close(); } finally { await store.close(); } } };
   } catch (error) {
