@@ -145,6 +145,12 @@ Tasks are capped at 96 KiB; list pages and detail comments/activity have additio
 
 Both `get_task` and `read_project_task` accept `limit` (1–100, default 50) for their comments and activity pages, and `activity_order` (`asc` by default, or `desc` for newest first). Keep the activity order when following `nextActivityCursor`. These controls do not shrink the task itself, its ancestors or its subtask summaries; comment paging stays newest-page first regardless of activity order.
 
+Task detail includes at most 100 direct child summaries. To read every child, page
+`list_tasks` (background) or `list_project_tasks` (owner chat) with
+`parent_task_id` set to the parent task ID; keep that parent and other filters
+with each returned cursor. Compact owner rows retain `parentId` and `proposed`
+so hierarchy and proposals remain visible without full task descriptions.
+
 Personal export filters authored task fields/comments/history and avoids exporting other people's rewritten content as the person's own. Old Issue-claim records can remain for historical export, but have no active task writer and are not imported or used as fallback authority.
 
 ## UI, release and verification boundaries

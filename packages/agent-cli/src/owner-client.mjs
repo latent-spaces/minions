@@ -33,7 +33,8 @@ const LEAN = {
     threadId, summary: first?.summary || start(first?.body), from: first?.sender?.name,
     to: first?.audience?.kind === 'direct' ? first.audience.to?.map(to => to.name) : first?.audience?.kind, messages: count })),
   read_project_updates: rows('items', u => ({ id: u.id, title: u.title ?? start(u.body), author: u.author?.agent?.name ?? u.author?.profile?.name, publishedAt: u.publishedAt })),
-  list_project_tasks: rows('tasks', ({ id, title, status, assignedAgentId }) => ({ id, title, status, assignedAgentId })),
+  list_project_tasks: rows('tasks', ({ id, title, status, assignedAgentId, parentId, proposed }) => ({ id, title, status, assignedAgentId,
+    ...(parentId ? { parentId } : {}), ...(proposed ? { proposed: true } : {}) })),
 };
 const UUID = /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/;
 export function ownerOrigin(site) {
@@ -205,6 +206,8 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
       return recorded(body.client_request_id, { name, project_id, body }, specs[name][0], body);
     }
     if ((args.thread_id !== undefined || args.task_id !== undefined) && !/^[\w-]{1,200}$/.test(args.thread_id ?? args.task_id)) throw new Error('Use the ID from the list this came from.');
+    if (name === 'list_project_tasks' && args.parent_task_id !== undefined
+      && (typeof args.parent_task_id !== 'string' || !/^[\w-]{1,200}$/.test(args.parent_task_id))) throw new Error('Use a task ID from this project as parent_task_id.');
     if (name === 'read_project_task') for (const field of ['comment_cursor','activity_cursor','activity_id']) {
       if (args[field] !== undefined && (typeof args[field] !== 'string' || !/^[\w-]{1,200}$/.test(args[field])))
         throw new Error('Use the comment or activity ID returned by this task.');
@@ -257,6 +260,7 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
     if (name === 'read_project_task') for (const [field, parameter] of [['comment_cursor','commentCursor'],['activity_cursor','activityCursor'],['activity_id','activityId'],['activity_order','activityOrder']]) {
       if (args[field] !== undefined) query.set(parameter, args[field]);
     }
+    if (name === 'list_project_tasks' && args.parent_task_id !== undefined) query.set('parentId', args.parent_task_id);
     if (query.size) path += '?' + query;
     // Task detail combines a 96 KiB task, bounded comments/history, up to 50 ancestors
     // and 100 subtask summaries. Allow their combined UTF-8 JSON without truncation;
