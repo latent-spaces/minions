@@ -634,7 +634,7 @@ A retained immutable chain is bound to its process, project, viewer and exact co
 
 The byte budgets estimate retained input, not total V8 heap, primary-projection bytes, document-store allocations or response serialization memory. The frontend's steady current-state poll is 15 seconds; selected retry and pause paths poll faster. Each browser, page chain and retry can create another request.
 
-There are no status-head listeners maintaining this projection. This is a narrow statement: the separate project-control path does use shared Firestore listeners, described in section 9.
+There are no status-head listeners maintaining this projection. This is a narrow statement: the separate project-control path does use shared document-store listeners, described in section 9.
 
 **Source:** [progress reader](../../apps/server/src/view/current-state-progress-reader.ts), [projection and overlays](../../apps/server/src/view/current-state.ts), [cursor semantics](../../apps/server/src/view/current-state-core.ts), [status derivation](../../apps/server/src/view/communication-agents.ts), [browser polling](../../apps/web/src/ui/communication-map/current-state-source.ts).
 
@@ -653,7 +653,7 @@ The entire page is not one database snapshot. Its guarantees are narrower:
 
 Reading dependencies after fixing canonical rows prevents applying an older dependency snapshot to newer canonical inputs. It does not make every returned field simultaneous. A later commit can appear on the next answer. The cursor carries dependency/evaluation pins so completing a page chain can re-emit held rows whose dependency or timer-derived state changed.
 
-Firestore commit revisions use seconds and nanoseconds for source ordering. Wall-clock values evaluate deadlines and freshness; they are not substitutes for durable replay revisions. If an instance's evaluation clock is behind the cursor's recorded time, it returns not-ready with the same cursor rather than clamping time and regressing state.
+Document-store commit revisions use seconds and nanoseconds for source ordering. Wall-clock values evaluate deadlines and freshness; they are not substitutes for durable replay revisions. If an instance's evaluation clock is behind the cursor's recorded time, it returns not-ready with the same cursor rather than clamping time and regressing state.
 
 ## 16 Usage accounting without steady full scans
 
@@ -669,7 +669,7 @@ This is a coalesced total-and-invalidation protocol, not a stream requiring ever
 
 ### 16.2 The reader
 
-The `/usage` path retains a bounded, whitelisted representation of usage heads per project. It does not retain complete Firestore snapshots, prompts, model output or cached authorization.
+The `/usage` path retains a bounded, whitelisted representation of usage heads per project. It does not retain complete document snapshots, prompts, model output or cached authorization.
 
 Every request takes its own read-only transaction and proves the receipt and usage progress. There is no outer result TTL that skips this proof.
 
@@ -677,7 +677,7 @@ Every request takes its own read-only transaction and proves the receipt and usa
 sequenceDiagram
   participant V as Authorized viewer
   participant U as Usage reader
-  participant F as Firestore snapshot
+  participant F as Document-store snapshot
   V->>U: Request project usage
   U->>U: Wait for earlier refresh to settle
   U->>F: Read admission and usage progress
@@ -764,7 +764,7 @@ The following is a responsibility map, not a complete schema specification. The 
 
 | Storage | Representative records | Ownership and lifetime |
 | --- | --- | --- |
-| Cloud identity | Profiles, verified GitHub-account mapping | Human identity |
+| Engine identity | Owner profile and shared identity records | Human identity |
 | Cloud project authority | Project, members/fences, agents, current runs and issued-run history | Transactional authority; cannot be replaced by a viewer cache |
 | Cloud current-state projection | Project `presence`, `currentStateChanges`, `currentStateProgress` | Current observations plus durable incremental-read proof |
 | Cloud accounting | Project `runnerUsage`, turn receipts, `usageChanges` and `usageProgress` | Report history, idempotent totals and accounting progress |
@@ -772,14 +772,14 @@ The following is a responsibility map, not a complete schema specification. The 
 | Cloud domain records | Native tasks, progress, human requests, operation receipts | Domain-specific authorization and visibility |
 | Platform admission | `platform/currentStateCutover` | Operator-established writer/reader compatibility |
 | Object storage | Progress images and related media | Media access/visibility rules independent of a guessed URL |
-| Local account/connection records | Owner computer credential and project-agent bindings | Private computer state, outside project checkouts |
+| Local account/connection records | Project-agent bindings, service bearers and recorded owner operations | Private computer state, outside project checkouts |
 | Local SQLite ledger | Missions, operations, participation, steering, outcomes, reports and archives | Durable runtime state and delivery evidence |
 | Local mission directories | Provider session/configuration, guard state, selected journals | Private runtime evidence and recovery |
 | Agent checkout | Repository files and Git state | Agent's work; separate from shared credentials and runtime ledger |
 
 Not all shared domain collections are nested under a project: human requests, for example, are in a root collection with explicit project and audience fields. Project scoping is therefore both a storage convention and an authorization discipline.
 
-Firestore client security rules deny direct client reads and writes. The browser talks to authenticated backend APIs; the backend's Admin SDK must enforce the authority described above. Service-account access is not a substitute for application checks.
+The browser talks to authenticated engine APIs. The SQLite adapter supplies the document-store API locally; domain services enforce the authority described above. Firebase value classes do not create a cloud database connection.
 
 Local files use private-path, ownership and link checks where the platform provides them. Journals retain selected lifecycle, model, usage and tool observations rather than full raw provider traffic. Redaction of known bridge credentials is useful but is not a guarantee that arbitrary model text contains no sensitive material. Do not put private journals in public release evidence.
 
