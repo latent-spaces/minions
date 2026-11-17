@@ -374,8 +374,7 @@ link appears separately in Project updates.
 Above the map is one toolbar row (owner, 26 October 2026): the All owners select, an
 overlapping strip of the project's people and agents (each agent avatar carries its
 owner's badge; past eight a "+N" chip), the Copy project link icon button on a public
-project, then Zoom out (−), Fit map and Zoom in (+) on the right, and the full-screen
-button. There is no 2D/3D switch: the product map is always 2D.
+project, then the Restart map button and the full-screen button on the right. There is no 2D/3D switch: the product map is always 2D.
 
 The card shows the live view only; it has no timeline or replay controls. Messages to
 the whole project draw no connections.
@@ -436,8 +435,8 @@ shows the first 160 characters of that message and an Open conversation link. Th
 preview uses the existing authorized message reader; bodies stay out of traffic
 metadata and layout workers. Escape, a click outside, the mouse wheel or another
 key press closes the tooltip. Drag the map to pan, or focus it and use the arrow keys
-to pan. Use + or - to zoom and Home to refit; the Zoom out (−), Fit map and Zoom in (+)
-buttons do the same. There is no agent switcher or automatic camera follow: inspect an
+to pan. Use + or - to zoom and Home to refit. The Restart map button reloads the map as a
+refresh would: it resets the view and reads communication again. There is no agent switcher or automatic camera follow: inspect an
 agent by hovering, clicking or focusing its portrait.
 
 On the live map each avatar shows its state label and marker, and a working agent shows

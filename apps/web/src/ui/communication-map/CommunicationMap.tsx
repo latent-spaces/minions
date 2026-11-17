@@ -40,7 +40,7 @@ const focusMode=(mode:Crowding)=>mode==='focus-active'||mode==='focus-ring';
 type Props={
  /** Screen-space person emphasis; agents keep their normal scale. */
  personScale?:number;
- /** After Fit map and zoom, such as the full-screen button (owner, 16 November 2026). */
+ /** After the project strip, such as the restart and full-screen buttons (owner, 16 November 2026). */
  toolbarEnd?:import('react').ReactNode;
  /** The viewer's own person node, drawn a little larger than other people (owner, 16 November 2026). */
  selfPersonId?:string;
@@ -278,8 +278,7 @@ export function CommunicationMap(props:Props){
  const controlsBlock=<>
   <div ref={controlsRef} className="communication-map-controls" role="group" aria-label="Map controls">
    {props.toolbarStart}
-   <span className="communication-map-zoom"><button type="button" aria-label="Zoom out" onClick={()=>zoomBy(1/1.4)}>−</button><button type="button" onClick={home}>Fit map</button><button type="button" aria-label="Zoom in" onClick={()=>zoomBy(1.4)}>+</button></span>
-   {props.toolbarEnd}
+   {props.toolbarEnd&&<span className="communication-map-end">{props.toolbarEnd}</span>}
   </div>
  </>;
  return <div className="communication-map" ref={root} tabIndex={0} onClick={event=>{if((event.target as Element).closest('button,select,.communication-map-controls,.k42-communication-agent,[data-map-edge],.k42-connection-popover'))return;props.onSelect(null);props.onDismiss();}} data-map-labels={props.labelMode??'compact'} data-map-connector={props.connectorStyle??'rubber-tube'} data-map-dimensions={dimensions} data-state-motion={props.running&&props.active} data-owner-highlight={highlightedOwner} data-crowded={crowded} aria-label={dimensions===3?"3D communication map. Drag or use arrow keys to orbit; Shift plus drag or arrow keys to pan; plus and minus to zoom.":"Communication map. Drag to pan; arrow keys to move; plus and minus to zoom."}>

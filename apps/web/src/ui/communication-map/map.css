@@ -3,12 +3,12 @@
 .communication-map>canvas{pointer-events:none}
 .communication-map-controls{position:absolute;top:8px;right:8px;left:8px;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:4px;pointer-events:none}
 .communication-map-controls>*{pointer-events:auto}
-.communication-map-controls>select,.communication-map-zoom>button{min-height:44px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius-button);color:var(--ink);padding:6px 10px;font:inherit;cursor:pointer}
-.communication-map-controls>select:hover,.communication-map-zoom>button:hover{border-color:var(--hairline-strong);background:var(--canvas-soft)}
-.communication-map-controls>select:focus-visible,.communication-map-zoom>button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.communication-map-controls>select{min-height:44px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius-button);color:var(--ink);padding:6px 10px;font:inherit;cursor:pointer}
+.communication-map-controls>select:hover{border-color:var(--hairline-strong);background:var(--canvas-soft)}
+.communication-map-controls>select:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
 .communication-map-controls>select{max-width:180px;min-width:100px}
-/* Zoom out, Fit map and Zoom in sit together at the row's right end. */
-.communication-map-zoom{display:inline-flex;gap:4px;margin-left:auto}.communication-map-zoom>button{min-width:44px}
+/* Restart map and Full screen sit together at the row's right end. */
+.communication-map-end{display:inline-flex;gap:4px;margin-left:auto}
 .communication-map-error{position:absolute;bottom:12px;left:12px;right:12px;padding:12px;background:var(--canvas);border:1px solid var(--line)}
 .k42-communication.is-expanded .communication-map{height:max(420px,calc(100dvh - 290px))}
 @media(max-width:480px){.communication-map-controls{justify-content:center}.communication-map{height:560px}}
