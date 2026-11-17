@@ -143,6 +143,8 @@ All task records are under one project:
 
 Tasks are capped at 96 KiB; list pages and detail comments/activity have additional byte budgets. The owner's `read_project_task` transport allows up to 512 KiB for the combined task, comments, activity, ancestors and subtask summaries; other owner calls retain their 256 KiB cap. Comments/activity are paged. The isolated demo identity picker uses bounded directory pages. The OFF work-signal query uses the additive `workIntents(state, taskId)` collection index. Owner task GETs share the bounded runtime-observation read admission budget; mutations retain human-action admission. Empty local background/chat snapshot pages cause no cloud RPC, while control mailboxes continue polling.
 
+Both `get_task` and `read_project_task` accept `limit` (1–100, default 50) for their comments and activity pages, and `activity_order` (`asc` by default, or `desc` for newest first). Keep the activity order when following `nextActivityCursor`. These controls do not shrink the task itself, its ancestors or its subtask summaries; comment paging stays newest-page first regardless of activity order.
+
 Personal export filters authored task fields/comments/history and avoids exporting other people's rewritten content as the person's own. Old Issue-claim records can remain for historical export, but have no active task writer and are not imported or used as fallback authority.
 
 ## UI, release and verification boundaries

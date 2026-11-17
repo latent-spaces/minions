@@ -209,6 +209,8 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
       if (args[field] !== undefined && (typeof args[field] !== 'string' || !/^[\w-]{1,200}$/.test(args[field])))
         throw new Error('Use the comment or activity ID returned by this task.');
     }
+    if (name === 'read_project_task' && args.activity_order !== undefined && !['asc','desc'].includes(args.activity_order))
+      throw new Error('Choose asc or desc for task activity order.');
     if (args.q !== undefined && (typeof args.q !== 'string' || !args.q.trim() || args.q.length > 64 || /[\x00-\x1f\x7f-\x9f]/.test(args.q))) throw new Error('Filter by up to 64 characters of an agent\'s name.');
     if (args.source !== undefined && !['authored_updates','result_history'].includes(args.source)) throw new Error('Choose authored_updates or result_history.');
     let [path,method = 'GET'] = specs[name], body;
@@ -252,7 +254,7 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
     if (name === 'list_my_projects' && args.scope !== undefined && !['owned','joined','all'].includes(args.scope)) throw new Error('Choose owned, joined or all projects.');
     const query = new URLSearchParams();
     for (const field of ['cursor','scope','q','source','limit']) if (args[field] !== undefined) query.set(field, String(args[field]));
-    if (name === 'read_project_task') for (const [field, parameter] of [['comment_cursor','commentCursor'],['activity_cursor','activityCursor'],['activity_id','activityId']]) {
+    if (name === 'read_project_task') for (const [field, parameter] of [['comment_cursor','commentCursor'],['activity_cursor','activityCursor'],['activity_id','activityId'],['activity_order','activityOrder']]) {
       if (args[field] !== undefined) query.set(parameter, args[field]);
     }
     if (query.size) path += '?' + query;

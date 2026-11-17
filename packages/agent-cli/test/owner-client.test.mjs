@@ -260,6 +260,20 @@ test('owner task reads forward comment/history cursors and saved versions withou
   for(const key of ['comment_cursor','activity_cursor','activity_id'])assert.equal(schema.properties[key].type,'string');
  }finally{f.close();}
 });
+test('owner task reads can choose a smaller page and newest-first activity',async()=>{
+ const f=fixture();try{
+  await f.client.signIn();
+  await f.client.operation('read_project_task',{project_id:P,task_id:'task_1',limit:1,activity_order:'desc'});
+  assert.equal(f.requests.at(-1).url,`${site}/api/owner/projects/${P}/tasks/task_1?limit=1&activityOrder=desc`);
+  await f.client.operation('read_project_task',{project_id:P,task_id:'task_1'});
+  assert.equal(f.requests.at(-1).url,`${site}/api/owner/projects/${P}/tasks/task_1`);
+  const before=f.requests.length;
+  for(const args of [{limit:0},{limit:101},{limit:1.5},{activity_order:'newest'},{activity_order:3}]){
+   await assert.rejects(f.client.operation('read_project_task',{project_id:P,task_id:'task_1',...args}));
+  }
+  assert.equal(f.requests.length,before);
+ }finally{f.close();}
+});
 test('task detail keeps its own hard reply limit and other owner reads keep the default limit',async()=>{
  const f=fixture();try{
   await f.client.signIn();
