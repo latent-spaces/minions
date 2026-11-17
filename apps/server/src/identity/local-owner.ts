@@ -66,7 +66,6 @@ export function localOwnerIdentity(options: LocalOwnerOptions): LocalOwnerIdenti
         email: owner.email, emailVerified: true, githubId: null };
     },
     async account(subject: string) { return subject === owner.subject ? account() : null; },
-
   };
   providers.set(provider, owner.subject);
   return provider;
