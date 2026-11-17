@@ -37,8 +37,10 @@ gone but the database lock remains, stop reports an unconfirmed shutdown and
 update leaves the checkout unchanged. A starting or stopping engine can hold the
 lock; wait and retry stop. If a crash or computer restart left a stale lock, run
 `minions start` to recover it, then retry stop or update. A lock left by an
-engine that crashed or a computer that restarted names a process that no longer
-exists, so the next start replaces it. Platform decisions live in [engine-plan.mjs](engine-plan.mjs) with no side
+engine that crashed or a computer that restarted is replaced only if its recorded
+process no longer exists. A reused PID or an uncertain process check requires the
+manual inspection described by the startup error; timestamps alone never authorize
+replacement. Platform decisions live in [engine-plan.mjs](engine-plan.mjs) with no side
 effects; `npm run test:setup` checks them for Windows and POSIX, and runs the
 command's early refusals, which stop before anything is installed or started.
 Install and build output is kept and shown only when a step fails; when the engine
