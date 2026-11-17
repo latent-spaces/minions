@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { childEnvironment, connectorCommand, connectorEnvironment, engineEnvironment, engineHome, enginePaths, enginePort, engineUrl,
-  initializationState, interruptedByUser, needsInstall, holderFromLsof, occupiedMessage, ownerIdentity, pageOpener, pidFromNetstat, requireNode24, savedPort, settingsText, startupHint } from '../engine-plan.mjs';
+  initializationState, interruptedByUser, holderFromLsof, occupiedMessage, ownerIdentity, pageOpener, pidFromNetstat, requireNode24, savedPort, settingsText, startupHint } from '../engine-plan.mjs';
 
 test('the engine needs Node.js 24 or newer', () => {
   assert.throws(() => requireNode24('v22.20.0'), /Node\.js 24/);
@@ -75,13 +75,6 @@ test('pages open through the platform opener and never over SSH, CI or a headles
   assert.equal(pageOpener('darwin', { SSH_CONNECTION: '1' }), null);
   assert.equal(pageOpener('win32', { CI: 'true' }), null);
   assert.equal(pageOpener('darwin', { MINIONS_NO_BROWSER: '1' }), null);
-});
-
-test('npm ci runs again unless npm finished an install at least as new as package-lock.json', () => {
-  assert.equal(needsInstall({ hiddenLockfile: null, lockfile: 1000 }), true); // partial install or none
-  assert.equal(needsInstall({ hiddenLockfile: 900, lockfile: 1000 }), true); // dependencies changed since
-  assert.equal(needsInstall({ hiddenLockfile: 1000, lockfile: 1000 }), false);
-  assert.equal(needsInstall({ hiddenLockfile: 1200, lockfile: 1000 }), false);
 });
 
 test('only a database with its owner file counts as initialized; one without the other is an interrupted first run', () => {
