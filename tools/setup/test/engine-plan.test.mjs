@@ -42,6 +42,7 @@ test('a busy port is never swapped for another; the message names the program ho
   const netstat = '  Proto  Local Address  Foreign Address  State  PID\r\n  TCP  0.0.0.0:18787  0.0.0.0:0  LISTENING  11\r\n  TCP  127.0.0.1:8787  0.0.0.0:0  LISTENING  4242\r\n';
   assert.equal(pidFromNetstat(netstat, 8787), '4242');
   assert.equal(pidFromNetstat(netstat, 8788), null);
+  assert.equal(pidFromNetstat('  TCP  [::]:8787  [::]:0  ABHÖREN  77\r\n  TCP  127.0.0.1:8787  127.0.0.1:50000  HERGESTELLT  5\r\n', 8787), '77');
 });
 
 test('children get one PATH led by the selected Node and no test-session or enrolled-origin settings', () => {

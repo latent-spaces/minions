@@ -54,11 +54,14 @@ export function holderFromLsof(text) {
   return pid ? `${name ?? 'a program'} (process ${pid})` : null;
 }
 
-/** The process listening on port, from Windows netstat -ano output, or null. */
+/**
+ * The process listening on port, from Windows netstat -ano output, or null. The state word is translated on
+ * non-English Windows, so a listener is also recognized by its unconnected foreign address (0.0.0.0:0 or [::]:0).
+ */
 export function pidFromNetstat(text, port) {
   for (const line of text.split(/\r?\n/)) {
-    const [protocol, local, , state, pid] = line.trim().split(/\s+/);
-    if (protocol === 'TCP' && state === 'LISTENING' && local?.endsWith(`:${port}`) && /^\d+$/.test(pid ?? '')) return pid;
+    const [protocol, local, foreign, state, pid] = line.trim().split(/\s+/);
+    if (protocol === 'TCP' && (state === 'LISTENING' || /:0$/.test(foreign ?? '')) && local?.endsWith(`:${port}`) && /^\d+$/.test(pid ?? '')) return pid;
   }
   return null;
 }
