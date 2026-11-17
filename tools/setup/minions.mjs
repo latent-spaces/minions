@@ -177,6 +177,7 @@ async function rest(installation, { now, minutes, requireServiceStopped = false 
   if (engineLockRemains(installation)) {
     console.error(`The engine database lock remains: ${installation.files.sqlitePath}.lock`);
     console.error('Startup or shutdown may still be running. Wait and retry minions stop; shutdown was not confirmed.');
+    console.error('If a crash or computer restart left a stale lock, run minions start to recover it, then retry stop or update.');
     return false;
   }
   return true;
@@ -193,7 +194,8 @@ function waitOptions(args) {
 async function stop(args) {
   const options = waitOptions(args);
   const installation = locate();
-  if (await engineState(installation) !== 'running' && !(await serviceStatus(installation)).running && !engineLockRemains(installation)) {
+  const service = await serviceStatus(installation);
+  if (await engineState(installation) !== 'running' && !service.running && !service.error && !engineLockRemains(installation)) {
     art('asleep', magenta);
     say(bold('Minions are already asleep. Zzz...'), 'Minions are not running.');
     return 0;
@@ -297,7 +299,7 @@ async function update(args) {
   }
   const installation = locate();
   if (!await rest(installation, { ...options, requireServiceStopped: true })) {
-    console.error('The checkout was left unchanged. Run minions update again once those turns have finished, or minions update --now.');
+    console.error('The checkout was left unchanged. Resolve the stop error above, then run minions update again.');
     return 1;
   }
   // A partial setup may emit the backend before a later build fails. Its mtime alone cannot complete this update.

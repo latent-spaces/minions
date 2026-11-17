@@ -93,7 +93,9 @@ Setup links a `minions` command:
 Stop waits up to ten minutes by default. If turns are still finishing, the engine
 stays running. Use `minions stop --now` to interrupt them. If the database lock
 remains after the listener closes, stop reports an unconfirmed shutdown; wait and
-retry. Update preserves the checkout until shutdown is confirmed. It requires a checkout
+retry. For a stale lock left after a crash or computer restart, run `minions start`
+to recover it, then retry stop or update. Update preserves the checkout until
+shutdown is confirmed. It requires a checkout
 on `main` with no tracked changes.
 
 ### Local data and connections

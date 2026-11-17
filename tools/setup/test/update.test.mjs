@@ -176,6 +176,7 @@ test('update preserves source when the listener is gone but the database lock re
   assert.deepEqual(recorded, ['stop:old']);
   assert.equal(version, 'old');
   assert.match(result.stderr, /shutdown was not confirmed/);
+  assert.match(result.stderr, /minions start to recover it/);
   assert.equal(existsSync(join(env.MINIONS_ENGINE_HOME, 'engine.sqlite.lock')), true);
 }));
 
@@ -185,4 +186,11 @@ test('stop refuses to claim success with no listener and a remaining lock', () =
   assert.match(result.stderr, /shutdown was not confirmed/);
   assert.doesNotMatch(result.stdout, /Minions (are not running|stopped)/);
   assert.equal(existsSync(join(env.MINIONS_ENGINE_HOME, 'engine.sqlite.lock')), true);
+}));
+
+test('plain stop refuses an unreadable service status even when the engine port is free', () => fixture({ command: 'stop', statusUnknown: true }, ({ result, recorded }) => {
+  assert.equal(result.status, 1);
+  assert.deepEqual(recorded, []);
+  assert.match(result.stderr, /shared service state is unknown/);
+  assert.doesNotMatch(result.stdout, /Minions (are not running|stopped)/);
 }));
