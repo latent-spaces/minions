@@ -156,6 +156,9 @@ Without an enrolled origin, the default service installation is `~/.minions/serv
 an isolated installation for development/testing. Computer and agent credentials
 remain in `~/.minions/mcp`; test isolation can use `MINIONS_CREDENTIAL_HOME`. Keep these
 private directories outside repositories. Do not delete them to fix a connection.
+After a crash, `service-start` can report that the process recorded as the service is
+still running when that PID now belongs to another program. Only when `service-status`
+says the service is not running, remove the `service-owner.json` the message names.
 A service stop ends every turn in progress, so don't use it as a client-disconnect
 button; workers between turns keep waiting and continue when the service starts again.
 `service-stop --after-turns` ends none: the service starts no new turn, keeps serving

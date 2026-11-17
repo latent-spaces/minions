@@ -88,7 +88,8 @@ async function claimOwnership(home) {
     try {
       ownedFile(path); const previous = readPrivate(path, true);
       if (!previous || Object.keys(previous).sort().join(',') !== 'nonce,pid,version' || previous.version !== 1 || !Number.isSafeInteger(previous.pid) || previous.pid < 1 || typeof previous.nonce !== 'string') throw fail('Unknown installation ownership; inspect the saved record. No process was stopped.');
-      if (alive(previous.pid)) throw fail('Another live process owns this installation. Use service status; no process was stopped.');
+      // A crash leaves this record; after a restart its PID can belong to another program. Never take it over here.
+      if (alive(previous.pid)) throw fail(`Process ${previous.pid} is recorded as this installation's service and is still running. If service-status says the service is not running, another program reused that PID after a crash or restart: remove ${path} and start the service again. No process was stopped.`);
       unlinkSync(path);
     } catch (error) { if (error.code !== 'ENOENT') throw error; }
     writePrivate(path, value); return lstatSync(path);
