@@ -3,7 +3,7 @@
   "private": true,
   "description": "Repository commands for the separately released Minions components",
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "bin": {
     "minions": "tools/setup/minions.mjs"
