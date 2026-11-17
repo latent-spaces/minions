@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { workerClaudeSettings, workerPrivateRoots } from '../runtime/providers.mjs';
 
 const bundled = readFileSync(new URL('../runtime/claude-settings.json', import.meta.url), 'utf8');
+const roots = options => workerPrivateRoots({ envSource: {}, platform: 'darwin', userHome: '/home/person', ...options });
 
 test('worker commands and the Read tool are kept out of the Minions private folders', () => {
   const settings = workerClaudeSettings(bundled, 'anyone', ['//srv/minions/engine/connector-service']);
@@ -16,12 +17,23 @@ test('worker commands and the Read tool are kept out of the Minions private fold
   assert.throws(() => workerClaudeSettings(bundled, 'anyone', ['relative/path']), /Invalid private state path/);
 });
 
-test('private roots cover the service home and the setup engine home, never the checkout', () => {
+test('private roots cover the service, credential and setup engine homes', () => {
   const stateDir = '/srv/minions/engine/connector-service/agents/abc';
-  assert.deepEqual(workerPrivateRoots({ stateDir, folder: '/work/project', envSource: { MINIONS_CREDENTIAL_HOME: '/srv/minions/engine/connector-credentials' }, platform: 'darwin' }),
+  assert.deepEqual(roots({ stateDir, folder: '/work/project', envSource: { MINIONS_CREDENTIAL_HOME: '/srv/minions/engine/connector-credentials', MINIONS_ENGINE_HOME: 'relative' } }),
     ['//srv/minions/engine/connector-service', '//srv/minions/engine', '//srv/minions/engine/connector-credentials']);
-  // A checkout inside a candidate root keeps that root readable rather than hiding the agent's own work.
-  assert.deepEqual(workerPrivateRoots({ stateDir, folder: '/srv/minions/engine/checkout', envSource: {}, platform: 'linux' }), ['//srv/minions/engine/connector-service']);
-  assert.deepEqual(workerPrivateRoots({ stateDir, folder: '/work/project', envSource: { MINIONS_ENGINE_HOME: 'relative' }, platform: 'linux' }).length, 2);
-  assert.deepEqual(workerPrivateRoots({ stateDir, folder: '/work/project', platform: 'win32' }), []);
+  // The default install is covered by the ~/.minions entry workerClaudeSettings always adds.
+  assert.deepEqual(roots({ stateDir: '/home/person/.minions/engine/connector-service/agents/abc', folder: '/home/person/minions/projects/repo' }),
+    ['//home/person/.minions/engine/connector-service', '//home/person/.minions/engine']);
+  // Windows rule spellings differ: only the default ~/.minions entry applies there.
+  assert.deepEqual(roots({ stateDir, folder: '/work/project', platform: 'win32' }), []);
+});
+
+test('a checkout inside private state is refused before launch, including the default ~/.minions', () => {
+  assert.throws(() => roots({ stateDir: '/srv/minions/engine/connector-service/agents/abc', folder: '/srv/minions/engine/checkout' }), /checkout is inside Minions private state/);
+  assert.throws(() => roots({ stateDir: '/srv/state/agents/abc', folder: '/home/person/.minions/projects/repo' }), /checkout is inside Minions private state/);
+});
+
+test('a private path the rules cannot spell is refused rather than left readable', () => {
+  assert.throws(() => roots({ stateDir: '/srv/Minions (work)/connector-service/agents/abc', folder: '/work/project' }), /characters the worker sandbox rules cannot express/);
+  assert.throws(() => roots({ stateDir: '/srv/state/agents/abc', folder: '/work/project', envSource: { MINIONS_CREDENTIAL_HOME: '/srv/creds[1]' } }), /cannot express/);
 });

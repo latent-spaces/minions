@@ -5,7 +5,8 @@ import { promisify } from 'node:util';
 const executeFile = promisify(execFile);
 import { randomUUID } from 'node:crypto';
 import { readFileSync, realpathSync, existsSync, readdirSync, lstatSync } from 'node:fs';
-import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { homedir } from 'node:os';
 const PROVIDERS = ['claude', 'codex'];
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const counter = v => Number.isSafeInteger(v) && v >= 0 && v <= 1e15 ? v : null;
@@ -80,17 +81,22 @@ export function workerClaudeSettings(bundled, mergeApproval, privateRoots = []) 
   return settings;
 }
 // Rule paths for one worker's private state. stateDir is <service home>/agents/<id>; a setup-made service home is
-// <engine home>/connector-service beside engine.sqlite and owner.json. A root that holds the checkout is left out.
-export function workerPrivateRoots({ stateDir, folder, envSource = process.env, platform = process.platform }) {
-  // Windows rule spellings differ; there the default ~/.minions entry applies.
+// <engine home>/connector-service beside engine.sqlite and owner.json. Checked before the worker starts: a checkout
+// inside private state, or a path the rules cannot spell, is refused rather than launched with a missing boundary.
+export function workerPrivateRoots({ stateDir, folder, envSource = process.env, platform = process.platform, userHome = homedir() }) {
+  // Windows rule spellings differ; there only the default ~/.minions entry applies, and custom homes stay readable.
   if (platform === 'win32') return [];
-  const roots = [];
+  const roots = [join(userHome, '.minions')];
   const serviceHome = basename(dirname(stateDir)) === 'agents' ? dirname(dirname(stateDir)) : stateDir;
   roots.push(serviceHome);
   if (basename(serviceHome) === 'connector-service') roots.push(dirname(serviceHome));
   for (const name of ['MINIONS_SERVICE_HOME', 'MINIONS_CREDENTIAL_HOME', 'MINIONS_ENGINE_HOME']) if (isAbsolute(envSource[name] ?? '')) roots.push(envSource[name]);
-  const inside = (root, path) => { const part = relative(root, path); return part === '' || part !== '..' && !part.startsWith('../') && !isAbsolute(part); };
-  return [...new Set(roots.map(root => resolve(root)))].filter(root => root !== '/' && !inside(root, resolve(folder))).map(root => `/${root}`).filter(root => PRIVATE_ROOT.test(root));
+  const inside = (root, path) => { const part = relative(root, path); return part === '' || part !== '..' && !part.startsWith(`..${sep}`) && !isAbsolute(part); };
+  const unique = [...new Set(roots.map(root => resolve(root)))];
+  if (unique.some(root => root === '/' || inside(root, resolve(folder)))) throw new Error('The project checkout is inside Minions private state. Move the checkout (or MINIONS_ENGINE_HOME) so they are separate folders, then start the agent again.');
+  const rules = unique.slice(1).map(root => `/${root}`);
+  if (rules.some(rule => !PRIVATE_ROOT.test(rule))) throw new Error('A Minions private folder path uses characters the worker sandbox rules cannot express (one of ( ) [ ] { } * ?). Choose MINIONS_ENGINE_HOME, MINIONS_SERVICE_HOME and MINIONS_CREDENTIAL_HOME without them, then start the agent again.');
+  return rules;
 }
 
 // Model clients and their preflight checks receive named variables only, never the operator's
