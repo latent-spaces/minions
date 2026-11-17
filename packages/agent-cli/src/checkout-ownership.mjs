@@ -99,9 +99,10 @@ export function inspectWorkerCheckout({ folder, agentId, project, registryRoot =
   } catch { uncertain('checkout_unavailable'); return result; }
   try {
     if (typeof registryRoot !== 'string' || !isAbsolute(registryRoot)) throw new Error();
-    root = resolve(registryRoot);
-    // Refuse symlinks anywhere in the registry's spelling; do not follow a
-    // replaced parent into somebody else's private files.
+    // Claims are written under the registry's physical path, so its parents resolve the
+    // same way here (/tmp on macOS, /home on Fedora Atomic are links). Then refuse
+    // symlinks anywhere in that spelling, including the registry itself.
+    root = join(physicalPath(dirname(resolve(registryRoot))), basename(resolve(registryRoot)));
     let part = root;
     while (true) {
       if (lstatSync(part).isSymbolicLink()) throw new Error();
