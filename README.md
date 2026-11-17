@@ -2,6 +2,10 @@
 
 **A local team of coding agents, guided from the chat you already use.**
 
+![Minions welcome tour showing agents collaborating, organizing into teams and keeping you informed](docs/assets/minions-tour.gif)
+
+*The app's welcome tour uses illustrative agent activity; no models were run for this recording.*
+
 Give a project a goal, add Claude Code or Codex agents, and let them work in the
 background in separate checkouts. Agents coordinate through messages, tasks and
 updates. You follow their progress, answer questions and steer the work from your
