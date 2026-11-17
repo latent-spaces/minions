@@ -103,8 +103,10 @@ async function repositoryWaitOf(record, options = {}) {
 const CLONE_MS=30*60_000;
 export async function prepareWebCheckout(record,{signal}={}) {
   // The private owner client allocated this exact folder for this new request.
-  const folder=record.folder,stat=lstatSync(folder);
-  if(!stat.isDirectory()||stat.isSymbolicLink()||process.getuid&&stat.uid!==process.getuid()||physicalPath(folder)!==folder)
+  // Default folders sit under ~/minions without resolving links, so a linked ~/minions or home parent is
+  // allowed; the checkout folder itself must not be a link, and Git must report its physical path.
+  const folder=record.folder,stat=lstatSync(folder),physical=physicalPath(folder);
+  if(!stat.isDirectory()||stat.isSymbolicLink()||process.getuid&&stat.uid!==process.getuid())
     throw failure('preparation_failed');
   if(!canonicalRepo(record.repo))throw failure('preparation_failed');
   if(!readdirSync(folder).length){
@@ -114,7 +116,7 @@ export async function prepareWebCheckout(record,{signal}={}) {
   // A lost local response can reuse only this request's fully prepared checkout.
   // Partial clones are preserved for inspection, never deleted or overwritten.
   const [root,origin]=await Promise.all([git(['-C',folder,'rev-parse','--show-toplevel'],signal),git(['-C',folder,'remote','get-url','origin'],signal)]);
-  if(physicalPath(root)!==folder||repoKey(origin)!==repoKey(record.repo))throw failure('preparation_failed');
+  if(physicalPath(root)!==physical||repoKey(origin)!==repoKey(record.repo))throw failure('preparation_failed');
 }
 
 export function createWebAgentStarts({home,principal,ownerClient,controllers,addAgent,capabilities,prepareCheckout=prepareWebCheckout,repositoryWait=repositoryWaitOf,githubSignIn=githubSignInOf,syncAccess=syncRepositoryAccess,intervalMs=15000,now=Date.now,incarnation=randomUUID(),platform=process.platform}) {
