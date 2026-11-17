@@ -18,7 +18,8 @@ export function githubRoutes(now: () => number) {
   const bindings = webhookBindings();
   const router = express.Router();
   router.post('/:projectId', (req, res, next) => {
-    if (!bindings[String(req.params.projectId)]) { res.status(404).json({ error: 'not_configured' }); return; }
+    // Own keys only: an inherited name such as `constructor` is not a configured project.
+    if (!Object.hasOwn(bindings, String(req.params.projectId))) { res.status(404).json({ error: 'not_configured' }); return; }
     next();
   }, express.raw({ type: 'application/json', limit: '1mb', inflate: false }), async (req, res) => {
     const id = String(req.params.projectId), binding = bindings[id];
