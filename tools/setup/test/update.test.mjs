@@ -24,7 +24,8 @@ async function fixture(options, check) {
     MINIONS_UPDATE_TEST_CHANGE_SOURCE: options.changeSource ? '1' : '0',
     MINIONS_UPDATE_TEST_REMOVE_UPSTREAM: options.pullFails ? upstream : '' };
   const git = (cwd, ...args) => {
-    const result = spawnSync('git', args, { cwd, env, encoding: 'utf8', windowsHide: true, timeout: 10_000 });
+    const result = spawnSync('git', ['-c', 'gc.auto=0', '-c', 'maintenance.auto=false', ...args],
+      { cwd, env, encoding: 'utf8', windowsHide: true, timeout: 10_000 });
     assert.equal(result.status, 0, result.stderr || result.error?.message);
     return result.stdout.trim();
   };
@@ -61,7 +62,7 @@ async function fixture(options, check) {
     put(join(upstream, 'apps/server/dist/self-hosted-main.js'), '// synthetic built engine');
     put(join(upstream, 'version.txt'), 'old');
     git(upstream, 'add', '.'); git(upstream, 'commit', '-m', 'initial');
-    git(root, 'clone', upstream, checkout);
+    git(root, 'clone', '--no-local', upstream, checkout);
     if (options.advance !== false) {
       put(join(upstream, 'version.txt'), 'new');
       git(upstream, 'add', '.'); git(upstream, 'commit', '-m', 'update');
