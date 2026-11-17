@@ -27,6 +27,15 @@ const requestSchema = z.object({id:z.uuid(),projectId:z.string().regex(/^[a-f0-9
 const terminal = new Set(['working','failed','expired','recovery_required']);
 const fingerprint = r => createHash('sha256').update(JSON.stringify([r.id,r.projectId,r.name,r.scope,r.execution,r.createdAt,r.pickupByAt])).digest('hex');
 const failure = code => Object.assign(new Error(code),{code});
+// What a failed start keeps for diagnosis, in its saved intent and service.log: the step, a code and a short message,
+// never a credential. Error messages here are our own or a command's, which can name a URL but not a token.
+const safeText = value => String(value ?? '').replace(/\b(?:gh[pousr]_|github_pat_)[A-Za-z0-9_]+/g,'[redacted]')
+  .replace(/\b(Bearer|token)\s+\S+/gi,'$1 [redacted]').replace(/[\x00-\x1f\x7f-\x9f]+/g,' ').trim().slice(0,300);
+export const startFailure = (step, error, at) => ({ step,
+  code: typeof error?.code === 'string' && /^[A-Za-z][\w-]{0,63}$/.test(error.code) ? error.code : error?.name === 'TimeoutError' ? 'timeout' : 'error',
+  message: safeText(error?.message) || 'No message.', at });
+// A probe this recent describes this computer well enough for a launch; a burst of starts shares one.
+const PROBE_REUSE_MS = 15_000;
 
 export async function probeWebProviders({folder,signal,platform=process.platform,executables={codex:'codex',claude:'claude'},envSource=process.env}={}) {
   const supported=['darwin','linux','win32'].includes(platform);
@@ -117,7 +126,7 @@ export async function prepareWebCheckout(record,{signal}={}) {
   if(physicalPath(root)!==folder||repoKey(origin)!==repoKey(record.repo))throw failure('preparation_failed');
 }
 
-export function createWebAgentStarts({home,principal,ownerClient,controllers,addAgent,capabilities,prepareCheckout=prepareWebCheckout,repositoryWait=repositoryWaitOf,githubSignIn=githubSignInOf,syncAccess=syncRepositoryAccess,intervalMs=15000,now=Date.now,incarnation=randomUUID(),platform=process.platform}) {
+export function createWebAgentStarts({home,principal,ownerClient,controllers,addAgent,capabilities,prepareCheckout=prepareWebCheckout,repositoryWait=repositoryWaitOf,githubSignIn=githubSignInOf,syncAccess=syncRepositoryAccess,intervalMs=15000,now=Date.now,incarnation=randomUUID(),platform=process.platform,log=message=>console.error(message)}) {
   const directory=join(home,'web-starts');ensureHome(directory);
   const abort=new AbortController(),jobs=new Map(),early=new Set(),accessChecks=new Map();let closed=false,polling,cached,checkedAt=0,github,sharing,sharedAt=0;
   let cloud = {state:'unknown',lastSuccessAt:null,lastAttemptAt:null};
@@ -126,10 +135,24 @@ export function createWebAgentStarts({home,principal,ownerClient,controllers,add
   const pathFor=id=>join(directory,`${id}.json`);
   const read=id=>lstatExists(pathFor(id))?readPrivate(pathFor(id),true):null;
   const save=intent=>writePrivate(pathFor(intent.request.id),intent);
+  // Each probe runs several client commands. Concurrent callers share one, so a burst of starts does not start
+  // dozens of processes at once and push every start past its timeouts.
+  let probing=null;
   async function providers(force=false,signal=abort.signal) {
-    if(force||!cached||now()-checkedAt>=60000){[cached,github]=await Promise.all([capabilityProbe(signal),githubSignIn(signal)]);checkedAt=now();}
+    if(force&&cached&&now()-checkedAt<PROBE_REUSE_MS)force=false;
+    if(force||!cached||now()-checkedAt>=60000){
+      // The shared probe has its own bound, so one caller's timeout does not fail the others waiting on it.
+      if(!probing){const shared=AbortSignal.any([abort.signal,AbortSignal.timeout(30000)]);
+        probing=Promise.all([capabilityProbe(shared),githubSignIn(shared)]).then(([value,signedIn])=>{cached=value;github=signedIn;checkedAt=now();}).finally(()=>{probing=null;});}
+      signal.throwIfAborted();
+      await Promise.race([probing,new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(signal.reason),{once:true}))]);
+    }
     return cached;
   }
+  // Launches take turns: each prepares, confirms and hands its start to the controllers before the next begins.
+  // A start waiting here is still bounded by its own launch window.
+  let launching=Promise.resolve();
+  const inTurn=work=>{const turn=launching.then(work);launching=turn.catch(()=>{});return turn;};
   async function acknowledge(intent,receipt) {
     const ack=await ownerClient.acknowledgeAgentStart(intent.request.id,{incarnation:intent.request.incarnation,...receipt},options(abort.signal));
     if(ack?.ok!==true)throw failure('receipt_unavailable');
@@ -213,19 +236,26 @@ export function createWebAgentStarts({home,principal,ownerClient,controllers,add
     // Only the launch window bounds preparation. A start that finishes after the job's end time comes up waiting for more time.
     const live=()=>{abort.signal.throwIfAborted();if(now()>=grant.launchByAt)throw failure('request_expired');};
     const signal=AbortSignal.any([abort.signal,AbortSignal.timeout(Math.max(1,grant.launchByAt-now()))]);
-    try {
+    let step='waiting for its turn';
+    try { await inTurn(async()=>{
       live();
+      step='checking providers';
       const available=await providers(true,signal);
       if(!available.some(p=>p.id===grant.execution.provider&&p.available))throw failure('provider_unavailable');
       live();
+      step='adding the agent';
       // A run for an agent that already exists reuses its connection and folder; otherwise the web start creates it.
       const existing=intent.request.agentId??grant.agentId??registered?.agentId;
       const added=registered?{record:registered}:await addAgent({project_id:grant.projectId,agent_name:grant.name},'Minions website',{expectedProfileId:principal.ownerId,...(existing?{exact:existing}:{webStartId:grant.id})});
       const record=added.record;
       if((existing?record.agentId!==existing:record.webStartId!==grant.id)||record.ownerProfileId!==principal.ownerId||record.agentName!==grant.name||record.service!==`${principal.site}/p/${grant.projectId}`)throw failure('preparation_failed');
       intent.agentId=record.agentId;save(intent);
-      await acknowledge(intent,{state:'starting',agentId:record.agentId});
+      // Progress for the website only; the confirmation below is what authorizes the launch.
+      step='reporting progress';
+      await acknowledge(intent,{state:'starting',agentId:record.agentId}).catch(error=>log(`Minions website start ${grant.id}: progress report not delivered (${startFailure(step,error).code}); continuing.`));
+      step='preparing the checkout';
       live();await prepareCheckout(record,{signal});live();
+      step='confirming the start';
       // Refresh cloud authorization after preparation. Expired/revoked requests
       // cannot turn a completed clone into newly authorized execution.
       const confirmed=await ownerClient.acceptAgentStart(grant.id,{incarnation},options(signal));
@@ -234,9 +264,12 @@ export function createWebAgentStarts({home,principal,ownerClient,controllers,add
       intent.command={version:2,operationId:grant.id,missionId:grant.id,kind:'start',target:{...principal,projectId:grant.projectId,agentId:record.agentId},
         payload:{scope:grant.scope,deadlineAt:grant.deadlineAt,execution:grant.execution}};
       save(intent); // Immutable command exists before the sole execution writer.
+      step='handing the start to its agent';
       await controllers.accept(intent.command);
-      await reconcile(intent);
+    }); step='reporting the start'; await reconcile(intent);
     }catch(error){
+      intent.failure=startFailure(step,error,now());save(intent);
+      log(`Minions website start ${grant.id} failed while ${step}: ${intent.failure.code}: ${intent.failure.message}`);
       // A lost acceptance reply is not evidence that execution failed.
       if(intent.command&&await reconcile(intent))return;
       if(intent.command){intent.receipt={state:'recovery_required',agentId:intent.agentId,code:'recovery_required'};}
@@ -265,7 +298,8 @@ export function createWebAgentStarts({home,principal,ownerClient,controllers,add
       for(const raw of value.requests){
         const parsed=requestSchema.safeParse(raw);if(!parsed.success||terminal.has(parsed.data.state)&&parsed.data.state!=='recovery_required'||jobs.has(parsed.data.id))continue;
         if(skew)continue;
-        const job=processRequest(parsed.data).catch(()=>{}).finally(()=>jobs.delete(parsed.data.id));jobs.set(parsed.data.id,job);
+        // Failures before a launch (adding the agent, the repository check, acceptance) are retried at a later poll.
+        const job=processRequest(parsed.data).catch(error=>{const reason=startFailure('preparing',error);log(`Minions website start ${parsed.data.id} will retry: ${reason.code}: ${reason.message}`);}).finally(()=>jobs.delete(parsed.data.id));jobs.set(parsed.data.id,job);
       }
     })().finally(()=>{polling=null;});return polling;
   }
