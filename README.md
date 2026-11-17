@@ -6,6 +6,9 @@ Give a small team of Claude Code or Codex agents a goal. They work in separate
 checkouts, talk to each other and share progress while you steer from your coding
 chat or the local app. Minions runs on your computer, using your own provider accounts.
 
+Manage projects, message your agents, and start, pause, resume or stop work
+directly from Claude Code or Codex.
+
 **Experimental beta.** Install from this repository; the connector is not published to npm.
 
 [Get started](#quick-start) · [How it works](#how-it-works) ·
@@ -69,7 +72,7 @@ your own Claude Code or Codex sign-in.
 
 ### Follow your swarm at work
 
-![Real Minions screenshots showing different agents, task organization, conversations, screenshot updates and adding a new task](docs/assets/minions-game-demo.gif)
+![Real Minions screenshots explaining agents, tasks, conversations, updates and control from Claude Code or Codex](docs/assets/minions-game-demo.gif)
 
 *Real screenshots of agents, tasks, conversations and updates, with explanations appearing step by step.*
 
