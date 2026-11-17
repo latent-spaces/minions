@@ -19,6 +19,10 @@ the connector CLI (`packages/agent-cli/src/cli.mjs`), each package's own build
 script and the npm resolution in `tools/setup/npm-cli.mjs`; it adds no second
 implementation of any of them.
 
+Setup includes development dependencies even with npm's `omit=dev` setting,
+because it builds from source. It checks the installed dependency tree
+before reusing an install; missing packages trigger a fresh `npm ci`.
+
 Every child the script starts is Node itself (npm's JS entry, the engine, the
 connector) without a shell, so checkout paths with spaces and Windows work alike;
 npm runs the package build scripts as any `npm run` does. Windows has no graceful
