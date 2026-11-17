@@ -152,14 +152,17 @@ read that file can stop the engine and no web page can. Windows has no graceful
 signal for a detached process, so every platform uses this same request. Shutdown
 drains held HTTP requests and the delivery worker before closing SQLite, then
 removes the `.lock` file; the stop waits up to 20 seconds for the engine to
-stop answering. The next start replaces a lock left behind by a crash or a computer
+release that lock. The next start replaces a lock left behind by a crash or a computer
 restart: one whose process no longer exists, or one written before the computer last
 started (its process ID may now belong to another program). Any other lock is refused.
 `minions start` starts both again without rebuilding.
 
 A second engine on the same database is refused by its `.lock` file, and the
-refusal names that file. If `minions stop` then finds no engine, it names the lock
-too: the lock is left over from an earlier run and is safe to delete. Nothing
+refusal names that file. An engine can hold the lock while starting or stopping
+without answering at its saved address, so a failed stop request does not prove
+that the lock is stale. Wait and retry first. Remove the named lock only after
+inspecting its recorded PID and confirming in the system process list that no
+engine process is using this database. Nothing
 stops or signals another process to recover a lock. The engine runs its delivery
 worker in the same process. Live views follow the engine's own writes at once; a write that
 another program commits to the database file reaches them within about a second,

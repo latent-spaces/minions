@@ -2,7 +2,7 @@
 import { parseArgs } from 'node:util';
 import { selfHostedConfig } from './self-hosted-config.js';
 import { initializeSelfHostedStore, readOwnerConfiguration } from './self-hosted-initialize.js';
-import { lockSelfHostedStore } from './self-hosted-lock.js';
+import { lockedMessage, lockSelfHostedStore } from './self-hosted-lock.js';
 import { standaloneStopSignals } from './self-hosted-runtime.js';
 
 async function main() {
@@ -81,9 +81,9 @@ async function stopRunningEngine(origin: string, signingSecret: string, lock: st
     response = await fetch(`${origin}/api/auth/engine/stop`, { method: 'POST', redirect: 'error', signal: AbortSignal.timeout(5_000),
       headers: { authorization: `Bearer ${engineStopKey(signingSecret)}` } });
   } catch {
-    console.info(`No engine is running at ${origin}.`);
-    // A lock no engine holds (for example after a restart) would refuse the next start; say it can go.
-    if (existsSync(lock)) console.info(`If no engine is running on this computer, its lock is left over from an earlier run and is safe to delete: ${lock}`);
+    console.info(`No engine answered at ${origin}.`);
+    // Startup and shutdown can hold the database lock without a listening endpoint.
+    if (existsSync(lock)) console.info(lockedMessage(lock));
     return;
   }
   if (response.status !== 202) throw new Error(`The program at ${origin} is not this engine or refused the stop request (HTTP ${response.status}). Nothing was stopped.`);
