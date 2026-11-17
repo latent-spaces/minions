@@ -49,6 +49,8 @@ Setup signs in to the engine as its owner with no human step, starts its shared 
 and connects every Claude Code and Codex it finds: it writes the one `minions` entry and
 removes the pre-rename `mlswarm` entry and the older per-engine `mlswarm-<8 hex>` entries and their permissions, leaving any other entry as it is, allows
 Minions's tools once and installs the bundled skill, keeping a skill the person changed.
+To tell an edit from an older version on update, setup records the router it wrote in the
+service's `installed-skills.json`; a skill installed before that record existed is updated once as before.
 Codex's `config.toml` is read with a TOML parser and edited line by line, so comments and
 layout outside the replaced entry stay; a file that does not parse, or that entry written as an inline table or
 dotted keys, is left unchanged and setup says so.
