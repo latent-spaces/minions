@@ -17,6 +17,11 @@ cloning or pulling, or you'll get small pointer files instead of the media.
 | [`brag-v1-team/`](brag-v1-team/) | "One coding agent is a chat. Minions is a team." Punchy and playful, 120 BPM | `brag.mp4` (16:9), `brag-1x1.mp4` (square) | 20 s |
 | [`brag-v2-chaotic/`](brag-v2-chaotic/) | "One agent? Cute." All caps and fast, 150 BPM | `brag.mp4`, `brag-1x1.mp4` | 20 s |
 | [`brag-v3-your-call/`](brag-v3-your-call/) | "Your agents. Your computer. Your call." Calm and warm, 96 BPM | `brag.mp4`, `brag-1x1.mp4` | 20 s |
+| [`brag-v4-team-tight/`](brag-v4-team-tight/) | v1 tightened: no still frames, shorter mid-video wordmark, labels that fit, repo URL in the outro | `brag.mp4` (16:9 only) | 20 s |
+| [`brag-v5-your-call-tight/`](brag-v5-your-call-tight/) | v3 tightened: crowd-to-one hook, live counters, quicker transitions, readable Kill confirmation, repo URL | `brag.mp4` (16:9 only) | 20 s |
+| [`brag-v6-chaotic-tight/`](brag-v6-chaotic-tight/) | v2 tightened: moving wordmark, bigger map, smaller `/exit` window, matching Pause/Kill pills, repo URL | `brag.mp4` (16:9 only) | 20 s |
+
+[`compare/`](compare/) has before/after videos (`v1-vs-v4.mp4`, `v2-vs-v6.mp4`, `v3-vs-v5.mp4`), with the original on the left and the revision on the right. Audio is from the revision. v4–v6 reuse the music of the cut they revise, and each `brag-plan.md` lists what changed at the top. Stage ports: v4 47315, v5 47316, v6 47317.
 
 Each `brag-*` folder contains:
 
