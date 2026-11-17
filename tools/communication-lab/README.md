@@ -17,7 +17,7 @@ hit area and connector mask scale with them while label type stays 12px.
 Both axes fill independently; distances and angles are presentation-only.
 Colliding labels lose all text including names; details remain on inspection.
 This is the selected product behavior, shared with the lab. Manual zoom
-and pan still operate on the projected coordinates; Fit map returns to the bounds.
+and pan still operate on the projected coordinates; `Home` returns to the bounds.
 
 Use map bounds uses production CommunicationMap with focus-active crowding, its actual
 worker, movement, camera and connectors. The label treatments are lab-only

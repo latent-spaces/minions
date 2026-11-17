@@ -61,13 +61,12 @@
 .k42-communication.is-expanded .k42-communication-graph { height:max(420px,calc(100dvh - 290px)); }
 @media(max-width:600px) { .k42-communication:not(.is-expanded) .k42-communication-graph { height:560px; } }
 /* One toolbar row above the map (owner, 26 October 2026): All owners, the people and agents,
-   add person, then zoom, Fit map and full screen on the right. */
+   add person, then Restart map and full screen on the right. */
 .k42-communication > .k42-activity-heading { flex-wrap:wrap; }
 .k42-communication > .k42-activity-heading .k42-communication-controls-slot { flex:1 1 auto; display:flex; min-width:0; }
 .k42-communication > .k42-activity-heading .k42-communication-controls-slot[hidden] { display:none; }
 .k42-communication-controls-slot .communication-map-controls { position:static; flex:1; justify-content:flex-start; align-items:center; flex-wrap:wrap; gap:8px; }
-.k42-communication-controls-slot :is(.communication-map-controls > select, .communication-map-zoom > button) { min-height:36px; padding:4px 10px; }
-.k42-communication-controls-slot .communication-map-zoom > button { min-width:36px; }
+.k42-communication-controls-slot .communication-map-controls > select { min-height:36px; padding:4px 10px; }
 .k42-map-crowd { display:flex; align-items:center; list-style:none; margin:0; padding:0; }
 .k42-map-crowd li { display:flex; margin-left:-8px; }
 .k42-map-crowd li:first-child { margin-left:0; }
@@ -104,4 +103,4 @@
 .k42-fit .k42-communication > .k42-activity-heading { flex-wrap:nowrap; align-items:flex-start; }
 .k42-fit .k42-communication > .k42-activity-heading .k42-communication-controls-slot { min-width:0; }
 @media (max-height:640px) { .k42-fit .k42-project-pause-status p { display:none; } .k42-fit .k42-project-pause-status { padding-block:8px; } }
-.communication-map-controls .k42-communication-fullscreen { width:32px; height:32px; } /* beside Fit map (owner, 16 November 2026) */
+.communication-map-controls .k42-communication-fullscreen { width:32px; height:32px; } /* Restart map and Full screen (owner, 16 November 2026) */

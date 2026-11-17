@@ -45,8 +45,8 @@ questions never create connections.
 ## Controls
 
 - One row holds anything the host passes as
-  `toolbarStart` (on Updates: the people and agents strip and Copy project link), then **Zoom
-  out**, **Fit map** and **Zoom in** at the right end. On Updates that row is in the agent
+  `toolbarStart` (on Updates: the people and agents strip and Copy project link), then the host's
+  `toolbarEnd` buttons at the right end (on Updates: **Restart map** and **Full screen**). On Updates that row is in the agent
   communication card's header; elsewhere it is at the top of the map. The product map is
   2D; there is no 2D/3D switch (owner, 26 October 2026). The 3D engine is still reachable
   only through the `initialDimensions` prop, which no screen sets. Zoom goes from 0.5× to 12×. Avatars
@@ -66,7 +66,7 @@ questions never create connections.
   `-` zooms out and `Home` fits the map. In 3D, dragging and the arrow keys orbit the
   view instead; hold Shift to pan.
 - Until you zoom or pan, the camera keeps every agent in view, except in a focused
-  crowded view (see [Crowded maps](#crowded-maps)). **Fit map** returns to that view. Automatic overview expansion starts before
+  crowded view (see [Crowded maps](#crowded-maps)). `Home` returns to that view. Automatic overview expansion starts before
   portraits reach the edge and eases outward with a 700-ms time constant.
 - Pressing a key or scrolling the mouse wheel outside the info box closes it.
   Modifier keys, and Enter or Space on an avatar, leave it open.
@@ -96,8 +96,8 @@ a `crowding` option; the default is `portraits`. Home uses `focus-active`.
   when the fit-everyone view is crowded, the camera fits
   the featured agents instead, easing toward them with a 2.5-second time constant in
   both directions. A paused map holds its camera still. A line at the bottom right says
-  "+N agents outside view · Show all"; **Show all** fits every agent until **Fit map**
-  or `Home` returns to the focused view.
+  "+N agents outside view · Show all"; **Show all** fits every agent until `Home`
+  returns to the focused view.
 - **`focus-ring`**: `focus-active`, with people placed on a ring outside their agents
   instead of moving freely (used by the lab only). The ring sits 120 world pixels
   beyond the farthest agent, or larger so people are at least 90 pixels apart, and
