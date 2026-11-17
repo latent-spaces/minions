@@ -7,7 +7,9 @@ import { agents, db, projectDoc, type Agent, type WithId } from '../firestore.js
 import { assertCanDiscuss } from '../store/project-policy.js';
 import { createFanout, deliverProjectWide } from './fanout.js';
 import { backlog, deliver, readTargets } from './inbox.js';
-import { messagesV2, type MessageV2 } from './records.js';
+import { messagesV2, presence, type MessageV2 } from './records.js';
+import { writeAgentGroup } from './agent-group.js';
+import { prepareCurrentStateProgress } from '../view/current-state-progress.js';
 
 import { activeRecipientOperators, connectionAllowed, assertAgentMembership } from '../projects/access.js';
 import { assertRunInTransaction } from './runs.js';
@@ -135,12 +137,15 @@ export async function sendMessageV2(agent: WithId<Agent>, input: {
       ...(input.summary === undefined ? {} : { summary: input.summary.trim() }),
       to: projectWide ? [PROJECT] : to, audience: projectWide ? 'project' : 'direct', createdAt: at, protocol: 2,
     };
+    // The map reads the status document, so the send is recorded there too (Talking); progress is prepared before any write.
+    const statusProgress = await prepareCurrentStateProgress(tx, [presence().doc(agent.id)]);
     tx.set(ref, message);
     tx.create(conversationEntries().doc(message.id), {...message,kind:'agent_message'});
     tx.update(agents().doc(agent.id), {
       recentSends: [...recentSends, at],
       ...(projectWide ? { recentProjectSends: [...recentProjectSends, at] } : {}),
     });
+    writeAgentGroup(tx, presence().doc(agent.id), { ...self, recentSends: [...recentSends, at] }, undefined, statusProgress);
     if (projectWide) {
       tx.set(communicationUsageDoc(), { recentBroadcasts: [...recentBroadcasts, at] });
       const fanoutId = createFanout(tx, 'announcement', message, at, { id: ref.id, senderId: agent.id });

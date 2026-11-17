@@ -37,7 +37,7 @@ const RUN_FIELDS = ['runId', 'lastContactAt', 'phase', 'phaseAt', 'acceptingWork
 type StatusDoc = Partial<Pick<Presence, 'runId' | 'lastContactAt' | 'phase' | 'phaseAt' | 'acceptingWork'>> & {
   runEndedAt?: number | null; runMode?: Run['mode'];
   agent?: { name: string; ownerProfileId: string; connectionEpoch?: number; revokedAt: number | null;
-    focus: { text: string; updatedAt: number } | null; personaText?: string };
+    focus: { text: string; updatedAt: number } | null; personaText?: string; lastSendAt?: number | null };
   worker?: WorkerSummary;
 };
 function whitelist(data: Record<string, unknown>): StatusDoc {
@@ -46,7 +46,7 @@ function whitelist(data: Record<string, unknown>): StatusDoc {
   const select = (value: unknown, keys: string[]) => Object.fromEntries(keys.flatMap(key =>
     value && typeof value === 'object' && (value as Record<string, unknown>)[key] !== undefined
       ? [[key, (value as Record<string, unknown>)[key]]] : []));
-  if (data.agent) doc.agent = select(data.agent, ['name', 'ownerProfileId', 'connectionEpoch', 'revokedAt', 'focus', 'personaText']);
+  if (data.agent) doc.agent = select(data.agent, ['name', 'ownerProfileId', 'connectionEpoch', 'revokedAt', 'focus', 'personaText', 'lastSendAt']);
   if (data.worker) doc.worker = select(data.worker, ['runId', 'phase', 'lastContactAt', 'deadlineAt', 'projectPauseRevision']);
   return doc as StatusDoc;
 }
