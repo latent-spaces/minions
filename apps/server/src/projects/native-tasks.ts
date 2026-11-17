@@ -359,6 +359,9 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
         if (!parent) throw new Refusal('not_found', 'This parent task is unavailable in this project.');
         if (parent.proposed) throw new Refusal('bad_input', 'Wait for an owner to accept the proposed parent task before adding subtasks to it.');
         const chain = [...await ancestorsOf(tx, parent), parent];
+        // The new task must remain readable: its ancestry includes the parent itself.
+        // Agent requests are flattened below and do not retain this deep chain.
+        if (actor.kind === 'person' && chain.length > MAX_TASK_DEPTH) throw new Refusal('bad_input', 'This task is nested too deeply.');
         // Agents nest two levels (a task and its subtasks): a deeper agent request is attached under the deepest allowed level.
         parentId = actor.kind === 'agent' && chain.length >= AGENT_TASK_DEPTH ? chain[AGENT_TASK_DEPTH - 2]!.id : parent.id;
       }
