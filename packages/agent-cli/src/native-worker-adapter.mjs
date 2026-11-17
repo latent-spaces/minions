@@ -4,7 +4,7 @@ import { createRunJournal } from './run-journal.mjs';
 import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { localPermissionGuidance, workerClaudeSettings, agentsMayMerge, codexMergeRules, createProvider, CLAUDE_ALLOWED_TOOLS } from '../runtime/providers.mjs';
+import { localPermissionGuidance, workerClaudeSettings, workerPrivateRoots,agentsMayMerge, codexMergeRules, createProvider, CLAUDE_ALLOWED_TOOLS } from '../runtime/providers.mjs';
 import { createCodexMergePolicy } from './codex-merge-policy.mjs';
 import { VERSION } from './version.mjs';
 import { digest, ensureHome, lstatExists, readPrivate, writePrivate } from './state.mjs';
@@ -243,7 +243,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
       try { save(); } catch { return beforeLaunchFailure('private_state_failure'); }
       // Written every turn from the verified bundle, so a Card change takes effect at the next turn in either direction.
       const settingsFile = join(stateDir, 'claude-settings.json');
-      try { writePrivate(settingsFile, workerClaudeSettings(verifyBundle().files['claude-settings.json'].toString('utf8'), mergeApproval)); } catch { return beforeLaunchFailure('private_state_failure'); }
+      try { writePrivate(settingsFile, workerClaudeSettings(verifyBundle().files['claude-settings.json'].toString('utf8'), mergeApproval, workerPrivateRoots({ stateDir, folder, envSource }))); } catch { return beforeLaunchFailure('private_state_failure'); }
       let invocation;
       try {
         if (mergePolicy) {

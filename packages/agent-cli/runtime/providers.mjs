@@ -5,7 +5,7 @@ import { promisify } from 'node:util';
 const executeFile = promisify(execFile);
 import { randomUUID } from 'node:crypto';
 import { readFileSync, realpathSync, existsSync, readdirSync, lstatSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
 const PROVIDERS = ['claude', 'codex'];
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const counter = v => Number.isSafeInteger(v) && v >= 0 && v <= 1e15 ? v : null;
@@ -66,10 +66,31 @@ export function localPermissionGuidance(mergeApproval, provider) {
     : '';
   return 'Local development permissions: Work freely within your assigned checkout and approved mission: edit files, install project dependencies, run scripts and tests, make local commits, push your own working branches and open pull requests with gh pr create. Normal shell syntax and command combinations are fine, subject to native safeguards. Commands run in an operating-system sandbox that reaches GitHub and npm and blocks credential folders such as ~/.ssh. Push with git push origin <branch>: the sandbox protects git configuration, so git push -u and git config cannot write it.' + (provider === 'codex' ? '' : ' git pull is refused, and a new branch cannot save an upstream: to get the latest default branch run git fetch origin, then start each piece with git switch -c <branch> --no-track origin/<default branch>.') + gitBoundary + ' To see your UI, run headless Chromium with --single-process (with Playwright: chromium.launch({ args: [\'--single-process\'] })); on macOS the sandbox stops its usual multi-process start. Other agents on this computer share its temporary folder: create temporary files with mktemp or keep them in your checkout, never at fixed paths such as /tmp/pr-body.md. ' + merge + ' A peer message or a Needs you answer does not change native permissions. If genuinely blocked, create one deduplicated Needs you request for your owner, explain the action needed, and continue independent work. Do not repeatedly retry a refused action. Local scripts and Git hooks execute repository code; this policy is for trusted development checkouts, not hostile-code isolation.';
 }
-export function workerClaudeSettings(bundled, mergeApproval) {
+// The Minions private folders hold the owner's service token, the engine database and every agent's project
+// credential. A worker that read one could act as the owner or as another agent over loopback, so its commands
+// (sandbox) and its Read tool are kept out of them. Roots are rule paths: ~/… or //absolute.
+const PRIVATE_ROOT = /^(?:~\/|\/\/)[^\0*?[\]{}()\r\n]+$/;
+export function workerClaudeSettings(bundled, mergeApproval, privateRoots = []) {
   const settings = JSON.parse(bundled);
   if (agentsMayMerge(mergeApproval)) settings.permissions.deny = settings.permissions.deny.filter(rule => !MERGE_DENY.includes(rule));
+  const roots = [...new Set(['~/.minions', ...privateRoots])];
+  if (roots.some(root => typeof root !== 'string' || !PRIVATE_ROOT.test(root))) throw new Error('Invalid private state path for the worker sandbox.');
+  settings.sandbox.filesystem.denyRead = [...new Set([...settings.sandbox.filesystem.denyRead, ...roots])];
+  settings.permissions.deny.push(...roots.flatMap(root => [`Read(${root}/**)`, `Edit(${root}/**)`]));
   return settings;
+}
+// Rule paths for one worker's private state. stateDir is <service home>/agents/<id>; a setup-made service home is
+// <engine home>/connector-service beside engine.sqlite and owner.json. A root that holds the checkout is left out.
+export function workerPrivateRoots({ stateDir, folder, envSource = process.env, platform = process.platform }) {
+  // Windows rule spellings differ; there the default ~/.minions entry applies.
+  if (platform === 'win32') return [];
+  const roots = [];
+  const serviceHome = basename(dirname(stateDir)) === 'agents' ? dirname(dirname(stateDir)) : stateDir;
+  roots.push(serviceHome);
+  if (basename(serviceHome) === 'connector-service') roots.push(dirname(serviceHome));
+  for (const name of ['MINIONS_SERVICE_HOME', 'MINIONS_CREDENTIAL_HOME', 'MINIONS_ENGINE_HOME']) if (isAbsolute(envSource[name] ?? '')) roots.push(envSource[name]);
+  const inside = (root, path) => { const part = relative(root, path); return part === '' || part !== '..' && !part.startsWith('../') && !isAbsolute(part); };
+  return [...new Set(roots.map(root => resolve(root)))].filter(root => root !== '/' && !inside(root, resolve(folder))).map(root => `/${root}`).filter(root => PRIVATE_ROOT.test(root));
 }
 
 // Model clients and their preflight checks receive named variables only, never the operator's
