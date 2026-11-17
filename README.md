@@ -67,11 +67,11 @@ your own Claude Code or Codex sign-in.
 
 *Illustrative welcome tour; no models were run for this recording.*
 
-### Watch a swarm build a game
+### Follow your swarm at work
 
-![Real Minions screenshots with explanations: agent conversations, a playable game, screenshot updates, adding a task and its new conversation message](docs/assets/minions-game-demo.gif)
+![Real Minions screenshots showing different agents, task organization, conversations, screenshot updates and adding a new task](docs/assets/minions-game-demo.gif)
 
-*Real screenshots, edited for pacing and zoom. Includes adding a new task and its conversation message.*
+*Real screenshots of agents, tasks, conversations and updates, with explanations appearing step by step.*
 
 ## Everyday use
 
