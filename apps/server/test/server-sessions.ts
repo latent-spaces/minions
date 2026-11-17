@@ -3,7 +3,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { Refusal } from '../src/errors.js';
 import { collection, db, githubAccounts } from '../src/firestore.js';
-import type { IdentityAccount, IdentityAccountExport, IdentityProvider, VerifiedSession } from '../src/identity/provider.js';
+import type { IdentityAccount, IdentityProvider, VerifiedSession } from '../src/identity/provider.js';
 
 /** Sign-in emails as invitations match them: trimmed, lowercase, without duplicates, in the given order, at most 30. */
 const normalizeEmails = (emails: readonly string[]): string[] =>
@@ -83,17 +83,6 @@ export function serverSessionIdentity(now: () => number = Date.now): IdentityPro
     async account(subject: string): Promise<IdentityAccount | null> {
       const account = (await accounts().doc(subject).get()).data();
       return account ? accountOf(subject, account) : null;
-    },
-    async exportAccount(email: string): Promise<IdentityAccountExport | null> {
-      // Two accounts can hold the same email if it moved between GitHub accounts; export neither rather than guess.
-      const found = await accounts().where('emails', 'array-contains', email.toLowerCase()).limit(2).get();
-      const row = found.size === 1 ? found.docs[0] : null;
-      if (!row) return null;
-      const account = row.data();
-      return { uid: row.id, email: account.emails[0] ?? null, emailVerified: account.emails.length > 0, displayName: account.name,
-        photoURL: account.avatarUrl, phoneNumber: null, disabled: account.disabled,
-        providers: [{ providerId: 'github.com', uid: account.githubId, email: account.emails[0] ?? null, displayName: account.name, photoURL: account.avatarUrl, phoneNumber: null }],
-        createdAt: new Date(account.createdAt).toISOString(), lastSignInAt: new Date(account.lastSignInAt).toISOString() };
     },
   };
 }

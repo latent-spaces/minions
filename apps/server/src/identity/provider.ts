@@ -29,18 +29,9 @@ export type IdentityAccount = {
   emailVerified: boolean;
 };
 
-/** The account as included in a person's data export. */
-export type IdentityAccountExport = {
-  uid: string; email: string | null; emailVerified: boolean; displayName: string | null; photoURL: string | null; phoneNumber: string | null; disabled: boolean;
-  providers: { providerId: string; uid: string; email: string | null; displayName: string | null; photoURL: string | null; phoneNumber: string | null }[];
-  createdAt: string | null; lastSignInAt: string | null;
-};
-
 export interface IdentityProvider {
   /** Null when the provider rejected the token or account. An outage or configuration error throws, so callers can retry. */
   verifySession(token: string): Promise<VerifiedSession | null>;
   /** Null when the account does not exist. */
   account(subject: string): Promise<IdentityAccount | null>;
-  /** Null when no account has this email. */
-  exportAccount(email: string): Promise<IdentityAccountExport | null>;
 }

@@ -1,9 +1,9 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import type { IdentityAccount, IdentityAccountExport, IdentityProvider, VerifiedSession } from './provider.js';
+import type { IdentityAccount, IdentityProvider, VerifiedSession } from './provider.js';
 
 // The sign-in service for a single-owner self-hosted engine. There is no outside account service: the engine signs
 // a session for its one owner with a secret only it holds, and the owner's email is the one they configured.
-// Nothing installs this provider yet; a later change wires it into a self-hosted startup that serves loopback only.
+// The self-hosted engine installs this provider at startup and serves loopback only.
 
 export const LOCAL_OWNER_PROVIDER = 'local-owner';
 
@@ -66,12 +66,7 @@ export function localOwnerIdentity(options: LocalOwnerOptions): LocalOwnerIdenti
         email: owner.email, emailVerified: true, githubId: null };
     },
     async account(subject: string) { return subject === owner.subject ? account() : null; },
-    async exportAccount(email: string): Promise<IdentityAccountExport | null> {
-      if (email.trim().toLowerCase() !== owner.email) return null;
-      return { uid: owner.subject, email: owner.email, emailVerified: true, displayName: owner.name, photoURL: null, phoneNumber: null,
-        disabled: false, providers: [{ providerId: LOCAL_OWNER_PROVIDER, uid: owner.subject, email: owner.email, displayName: owner.name,
-          photoURL: null, phoneNumber: null }], createdAt: null, lastSignInAt: null };
-    },
+
   };
   providers.set(provider, owner.subject);
   return provider;
