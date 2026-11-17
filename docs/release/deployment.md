@@ -6,7 +6,7 @@ Minions runs locally from a checkout. To update a clean checkout on `main`, run:
 minions update
 ```
 
-Update pulls `main` with fast-forward only, lets current turns finish, rebuilds and
+Update lets current turns finish, stops, pulls `main` with fast-forward only, rebuilds and
 restarts the engine and shared service. If tracked changes are present, resolve
 them before updating. Preserve local engine data, credentials and agent checkouts.
 

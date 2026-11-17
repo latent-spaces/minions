@@ -87,7 +87,7 @@ Setup links a `minions` command:
 | `minions logs -f` | Follow engine logs; add `--service` for worker service logs |
 | `minions stop` | Let current turns finish, then stop the service and engine |
 | `minions start --open` | Start them again and open the app |
-| `minions update` | Pull `main` with fast-forward only, let turns finish, rebuild and restart |
+| `minions update` | Let turns finish, stop, pull `main` with fast-forward only, rebuild and restart |
 | `minions help` | Show all commands and options |
 
 Stop waits up to ten minutes by default. If turns are still finishing, the engine

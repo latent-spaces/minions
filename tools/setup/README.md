@@ -57,8 +57,10 @@ and a Git worktree keep the computer's existing command. Its commands:
   finishing, the engine is left running so they can complete. `--now` ends them at once.
   `npm run stop` runs it.
 - `status [--json]`, `open`, `logs [--service] [--lines N] [--follow]`.
-- `setup [...]` runs this setup; `update` pulls `main` fast-forward only (refusing
-  another branch or uncommitted tracked changes), stops as `stop` does and runs setup.
+- `setup [...]` runs this setup; `update` checks `main` for updates (refusing
+  another branch, uncommitted tracked changes or divergent history), stops as `stop`
+  does, then pulls fast-forward only and runs setup. A fresh build with no update
+  leaves the running service alone. If turns are still draining, the checkout stays unchanged.
 
 At a terminal it draws a few ASCII critters and colors; when piped or called by an
 agent, or with `MINIONS_PLAIN=1`, it prints plain lines, and `NO_COLOR` drops the
