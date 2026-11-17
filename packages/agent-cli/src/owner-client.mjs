@@ -249,7 +249,11 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
     const query = new URLSearchParams();
     for (const field of ['cursor','scope','q','source','limit']) if (args[field] !== undefined) query.set(field, String(args[field]));
     if (query.size) path += '?' + query;
-    const response = await request(path,{method,body,profileId:r.profileId});
+    // Task detail combines a 96 KiB task, bounded comments/history, up to 50 ancestors
+    // and 100 subtask summaries. Allow their combined UTF-8 JSON without truncation;
+    // this owner route returns plain records, without MCP provenance wrappers.
+    const response = await request(path,{method,body,profileId:r.profileId,
+      ...(name === 'read_project_task' ? { responseLimit: 512 * 1024 } : {})});
     // The goal is already in definition.goal.
     if (name === 'get_project_overview' && response.project && typeof response.project === 'object') delete response.project.mission;
     return lean(response);
