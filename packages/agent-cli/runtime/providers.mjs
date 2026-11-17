@@ -84,7 +84,7 @@ export function workerClaudeSettings(bundled, mergeApproval, privateRoots = []) 
 // <engine home>/connector-service beside engine.sqlite and owner.json. Checked before the worker starts: a checkout
 // inside private state, or a path the rules cannot spell, is refused rather than launched with a missing boundary.
 export function workerPrivateRoots({ stateDir, folder, envSource = process.env, platform = process.platform, userHome = homedir(),
-  realpath = platform === 'win32' ? realpathSync.native : realpathSync }) {
+  realpath = platform === 'win32' ? realpathSync.native : realpathSync, rules: spellRules = true }) {
   const windows = platform === 'win32', path = windows ? win32 : posix;
   const { basename, dirname, isAbsolute, join, relative, resolve, sep } = path;
   // Windows names variables in any letter case.
@@ -114,6 +114,8 @@ export function workerPrivateRoots({ stateDir, folder, envSource = process.env, 
   if (realRoots.some(root => dirname(root) === root || inside(root, checkout) || inside(checkout, root))) throw new Error('The project checkout and Minions private state overlap. Move the checkout (or MINIONS_ENGINE_HOME) so they are separate folders, then start the agent again.');
   // Claude Code reads //c/Users/… as C:\Users\…; a UNC or other non-drive path has no rule spelling.
   const rule = root => windows ? (/^[A-Za-z]:\\/.test(root) ? `//${root[0].toLowerCase()}/${root.slice(3).replaceAll('\\', '/')}` : null) : `/${root}`;
+  // A client without these rules (Codex) still gets the overlap refusal above, and needs no rule spelling.
+  if (!spellRules) return [];
   const rules = extra.map(rule);
   if (rules.some(value => value === null || !PRIVATE_ROOT.test(value))) throw new Error('A Minions private folder path uses characters the worker sandbox rules cannot express (one of ( ) [ ] { } * ?, or a network path). Choose MINIONS_ENGINE_HOME, MINIONS_SERVICE_HOME and MINIONS_CREDENTIAL_HOME on a local drive without them, then start the agent again.');
   return rules;

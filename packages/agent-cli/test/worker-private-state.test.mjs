@@ -70,3 +70,8 @@ test('Windows roots use the //c/… spelling Claude Code reads as C:\\…, compa
   assert.throws(() => win({ stateDir: 'C:\\Users\\Person\\.minions\\engine\\connector-service\\agents\\abc', folder: 'c:\\users\\person\\.MINIONS\\projects\\repo' }), /overlap/);
   assert.throws(() => win({ stateDir: '\\\\server\\share\\minions\\agents\\abc', folder: 'C:\\work\\repo' }), /network path/);
 });
+
+test('a client without deny rules still gets the overlap refusal, without the rule-spelling one', posixOnly, () => {
+  assert.throws(() => roots({ stateDir: at('srv', 'state', 'agents', 'abc'), folder: join(home, '.minions', 'projects', 'repo'), rules: false }), /overlap/);
+  assert.deepEqual(roots({ stateDir: at('Minions (work)', 'connector-service', 'agents', 'abc'), folder: at('work', 'project'), rules: false }), []);
+});
