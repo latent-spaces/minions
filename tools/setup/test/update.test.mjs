@@ -76,7 +76,7 @@ async function fixture(options, check) {
     await new Promise((accept, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', accept); });
     env.MINIONS_ENGINE_PORT = String(server.address().port);
     await new Promise(accept => server.close(accept));
-    const run = () => spawnSync(process.execPath, [join(checkout, 'tools/setup/minions.mjs'), 'update', ...(options.now ? ['--now'] : [])],
+    const run = () => spawnSync(process.execPath, [join(checkout, 'tools/setup/minions.mjs'), options.command ?? 'update', ...(options.now ? ['--now'] : [])],
       { cwd: checkout, env, encoding: 'utf8', windowsHide: true, timeout: 15_000 });
     const readEvents = () => existsSync(events) ? readFileSync(events, 'utf8').trim().split('\n') : [];
     const result = run();
@@ -156,4 +156,11 @@ test('a failed setup is retried even when the backend build looks newer than the
   assert.equal(completed.status, 0, completed.stderr || completed.error?.message);
   assert.match(completed.stdout, /Already up to date/);
   assert.equal(readEvents().length, 4, 'a completed retry restores no-op behavior');
+}));
+
+test('plain status preserves an unreadable service state instead of claiming it stopped', () => fixture({ command: 'status', advance: false, statusUnknown: true }, ({ result, recorded }) => {
+  assert.equal(result.status, 0, result.stderr || result.error?.message);
+  assert.match(result.stdout, /Shared service: unknown/);
+  assert.doesNotMatch(result.stdout, /Shared service: stopped/);
+  assert.deepEqual(recorded, [], 'status performs no stop or setup');
 }));
