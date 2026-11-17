@@ -493,11 +493,11 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
       agentId: shown.to[0]!, agentName: shown.agentName, actorProfileId: actor.person.id, actorName: actor.person.name, taskId: task.id, taskTitle: task.title,
       body: message, to: shown.to, audience: 'direct', createdAt: at, protocol: 2 } satisfies TaskMessage);
     deliver(tx, notice, { sourceId: `task-assigned-${task.id}-${task.revision}`, kind: 'task_assigned', messageId: null,
-      payload: { type: 'task_assigned', taskId: task.id, title: task.title, titleAuthor: task.titleAuthor, assignedBy: author, revision: task.revision, ...(message !== undefined ? { message } : {}) } }, at);
+      payload: { type: 'task_assigned', taskId: task.id, title: task.title, ...(task.titleAuthor ? { titleAuthor: task.titleAuthor } : {}), assignedBy: author, revision: task.revision, ...(message !== undefined ? { message } : {}) } }, at);
     deliver(tx, created, { sourceId: `task-created-${task.id}`, kind: 'task_created', messageId: null,
       payload: { type: 'task_created', taskId: task.id, title: task.title, titleAuthor: task.titleAuthor, createdBy: author, message, revision: task.revision } }, at);
     if (closedParent) deliver(tx, closedNotice, { sourceId: `task-children-closed-${closedParent.id}-${task.id}-${task.revision}`, kind: 'task_children_closed', messageId: null,
-      payload: { type: 'task_children_closed', taskId: closedParent.id, title: closedParent.title, titleAuthor: closedParent.titleAuthor, revision: closedParent.revision } }, at);
+      payload: { type: 'task_children_closed', taskId: closedParent.id, title: closedParent.title, ...(closedParent.titleAuthor ? { titleAuthor: closedParent.titleAuthor } : {}), revision: closedParent.revision } }, at);
     return visibleResult;
   });
 }
