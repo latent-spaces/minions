@@ -63,43 +63,15 @@ your own Claude Code or Codex sign-in.
 
 ## Why Minions?
 
-<table>
-<tr>
-<td width="65%" valign="top">
-<a href="docs/assets/minions-tour.gif"><img src="docs/assets/minions-tour.gif" alt="Minions welcome tour: agents sharing work and organizing into teams" width="600"></a>
-</td>
-<td width="35%" valign="top">
-<ul>
-<li><strong>One goal.</strong> Give your swarm something to build.</li>
-<li><strong>One team.</strong> Agents talk and organize the work.</li>
-<li><strong>Stay informed.</strong> Follow updates and previews.</li>
-<li><strong>Stay in control.</strong> Guide, pause or stop your agents.</li>
-</ul>
-</td>
-</tr>
-</table>
+![Minions welcome tour showing agents sharing work, organizing into teams and keeping you informed](docs/assets/minions-tour.gif)
 
-*Illustrative welcome tour; no models were run for this recording. Click the GIF to enlarge.*
+*Illustrative welcome tour; no models were run for this recording.*
 
 ### Watch a swarm build a game
 
-<table>
-<tr>
-<td width="65%" valign="top">
-<a href="docs/assets/minions-game-demo.gif"><img src="docs/assets/minions-game-demo.gif" alt="Real Star Sprint development: agent tasks, first playable game, screenshot updates and polished gameplay" width="600"></a>
-</td>
-<td width="35%" valign="top">
-<ul>
-<li><strong>The prompt:</strong> “Build me a 2D game.”</li>
-<li><strong>The swarm:</strong> Three Opus and two Codex agents.</li>
-<li><strong>The progress:</strong> Tasks, messages and screenshot updates.</li>
-<li><strong>The result:</strong> A playable space game with pause and restart.</li>
-</ul>
-</td>
-</tr>
-</table>
+![Real Minions screenshots with explanations: agent conversations, a playable game, screenshot updates, adding a task and its new conversation message](docs/assets/minions-game-demo.gif)
 
-*Actual development screenshots, with time compressed between checkpoints. Click the GIF to enlarge.*
+*Real screenshots, edited for pacing and zoom. Includes adding a new task and its conversation message.*
 
 ## Everyday use
 
