@@ -124,6 +124,22 @@ with the same `MINIONS_*` settings the engine was started with, exits 0 only whe
 the engine at that address signs sessions with this owner file's secret. `npm run
 setup` uses it to recognize that a busy port is its own engine.
 
+## What this protects against
+
+Minions treats the processes your account runs on this computer as trusted. The
+loopback-only listener, the `Host` and `Origin` checks on owner sessions and the
+signed stop request keep other computers and other websites out: a web page in
+your browser cannot get an owner session or stop the engine. They do not stop a
+program running as your own account. Such a program can send those same headers,
+read the private owner file and database, and act as the owner. The same holds for
+code in a checkout you run setup in, and for any account that can read your Minions
+home. Do not run setup in a checkout you do not trust, and do not share the account.
+
+The controls on agent work, such as per-agent permissions, Pause and the connector's
+mission and checkout checks, keep a team's workflow orderly and limit what an
+ordinary session does by mistake. They are not a sandbox against a hostile model or
+program running under your account.
+
 ## Stopping and recovery
 
 Run `minions stop` (or `npm run stop`). It first stops the connector's shared
