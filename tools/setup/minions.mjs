@@ -211,7 +211,7 @@ async function status(args) {
   const engineText = engine === 'running' ? `running at ${cyan(site)}` : engine === 'other' ? `port ${port} is used by ${portHolder(port) ?? 'another program'}` : 'asleep';
   const serviceText = service.running ? (service.draining ? `finishing ${service.turnsInProgress ?? 'its'} turn(s), then stopping` : 'running') : service.error ? `unknown (${service.error})` : service.installed === false ? 'not set up yet' : 'asleep';
   say(`${mark(engine === 'running')} Engine          ${engineText}`, `Engine: ${engine === 'running' ? `running at ${site}` : engine === 'other' ? `port ${port} is used by another program` : 'stopped'}`);
-  say(`${mark(service.running)} Shared service  ${serviceText}`, `Shared service: ${service.running ? (service.draining ? 'finishing turns, then stopping' : 'running') : 'stopped'}`);
+  say(`${mark(service.running)} Shared service  ${serviceText}`, `Shared service: ${service.running ? (service.draining ? 'finishing turns, then stopping' : 'running') : service.error ? serviceText : 'stopped'}`);
   say(dim(`  Files           ${home}`), `Files: ${home}`);
   if (!built || setUp !== 'existing') say(`${yellow('!')} Not set up yet: run ${bold('minions setup')}`, 'Not set up yet: run minions setup.');
   else if (engine !== 'running') say(dim(`  Wake them with ${bold('minions start')}`), 'Start with: minions start');
