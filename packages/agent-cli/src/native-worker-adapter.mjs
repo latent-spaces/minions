@@ -4,7 +4,7 @@ import { createRunJournal } from './run-journal.mjs';
 import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { localPermissionGuidance, workerClaudeSettings, agentsMayMerge, codexMergeRules, createProvider, CLAUDE_ALLOWED_TOOLS } from '../runtime/providers.mjs';
+import { localPermissionGuidance, workerClaudeSettings, workerPrivateRoots, agentsMayMerge, codexMergeRules, createProvider, CLAUDE_ALLOWED_TOOLS } from '../runtime/providers.mjs';
 import { createCodexMergePolicy } from './codex-merge-policy.mjs';
 import { VERSION } from './version.mjs';
 import { digest, ensureHome, lstatExists, readPrivate, writePrivate } from './state.mjs';
@@ -175,6 +175,8 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
   if (configuredEndpoint && (() => { try { const endpoint = new URL(configuredEndpoint); return endpoint.protocol !== 'https:' || endpoint.origin !== (client === 'claude' ? 'https://api.anthropic.com' : 'https://api.openai.com'); } catch { return true; } })()) throw new Error('This worker adapter cannot preserve your custom API endpoint. Use the current-chat MCP mode rather than silently switching your model backend.');
   const settings = { claude: executables.claude, codex: executables.codex, model, effort, repoDir: folder, permissionMode: 'acceptEdits', allowedTools: CLAUDE_ALLOWED_TOOLS, passEnv: '', turnBudgetUsd: 0 };
   const provider = createProvider(client, settings, { envSource });
+  // Refuses before any launch when this worker's private state cannot be kept out of its reach.
+  const privateRoots = client === 'claude' ? workerPrivateRoots({ stateDir, folder, envSource }) : [];
   if (process.platform === 'win32') await probeWindowsSupervision({ env: provider.environment(), signal });
   const mergePolicy = client === 'codex' ? createCodexMergePolicy({ folder, stateDir, env: provider.environment() }) : null;
   await provider.preflight({ signal });
@@ -243,7 +245,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
       try { save(); } catch { return beforeLaunchFailure('private_state_failure'); }
       // Written every turn from the verified bundle, so a Card change takes effect at the next turn in either direction.
       const settingsFile = join(stateDir, 'claude-settings.json');
-      try { writePrivate(settingsFile, workerClaudeSettings(verifyBundle().files['claude-settings.json'].toString('utf8'), mergeApproval)); } catch { return beforeLaunchFailure('private_state_failure'); }
+      try { writePrivate(settingsFile, workerClaudeSettings(verifyBundle().files['claude-settings.json'].toString('utf8'), mergeApproval, privateRoots)); } catch { return beforeLaunchFailure('private_state_failure'); }
       let invocation;
       try {
         if (mergePolicy) {
