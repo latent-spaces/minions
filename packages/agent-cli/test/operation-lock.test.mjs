@@ -44,3 +44,13 @@ test('the lock is released when the action fails', async t => {
   assert.equal(await gone(join(dir, 'operation.lock')), true);
   assert.equal(await withOperationLock(dir, () => 'again'), 'again');
 });
+
+test('a recovery guard left by a crash is never taken over, and the refusal names it', async t => {
+  const dir = await directory(t), lock = join(dir, 'operation.lock'), guard = join(dir, 'browser-recovery.lock');
+  await writeFile(lock, JSON.stringify({ kind: 'minions-browser-operation-1', pid: exitedPid(), nonce: 'n' }), { mode: 0o600 });
+  await writeFile(guard, `${exitedPid()}\n`, { mode: 0o600 });
+  await assert.rejects(async () => withOperationLock(dir, () => {}), error => error.message.includes(guard) && /No process was stopped/.test(error.message));
+  assert.equal(await gone(guard), false);
+  await rm(guard);
+  assert.equal(await withOperationLock(dir, () => 'recovered'), 'recovered');
+});
