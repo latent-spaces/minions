@@ -7,14 +7,23 @@ export type PickerItem = { key: string; label: ReactNode; checked?: boolean; dis
 /** The summary (a chip, a face or an icon) is the control: it opens a small menu, like the selected simple-tasks design. */
 export function PickerMenu({ label, summary, items, disabled, align = 'start', triggerLabel }: { label: string; summary: ReactNode; items: PickerItem[]; disabled?: boolean; align?: 'start' | 'end'; triggerLabel?: string }) {
   const [open, setOpen] = useState(false), trigger = useRef<HTMLButtonElement>(null), menu = useRef<HTMLDivElement>(null), menuId = useId();
+  const pointerInside = useRef(false);
   useEffect(() => {
     if (!open) return;
     menu.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus();
-    const outside = (event: PointerEvent) => { if (!menu.current?.contains(event.target as Node) && !trigger.current?.contains(event.target as Node)) setOpen(false); };
+    const outside = (event: PointerEvent) => {
+      pointerInside.current = !!(menu.current?.contains(event.target as Node) || trigger.current?.contains(event.target as Node));
+      if (!pointerInside.current) setOpen(false);
+    };
+    const released = () => { pointerInside.current = false; };
     document.addEventListener('pointerdown', outside);
-    return () => { document.removeEventListener('pointerdown', outside); };
+    document.addEventListener('pointerup', released); document.addEventListener('pointercancel', released);
+    return () => { pointerInside.current = false; document.removeEventListener('pointerdown', outside); document.removeEventListener('pointerup', released); document.removeEventListener('pointercancel', released); };
   }, [open]);
-  return <div className="k42-task-picker" onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
+  return <div className="k42-task-picker" onBlur={event => {
+    // Safari can focus the page container on a menu click. Let that click finish; outside pointerdown already dismisses.
+    if (!pointerInside.current && event.relatedTarget instanceof Node && !event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+  }}>
     <button ref={trigger} type="button" className="k42-task-picker-trigger" aria-haspopup="menu" aria-expanded={open} aria-controls={menuId} aria-label={triggerLabel ?? `${label}: change`} disabled={disabled} onClick={() => setOpen(v => !v)}>{summary}</button>
     {open && <div ref={menu} id={menuId} role="menu" aria-label={label} className={`k42-task-picker-menu${align === 'end' ? ' is-end' : ''}`}
       onKeyDown={event => {
