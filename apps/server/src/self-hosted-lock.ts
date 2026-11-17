@@ -40,13 +40,40 @@ export const bootTime = (): number => Date.now() - uptime() * 1_000;
 const RESTART_MARGIN_MS = 5 * 60_000;
 export const restartedSince = (createdAt: number, boot: number): boolean => boot > createdAt + RESTART_MARGIN_MS;
 
-/** The lock's recorded owner, or null when the file cannot be read as one (left for the operator). */
-function lockOwner(lock: string): { pid: number; createdAt: number | null } | null {
+type LockSnapshot = { dev: number; ino: number; contents: string };
+function unchanged(file: string, snapshot: LockSnapshot): boolean {
+  assertPrivateDataFile(file);
+  const current = lstatSync(file);
+  return current.dev === snapshot.dev && current.ino === snapshot.ino && readOwnerFile(file) === snapshot.contents;
+}
+
+/** The lock's recorded owner and identity, or null when either cannot be inspected safely. */
+function lockOwner(lock: string): (LockSnapshot & { pid: number; createdAt: number | null }) | null {
   try {
     assertPrivateDataFile(lock);
-    const value = JSON.parse(readOwnerFile(lock)) as { pid?: unknown; createdAt?: unknown };
-    return typeof value.pid === 'number' ? { pid: value.pid, createdAt: typeof value.createdAt === 'number' ? value.createdAt : null } : null;
+    const stat = lstatSync(lock), contents = readOwnerFile(lock);
+    const snapshot = { dev: stat.dev, ino: stat.ino, contents };
+    if (!unchanged(lock, snapshot)) return null;
+    const value = JSON.parse(contents) as { pid?: unknown; createdAt?: unknown };
+    return typeof value.pid === 'number' ? { ...snapshot, pid: value.pid, createdAt: typeof value.createdAt === 'number' ? value.createdAt : null } : null;
   } catch { return null; }
+}
+
+/** Serialize only stale recovery. An abandoned guard is retained rather than racing another guard's replacement. */
+function recoverExclusively(lock: string, recover: () => void): void {
+  const guard = `${lock}.recovery`;
+  const contents = JSON.stringify({ pid: process.pid, nonce: randomUUID(), createdAt: Date.now() });
+  try { createOwnerFile(guard, contents); }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
+    throw new Error(`Database lock recovery is already in progress. Wait and retry. If it persists, inspect the recorded PID and confirm no engine is starting or recovering this database before removing only this recovery guard: ${guard}`);
+  }
+  const stat = lstatSync(guard), snapshot = { dev: stat.dev, ino: stat.ino, contents };
+  try { recover(); }
+  finally {
+    if (!unchanged(guard, snapshot)) throw new Error(`The database recovery guard changed and was preserved for inspection: ${guard}`);
+    unlinkWhenFree(guard);
+  }
 }
 
 /** An unreachable listener does not prove the lock's owner has finished startup or shutdown. */
@@ -63,12 +90,21 @@ export function lockSelfHostedStore(file: string, gone: (pid: number) => boolean
   try { create(); }
   catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
-    const owner = lockOwner(lock);
-    const stale = owner !== null && owner.pid !== process.pid
-      && (gone(owner.pid) || (owner.createdAt !== null && restartedSince(owner.createdAt, boot())));
-    if (!stale) throw new Error(lockedMessage(lock));
-    // Recovery is not guarded against two starters replacing the same stale lock at once; setup starts one engine.
-    unlinkWhenFree(lock); create();
+    recoverExclusively(lock, () => {
+      // Read the owner only after taking the recovery guard: a previous recoverer may already have replaced it.
+      const owner = lockOwner(lock);
+      const stale = owner !== null && owner.pid !== process.pid
+        && (gone(owner.pid) || (owner.createdAt !== null && restartedSince(owner.createdAt, boot())));
+      if (!stale) throw new Error(lockedMessage(lock));
+      if (!unchanged(lock, owner)) throw new Error(`The standalone lock changed during recovery and was preserved: ${lock}`);
+      unlinkWhenFree(lock);
+      try { create(); }
+      catch (error) {
+        // A normal starter can win the now-empty path without needing recovery.
+        if ((error as NodeJS.ErrnoException).code === 'EEXIST') throw new Error(lockedMessage(lock));
+        throw error;
+      }
+    });
   }
   const stat = lstatSync(lock);
   let released = false;
