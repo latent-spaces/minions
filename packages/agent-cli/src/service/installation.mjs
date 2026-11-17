@@ -103,7 +103,10 @@ async function claimOwnership(home) {
 async function control(config, path, method = 'GET', incarnation) {
   const response = await fetch(`http://127.0.0.1:${config.port}${path}`, { method, redirect: 'error', credentials: 'omit',
     headers: { Authorization: `Bearer ${config.token}`, Accept: 'application/json', ...(incarnation ? { 'X-Minions-Incarnation': incarnation } : {}) }, signal: AbortSignal.timeout(1500) });
-  if (!response.ok) throw fail('The saved service endpoint did not authenticate. No process was signalled.');
+  // The service answers its control paths as JSON, refusing with 401; anything else is another program on its port.
+  if (!response.ok) throw fail(response.status === 401 || response.headers.get('content-type') === 'application/json'
+    ? 'The saved service endpoint did not authenticate. No process was signalled.'
+    : `Another program answers on the service's port ${config.port}. Stop it, then retry. No process was signalled.`);
   if (Number(response.headers.get('content-length')) > 8192) throw fail('Invalid service response.');
   let size = 0; const chunks = [];
   for await (const chunk of response.body) { size += chunk.byteLength; if (size > 8192) throw fail('Invalid service response.'); chunks.push(chunk); }
