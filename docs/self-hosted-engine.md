@@ -175,8 +175,10 @@ signal for a detached process, so every platform uses this same request. Shutdow
 drains held HTTP requests and the delivery worker before closing SQLite, then
 removes the `.lock` file; the stop waits up to 20 seconds for the engine to
 release that lock. The next start replaces a lock left behind by a crash or a computer
-restart: one whose process no longer exists, or one written before the computer last
-started (its process ID may now belong to another program). Any other lock is refused.
+restart only when its recorded process no longer exists. If that process ID now
+belongs to another program, startup refuses the lock and requires the inspection
+described below. A file timestamp cannot safely distinguish a reboot from a clock
+adjustment. This rule also applies to locks written by older engine versions.
 `minions start` starts both again without rebuilding.
 
 A second engine on the same database is refused by its `.lock` file, and the
