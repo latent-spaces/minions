@@ -21,6 +21,7 @@ async function fixture(options, check) {
     MINIONS_UPDATE_TEST_EVENTS: events, MINIONS_UPDATE_TEST_DRAIN_FAIL: options.drainFails ? '1' : '0',
     MINIONS_UPDATE_TEST_SETUP_FAIL: options.setupFails ? '1' : '0',
     MINIONS_UPDATE_TEST_STATUS_UNKNOWN: options.statusUnknown ? '1' : '0',
+    MINIONS_UPDATE_TEST_SERVICE_STOPPED: options.serviceStopped ? '1' : '0',
     MINIONS_UPDATE_TEST_CHANGE_SOURCE: options.changeSource ? '1' : '0',
     MINIONS_UPDATE_TEST_REMOVE_UPSTREAM: options.pullFails ? upstream : '' };
   const git = (cwd, ...args) => {
@@ -45,7 +46,7 @@ async function fixture(options, check) {
       import { appendFileSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
       if (process.argv[2] === 'service-status') {
         if (process.env.MINIONS_UPDATE_TEST_STATUS_UNKNOWN === '1') process.exitCode = 1;
-        else console.log(JSON.stringify({ running: true }));
+        else console.log(JSON.stringify({ running: process.env.MINIONS_UPDATE_TEST_SERVICE_STOPPED !== '1' }));
       }
       else if (process.argv[2] === 'service-stop') {
         appendFileSync(process.env.MINIONS_UPDATE_TEST_EVENTS, 'stop:' + readFileSync('version.txt', 'utf8') + '\\n');
@@ -72,6 +73,10 @@ async function fixture(options, check) {
       git(checkout, 'add', '.'); git(checkout, 'commit', '-m', 'local divergence');
     }
     if (options.stale) utimesSync(join(checkout, 'apps/server/dist/self-hosted-main.js'), new Date(1000), new Date(1000));
+    if (options.engineLocked) {
+      mkdirSync(env.MINIONS_ENGINE_HOME, { mode: 0o700 });
+      writeFileSync(join(env.MINIONS_ENGINE_HOME, 'engine.sqlite.lock'), JSON.stringify({ pid: process.pid }), { mode: 0o600 });
+    }
     // No engine is launched; reserve a free loopback port only for the real CLI's availability check.
     const server = createServer();
     await new Promise((accept, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', accept); });
@@ -164,4 +169,28 @@ test('plain status preserves an unreadable service state instead of claiming it 
   assert.match(result.stdout, /Shared service: unknown/);
   assert.doesNotMatch(result.stdout, /Shared service: stopped/);
   assert.deepEqual(recorded, [], 'status performs no stop or setup');
+}));
+
+test('update preserves source when the listener is gone but the database lock remains', () => fixture({ engineLocked: true }, ({ result, recorded, version, env }) => {
+  assert.equal(result.status, 1);
+  assert.deepEqual(recorded, ['stop:old']);
+  assert.equal(version, 'old');
+  assert.match(result.stderr, /shutdown was not confirmed/);
+  assert.match(result.stderr, /minions start to recover it/);
+  assert.equal(existsSync(join(env.MINIONS_ENGINE_HOME, 'engine.sqlite.lock')), true);
+}));
+
+test('stop refuses to claim success with no listener and a remaining lock', () => fixture({ command: 'stop', serviceStopped: true, engineLocked: true }, ({ result, recorded, env }) => {
+  assert.equal(result.status, 1);
+  assert.deepEqual(recorded, []);
+  assert.match(result.stderr, /shutdown was not confirmed/);
+  assert.doesNotMatch(result.stdout, /Minions (are not running|stopped)/);
+  assert.equal(existsSync(join(env.MINIONS_ENGINE_HOME, 'engine.sqlite.lock')), true);
+}));
+
+test('plain stop refuses an unreadable service status even when the engine port is free', () => fixture({ command: 'stop', statusUnknown: true }, ({ result, recorded }) => {
+  assert.equal(result.status, 1);
+  assert.deepEqual(recorded, []);
+  assert.match(result.stderr, /shared service state is unknown/);
+  assert.doesNotMatch(result.stdout, /Minions (are not running|stopped)/);
 }));

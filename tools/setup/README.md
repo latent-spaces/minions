@@ -31,7 +31,11 @@ connector) without a shell, so checkout paths with spaces and Windows work alike
 npm runs the package build scripts as any `npm run` does. Windows has no graceful
 signal for a detached process, so `stop` uses the engine CLI's `stop` on every
 platform: a loopback request carrying a key derived from the owner file's signing
-secret, which only the person who can read that file can make. A lock left by an
+secret, which only the person who can read that file can make. If the listener is
+gone but the database lock remains, stop reports an unconfirmed shutdown and
+update leaves the checkout unchanged. A starting or stopping engine can hold the
+lock; wait and retry stop. If a crash or computer restart left a stale lock, run
+`minions start` to recover it, then retry stop or update. A lock left by an
 engine that crashed or a computer that restarted names a process that no longer
 exists, so the next start replaces it. Platform decisions live in [engine-plan.mjs](engine-plan.mjs) with no side
 effects; `npm run test:setup` checks them for Windows and POSIX, and runs the
