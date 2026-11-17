@@ -188,18 +188,19 @@ function claudeCommand(args, { env = process.env, platform = process.platform } 
 }
 
 // Registers this installation's HTTP entry in Claude Code's user settings through the claude command, the way
-// mcp-config tells a person to (owner decision, 13 November 2026). An entry with this installation's address is left
-// as it is; one with another address, from an earlier service, is replaced. The retired per-engine entries are
+// mcp-config tells a person to (owner decision, 13 November 2026). A matching user entry is left as it is;
+// a stale address or authentication helper is replaced. The retired per-engine entries are
 // removed, so the computer keeps one minions entry (owner decision, 14 November 2026). Returns missing, current or
 // registered.
 export function registerWithClaudeCode({ home, userHome = homedir(), run = claudeCommand } = {}) {
   const config = reusableConfiguration({ client: 'claude', home });
   const existing = run(['mcp', 'get', config.name]);
   if (existing === null) return { status: 'missing', name: config.name };
-  for (const name of Object.keys(readJson(join(userHome, '.claude.json')).mcpServers ?? {}).filter(name => RETIRED_NAME.test(name)))
+  const servers = readJson(join(userHome, '.claude.json')).mcpServers ?? {};
+  for (const name of Object.keys(servers).filter(name => RETIRED_NAME.test(name)))
     run(['mcp', 'remove', '--scope', 'user', name]);
   allowTools(userHome, config.name);
-  if (existing.status === 0 && existing.stdout.includes(config.entry.url)) return { status: 'current', name: config.name };
+  if (existing.status === 0 && isDeepStrictEqual(servers[config.name], config.entry)) return { status: 'current', name: config.name };
   if (existing.status === 0) run(['mcp', 'remove', '--scope', 'user', config.name]);
   const added = run(['mcp', 'add-json', '--scope', 'user', config.name, JSON.stringify(config.entry)]);
   if (added === null) return { status: 'missing', name: config.name };
