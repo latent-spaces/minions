@@ -13,11 +13,12 @@ import type { AddressInfo } from 'node:net';
 const { db, inProject } = await import('../../apps/server/src/firestore.js');
 if ((await db.listCollections()).length) throw new Error('Refusing a nonempty test store; no data is reset.');
 // Reuse the identified synthetic fixture, not production participant data.
-const { seed, loadAgent, scoped, TEST_PROJECT } = await import('../../apps/server/test/helpers.js');
+const { seed, seedCurrentStateReady, loadAgent, scoped, TEST_PROJECT } = await import('../../apps/server/test/helpers.js');
 const { startRun } = await import('../../apps/server/src/v2/runs.js');
 const { sendMessageV2 } = await import('../../apps/server/src/v2/messages.js');
 const { v2Routes } = await import('../../apps/server/src/v2/routes.js');
 let at = 1_000_000;
+await seedCurrentStateReady(); // The disposable store stands in for an initialized engine; find_agents refuses without the receipt.
 const fixture = await seed({profiles:[{name:'Synthetic owner',email:'owner@example.com'}],agents:[{name:'amber',person:0},{name:'basil',person:0}]});
 const [a,b] = await Promise.all(fixture.agents.map(x=>loadAgent(x.agentId)));
 const run = await inProject(TEST_PROJECT,()=>startRun(b.id,{clientRunId: randomUUID(), runnerVersion:'context-diagnostic',takeover:false},()=>at));
