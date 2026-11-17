@@ -4,7 +4,7 @@ import { createRunJournal } from './run-journal.mjs';
 import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { localPermissionGuidance, workerClaudeSettings, workerPrivateRoots, agentsMayMerge, codexMergeRules, createProvider, CLAUDE_ALLOWED_TOOLS } from '../runtime/providers.mjs';
+import { localPermissionGuidance, workerClaudeSettings, workerPrivateRoots, workerPrivatePaths, agentsMayMerge, codexMergeRules, createProvider, CLAUDE_ALLOWED_TOOLS } from '../runtime/providers.mjs';
 import { createCodexMergePolicy } from './codex-merge-policy.mjs';
 import { VERSION } from './version.mjs';
 import { digest, ensureHome, lstatExists, readPrivate, writePrivate } from './state.mjs';
@@ -160,7 +160,7 @@ export function modelTurnOutcome({ stream, stderr = '', exitCode = null, signal 
     truncated: stream.truncated === true, delivery: stream.delivery };
   const limitResetAt = failed && failureCode === 'provider_limited' ? providerLimitResetAt(diagnostics, now) : null;
   return { ...(failed ? { failureCode } : {}), ...(limitResetAt !== null ? { limitResetAt } : {}), diagnostics: detail,
-    retryable: failed && !['private_state_failure', 'authentication_required', 'permission_required', 'merge_policy_unavailable', 'native_protocol_frame_too_large', 'native_protocol_error', 'native_interactive_request'].includes(failureCode)
+    retryable: failed && !['private_state_failure', 'authentication_required', 'permission_required', 'merge_policy_unavailable', 'native_permissions_unavailable', 'native_protocol_frame_too_large', 'native_protocol_error', 'native_interactive_request'].includes(failureCode)
       // Only Claude's terminal refusal with zero turns proves the prompt never ran; otherwise
       // an uncertain submission stays protected from a duplicate retry.
       && (stream.delivery !== 'submitted' || failureCode === 'provider_limited' && stream.report?.is_error === true && stream.report.num_turns === 0),
@@ -176,8 +176,8 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
   const settings = { claude: executables.claude, codex: executables.codex, model, effort, repoDir: folder, permissionMode: 'acceptEdits', allowedTools: CLAUDE_ALLOWED_TOOLS, passEnv: '', turnBudgetUsd: 0 };
   const provider = createProvider(client, settings, { envSource });
   // Refuses before any launch when this worker's private state cannot be kept out of its reach.
-  // The overlap refusal applies to every client; only Claude receives the deny rules.
-  const privateRoots = workerPrivateRoots({ stateDir, folder, envSource, rules: client === 'claude' });
+  const privatePaths = workerPrivatePaths({ stateDir, folder, envSource });
+  const privateRoots = client === 'claude' ? workerPrivateRoots({ stateDir, folder, envSource }) : [];
   if (process.platform === 'win32') await probeWindowsSupervision({ env: provider.environment(), signal });
   const mergePolicy = client === 'codex' ? createCodexMergePolicy({ folder, stateDir, env: provider.environment() }) : null;
   await provider.preflight({ signal });
@@ -254,7 +254,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
           else { const file = await mergePolicy.prepare(codexMergeRules(mergeApproval), { signal }); await provider.validateMergeRules(file, mergeApproval, { signal }); }
         }
       } catch { await mergePolicy?.cleanup().catch(() => {}); return beforeLaunchFailure('merge_policy_unavailable'); }
-      try { invocation = await provider.invocation({ prompt, permissionGuidance, instructionsFile: join(stateDir, 'instructions.md'), settingsFile, mcpConfig: join(stateDir, 'mcp.json'), bridge, session, resuming, repoDir: folder, clientVersion: VERSION, signal, requireMergePolicy: client === 'codex' && !agentsMayMerge(mergeApproval) }); }
+      try { invocation = await provider.invocation({ prompt, permissionGuidance, instructionsFile: join(stateDir, 'instructions.md'), settingsFile, mcpConfig: join(stateDir, 'mcp.json'), bridge, session, resuming, repoDir: folder, clientVersion: VERSION, signal, privatePaths, requireMergePolicy: client === 'codex' && !agentsMayMerge(mergeApproval) }); }
       catch { await mergePolicy?.cleanup(); if (signal.aborted) return withEvidence({ interrupted: true, delivery: 'not_submitted', text: '', cleanupConfirmed: true }); return beforeLaunchFailure('native_preparation_failure'); }
       if (firstSpawnPending && launchExpired()) { await mergePolicy?.cleanup(); return beforeLaunchFailure('request_expired'); }
       try { await onModelStarting?.(); } catch { await mergePolicy?.cleanup(); return beforeLaunchFailure('private_state_failure'); }
@@ -380,4 +380,3 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
     },
   };
 }
-

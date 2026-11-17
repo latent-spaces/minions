@@ -138,9 +138,12 @@ home. Do not run setup in a checkout you do not trust, and do not share the acco
 Background agents' commands run in their coding client's sandbox, which keeps their
 writes to their checkout. For Claude Code it also keeps the Minions private folders
 unreadable to the worker's shell and Read tool, including custom engine, service and
-credential folders (the Windows rules are not yet verified on native Windows). Codex
-workers can still read them. That
-sandbox can still reach this engine over loopback, so it does not stop a hostile model
+credential folders (the Windows rules are not yet verified on native Windows).
+Codex also denies these folders to sandboxed commands through a named permission
+profile, checked before each start and resume. This is verified on native macOS;
+Linux and Windows remain unverified. Windows Codex workers may refuse to start
+where the native sandbox cannot enforce the policy; there is no unrestricted
+fallback. Either sandbox can still reach this engine over loopback, so it does not stop a hostile model
 from asking for an owner session. Treat per-agent permissions, Pause and the
 connector's mission and checkout checks as workflow controls, not as protection from
 a hostile model or program running under your account.
