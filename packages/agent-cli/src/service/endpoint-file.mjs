@@ -61,7 +61,8 @@ export async function publishRuntimeEndpoint({ home, url, token, identity, princ
     catch (error) { if (error.code !== 'ENOENT') throw error; }
     if (existing) {
       if (JSON.stringify(existing) === JSON.stringify(value)) return existing;
-      if (alive(existing.identity.pid)) throw new Error('Another live runtime owns this endpoint record. No process or credentials were changed.');
+      // The same crash that leaves service-owner.json leaves this record, naming the same possibly reused PID.
+      if (alive(existing.identity.pid)) throw new Error(`Process ${existing.identity.pid} is recorded as the runtime of ${join(home, FILE)} and is still running. If it is not a Minions service (check it in your system's process list), a crash left this record: remove it and start again. No process or credentials were changed.`);
     }
     writePrivate(join(home, FILE), value);
     return value;

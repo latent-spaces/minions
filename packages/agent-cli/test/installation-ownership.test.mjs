@@ -3,7 +3,9 @@ import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
 import { ensureInstallation, runInstalledService } from '../src/service/installation.mjs';
+import { publishRuntimeEndpoint } from '../src/service/endpoint-file.mjs';
 
 // After a crash the ownership record stays; a restart can hand its PID to another program. Start never takes
 // such a record over, but says which file to remove once service-status shows no service.
@@ -39,4 +41,16 @@ test('a second start while the service is still starting is refused with the wai
   finishCompose(new Error('stop composing'));
   await assert.rejects(first, /stop composing/);
   await assert.rejects(readFile(record), { code: 'ENOENT' });
+});
+
+test('a leftover endpoint record naming a running process is refused, naming the file', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'minions-endpoint-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const home = join(root, 'service');
+  const record = port => ({ home, url: `http://127.0.0.1:${port}/mcp`, token: 'a'.repeat(64), principal: { site: 'http://127.0.0.1:18787', ownerId: 'synthetic-owner' },
+    identity: { version: 2, incarnation: randomUUID(), pid: process.pid, transport: 'streamable-http', cloudReady: false } });
+  await publishRuntimeEndpoint(record(40001));
+  await assert.rejects(publishRuntimeEndpoint(record(40002)), error => error.message.includes(join(home, 'runtime-endpoint.json'))
+    && error.message.includes(`Process ${process.pid}`) && /No process or credentials were changed/.test(error.message));
+  assert.match(await readFile(join(home, 'runtime-endpoint.json'), 'utf8'), /40001/);
 });
