@@ -1,245 +1,261 @@
 # Minions
 
-**Your own little swarm of coding agents: start a few, let them run, review, continue.**
+**A local team of coding agents, guided from the chat you already use.**
 
-Minions runs on your computer. You give a project a goal, add a handful of
-Claude Code or Codex agents, and they work in the background in their own folders,
-talking to each other through the project. You follow their progress, answer when
-they need you, and pause or kill them when you choose. No cloud account, no hosted
-database: one local engine and one SQLite file.
+Give a project a goal, add Claude Code or Codex agents, and let them work in the
+background in separate checkouts. Agents coordinate through messages, tasks and
+updates. You follow their progress, answer questions and steer the work from your
+coding chat or the local web app.
 
-> Minions was previously MyLittleSwarm, and Karma42 before 10 November 2026. It does not deploy to or
-> connect to `karma42.ai`. The earlier history lives in the private `karma42-swarm`
-> repository.
+Minions runs on your computer: a local engine, a shared worker service and a SQLite
+database. No Minions cloud account or hosted database is required. Model execution
+uses your own Claude Code or Codex account.
 
----
+**Status:** experimental beta, distributed from this repository. The connector is
+not published to npm. No open-source license has been selected; see [License](#license).
 
-## What is Minions?
+[Quick start](#quick-start) · [Everyday use](#everyday-use) ·
+[Development](#development) · [Documentation](#documentation) ·
+[Contributing](#contributing)
 
-Most coding-agent tools give you one agent in one chat. Minions gives you a
-small team of them working on one project, while you keep steering from the chat
-you already use.
+## What you can do
 
-- **Projects with a goal.** A project card holds the name, description and rules the
-  agents work within.
-- **Background agents.** Each agent is a Claude Code or Codex process in its own
-  checkout under `~/minions/projects/<project>/<agent>-<id>`. It keeps working
-  when your chat closes, until you pause or kill it or its job limit is reached.
-- **Agents talk to each other.** Project messaging, native tasks and an updates
-  feed let them coordinate and let you follow along without reading every message.
-- **You stay in control.** Nothing starts without your yes. Needs you collects the
-  questions agents ask you; Pause lets the current turn finish, Kill stops it.
-- **Steer from your own chat.** Claude Code and Codex connect over MCP, so you can
-  create projects, add agents and steer them in plain words. The web app shows the
-  same projects.
+- **Give agents a shared goal.** A Project Card records the name, description and
+  rules they work within.
+- **Run a small team in parallel.** Each background agent works in its own checkout
+  and can continue after your steering chat closes.
+- **Keep work visible.** Native tasks, project messages, an updates feed and project
+  previews help you follow progress without reading every agent conversation.
+- **Steer from Claude Code or Codex.** An MCP connection exposes project and agent
+  tools to your coding chat. The local web app shows the same projects.
+- **Control execution.** Approve an agent's mission, provider and lifetime before
+  work starts. Pause lets its current turn finish; Kill interrupts it. Needs you
+  collects questions that require your input.
 
-See [VISION.md](VISION.md) for the product principles.
+For the product principles and intended direction, read [VISION.md](VISION.md).
 
-## Start here
+## Quick start
 
-You need Node.js 24 or newer, Git, and Claude Code or Codex signed in on this computer.
+### Prerequisites
+
+- **Node.js 24 or newer**, with npm.
+- **Git**, with `user.name` and `user.email` configured for the first setup.
+- **Claude Code or Codex**, installed and signed in on this computer. Use a current
+  client with MCP dynamic header-helper support.
+- **GitHub CLI (`gh`) and repository access** for the projects your agents will
+  work on. Setup guides you through GitHub CLI sign-in when needed.
+
+macOS, Windows and Linux have platform-specific worker supervision. Windows workers
+require Windows PowerShell and its in-memory C# compiler, plus permission to create
+and assign Job Objects. The service checks these capabilities before offering
+providers. See the [runtime requirements](packages/agent-cli/README.md) for details;
+configuration checks alone do not establish native worker readiness.
+
+### Install and start
+
+Run in a terminal on the computer that will run the agents. These commands work in
+macOS/Linux shells and Windows PowerShell:
 
 ```sh
-git clone https://github.com/latent-spaces/minions.git minions
+git clone https://github.com/latent-spaces/minions.git
 cd minions
-npm run setup     # install, build, start the engine in the background, register Minions
-```
-
-Setup also links a `minions` command for everyday use:
-
-```sh
-minions status    # is the engine running, and the shared service?
-minions stop      # let turns in progress finish, then stop the service and the engine
-minions start     # start them again (add --open to open the local app)
-minions open      # open the local app
-minions logs -f   # follow the engine log (--service for the shared service's)
-minions update    # pull main, let turns finish, rebuild and start again
-```
-
-`npm run setup` starts the engine at `http://127.0.0.1:8787/`, always the same
-address, and opens it in your browser, with no sign-in: the app is yours on this
-computer. When another program holds port 8787, setup stops and names it. The engine
-keeps running in the background after the command, the terminal or your coding chat
-ends. Setup registers one `minions` connection with Claude Code and Codex by itself; it starts no model. Details are in [Run the standalone engine locally](docs/self-hosted-engine.md).
-
-Then, in Claude Code or Codex, ask for what you want, for example:
-
-```text
-Create a private Minions project for this repository and add three agents.
-```
-
-A chat that was already open during setup gets the Minions tools after you
-restart it; until then it can use the connector's `tool` command that setup prints.
-
-## Runtimes
-
-| Runtime | How it runs |
-| --- | --- |
-| [Claude Code](https://code.claude.com) | Default provider for background agents; also your steering chat over MCP |
-| [Codex](https://github.com/openai/codex) | Background agents and steering chat over MCP |
-
-Agents use the models your own Claude Code or Codex sign-in gives you. You can pick
-a model per agent; otherwise the provider's default is used.
-
-## Architecture
-
-```
-   Browser (web app)            Claude Code · Codex chat (you steering)
-          │                                  │
-          │ HTTP, loopback only              │ MCP over loopback HTTP
-          ▼                                  ▼
-  ┌──────────────────────────┐     ┌─────────────────────────────┐
-  │     Local engine         │◀────│   Shared local service      │
-  │  API + delivery worker   │     │   (connector, one per       │
-  │  127.0.0.1:8787          │     │    computer)                │
-  └────────────┬─────────────┘     └──────────────┬──────────────┘
-               │                                  │ spawns and supervises
-               ▼                                  ▼
-       ┌───────────────┐            ┌────────────────────────────────┐
-       │ engine.sqlite │            │  Claude Code · Codex workers   │
-       │   + media/    │            │  one checkout per agent under  │
-       └───────────────┘            │  ~/minions/projects/           │
-                                    └────────────────────────────────┘
-```
-
-Everything runs on one computer and listens on loopback only. The engine owns the
-project record: projects, agents, messages, tasks and updates. The shared local
-service holds this computer's connection, exposes Minions's tools to your coding
-client, and runs the background workers, ending their whole process tree on Pause,
-Kill or stop.
-
-| Layer | Stack |
-| --- | --- |
-| Web app | React 19, Vite (`apps/web`) |
-| Engine | Node.js, Express 5, MCP SDK (`apps/server`) |
-| Database | SQLite through `node:sqlite`, one file, no native dependency |
-| Shared local service | Node.js MCP service over loopback HTTP (`packages/agent-cli`) |
-| Workers | Claude Code or Codex processes; POSIX process groups on macOS and Linux, Job Objects on Windows |
-| Contracts | Shared API shapes (`packages/contracts`) |
-
-More: [MCP and backend](docs/architecture/mcp-and-backend.md),
-[agent coordination API](docs/architecture/agent-coordination-api.md),
-[document schema](docs/architecture/firestore-schema.md) and
-[the shared local service](packages/agent-cli/README.md).
-
----
-
-## Development
-
-Use Node.js 24 or newer and install once from the repository root:
-
-```sh
-npm ci
 npm run setup
 ```
 
-Stop the engine before reinstalling dependencies: `npm ci` replaces workspace
-dependency folders.
+Setup installs dependencies, builds the application, initializes local state and
+starts the engine and shared service in the background. It opens the local app at
+[http://127.0.0.1:8787/](http://127.0.0.1:8787/) by default, installs the Minions skill
+and registers one `minions` MCP connection with the Claude Code and Codex clients it
+finds. **Setup starts no model.**
 
-| Command | What it does |
+The browser opens as this engine's owner without a sign-in step. Setup uses your
+Git name and email for that profile on the first run. To supply them explicitly:
+
+```sh
+npm run setup -- --owner-name "Your Name" --owner-email you@example.com
+```
+
+Restart any coding chat that was open during setup so it loads the Minions tools.
+Then ask, for example:
+
+```text
+Use the minions skill. Create a private Minions project for this repository
+and help me choose missions, models and time limits for three agents.
+```
+
+Approve the proposed work to start the agents. Each agent uses a model available
+through your own provider sign-in; you can choose a model per agent.
+
+### If setup needs attention
+
+| Symptom | Next step |
 | --- | --- |
-| `npm run setup` | Build, start the engine and register Minions with your coding agents |
-| `npm run build:web` / `npm run build:backend` | Build the web app / the engine |
-| `npm run typecheck:backend` | Typecheck the engine |
-| `npm run test:all` | The fast core: typechecks plus engine, connector and setup smoke tests |
-| `npm run test:backend` / `npm run test:connector` / `npm run test:setup` | One part of the core |
-| `npm run test:self-hosted` | Build the standalone engine and exercise it with fresh data |
+| Port 8787 is occupied | Setup names the program and stops. Free the port or choose `MINIONS_ENGINE_PORT`; setup does not stop another program. |
+| Tools are missing in an existing chat | Restart the chat. Until then, use the connector's `tool` command printed by setup. |
+| The connector failed after the app opened | The engine stays running. Resolve the reported error and rerun `npm run setup`. |
+| `minions` is not on PATH | Setup reports a failed command link. From this checkout, use `node tools/setup/minions.mjs help` for the same CLI. |
 
-Test runners and focused commands are described in [tests](tests/README.md).
-Settings are named `MINIONS_*`; use `MINIONS_ENGINE_HOME` and `MINIONS_ENGINE_PORT`
-for an isolated engine.
+A saved port or explicit `MINIONS_ENGINE_PORT` overrides the default address. For
+configuration, file locations, backups and recovery, see the
+[local engine guide](docs/self-hosted-engine.md) and
+[connector README](packages/agent-cli/README.md).
+
+## Everyday use
+
+Setup links a `minions` command for managing the installation:
+
+| Command | Purpose |
+| --- | --- |
+| `minions status` | Inspect the engine, shared service and state locations |
+| `minions open` | Open the local app |
+| `minions logs -f` | Follow the engine log; add `--service` for the worker service |
+| `minions stop` | Let current turns finish, then stop the service and engine |
+| `minions start --open` | Start them again and open the app |
+| `minions update` | Fast-forward the checkout from `main`, let turns finish, rebuild and restart |
+| `minions help` | Show commands and options |
+
+Stopping waits up to ten minutes by default. If turns are still finishing, the
+engine stays running. `minions stop --now` interrupts current turns.
+
+The engine stores its database, media and owner configuration under
+`~/.minions/engine` (`%USERPROFILE%\.minions\engine` on Windows). Agent checkouts
+live under `~/minions/projects/`. Keep private engine state and credentials outside
+Git; stop the engine before copying its files for a backup.
+
+`minions update` requires the checkout to be on `main` with no tracked changes.
+
+Minions listens on loopback. Coding agents still contact their model providers and
+GitHub as needed; local storage does not make model execution offline.
+
+## How it works
+
+```text
+Local browser                     Claude Code / Codex steering chat
+      | HTTP                                | MCP over HTTP
+      v                                     v
+Local engine <-------------------- Shared local service
+  API + delivery worker                     | supervises
+      |                                     v
+      v                           Claude Code / Codex workers
+SQLite + media                    Separate checkout per agent
+```
+
+The engine owns the shared project record: projects, agents, messages, tasks and
+updates. The service exposes MCP tools and supervises background workers independently
+of your steering chat. Pause waits for the current turn to finish before preventing
+new turns; Kill interrupts the worker's process tree.
+
+| Component | Location and stack |
+| --- | --- |
+| Web app | [`apps/web`](apps/web) — React 19 and Vite |
+| Engine | [`apps/server`](apps/server) — Node.js, Express 5 and MCP SDK |
+| Persistence | SQLite through `node:sqlite`, plus local media files |
+| Worker service | [`packages/agent-cli`](packages/agent-cli) — Node.js and authenticated loopback HTTP |
+| Shared contracts | [`packages/contracts`](packages/contracts) — API shapes and lifecycle observations |
+
+Workers use POSIX process groups on macOS/Linux and Job Objects on Windows. Runtime
+capabilities, lifecycle and recovery are documented in the
+[connector README](packages/agent-cli/README.md).
+
+## Development
+
+Read [AGENTS.md](AGENTS.md), [VISION.md](VISION.md) and the
+[shared development workflow](docs/project-management/README.md) before changing
+product behavior. Reuse the existing checkout and preserve concurrent work.
+
+Run commands from the repository root with Node.js 24+. `npm run setup` handles the
+initial dependency installation. If you need to reinstall with `npm ci`, stop the
+engine and worker service first: it replaces workspace dependency folders.
+
+For application development, use an isolated engine with an absolute
+`MINIONS_ENGINE_HOME` and a free `MINIONS_ENGINE_PORT`. Keep those settings on later
+commands. Isolated setup skips automatic client registration and command linking.
+Do not use your everyday engine's data for tests or start real model runs without
+explicit approval. See the [local UI workflow](docs/project-management/ui-workflow.md).
+
+### Development commands
+
+| Command | Purpose |
+| --- | --- |
+| `npm run setup` | Install as needed, build and start the local application |
+| `npm run build:web` | Build the web app |
+| `npm run build:backend` | Build the engine |
+| `npm run typecheck:backend` | Typecheck the engine |
+| `npm run test:all` | Run the fast core: typechecks and package smoke tests |
+| `npm run test:backend` | Run engine smoke tests with disposable data |
+| `npm run test:connector` | Run connector smoke tests |
+| `npm run test:setup` | Check setup behavior |
+| `npm run test:self-hosted` | Build and exercise the standalone engine with fresh data |
+
+The core suite uses isolated state and does not require model execution. See
+[tests](tests/README.md) for scope and focused checks. GitHub Actions runs only on
+explicit request; ordinary changes use local validation. Report which native
+platforms you verified; a macOS pass does not establish Windows acceptance.
 
 ### Repository map
 
 ```text
-VISION.md                     product direction, tenets and change process
-apps/web/                     web app; shared presentation in src/ui/
-apps/server/                  engine: API, delivery worker, domain modules, tests
-packages/agent-cli/           shared local service, worker engine and bundled skill
-packages/contracts/           shared API shapes and lifecycle observations
-tools/setup/                  one-command engine setup
-tools/benchmarks/             synthetic capacity and storage studies
-tests/                        cross-component acceptance
-docs/                         architecture, decisions, design and workflow
+apps/web/             Local web app; shared presentation in src/ui/
+apps/server/          Engine API, delivery worker and domain modules
+packages/agent-cli/   Shared service, worker runtime and bundled Minions skill
+packages/contracts/   Shared API contracts
+tools/setup/          Setup and everyday CLI
+tools/benchmarks/     Synthetic capacity and storage studies
+tests/                Cross-component smoke tests and test support
+docs/                 Architecture, decisions, design and workflow
 ```
 
-### Docs
+## Contributing
 
-- [Documentation index](docs/README.md): where every document lives.
-- [Decisions](docs/decisions.md): owner decisions with their dates.
-- [Glossary](docs/glossary.md): people, projects, agents, work and communication.
-- [Shared development workflow](docs/project-management/README.md).
-- [Release history](docs/release/deployment.md): updating a computer, and earlier releases.
+Keep changes focused on a concrete participant need and the principles in
+[VISION.md](VISION.md). Discuss changes to product behavior or authority with the
+owner before implementing a dependent choice. The
+[decision log](docs/decisions.md) records selected policies.
 
-Product behavior follows [VISION.md](VISION.md) and [the decisions](docs/decisions.md).
-Mockups and existing code do not select an open product choice; discuss a mismatch
-before changing dependent behavior.
+Before submitting a pull request:
 
-## TODO
+1. Read the relevant component documentation and current implementation.
+2. Make a cohesive change and remove superseded implementation in the same change.
+3. Run focused local checks. For UI changes, verify the actual local application.
+4. Describe the problem, resulting behavior, validation and any remaining acceptance
+   in the PR. Include reproduction steps for fixes and screenshots for visual changes.
 
-What we want to do next. Add to it, reorder it, cross things off as they land.
+Keep credentials, private engine records and personal data out of commits, screenshots
+and logs shared for review. The repository does not currently define a separate
+security-reporting or support channel.
 
-- [x] **Choose agent models on purpose.** Today a new agent runs on the client's default
-      model. Instead the skill should pick a model that fits the agent's mission (a
-      smaller model for routine work), warn when the default is a large model such as
-      Fable or Opus, and say why it picked what it picked.
-- [x] **The start prompt names the minions skill** (owner, 16 November 2026). The example prompt
-      on My projects starts with "Use the minions skill" and asks for a Minions project.
-- [x] **Hard cut to the Minions folders** (owner, 16 November 2026). Minions uses only
-      `~/.minions` and `~/minions`; an install in the old `~/.mlswarm` folders is left as it was.
-- [ ] **Develop Minions in Minions.** A project on this repository whose
-      agents work in their own clones, preview on an isolated engine with live reload,
-      and open PRs; the owner merges and updates their own engine.
-- [x] **Update a connector without stopping agents.** `service-stop --after-turns` lets
-      each turn finish, and agents continue in the same missions after the update.
-- [x] **Move the project tabs into the sidebar.**
-- [x] **Rethink Tasks beside the communication map.** The map moved into the Updates
-      panel, and the board's four columns share the width beside it.
-- [x] **Bring back project cover images.** A project's stamp, in the menu and the project
-      header, shows the screenshot on its newest update; the banner keeps its gradient.
-- [x] **Tell open tabs to reload after an update.** A tab checks `version.json` when it
-      regains focus and every five minutes, and offers Reload when a newer build is served.
-- [x] **Exact subtask counts in the list.** The server counts every accepted direct
-      subtask for the list and task-page rings, independent of filters and loaded pages.
-- [x] **Clean up stale run indicators.** Old background observations show Offline
-      after 90 seconds; a newer session of the same mission still supplies activity.
-- [x] **A three-field project card** (owner, 14 November 2026). The card is Name,
-      Description and Rules, edited together in Settings; the other card fields and the
-      separate shared instructions are gone.
-- [x] **Tasks list newest first** (owner, 14 November 2026). The list shows the most
-      recently updated tasks first.
-- [x] **Communication above Preview in the sidebar** (owner, 14 November 2026).
-- [x] **Readable turn prompts for agents** (owner, 14 November 2026). The prompt the
-      controller gives an agent each turn is Markdown with quoted steering, so people can
-      review what an agent was told.
-- [x] **One Minions connection per computer** (owner, 14 November 2026). Setup leaves
-      one `minions` MCP entry in Claude Code and Codex, removes the older per-engine ones,
-      and always uses `http://127.0.0.1:8787/`.
-- [x] **Ask the owner when all agents finish early** (owner, 14 November 2026). When every
-      agent is finished while time is left, the owner gets one Needs you message asking for
-      next instructions.
-- [x] **Bring the Project card back to Settings** (owner, 14 November 2026). The project's
-      name and description, editable by the owner, read-only for members.
-- [x] **Tell the agents about a new task** (owner, 14 November 2026). A task a person
-      creates reaches the agents as a message from that person.
-- [x] **Project card reads as text until Edit** (owner, 15 November 2026). Settings shows the
-      card as text with a ? note; the owner's Edit opens the form.
-- [x] **Plans and research in Preview** (owner, 15 November 2026). Agents put a plan, research
-      report or design in Preview as an HTML page, not only a running app.
-- [x] **A New dot beside Preview** (owner, 15 November 2026). The menu marks Preview when its
-      page changed since you last opened it.
-- [ ] **Recommended option first in Needs you** (owner, 14 November 2026). A Needs you
-      question with choices lists the best option first, marked "(recommended)".
-- [ ] **Give the experiment waves a home.** The `experiment-waves/` runbook and tools are
-      not in any repository yet.
+## Documentation
 
-## Why "Minions"?
+| Topic | Reference |
+| --- | --- |
+| Documentation overview | [Documentation index](docs/README.md) |
+| Product direction | [Vision](VISION.md) and [owner decisions](docs/decisions.md) |
+| Terminology | [Glossary](docs/glossary.md) |
+| Engine setup and operation | [Local engine guide](docs/self-hosted-engine.md) |
+| MCP, providers and worker lifecycle | [Connector README](packages/agent-cli/README.md) |
+| Architecture and coordination | [MCP and backend](docs/architecture/mcp-and-backend.md), [agent coordination API](docs/architecture/agent-coordination-api.md) |
+| Contributor workflow | [Development workflow](docs/project-management/README.md), [UI workflow](docs/project-management/ui-workflow.md) |
+| Updating computers and release history | [Release guide](docs/release/deployment.md) |
 
-Because it is small on purpose. One person, a handful of agents, one computer, one
-file of state. Big enough to get a job done faster, small enough to understand
-everything it does.
+## Current work
+
+The remaining items from the repository's work list are:
+
+- [ ] Develop Minions in Minions: isolated agent clones and live previews, with PRs
+      reviewed and merged by the owner.
+- [ ] Put the recommended option first in Needs you questions and mark it
+      “(recommended)”.
+- [ ] Give the `experiment-waves/` runbook and tools a repository home.
+
+## Name and history
+
+Minions is small on purpose: a handful of agents working together on your computer.
+It was previously MyLittleSwarm, and Karma42 before 10 November 2026. This repository
+is `latent-spaces/minions`; earlier history lives in the private `karma42-swarm`
+repository. It does not deploy to or connect to `karma42.ai`.
 
 ## License
 
-This repository has no license file yet. It is private, and the connector package
-is not published to npm.
+No license file is included in this repository. An open-source license and its
+permissions have not been established. The connector package is private and is not
+published to npm.
