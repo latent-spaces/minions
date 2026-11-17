@@ -119,14 +119,6 @@ export function engineUrl(output) {
 }
 
 /**
- * npm writes node_modules/.package-lock.json only when an install completes, and `npm ci` removes node_modules
- * first, so a missing or older hidden lockfile means a partial install or changed dependencies. Times in ms or null.
- */
-export function needsInstall({ hiddenLockfile, lockfile }) {
-  return hiddenLockfile === null || lockfile === null || hiddenLockfile < lockfile;
-}
-
-/**
  * Initialization creates the empty database file first, then the owner file, then commits its records. Only both
  * files together are a store the engine may verify at startup; one without the other is an interrupted first run.
  */

@@ -19,9 +19,12 @@ the connector CLI (`packages/agent-cli/src/cli.mjs`), each package's own build
 script and the npm resolution in `tools/setup/npm-cli.mjs`; it adds no second
 implementation of any of them.
 
-Setup includes development dependencies even with npm's `omit=dev` setting,
-because it builds from source. It checks the installed dependency tree
-before reusing an install; missing packages trigger a fresh `npm ci`.
+Setup includes development and optional dependencies even when npm's `omit`
+setting excludes them: source builds need development tools, and Sharp/esbuild
+need optional platform binaries. A successful install records the lockfile hashes
+and Node/platform identity in `node_modules/.minions-setup.json`. Setup reuses it
+only while those match and the recorded packages and dependency tree are present.
+An older or externally changed install gets a fresh `npm ci` once.
 
 Every child the script starts is Node itself (npm's JS entry, the engine, the
 connector) without a shell, so checkout paths with spaces and Windows work alike;
