@@ -1,13 +1,12 @@
 import type { IdentityProvider } from './provider.js';
 
-export type { IdentityAccount, IdentityAccountExport, IdentityProvider, VerifiedSession } from './provider.js';
+export type { IdentityAccount, IdentityProvider, VerifiedSession } from './provider.js';
 export { localOwnerIdentity, type LocalOwnerIdentity } from './local-owner.js';
 
 // Until the engine installs its sign-in service at startup, nobody is signed in.
 const nobody: IdentityProvider = {
   verifySession: async () => null,
   account: async () => null,
-  exportAccount: async () => null,
 };
 let current: IdentityProvider = nobody;
 
