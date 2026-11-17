@@ -12,10 +12,9 @@ import { readProjectRecord, type ProjectRecord } from './projects/schema.js';
 import { deploymentKind } from './deployment.js';
 import type { AgentPersona } from '@minions/contracts';
 
-// The only module that imports firebase-admin/firestore: server code takes the database API from here. The engine
-// stores documents in SQLite (storage/sqlite-firestore.ts), which implements this API; firebase-admin supplies the
-// types and value classes (Timestamp, FieldPath, FieldValue, Filter) only and never connects anywhere
-// (guarded by test/firestore-seam.test.ts).
+// Server modules take the database API from here; the SQLite adapter also imports SDK value classes directly.
+// firebase-admin supplies types and local value classes. openDatabase() creates SqliteFirestore rather than
+// opening a hosted Firestore connection.
 export {
   DocumentReference, DocumentSnapshot, FieldPath, FieldValue, Filter, Query, QueryDocumentSnapshot,
   QuerySnapshot, Timestamp, Transaction,

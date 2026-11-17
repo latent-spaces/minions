@@ -3,7 +3,6 @@
 // canonical JSON rows; queries narrow string equality in SQL, then filter and sort in
 // process with Firestore value ordering, so this targets a single-node engine, not
 // Firestore-scale data.
-// test/document-store-contract.ts defines the behaviour it must match.
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { DatabaseSync } from 'node:sqlite';
 import { randomBytes } from 'node:crypto';
