@@ -295,8 +295,8 @@ async function ancestorsOf(tx: Transaction, task: Pick<NativeTask, 'parentId'>):
   return chain;
 }
 async function subtasksOf(tx: Transaction, taskId: string): Promise<NativeTask[]> {
-  const rows = await tx.get(nativeTasks().where('parentId', '==', taskId).limit(SUBTASK_LIMIT));
-  return rows.docs.map(row => row.data()).sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+  const rows = await tx.get(nativeTasks().where('parentId', '==', taskId).orderBy('createdAt').orderBy(FieldPath.documentId()).limit(SUBTASK_LIMIT));
+  return rows.docs.map(row => row.data());
 }
 const summaryOf = (task: NativeTask): NativeTaskSummary => ({ id: task.id, title: task.title, status: task.status, assignedAgentId: task.assignedAgentId, priority: task.priority, revision: task.revision, ...subtaskFields(task) });
 
@@ -473,8 +473,10 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
     if (task.parentId && before && !before.proposed && !closedTask(before) && closedTask(task)) {
       const parent = (await tx.get(nativeTasks().doc(task.parentId))).data();
       if (parent?.assignedAgentId) {
-        const siblings = (await subtasksOf(tx, parent.id)).filter(row => row.id !== task.id && !row.proposed);
-        if (siblings.every(closedTask)) { closedParent = parent; closedNotice = await readTargets(tx, [parent.assignedAgentId], `task-children-closed-${parent.id}-${task.id}-${task.revision}`); }
+        // The current child is still open in storage. Count every accepted child, independently
+        // of the detail page's limit: this change must close the only remaining open child.
+        const progress = await subtaskProgressOf(tx, parent.id);
+        if (progress.total - progress.done === 1) { closedParent = parent; closedNotice = await readTargets(tx, [parent.assignedAgentId], `task-children-closed-${parent.id}-${task.id}-${task.revision}`); }
       }
     }
     const result: NativeTaskMutationResult = { task, ...(comment ? { comment } : {}), replayed: false };
