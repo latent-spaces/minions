@@ -34,12 +34,13 @@ export async function primeWorkspace({provider,folder,instructionsFile,deadline,
    pending+=chunk;if(Buffer.byteLength(pending)>1024*1024)return stop();
    let index;while((index=pending.indexOf('\n'))>=0){
     const line=pending.slice(0,index);pending=pending.slice(index+1);let value;try{value=JSON.parse(line);}catch{continue;}
-    if(value.id===1){if(value.error)return stop();send({method:'initialized',params:{}});send({id:2,method:'thread/start',params:invocation.rpc.startParams});}
-    if(value.id===2){confirmed=!value.error&&value.result?.modelProvider==='openai'&&value.result?.reasoningEffort===invocation.rpc.effort;child.stdin.end();}
+    if(value.id===1){if(value.error)return stop();send({method:'initialized',params:{}});send({id:4,method:'config/read',params:{cwd:folder,includeLayers:false}});}
+    if(value.id===4){if(value.error)return stop();try{send({id:2,method:'thread/start',params:invocation.rpc.prepareThread(value.result?.config)});}catch{return stop();}}
+    if(value.id===2){confirmed=!value.error&&value.result?.activePermissionProfile?.id===invocation.rpc.permissionProfile&&value.result?.modelProvider==='openai'&&value.result?.reasoningEffort===invocation.rpc.effort;child.stdin.end();}
    }
   });
   child.once('error',stop);signal.addEventListener('abort',stop,{once:true});
-  child.once('spawn',()=>{if(signal.aborted)return stop();child.authorize(invocation.command,invocation.args);send({id:1,method:'initialize',params:{clientInfo:invocation.rpc.clientInfo}});});
+  child.once('spawn',()=>{if(signal.aborted)return stop();child.authorize(invocation.command,invocation.args);send({id:1,method:'initialize',params:{clientInfo:invocation.rpc.clientInfo,capabilities:{experimentalApi:true}}});});
   child.once('close',()=>{clearTimeout(timer);signal.removeEventListener('abort',stop);if(confirmed&&cleaned&&!signal.aborted)resolve();else reject(new Error('Native workspace preflight did not complete.'));});
  });
 }

@@ -608,8 +608,20 @@ Use the clients' native permissions, without a custom shell parser or command
 hook. Claude uses `acceptEdits`, broad Bash/research grants, explicit protected
 command denials and its existing file/read safeguards. Personal settings and
 hooks stay disabled. Its directory safeguard can refuse `cd`; use the tool's
-working directory or `npm --prefix` instead. Codex uses `workspace-write`,
-`on-request` and native automatic approval review with explicit mission boundaries.
+working directory or `npm --prefix` instead. Codex uses an invocation-local named
+profile extending `:workspace`, `on-request` and native automatic approval review
+with explicit mission boundaries. Before each start or resume, the adapter reads
+the effective legacy workspace settings and preserves their network access,
+additional writable roots and temporary-directory exclusions in the profile.
+It adds exact read/write denials for the default Minions home, configured engine,
+service and credential homes, and their physical aliases. These are native absolute
+paths, separate from Claude's rule syntax. A checkout overlapping private state,
+an unrepresentable private path or a writable root inside private state is refused.
+The adapter selects the profile explicitly on the thread, so legacy sandbox
+configuration cannot silently select a different policy. It checks the returned
+profile identity and approval settings before submitting a prompt; an unconfirmed
+profile stops with `native_permissions_unavailable`. No personal configuration or
+managed requirements are rewritten, and native managed restrictions still apply.
 An approval that still reaches the headless adapter is declined for that action,
 without ending the turn. Automatic review may itself use model inference during
 an approved live mission; configuration/fake-process checks do not exercise it.
@@ -626,6 +638,17 @@ These are workflow permissions for trusted development checkouts. Editable scrip
 and Git hooks execute project code; shell deny rules are not complete OS isolation
 or a guarantee against disguised remote actions. No full-access mode, custom
 command grammar or persistent client permission changes are installed.
+
+Run `node packages/agent-cli/scripts/check-codex-private-state.mjs` from the repository
+root for a model-free native permission check (optionally pass the Codex executable).
+It uses an isolated client home and synthetic files, starts and resumes a thread
+without model turns, and checks private/symlink reads, workspace/additional writes,
+Git metadata, temp exclusions and enabled/disabled loopback network access.
+Native macOS acceptance does not establish Linux or Windows support. Codex refuses
+unsupported sandbox policies rather than executing the command without them;
+Windows's unelevated fallback cannot enforce every split read/write policy.
+Approved escalations and local services have separate native controls; the named
+profile governs sandboxed command execution, not every possible local process.
 
 Inspect `get_agent_run`, `get_agent_control_result`, `list_agent_runs` and
 `list_agent_reports`. Durable command acceptance, native submission, saved result and
