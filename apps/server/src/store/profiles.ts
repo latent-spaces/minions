@@ -4,22 +4,6 @@ import { platformOwnership } from '../community/records.js';
 import { hashToken } from '../auth.js';
 import { Refusal } from '../errors.js';
 import { agents, db, profiles, type Agent, type WithId } from '../firestore.js';
-import { DISPLAY_NAME } from '../display-name.js';
-
-export async function invitePerson(name: string, email: string): Promise<{ personId: string }> {
-  const parsedName = DISPLAY_NAME.safeParse(name);
-  if (!parsedName.success) throw new Refusal('bad_input', parsedName.error.issues[0].message);
-  const lower = email.trim().toLowerCase();
-  const ref = profiles.doc();
-  await db.runTransaction(async (tx) => {
-    const existing = await tx.get(profiles.where('email', '==', lower).where('removedAt', '==', null).limit(1));
-    if (!existing.empty) {
-      throw new Refusal('duplicate', `${lower} is already invited.`);
-    }
-    tx.set(ref, { name: parsedName.data, email: lower, removedAt: null });
-  });
-  return { personId: ref.id };
-}
 
 // Community-wide removal. Scoped offboarding uses setMembership instead.
 // Existing direct callers are trusted backend/admin code; public routes never accept this authority.

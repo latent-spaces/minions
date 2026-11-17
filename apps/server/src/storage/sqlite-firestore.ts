@@ -3,7 +3,6 @@
 // canonical JSON rows; queries narrow string equality in SQL, then filter and sort in
 // process with Firestore value ordering, so this targets a single-node engine, not
 // Firestore-scale data.
-// test/document-store-contract.ts defines the behaviour it must match.
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { DatabaseSync } from 'node:sqlite';
 import { randomBytes } from 'node:crypto';
@@ -70,7 +69,7 @@ function typeRank(v: any): number {
   if (typeof v === 'number') return 2;
   if (v instanceof Timestamp) return 3;
   if (typeof v === 'string') return 4;
-  if (Buffer.isBuffer(v)) return 5;
+  if (v instanceof Uint8Array) return 5;
   if (v instanceof DocRef) return 6;
   if (Array.isArray(v)) return 8;
   return 9;
@@ -147,7 +146,7 @@ function resolveTransforms(value: any, previous: any, now: Timestamp): any {
   const kind = transformKind(value);
   if (kind === 'FieldValue.delete') throw new Error('FieldValue.delete() is only allowed in update or merge');
   if (kind) return applyTransform(kind, value, previous, now);
-  if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Timestamp) && !Buffer.isBuffer(value) && !(value instanceof DocRef) && !(value instanceof Date)) {
+  if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Timestamp) && !(value instanceof Uint8Array) && !(value instanceof DocRef) && !(value instanceof Date)) {
     const out: Data = {};
     for (const [k, v] of Object.entries(value)) if (v !== undefined) putField(out, k, resolveTransforms(v, previous && Object.hasOwn(previous, k) ? previous[k] : undefined, now));
     return out;
@@ -168,7 +167,7 @@ function mergeInto(target: Data, patch: Data, now: Timestamp) {
   }
 }
 function isPlainMap(v: any): boolean {
-  return !!v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Timestamp) && !Buffer.isBuffer(v) && !(v instanceof DocRef)
+  return !!v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Timestamp) && !(v instanceof Uint8Array) && !(v instanceof DocRef)
     && !(v instanceof Date) && !transformKind(v);
 }
 function splitFieldPath(p: any): string[] {
@@ -286,8 +285,6 @@ export class CollRef extends Query {
 }
 
 export class DocRef {
-  // firestore.ts recognizes stored references by this brand without importing this module.
-  get [Symbol.for('minions.sqliteDocumentReference')]() { return true; }
   constructor(public db: SqliteFirestore, public path: string, public converter: any = null) {
     if (path.split('/').length % 2 !== 0) throw new Error(`Invalid document path ${path}`);
   }
@@ -735,9 +732,9 @@ function matches(path: string, data: Data, w: Where, db: SqliteFirestore): boole
     case '<=': return ranged && compare(v, target) <= 0;
     case '>': return ranged && compare(v, target) > 0;
     case '>=': return ranged && compare(v, target) >= 0;
-    // As in Firestore, null inside an in-list matches nothing.
-    case 'in': return (target as any[]).some(t => t !== null && equal(v, t));
-    case 'not-in': return v !== null && !(target as any[]).some(t => equal(v, t));
+    case 'in': return (target as any[]).some(t => equal(v, t));
+    // Firestore NOT_IN excludes null fields and matches nothing when its comparison list contains null.
+    case 'not-in': return v !== null && !(target as any[]).includes(null) && !(target as any[]).some(t => equal(v, t));
     case 'array-contains': return Array.isArray(v) && v.some(x => equal(x, target));
     case 'array-contains-any': return Array.isArray(v) && v.some(x => (target as any[]).some(t => equal(x, t)));
     default: throw new Error(`Unsupported operator ${w.op}`);

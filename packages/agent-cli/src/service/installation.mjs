@@ -88,7 +88,8 @@ async function claimOwnership(home) {
     try {
       ownedFile(path); const previous = readPrivate(path, true);
       if (!previous || Object.keys(previous).sort().join(',') !== 'nonce,pid,version' || previous.version !== 1 || !Number.isSafeInteger(previous.pid) || previous.pid < 1 || typeof previous.nonce !== 'string') throw fail('Unknown installation ownership; inspect the saved record. No process was stopped.');
-      if (alive(previous.pid)) throw fail('Another live process owns this installation. Use service status; no process was stopped.');
+      // A crash leaves this record; after a restart its PID can belong to another program. Never take it over here.
+      if (alive(previous.pid)) throw fail(`Process ${previous.pid} is recorded as this installation's service and is still running. A service that is still starting or stopping looks the same, so wait a minute and retry. If it repeats and process ${previous.pid} is not a Minions service (check it in your system's process list), a crash left this record: remove ${path}, and runtime-endpoint.json beside it if present, then start the service again. No process was stopped.`);
       unlinkSync(path);
     } catch (error) { if (error.code !== 'ENOENT') throw error; }
     writePrivate(path, value); return lstatSync(path);
@@ -103,7 +104,10 @@ async function claimOwnership(home) {
 async function control(config, path, method = 'GET', incarnation) {
   const response = await fetch(`http://127.0.0.1:${config.port}${path}`, { method, redirect: 'error', credentials: 'omit',
     headers: { Authorization: `Bearer ${config.token}`, Accept: 'application/json', ...(incarnation ? { 'X-Minions-Incarnation': incarnation } : {}) }, signal: AbortSignal.timeout(1500) });
-  if (!response.ok) throw fail('The saved service endpoint did not authenticate. No process was signalled.');
+  // The service answers its control paths as JSON, refusing with 401; anything else is another program on its port.
+  if (!response.ok) throw fail(response.status === 401 || response.headers.get('content-type') === 'application/json'
+    ? 'The saved service endpoint did not authenticate. No process was signalled.'
+    : `Another program answers on the service's port ${config.port}. Stop it, then retry. No process was signalled.`);
   if (Number(response.headers.get('content-length')) > 8192) throw fail('Invalid service response.');
   let size = 0; const chunks = [];
   for await (const chunk of response.body) { size += chunk.byteLength; if (size > 8192) throw fail('Invalid service response.'); chunks.push(chunk); }
@@ -128,7 +132,11 @@ export async function statusInstalledService({ home = installationHome() } = {})
 // afterTurns: each turn in progress finishes and no new one starts, then the service stops by itself. Workers keep
 // their missions and continue when the service starts again, so an update stops no agent. Waiting gives up after
 // timeoutMs, leaving the service to stop once its turns end.
-export async function stopInstalledService({ home = installationHome(), afterTurns = false, timeoutMs = afterTurns ? 3600000 : 15000, pollMs = afterTurns ? 500 : 50 } = {}) {
+// A plain stop ends the turns in progress: a guard escalates its native group to SIGKILL after 8 s, and each mission's
+// leftover sweep allows 3 s, then 3 s more after SIGKILL, with process scans between. Wait past those bounds before
+// saying shutdown is unconfirmed; the service still finishes either way.
+const STOP_WAIT_MS = 30_000;
+export async function stopInstalledService({ home = installationHome(), afterTurns = false, timeoutMs = afterTurns ? 3600000 : STOP_WAIT_MS, pollMs = afterTurns ? 500 : 50 } = {}) {
   const before = await statusInstalledService({ home });
   if (!before.running) return { stopped: true, alreadyStopped: true };
   if (afterTurns && !before.finishesTurns) throw fail('The connector running now is older than --after-turns and cannot let turns finish first. Nothing was stopped. Update it this once with service-stop, which ends the turns in progress, ideally while no agent is mid-turn. Later updates can use --after-turns.');
@@ -189,7 +197,7 @@ export async function startDetachedService({ home = installationHome(), site, en
   const fd = openSync(path, constants.O_WRONLY | constants.O_CREAT | constants.O_APPEND | constants.O_NOFOLLOW, 0o600);
   let child;
   try {
-    child = spawn(process.execPath, [entryPoint, ...args], { detached: true, cwd: home, stdio: ['ignore', fd, fd],
+    child = spawn(process.execPath, [entryPoint, ...args], { detached: true, windowsHide: true, cwd: home, stdio: ['ignore', fd, fd],
       env: { ...process.env, MINIONS_SERVICE_HOME: home, MINIONS_SITE_URL: installation.site } });
   } finally { closeSync(fd); }
   let spawnError; child.on('error', error => { spawnError = error; }); child.unref();

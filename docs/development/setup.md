@@ -22,9 +22,19 @@ Use an absolute Windows path on Windows. Keep `MINIONS_ENGINE_HOME` and
 skips client registration and command linking. Keep development data separate from
 your everyday engine and start no models without explicit approval.
 
-The engine serves the built app. For frontend iteration, `npm --prefix apps/web run dev`
-starts Vite; configure `KARMA_LOCAL_API_URL` to the development engine's origin.
-See the [engine guide](../self-hosted-engine.md) for configuration.
+The engine serves the built app. For frontend iteration, rebuild it from the
+repository root, then reload the page at the isolated engine's own address:
+
+```sh
+npm run build:web
+```
+
+The running engine serves the updated files without a restart. Use the exact
+`http://127.0.0.1:PORT/` address printed by setup for integrated checks.
+`npm --prefix apps/web run dev` starts Vite, but its separate origin cannot obtain
+the standalone owner's session. Setting `KARMA_LOCAL_API_URL` forwards API requests
+without changing that sign-in restriction. See the
+[engine guide](../self-hosted-engine.md) for configuration.
 
 Run focused checks from the repository root:
 

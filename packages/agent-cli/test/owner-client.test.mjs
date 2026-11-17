@@ -240,6 +240,67 @@ test('project reads any member can make go to their fixed project paths',async()
   assert.equal(f.requests.length,before);
  }finally{f.close();}
 });
+test('owner task lists page direct children and retain compact hierarchy metadata',async()=>{
+ const f=fixture();try{
+  await f.client.signIn();
+  const child={id:'child_1',title:'First child',status:'backlog',assignedAgentId:null,parentId:'parent_1',proposed:true,description:'Full text'};
+  f.respond(url=>new URL(url).searchParams.has('cursor')
+   ? {tasks:[{...child,id:'child_2',proposed:undefined}],nextCursor:null}
+   : {tasks:[child],nextCursor:'child_1'});
+  const first=await f.client.operation('list_project_tasks',{project_id:P,parent_task_id:'parent_1',limit:1});
+  assert.equal(f.requests.at(-1).url,`${site}/api/owner/projects/${P}/tasks?limit=1&parentId=parent_1`);
+  assert.deepEqual(first.tasks,[{id:'child_1',title:child.title,status:'backlog',assignedAgentId:null,parentId:'parent_1',proposed:true}]);
+  const second=await f.client.operation('list_project_tasks',{project_id:P,parent_task_id:'parent_1',limit:1,cursor:first.nextCursor});
+  assert.equal(f.requests.at(-1).url,`${site}/api/owner/projects/${P}/tasks?cursor=child_1&limit=1&parentId=parent_1`);
+  assert.equal(second.nextCursor,null);assert.equal(second.tasks[0].id,'child_2');assert.equal('proposed' in second.tasks[0],false);
+  const before=f.requests.length;
+  for(const parent_task_id of ['', '../parent', 'a'.repeat(201), 3])await assert.rejects(f.client.operation('list_project_tasks',{project_id:P,parent_task_id}));
+  assert.equal(f.requests.length,before);
+ }finally{f.close();}
+});
+test('owner task reads forward comment/history cursors and saved versions without changing the task',async()=>{
+ const f=fixture();try{
+  await f.client.signIn();
+  const event='000000000001_'+'b'.repeat(64);
+  f.respond(()=>({task:{id:'task_1'},nextCommentCursor:'comment_1',nextActivityCursor:event}));
+  const first=await f.client.operation('read_project_task',{project_id:P,task_id:'task_1'});
+  await f.client.operation('read_project_task',{project_id:P,task_id:'task_1',comment_cursor:first.nextCommentCursor,activity_cursor:first.nextActivityCursor});
+  assert.equal(f.requests.at(-1).url,`${site}/api/owner/projects/${P}/tasks/task_1?commentCursor=comment_1&activityCursor=${event}`);
+  assert.equal(f.requests.at(-1).method,'GET');
+  await f.client.operation('read_project_task',{project_id:P,task_id:'task_1',activity_id:event});
+  assert.equal(f.requests.at(-1).url,`${site}/api/owner/projects/${P}/tasks/task_1?activityId=${event}`);
+  const before=f.requests.length;
+  for(const key of ['comment_cursor','activity_cursor','activity_id'])for(const value of ['', '../other-task', 'a'.repeat(201), 3]){
+   await assert.rejects(f.client.operation('read_project_task',{project_id:P,task_id:'task_1',[key]:value}),/task/);
+  }
+  assert.equal(f.requests.length,before);
+  const schema=OWNER_TOOLS.find(tool=>tool.name==='read_project_task').inputSchema;
+  for(const key of ['comment_cursor','activity_cursor','activity_id'])assert.equal(schema.properties[key].type,'string');
+ }finally{f.close();}
+});
+test('owner task reads can choose a smaller page and newest-first activity',async()=>{
+ const f=fixture();try{
+  await f.client.signIn();
+  await f.client.operation('read_project_task',{project_id:P,task_id:'task_1',limit:1,activity_order:'desc'});
+  assert.equal(f.requests.at(-1).url,`${site}/api/owner/projects/${P}/tasks/task_1?limit=1&activityOrder=desc`);
+  await f.client.operation('read_project_task',{project_id:P,task_id:'task_1'});
+  assert.equal(f.requests.at(-1).url,`${site}/api/owner/projects/${P}/tasks/task_1`);
+  const before=f.requests.length;
+  for(const args of [{limit:0},{limit:101},{limit:1.5},{activity_order:'newest'},{activity_order:3}]){
+   await assert.rejects(f.client.operation('read_project_task',{project_id:P,task_id:'task_1',...args}));
+  }
+  assert.equal(f.requests.length,before);
+ }finally{f.close();}
+});
+test('task detail keeps its own hard reply limit and other owner reads keep the default limit',async()=>{
+ const f=fixture();try{
+  await f.client.signIn();
+  f.respond(()=>({padding:'a'.repeat(256*1024)}));
+  await assert.rejects(f.client.operation('get_project_overview',{project_id:P}),/unexpected reply/);
+  f.respond(()=>({padding:'a'.repeat(512*1024)}));
+  await assert.rejects(f.client.operation('read_project_task',{project_id:P,task_id:'task_1'}),/unexpected reply/);
+ }finally{f.close();}
+});
 test('list tools return short rows by default and the server rows with detail: true',async()=>{
  const f=fixture();try{
   await f.client.signIn();

@@ -33,7 +33,8 @@ const LEAN = {
     threadId, summary: first?.summary || start(first?.body), from: first?.sender?.name,
     to: first?.audience?.kind === 'direct' ? first.audience.to?.map(to => to.name) : first?.audience?.kind, messages: count })),
   read_project_updates: rows('items', u => ({ id: u.id, title: u.title ?? start(u.body), author: u.author?.agent?.name ?? u.author?.profile?.name, publishedAt: u.publishedAt })),
-  list_project_tasks: rows('tasks', ({ id, title, status, assignedAgentId }) => ({ id, title, status, assignedAgentId })),
+  list_project_tasks: rows('tasks', ({ id, title, status, assignedAgentId, parentId, proposed }) => ({ id, title, status, assignedAgentId,
+    ...(parentId ? { parentId } : {}), ...(proposed ? { proposed: true } : {}) })),
 };
 const UUID = /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/;
 export function ownerOrigin(site) {
@@ -205,6 +206,14 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
       return recorded(body.client_request_id, { name, project_id, body }, specs[name][0], body);
     }
     if ((args.thread_id !== undefined || args.task_id !== undefined) && !/^[\w-]{1,200}$/.test(args.thread_id ?? args.task_id)) throw new Error('Use the ID from the list this came from.');
+    if (name === 'list_project_tasks' && args.parent_task_id !== undefined
+      && (typeof args.parent_task_id !== 'string' || !/^[\w-]{1,200}$/.test(args.parent_task_id))) throw new Error('Use a task ID from this project as parent_task_id.');
+    if (name === 'read_project_task') for (const field of ['comment_cursor','activity_cursor','activity_id']) {
+      if (args[field] !== undefined && (typeof args[field] !== 'string' || !/^[\w-]{1,200}$/.test(args[field])))
+        throw new Error('Use the comment or activity ID returned by this task.');
+    }
+    if (name === 'read_project_task' && args.activity_order !== undefined && !['asc','desc'].includes(args.activity_order))
+      throw new Error('Choose asc or desc for task activity order.');
     if (args.q !== undefined && (typeof args.q !== 'string' || !args.q.trim() || args.q.length > 64 || /[\x00-\x1f\x7f-\x9f]/.test(args.q))) throw new Error('Filter by up to 64 characters of an agent\'s name.');
     if (args.source !== undefined && !['authored_updates','result_history'].includes(args.source)) throw new Error('Choose authored_updates or result_history.');
     let [path,method = 'GET'] = specs[name], body;
@@ -248,8 +257,16 @@ export function createOwnerClient({ home = sessionHome(), workspace = workspaceH
     if (name === 'list_my_projects' && args.scope !== undefined && !['owned','joined','all'].includes(args.scope)) throw new Error('Choose owned, joined or all projects.');
     const query = new URLSearchParams();
     for (const field of ['cursor','scope','q','source','limit']) if (args[field] !== undefined) query.set(field, String(args[field]));
+    if (name === 'read_project_task') for (const [field, parameter] of [['comment_cursor','commentCursor'],['activity_cursor','activityCursor'],['activity_id','activityId'],['activity_order','activityOrder']]) {
+      if (args[field] !== undefined) query.set(parameter, args[field]);
+    }
+    if (name === 'list_project_tasks' && args.parent_task_id !== undefined) query.set('parentId', args.parent_task_id);
     if (query.size) path += '?' + query;
-    const response = await request(path,{method,body,profileId:r.profileId});
+    // Task detail combines a 96 KiB task, bounded comments/history, up to 50 ancestors
+    // and 100 subtask summaries. Allow their combined UTF-8 JSON without truncation;
+    // this owner route returns plain records, without MCP provenance wrappers.
+    const response = await request(path,{method,body,profileId:r.profileId,
+      ...(name === 'read_project_task' ? { responseLimit: 512 * 1024 } : {})});
     // The goal is already in definition.goal.
     if (name === 'get_project_overview' && response.project && typeof response.project === 'object') delete response.project.mission;
     return lean(response);

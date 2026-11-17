@@ -1,5 +1,6 @@
-// The sign-in service that proves who a person is: the engine's GitHub sessions (server-sessions.ts) or its single
-// local owner (local-owner.ts). Both report through this interface, so auth.ts applies one set of authority checks.
+// The sign-in service that proves who a person is: the engine's single local owner (local-owner.ts; tests
+// use a multi-person stand-in in test/server-sessions.ts). Providers report through this interface, so auth.ts applies one set of
+// authority checks.
 
 /** A session token the provider accepted. `subject` is the provider's stable account ID. */
 export type VerifiedSession = {
@@ -28,18 +29,9 @@ export type IdentityAccount = {
   emailVerified: boolean;
 };
 
-/** The account as included in a person's data export. */
-export type IdentityAccountExport = {
-  uid: string; email: string | null; emailVerified: boolean; displayName: string | null; photoURL: string | null; phoneNumber: string | null; disabled: boolean;
-  providers: { providerId: string; uid: string; email: string | null; displayName: string | null; photoURL: string | null; phoneNumber: string | null }[];
-  createdAt: string | null; lastSignInAt: string | null;
-};
-
 export interface IdentityProvider {
   /** Null when the provider rejected the token or account. An outage or configuration error throws, so callers can retry. */
   verifySession(token: string): Promise<VerifiedSession | null>;
   /** Null when the account does not exist. */
   account(subject: string): Promise<IdentityAccount | null>;
-  /** Null when no account has this email. */
-  exportAccount(email: string): Promise<IdentityAccountExport | null>;
 }

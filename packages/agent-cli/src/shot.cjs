@@ -47,9 +47,15 @@ const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/ja
   '.gif': 'image/gif', '.webp': 'image/webp', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.wasm': 'application/wasm' };
 
 // Serves one folder, read-only, to this computer only, until the process exits.
+// A malformed or NUL path answers 400 instead of ending the capture; a Host other than this server's address
+// (a rebinding page in a browser) is refused.
 function serveFolder(root) {
+  let host;
   const server = http.createServer((request, response) => {
-    const name = decodeURIComponent(new URL(request.url, 'http://local').pathname);
+    if (request.headers.host !== host) { response.writeHead(403).end(); return; }
+    let name;
+    try { name = decodeURIComponent(new URL(request.url, 'http://local').pathname); } catch { response.writeHead(400).end(); return; }
+    if (name.includes('\0')) { response.writeHead(400).end(); return; }
     const file = path.join(root, name.endsWith('/') ? name + 'index.html' : name);
     if (file !== root && !file.startsWith(root + path.sep)) { response.writeHead(403).end(); return; }
     readFile(file, (error, body) => {
@@ -57,7 +63,7 @@ function serveFolder(root) {
       response.writeHead(200, { 'content-type': TYPES[path.extname(file).toLowerCase()] ?? 'application/octet-stream' }).end(body);
     });
   });
-  return new Promise((resolve, reject) => server.once('error', reject).listen(0, '127.0.0.1', () => resolve(server.address().port)));
+  return new Promise((resolve, reject) => server.once('error', reject).listen(0, '127.0.0.1', () => { host = `127.0.0.1:${server.address().port}`; server.unref(); resolve(server.address().port); }));
 }
 
 async function addressOf(value, servers) {
@@ -86,4 +92,5 @@ async function main() {
   process.exit(0);
 }
 
-main().catch(error => fail(`Screenshot failed: ${error?.message ?? error}`));
+if (require.main === module) main().catch(error => fail(`Screenshot failed: ${error?.message ?? error}`));
+else module.exports = { serveFolder };

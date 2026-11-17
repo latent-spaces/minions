@@ -20,7 +20,11 @@ export function withOperationLock(dir, action) {
     if (error.code !== 'EEXIST') throw error;
     let guardFd;
     try { guardFd = openSync(guard, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600); }
-    catch { throw new Error('Another operation is checking this connection. Retry shortly; no process was stopped.'); }
+    // Held only for a few file calls and never taken over here. One that outlives every Minions command was left behind.
+    catch (error) {
+      if (error.code !== 'EEXIST') throw new Error(`The connection check could not create ${guard} (${error.code ?? 'error'}). No process was stopped.`);
+      throw new Error(`Another operation is checking this connection. Retry shortly. If it repeats while no Minions command or service is using this directory, ${guard} was left behind: remove it and retry. No process was stopped.`);
+    }
     try {
       writeFileSync(guardFd, `${process.pid}\n`);
       const before = lstatSync(path), raw = readPrivate(path);

@@ -15,6 +15,8 @@ export const at = (...parts) => join(repository, ...parts);
 export const engineMain = at('apps/server/dist/self-hosted-main.js');
 export const connectorCli = at('packages/agent-cli/src/cli.mjs');
 export const readText = file => { try { return readFileSync(file, 'utf8'); } catch { return null; } };
+/** Text appended after `offset` bytes (the file's size earlier); slicing decoded text would count UTF-16 units instead. */
+export const readAppended = (file, offset) => { try { return readFileSync(file).subarray(offset).toString('utf8'); } catch { return ''; } };
 
 /** This installation's folder, files, port, address and the environments its engine and connector run with. */
 export function locate(env = process.env) {
@@ -124,7 +126,7 @@ export async function startEngine(env, files) {
   child.once('exit', (code, signal) => { exit = { code, signal }; });
   child.once('error', error => { failure = error; });
   child.unref();
-  const output = () => (readText(files.engineLog) ?? '').slice(offset);
+  const output = () => readAppended(files.engineLog, offset);
   for (const deadline = Date.now() + 120_000; Date.now() < deadline;) {
     if (failure) throw failure;
     const url = engineUrl(output());

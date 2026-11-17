@@ -4,13 +4,14 @@ import { createRunJournal } from './run-journal.mjs';
 import { rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { localPermissionGuidance, workerClaudeSettings, agentsMayMerge, codexMergeRules, createProvider, CLAUDE_ALLOWED_TOOLS } from '../runtime/providers.mjs';
+import { localPermissionGuidance, workerClaudeSettings, workerPrivateRoots, workerPrivatePaths, agentsMayMerge, codexMergeRules, createProvider, CLAUDE_ALLOWED_TOOLS } from '../runtime/providers.mjs';
 import { createCodexMergePolicy } from './codex-merge-policy.mjs';
 import { VERSION } from './version.mjs';
 import { digest, ensureHome, lstatExists, readPrivate, writePrivate } from './state.mjs';
 import { verifyBundle } from './system.mjs';
 import { prepareSupervisedModel } from './model-guard.mjs';
 import { MISSION_MARK, missionMark, stopMarkedProcesses } from './leftover-processes.mjs';
+import { readLinuxProcessBaseline } from './linux-process-baseline.mjs';
 import { readWorkerGuidance } from './worker-guidance.mjs';
 import { probeWindowsSupervision, stopWindowsMission } from './windows-supervision.mjs';
 import { MAX_REMAINING_MS } from './run-length.mjs';
@@ -160,7 +161,7 @@ export function modelTurnOutcome({ stream, stderr = '', exitCode = null, signal 
     truncated: stream.truncated === true, delivery: stream.delivery };
   const limitResetAt = failed && failureCode === 'provider_limited' ? providerLimitResetAt(diagnostics, now) : null;
   return { ...(failed ? { failureCode } : {}), ...(limitResetAt !== null ? { limitResetAt } : {}), diagnostics: detail,
-    retryable: failed && !['private_state_failure', 'authentication_required', 'permission_required', 'merge_policy_unavailable', 'native_protocol_frame_too_large', 'native_protocol_error', 'native_interactive_request'].includes(failureCode)
+    retryable: failed && !['private_state_failure', 'authentication_required', 'permission_required', 'merge_policy_unavailable', 'native_permissions_unavailable', 'native_protocol_frame_too_large', 'native_protocol_error', 'native_interactive_request'].includes(failureCode)
       // Only Claude's terminal refusal with zero turns proves the prompt never ran; otherwise
       // an uncertain submission stays protected from a duplicate retry.
       && (stream.delivery !== 'submitted' || failureCode === 'provider_limited' && stream.report?.is_error === true && stream.report.num_turns === 0),
@@ -175,6 +176,9 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
   if (configuredEndpoint && (() => { try { const endpoint = new URL(configuredEndpoint); return endpoint.protocol !== 'https:' || endpoint.origin !== (client === 'claude' ? 'https://api.anthropic.com' : 'https://api.openai.com'); } catch { return true; } })()) throw new Error('This worker adapter cannot preserve your custom API endpoint. Use the current-chat MCP mode rather than silently switching your model backend.');
   const settings = { claude: executables.claude, codex: executables.codex, model, effort, repoDir: folder, permissionMode: 'acceptEdits', allowedTools: CLAUDE_ALLOWED_TOOLS, passEnv: '', turnBudgetUsd: 0 };
   const provider = createProvider(client, settings, { envSource });
+  // Refuses before any launch when this worker's private state cannot be kept out of its reach.
+  const privatePaths = workerPrivatePaths({ stateDir, folder, envSource });
+  const privateRoots = client === 'claude' ? workerPrivateRoots({ stateDir, folder, envSource }) : [];
   if (process.platform === 'win32') await probeWindowsSupervision({ env: provider.environment(), signal });
   const mergePolicy = client === 'codex' ? createCodexMergePolicy({ folder, stateDir, env: provider.environment() }) : null;
   await provider.preflight({ signal });
@@ -197,7 +201,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
   // Every process this adapter's turns start inherits it; see leftover-processes.mjs.
   const mark = missionMark(journalIdentity);
   return {
-    async stopLeftovers() { const result = process.platform === 'win32' ? await stopWindowsMission(mark, { env: provider.environment() }) : await stopMarkedProcesses(mark); await mergePolicy?.cleanup(); return result; },
+    async stopLeftovers() { const result = process.platform === 'win32' ? await stopWindowsMission(mark, { env: provider.environment() }) : await stopMarkedProcesses(mark, { ...(process.platform === 'linux' ? { baseline: readLinuxProcessBaseline(stateDir, mark) } : {}) }); await mergePolicy?.cleanup(); return result; },
     async run({ turnId = randomUUID(), prompt, promptSources, steeringMessages, signal, onActivity, onStatus, onMetadata, onPermission, onModelStarting, onGuardStarted, onGuardClosed, onModelStarted, onPromptSubmitted, onTurnStarted, recovering = false, pauseUpdate = false, updateNudge = false, onlyIfUpdateDue = false }) {
       const basePrompt = prompt;
       let publishedUpdate = false;
@@ -243,7 +247,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
       try { save(); } catch { return beforeLaunchFailure('private_state_failure'); }
       // Written every turn from the verified bundle, so a Card change takes effect at the next turn in either direction.
       const settingsFile = join(stateDir, 'claude-settings.json');
-      try { writePrivate(settingsFile, workerClaudeSettings(verifyBundle().files['claude-settings.json'].toString('utf8'), mergeApproval)); } catch { return beforeLaunchFailure('private_state_failure'); }
+      try { writePrivate(settingsFile, workerClaudeSettings(verifyBundle().files['claude-settings.json'].toString('utf8'), mergeApproval, privateRoots)); } catch { return beforeLaunchFailure('private_state_failure'); }
       let invocation;
       try {
         if (mergePolicy) {
@@ -251,7 +255,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
           else { const file = await mergePolicy.prepare(codexMergeRules(mergeApproval), { signal }); await provider.validateMergeRules(file, mergeApproval, { signal }); }
         }
       } catch { await mergePolicy?.cleanup().catch(() => {}); return beforeLaunchFailure('merge_policy_unavailable'); }
-      try { invocation = await provider.invocation({ prompt, permissionGuidance, instructionsFile: join(stateDir, 'instructions.md'), settingsFile, mcpConfig: join(stateDir, 'mcp.json'), bridge, session, resuming, repoDir: folder, clientVersion: VERSION, signal, requireMergePolicy: client === 'codex' && !agentsMayMerge(mergeApproval) }); }
+      try { invocation = await provider.invocation({ prompt, permissionGuidance, instructionsFile: join(stateDir, 'instructions.md'), settingsFile, mcpConfig: join(stateDir, 'mcp.json'), bridge, session, resuming, repoDir: folder, clientVersion: VERSION, signal, privatePaths, requireMergePolicy: client === 'codex' && !agentsMayMerge(mergeApproval) }); }
       catch { await mergePolicy?.cleanup(); if (signal.aborted) return withEvidence({ interrupted: true, delivery: 'not_submitted', text: '', cleanupConfirmed: true }); return beforeLaunchFailure('native_preparation_failure'); }
       if (firstSpawnPending && launchExpired()) { await mergePolicy?.cleanup(); return beforeLaunchFailure('request_expired'); }
       try { await onModelStarting?.(); } catch { await mergePolicy?.cleanup(); return beforeLaunchFailure('private_state_failure'); }
@@ -377,4 +381,3 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
     },
   };
 }
-

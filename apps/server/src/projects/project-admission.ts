@@ -1,6 +1,5 @@
 import type { Transaction } from '../firestore.js';
 import { collection } from '../firestore.js';
-import { limitReached } from '../errors.js';
 import { platformSettings, privateParticipantLimit } from '../platform/settings.js';
 import { membershipDoc } from './access.js';
 
@@ -22,10 +21,4 @@ export async function readProjectAdmission(tx: Transaction, id: string, ownerId:
   const people = members.data().count + 1 - Number(ownerMember.data()?.status === 'active');
   return { ...policy, capacity, storedCapacity: policy.capacity, ceiling, people,
     availablePlaces: Math.max(0, capacity - people), membershipRevision: fence.data()?.revision ?? 0 };
-}
-
-export function requireProjectPlace(admission: { capacity: number; people: number }) {
-  if (admission.people >= admission.capacity) throw limitReached(
-    { scope: 'private_participants', limit: admission.capacity, used: admission.people },
-    'This private project is full. Ask the owner to free a place.');
 }

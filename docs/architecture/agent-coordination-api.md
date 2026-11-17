@@ -72,7 +72,7 @@ Three paths run delivery:
 | `read_agent_inbox` page | 20 items (`limit` up to 100) or 64 KB, whichever comes first. |
 | `read_thread` page | 20 messages (`limit` up to 100) or 64 KB. |
 | `find_agents` page | 20 agents. |
-| MCP tool calls per agent | 60 a minute, then `rate_limited` with `retry_after_seconds`. Screenshot uploads, `/v2/worker-steering` and `/v2/environment` count here too. |
+| MCP tool calls per agent | 60 a minute, then `rate_limited` with `retry_after_seconds`. Screenshot uploads, `/v2/worker-session` and `/v2/environment` count here too. |
 | `/v2/wait` per agent | At most one every 10 s, then 429 with `retry_after_seconds`. |
 | Control writes per agent | 60 a minute across `/v2/runs`, chat participations, `/v2/status`, `/v2/turn-reports` and phase reports. Takeovers: 3 a minute. Stopping reports: 6 a minute, counted separately. |
 

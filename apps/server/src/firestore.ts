@@ -12,10 +12,9 @@ import { readProjectRecord, type ProjectRecord } from './projects/schema.js';
 import { deploymentKind } from './deployment.js';
 import type { AgentPersona } from '@minions/contracts';
 
-// The only module that imports firebase-admin/firestore: server code takes the database API from here. The engine
-// stores documents in SQLite (storage/sqlite-firestore.ts), which implements this API; firebase-admin supplies the
-// types and value classes (Timestamp, FieldPath, FieldValue, Filter) only and never connects anywhere
-// (guarded by test/firestore-seam.test.ts).
+// Server modules take the database API from here; the SQLite adapter also imports SDK value classes directly.
+// firebase-admin supplies types and local value classes. openDatabase() creates SqliteFirestore rather than
+// opening a hosted Firestore connection.
 export {
   DocumentReference, DocumentSnapshot, FieldPath, FieldValue, Filter, Query, QueryDocumentSnapshot,
   QuerySnapshot, Timestamp, Transaction,
@@ -41,13 +40,6 @@ export async function openDatabase(env: NodeJS.ProcessEnv = process.env): Promis
   return new SqliteFirestore(file) as unknown as Firestore;
 }
 export const db = await openDatabase();
-
-// Brand set by storage/sqlite-firestore.ts on its references, so this check never has to load node:sqlite.
-const SQLITE_DOCUMENT_REFERENCE = Symbol.for('minions.sqliteDocumentReference');
-/** True for a stored document reference. */
-export function isDocumentReference(value: unknown): value is DocumentReference {
-  return typeof value === 'object' && value !== null && (value as Record<symbol, unknown>)[SQLITE_DOCUMENT_REFERENCE] === true;
-}
 
 export type WithId<T> = T & { id: string };
 
@@ -79,7 +71,7 @@ export type Profile = {
   photo?: { id: string; publicConsent: true; publishedAt: number } | null;
   profile?: { linkedinProfileUrl: string | null; bio?: string };
   profileRevision?: number;
-  // From the person's latest GitHub sign-in (identity/server-sessions.ts). Shown on their profile; owners' agents add it to repositories.
+  // From the person's latest GitHub sign-in (test/server-sessions.ts). Shown on their profile; owners' agents add it to repositories.
   githubUsername?: string;
   name: string;
   email: string;

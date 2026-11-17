@@ -262,12 +262,6 @@ async function readNativeTaskChanges<T extends { id: string }>(actor: ProgressAc
 export function listNativeTaskChanges(actor: ProgressActor, query: unknown = {}, now: () => number = Date.now) {
   return readNativeTaskChanges(actor, query, now, visibleTask);
 }
-export function listNativeTaskSummaryChanges(actor: ProgressActor, query: unknown = {}, now: () => number = Date.now) {
-  return readNativeTaskChanges<NativeTaskSummary>(actor, query, now, async (_tx, task) => ({
-    id: task.id, title: task.title, status: task.status, assignedAgentId: task.assignedAgentId, priority: task.priority, revision: task.revision, ...subtaskFields(task),
-  }), ['id', 'title', 'status', 'assignedAgentId', 'priority', 'revision', 'parentId', 'proposed']);
-}
-
 // People may nest without a fixed limit; this bounds the parent walk against corrupt cycles.
 const MAX_TASK_DEPTH = 50;
 const SUBTASK_LIMIT = 100;
@@ -295,8 +289,8 @@ async function ancestorsOf(tx: Transaction, task: Pick<NativeTask, 'parentId'>):
   return chain;
 }
 async function subtasksOf(tx: Transaction, taskId: string): Promise<NativeTask[]> {
-  const rows = await tx.get(nativeTasks().where('parentId', '==', taskId).limit(SUBTASK_LIMIT));
-  return rows.docs.map(row => row.data()).sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id));
+  const rows = await tx.get(nativeTasks().where('parentId', '==', taskId).orderBy('createdAt').orderBy(FieldPath.documentId()).limit(SUBTASK_LIMIT));
+  return rows.docs.map(row => row.data());
 }
 const summaryOf = (task: NativeTask): NativeTaskSummary => ({ id: task.id, title: task.title, status: task.status, assignedAgentId: task.assignedAgentId, priority: task.priority, revision: task.revision, ...subtaskFields(task) });
 
@@ -365,6 +359,9 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
         if (!parent) throw new Refusal('not_found', 'This parent task is unavailable in this project.');
         if (parent.proposed) throw new Refusal('bad_input', 'Wait for an owner to accept the proposed parent task before adding subtasks to it.');
         const chain = [...await ancestorsOf(tx, parent), parent];
+        // The new task must remain readable: its ancestry includes the parent itself.
+        // Agent requests are flattened below and do not retain this deep chain.
+        if (actor.kind === 'person' && chain.length > MAX_TASK_DEPTH) throw new Refusal('bad_input', 'This task is nested too deeply.');
         // Agents nest two levels (a task and its subtasks): a deeper agent request is attached under the deepest allowed level.
         parentId = actor.kind === 'agent' && chain.length >= AGENT_TASK_DEPTH ? chain[AGENT_TASK_DEPTH - 2]!.id : parent.id;
       }
@@ -473,8 +470,10 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
     if (task.parentId && before && !before.proposed && !closedTask(before) && closedTask(task)) {
       const parent = (await tx.get(nativeTasks().doc(task.parentId))).data();
       if (parent?.assignedAgentId) {
-        const siblings = (await subtasksOf(tx, parent.id)).filter(row => row.id !== task.id && !row.proposed);
-        if (siblings.every(closedTask)) { closedParent = parent; closedNotice = await readTargets(tx, [parent.assignedAgentId], `task-children-closed-${parent.id}-${task.id}-${task.revision}`); }
+        // The current child is still open in storage. Count every accepted child, independently
+        // of the detail page's limit: this change must close the only remaining open child.
+        const progress = await subtaskProgressOf(tx, parent.id);
+        if (progress.total - progress.done === 1) { closedParent = parent; closedNotice = await readTargets(tx, [parent.assignedAgentId], `task-children-closed-${parent.id}-${task.id}-${task.revision}`); }
       }
     }
     const result: NativeTaskMutationResult = { task, ...(comment ? { comment } : {}), replayed: false };
@@ -491,11 +490,11 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
       agentId: shown.to[0]!, agentName: shown.agentName, actorProfileId: actor.person.id, actorName: actor.person.name, taskId: task.id, taskTitle: task.title,
       body: message, to: shown.to, audience: 'direct', createdAt: at, protocol: 2 } satisfies TaskMessage);
     deliver(tx, notice, { sourceId: `task-assigned-${task.id}-${task.revision}`, kind: 'task_assigned', messageId: null,
-      payload: { type: 'task_assigned', taskId: task.id, title: task.title, titleAuthor: task.titleAuthor, assignedBy: author, revision: task.revision, ...(message !== undefined ? { message } : {}) } }, at);
+      payload: { type: 'task_assigned', taskId: task.id, title: task.title, ...(task.titleAuthor ? { titleAuthor: task.titleAuthor } : {}), assignedBy: author, revision: task.revision, ...(message !== undefined ? { message } : {}) } }, at);
     deliver(tx, created, { sourceId: `task-created-${task.id}`, kind: 'task_created', messageId: null,
       payload: { type: 'task_created', taskId: task.id, title: task.title, titleAuthor: task.titleAuthor, createdBy: author, message, revision: task.revision } }, at);
     if (closedParent) deliver(tx, closedNotice, { sourceId: `task-children-closed-${closedParent.id}-${task.id}-${task.revision}`, kind: 'task_children_closed', messageId: null,
-      payload: { type: 'task_children_closed', taskId: closedParent.id, title: closedParent.title, titleAuthor: closedParent.titleAuthor, revision: closedParent.revision } }, at);
+      payload: { type: 'task_children_closed', taskId: closedParent.id, title: closedParent.title, ...(closedParent.titleAuthor ? { titleAuthor: closedParent.titleAuthor } : {}), revision: closedParent.revision } }, at);
     return visibleResult;
   });
 }

@@ -36,11 +36,13 @@ Commands:
       caller (npm run setup registers them itself).
   mcp-config --client claude|codex|other [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
       Print HTTP registration for another client; changes no client settings.
-  register [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
+  register [--state-dir ABSOLUTE_PRIVATE_DIRECTORY] [--install-skill]
       Register this installation's MCP server as minions with Claude Code (through its
       claude command) and Codex (in its config.toml), replacing older mlswarm-…
       entries. Exit 0 when at least one is registered, 4 when neither is found, 2 when
       a registration failed.
+      --install-skill: also install the bundled Minions skill for each found client,
+      preserving customized skills. npm run setup uses this flag.
   tool --list [TOOL_NAME]
   tool TOOL_NAME ['JSON_ARGUMENTS']
       Call one of the running shared service's MCP tools, as your coding agent would,
@@ -76,8 +78,9 @@ Commands:
       [--minimum N] [--start-date ISO_DATE]
   project-agents --project PROJECT_ID [--cursor CURSOR]
   agents-register --project PROJECT_ID --names NAME1,NAME2 --request-id ID --approve
-      Sign in through browser approval for 90-day human project management.
-      Management commands require the selected shared runtime to be running.
+      Register agent names for an approved project; this starts no model.
+      Management commands use the local engine owner session through the running
+      shared service. Run setup first.
   my-projects [--scope owned|joined|all] [--cursor CURSOR]
   my-proposals [--cursor CURSOR]
   project-create-private --title NAME --goal PURPOSE --repo GITHUB_URL --request-id UUID --approve
@@ -85,7 +88,8 @@ Commands:
   proposal-status --project PROJECT_ID
   project-start --project PROJECT_ID --revision N --request-id ID --approve
       [--start-without-minimum]
-  All commands accept --state-dir ABSOLUTE_PRIVATE_DIRECTORY.
+  All commands except skill, --help and --version accept
+      --state-dir ABSOLUTE_PRIVATE_DIRECTORY to select a separate service installation.
   No secret tokens or codes are accepted as arguments.
   --help
   --version
@@ -93,8 +97,8 @@ Commands:
 Run setup once on each computer. For a client other than Claude Code or Codex,
 register the entry mcp-config prints. Then open a new conversation in your coding
 agent and start building, or copy prompts from your configured Minions website into it.
-Project approval happens separately in your browser. No automatic worker launch.
-Optional local workers require explicit client, scope, separate folder and duration approval.
+Approve project work and model execution in your coding chat or the local app.
+Setup starts no model. Background work requires an approved mission, provider and time.
 Codes and tokens are never accepted as command arguments.`;
 const stateSpec = { 'state-dir': { type: 'string' } };
 const runQuerySpec = { ...stateSpec, mission:{type:'string'}, project:{type:'string'}, agent:{type:'string'} };
@@ -106,7 +110,7 @@ export const specs = {
   'run-recover': {...runQuerySpec,generation:{type:'string'},'request-id':{type:'string'},action:{type:'string'},reason:{type:'string'},approve:{type:'boolean'},report:{type:'string'},attempts:{type:'string'},'error-code':{type:'string'}},
   'mcp-config': { site: { type: 'string' }, client: { type: 'string' }, 'state-dir': { type: 'string' } },
   setup: {...stateSpec,site:{type:'string'},'wait-seconds':{type:'string'},'no-client-hint':{type:'boolean'}},
-  register: {...stateSpec},
+  register: {...stateSpec,'install-skill':{type:'boolean'}},
   tool: {...stateSpec,list:{type:'boolean'}},
   'service-start': {...stateSpec,site:{type:'string'}}, 'service-status':stateSpec, 'service-stop':{...stateSpec,'after-turns':{type:'boolean'},'wait-minutes':{type:'string'}}, 'service-run':stateSpec,
   'project-overview': {...stateSpec,project:{type:'string'}},
@@ -149,11 +153,12 @@ export async function main(args, out = console.log, err = console.error) {
       let found = false, failed = false;
       for (const [client, register] of [['Claude Code', registerWithClaudeCode], ['Codex', registerWithCodex]]) {
         let outcome;
-        try { outcome = register({ home }); } catch (error) { failed = true; out(`${client} could not be registered: ${error.message}`); continue; }
+        try { outcome = register({ home, installBundledSkill: values['install-skill'] === true }); } catch (error) { failed = true; out(`${client} could not be registered: ${error.message}`); continue; }
         if (outcome.status === 'missing') { out(`${client} was not found, so it was not registered.`); continue; }
         found = true;
         out(outcome.status === 'current' ? `${client} already has Minions (${outcome.name}).`
           : `Registered Minions (${outcome.name}) with ${client}. A new ${client} session loads its tools.`);
+        if (outcome.note) out(`${client}: ${outcome.note}`);
       }
       return failed ? 2 : found ? 0 : 4;
     }

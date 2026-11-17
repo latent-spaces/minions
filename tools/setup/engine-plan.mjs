@@ -54,11 +54,14 @@ export function holderFromLsof(text) {
   return pid ? `${name ?? 'a program'} (process ${pid})` : null;
 }
 
-/** The process listening on port, from Windows netstat -ano output, or null. */
+/**
+ * The process listening on port, from Windows netstat -ano output, or null. The state word is translated on
+ * non-English Windows, so a listener is also recognized by its unconnected foreign address (0.0.0.0:0 or [::]:0).
+ */
 export function pidFromNetstat(text, port) {
   for (const line of text.split(/\r?\n/)) {
-    const [protocol, local, , state, pid] = line.trim().split(/\s+/);
-    if (protocol === 'TCP' && state === 'LISTENING' && local?.endsWith(`:${port}`) && /^\d+$/.test(pid ?? '')) return pid;
+    const [protocol, local, foreign, state, pid] = line.trim().split(/\s+/);
+    if (protocol === 'TCP' && (state === 'LISTENING' || /:0$/.test(foreign ?? '')) && local?.endsWith(`:${port}`) && /^\d+$/.test(pid ?? '')) return pid;
   }
   return null;
 }
@@ -113,14 +116,6 @@ export function pageOpener(platform, env) {
 /** The engine prints this line once it listens. */
 export function engineUrl(output) {
   return /Standalone engine listening on (http:\/\/127\.0\.0\.1:\d+)/.exec(output)?.[1] ?? null;
-}
-
-/**
- * npm writes node_modules/.package-lock.json only when an install completes, and `npm ci` removes node_modules
- * first, so a missing or older hidden lockfile means a partial install or changed dependencies. Times in ms or null.
- */
-export function needsInstall({ hiddenLockfile, lockfile }) {
-  return hiddenLockfile === null || lockfile === null || hiddenLockfile < lockfile;
 }
 
 /**

@@ -25,15 +25,18 @@ The command:
    `MINIONS_ENGINE_PORT`). When another program holds it, setup stops, names that
    program and stops nothing; it never moves to another port. On a first run it also checks the owner identity (below) before
    installing anything;
-2. runs `npm ci` unless npm's record of a finished install
-   (`node_modules/.package-lock.json`) is at least as new as `package-lock.json`,
-   so an interrupted or outdated install is redone;
+2. installs development and optional build dependencies with `npm ci` when needed.
+   Reuse requires a setup receipt matching both lockfiles and the current Node,
+   operating system and architecture, the recorded packages and a valid dependency
+   tree; interrupted, outdated or externally pruned installs are redone;
 3. builds the contracts, engine, local app and connector
    with each package's own `npm run build` script;
 4. initializes the database on the first run, and keeps it on later runs;
 5. starts the engine and opens the local app in your browser;
-6. runs the connector's `setup` for this computer, then registers the engine's MCP
-   server with Claude Code when its `claude` command is found (below).
+6. runs the connector's `setup` for this computer, then registers its shared MCP
+   server and installs the bundled Minions skill for the Claude Code and Codex
+   clients it finds, preserving customized skills.
+   It also links the `minions` command when eligible (below).
 
 Install and build output is shown only when a step fails. The engine's routine
 activity and errors go to `engine.log` in the engine directory; if the engine stops
@@ -58,21 +61,34 @@ computer is its only computer, so there is no computer connection, approval page
 or code, and the connector saves no computer credential. If the connector fails,
 the engine keeps running; run `npm run setup` again.
 
-When the `claude` command is on PATH, the command then registers this installation's
-MCP server in Claude Code's user settings with `claude mcp add-json`, unless an entry
-with the same address is already there, and says so in one line. It runs `claude` without a shell; on Windows an npm `.cmd` shim runs
-its JavaScript entry point with Node. Pass `--no-register` (`npm run setup --
---no-register`) to skip it; a failed registration is a warning and setup carries on.
-Claude Code loads the tools in its next session. Until then, the summary prints the
+The final registration command writes one shared `minions` HTTP entry for each
+client it finds. It registers Claude Code through `claude mcp add-json` when its
+command is available and adds Minions to Claude's tool allowlist. It updates
+Codex's `config.toml` when its home exists (`CODEX_HOME` when absolute, otherwise
+`~/.codex`), preserving unrelated settings. Older `mlswarm` MCP entries are retired.
+It runs clients without a shell; on Windows an npm `.cmd` shim runs its JavaScript
+entry with Node.
+
+Pass `--no-register` (`npm run setup -- --no-register`) to skip client registration
+and skill installation;
+an isolated engine selected with `MINIONS_ENGINE_HOME` also skips it. Isolated
+engines and Git worktrees skip command linking. See the
+[setup tool guide](../tools/setup/README.md) for details. A failed registration is a
+warning and setup carries on.
+Restart an existing coding chat to load the tools. Until then, the summary prints the
 connector's `tool` command, with which a coding agent calls the same tools from a
 terminal (`tool --list`, then `tool TOOL_NAME '{"field":"value"}'`).
 
 The short closing summary gives the local app's address, says the engine runs in the
-background until `minions stop`, whether Claude Code was registered, the `tool`
-fallback, and the connector's `mcp-config` command only for clients that were not
-registered (Codex or another client, or Claude Code when it was not registered). It
-reminds you to sign in to GitHub with `gh auth login` for project work. Other clients' settings, the
-Minions skill and GitHub sign-in are not changed by this command.
+background until `minions stop`, the client registration result, and the `tool`
+fallback or manual `mcp-config` command. On an everyday main checkout, setup links
+the `minions` command with `npm link --ignore-scripts`; a failed link prints the
+manual command. The engine wrapper selects a separate connector installation,
+so connector setup skips its usual client and GitHub steps. The wrapper installs
+the skill through `register --install-skill`; its customization checks and skill
+records use this engine's selected service home. GitHub sign-in is not changed.
+The summary reminds you to
+sign in with `gh auth login` for repository work. Setup starts no model.
 
 The owner's name and email come from `--owner-name` and `--owner-email`
 (`npm run setup -- --owner-name 'Your Name' --owner-email you@example.com`), or
@@ -124,6 +140,30 @@ with the same `MINIONS_*` settings the engine was started with, exits 0 only whe
 the engine at that address signs sessions with this owner file's secret. `npm run
 setup` uses it to recognize that a busy port is its own engine.
 
+## What this protects against
+
+Minions treats the processes your account runs on this computer as trusted. The
+loopback-only listener, the `Host` and `Origin` checks on owner sessions and the
+signed stop request keep other computers and other websites out: a web page in
+your browser cannot get an owner session or stop the engine. They do not stop a
+program running as your own account. Such a program can send those same headers,
+read the private owner file (`owner.json`) and database (`engine.sqlite`), and act as the owner. The same holds for
+code in a checkout you run setup in, and for any account that can read your Minions
+home. Do not run setup in a checkout you do not trust, and do not share the account.
+
+Background agents' commands run in their coding client's sandbox, which keeps their
+writes to their checkout. For Claude Code it also keeps the Minions private folders
+unreadable to the worker's shell and Read tool, including custom engine, service and
+credential folders (the Windows rules are not yet verified on native Windows).
+Codex also denies these folders to sandboxed commands through a named permission
+profile, checked before each start and resume. This is verified on native macOS;
+Linux and Windows remain unverified. Windows Codex workers may refuse to start
+where the native sandbox cannot enforce the policy; there is no unrestricted
+fallback. Either sandbox can still reach this engine over loopback, so it does not stop a hostile model
+from asking for an owner session. Treat per-agent permissions, Pause and the
+connector's mission and checkout checks as workflow controls, not as protection from
+a hostile model or program running under your account.
+
 ## Stopping and recovery
 
 Run `minions stop` (or `npm run stop`). It first stops the connector's shared
@@ -134,18 +174,29 @@ read that file can stop the engine and no web page can. Windows has no graceful
 signal for a detached process, so every platform uses this same request. Shutdown
 drains held HTTP requests and the delivery worker before closing SQLite, then
 removes the `.lock` file; the stop waits up to 20 seconds for the engine to
-stop answering. The next start replaces a lock left behind by a crash or a computer
-restart: one whose process no longer exists, or one written before the computer last
-started (its process ID may now belong to another program). Any other lock is refused.
+release that lock. The next start replaces a lock left behind by a crash or a computer
+restart only when its recorded process no longer exists. If that process ID now
+belongs to another program, startup refuses the lock and requires the inspection
+described below. A file timestamp cannot safely distinguish a reboot from a clock
+adjustment. This rule also applies to locks written by older engine versions.
 `minions start` starts both again without rebuilding.
 
 A second engine on the same database is refused by its `.lock` file, and the
-refusal names that file. If `minions stop` then finds no engine, it names the lock
-too: the lock is left over from an earlier run and is safe to delete. Nothing
+refusal names that file. An engine can hold the lock while starting or stopping
+without answering at its saved address, so a failed stop request does not prove
+that the lock is stale. Wait and retry first. Remove the named lock only after
+inspecting its recorded PID and confirming in the system process list that no
+engine process is using this database. Nothing
 stops or signals another process to recover a lock. The engine runs its delivery
 worker in the same process. Live views follow the engine's own writes at once; a write that
 another program commits to the database file reaches them within about a second,
 so make changes through the engine where you can.
+
+Stale-lock recovery uses a private `.lock.recovery` guard so concurrent starts
+cannot both replace the stale lock. A crash during recovery can leave that guard
+behind; `minions start` does not automatically remove it. Wait and retry first, then inspect
+its recorded PID and confirm no engine is starting or recovering this database
+before removing only the guard named in the error.
 
 An engine started by hand (`self-hosted-main.js start`, without the setup command)
 keeps the default SIGHUP behavior on macOS and Linux, so one started with `nohup`

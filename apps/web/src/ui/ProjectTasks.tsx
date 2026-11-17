@@ -309,7 +309,9 @@ export function NewTask({ api, agents, selfId, onCreated, onCancel }: { api: Tas
   // One request ID per draft: retrying after an uncertain response cannot create a second task.
   const requestId = useRef(crypto.randomUUID()), titleId = useId(), textId = useId(), agentFieldId = useId(), noteId = useId();
   const created = useRef<NativeTask | null>(null), dialog = useRef<HTMLDialogElement>(null);
+  const assignment = useRef<NativeTaskMutation | null>(null), sending = useRef(false);
   useEffect(() => { if (dialog.current && !dialog.current.open) dialog.current.showModal(); }, []);
+  useEffect(() => busy || uncertain ? hold() : undefined, [busy, uncertain]);
   // People message only their own agents: the chosen agent when it is theirs, otherwise all of their agents here.
   const own = agents.filter(agent => !!selfId && agent.operatorId === selfId), chosen = agents.find(agent => agent.id === agentId);
   const recipients = chosen ? own.filter(agent => agent.id === chosen.id) : own;
@@ -318,12 +320,22 @@ export function NewTask({ api, agents, selfId, onCreated, onCancel }: { api: Tas
   const message = sendsMessage ? note.trim() : '';
   // A task created before a failed assignment still shows in the list when the dialog closes.
   const close = () => { if (busy) return; if (created.current) onCreated(created.current); else onCancel(); };
-  // Assigning is a second step on the created task; if it fails the task stays, unassigned in Backlog.
-  const assign = (task: NativeTask) => api.mutate(taskMutation({ operation: 'assign', taskId: task.id, expectedRevision: task.revision, assignedAgentId: agentId, ...message ? { message } : {} }))
-    .then(result => onCreated(result.task), e => { setError(`The task was created, but it could not be assigned: ${errorText(e)}`); setBusy(false); });
+  // Assignment is a separate write. A lost reply may hide a committed assignment, so retain its exact mutation.
+  const assign = (task: NativeTask) => {
+    assignment.current ??= taskMutation({ operation: 'assign', taskId: task.id, expectedRevision: task.revision, assignedAgentId: agentId, ...message ? { message } : {} });
+    return api.mutate(assignment.current).then(result => onCreated(result.task), e => {
+      const settled = isSettledRefusal(e);
+      if (settled) assignment.current = null;
+      setUncertain(!settled);
+      setError(settled ? `The task was created, but it could not be assigned: ${errorText(e)}`
+        : 'The task was created, but its assignment was not confirmed. Retry sends the same assignment request.');
+      sending.current = false; setBusy(false);
+    });
+  };
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    if (!text.trim() || busy || (sendsMessage && !message)) return;
+    if (!text.trim() || sending.current || (sendsMessage && !message)) return;
+    sending.current = true;
     setBusy(true); setError(null);
     if (created.current) { void assign(created.current); return; }
     const { title, description } = taskFromPrompt(text);
@@ -333,10 +345,10 @@ export function NewTask({ api, agents, selfId, onCreated, onCancel }: { api: Tas
         // A refused create may be corrected and sent as a new request; an unknown outcome is retried unchanged.
         const settled = isSettledRefusal(e);
         if (settled) requestId.current = crypto.randomUUID();
-        setUncertain(!settled); setError(settled ? errorText(e) : 'Could not confirm the task was created. Retry sends the same request; it will not create a duplicate.'); setBusy(false);
+        setUncertain(!settled); setError(settled ? errorText(e) : 'Could not confirm the task was created. Retry sends the same request; it will not create a duplicate.'); sending.current = false; setBusy(false);
       });
   };
-  const locked = uncertain || !!created.current;
+  const locked = busy || uncertain || !!created.current;
   return <Dialog ref={dialog} className="k42-task-dialog" aria-labelledby={`${titleId}-heading`} onCancel={e => { e.preventDefault(); close(); }}>
     <CloseButton label="Close new task" onClick={close} disabled={busy} />
     <form className="k42-task-new" onSubmit={submit}>
@@ -346,7 +358,7 @@ export function NewTask({ api, agents, selfId, onCreated, onCancel }: { api: Tas
         placeholder="What should be done? The first line becomes the task's title."
         onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); e.currentTarget.form?.requestSubmit(); } }} />
       {/* Assign to is a row of agent avatars, not a dropdown; hovering one shows who it is, clicking the chosen one again unassigns (owner, 11 November 2026). */}
-      {agents.length > 0 && <fieldset className="k42-task-assignees" aria-describedby={agentFieldId}>
+      {agents.length > 0 && <fieldset className="k42-task-assignees" aria-describedby={agentFieldId} disabled={busy || uncertain}>
         <legend>Assign to <span className="muted">(optional)</span></legend>
         <div className="k42-task-assignee-row">{agents.map(agent => {
           const chosen = agentId === agent.id;
@@ -443,9 +455,10 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
   const [comment, setComment] = useState(''), [link, setLink] = useState(''), [linkLabel, setLinkLabel] = useState(''), [linkOpen, setLinkOpen] = useState(false);
   // A write whose outcome is unknown (lost reply, network, 5xx) is kept and resent byte-for-byte until it settles.
   const [uncertain, setUncertain] = useState<NativeTaskMutation | null>(null);
+  const [subtaskPending, setSubtaskPending] = useState(false);
   const [turnedOff, setTurnedOff] = useState(false);
   const readOnly = readOnlyProp || turnedOff || detail?.permissions.edit === false;
-  const draftState=useRef({dirty:false,busy:false});draftState.current={dirty:!!comment.trim() || !!link.trim() || !!linkLabel.trim(),busy:busy || !!uncertain};
+  const draftState=useRef({dirty:false,busy:false});draftState.current={dirty:!!comment.trim() || !!link.trim() || !!linkLabel.trim(),busy:busy || !!uncertain || subtaskPending};
   // A typed comment or link and a change awaiting its exact retry hold the page and survive an accidental close.
   const unsaved=draftState.current.dirty || draftState.current.busy;
   useEffect(()=>unsaved ? hold() : undefined,[unsaved]);
@@ -600,7 +613,7 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
       </>}
       </div>
       {task && <>
-        <Subtasks api={api} parent={task} subtasks={subtasks} directory={directory} readOnly={readOnly || !!task.proposed} onOpen={leave} onCreated={() => void reload()} />
+        <Subtasks api={api} parent={task} subtasks={subtasks} directory={directory} readOnly={readOnly || !!task.proposed} onOpen={leave} onCreated={() => void reload()} onProtectedChange={setSubtaskPending} />
 
         <section className="k42-task-section" aria-label="Activity">
           <h3>Activity</h3>
@@ -632,27 +645,30 @@ function activityFeed(detail: NativeTaskDetail): FeedItem[] {
 }
 
 /** The page's subtasks: full tasks with one parent. A quick title adds one, unassigned in Backlog. */
-function Subtasks({ api, parent, subtasks, directory, readOnly, onOpen, onCreated }: {
-  api: TasksApi; parent: NativeTask; subtasks: NativeTaskSummary[]; directory: Directory; readOnly: boolean; onOpen: (id: string) => void; onCreated: () => void;
+function Subtasks({ api, parent, subtasks, directory, readOnly, onOpen, onCreated, onProtectedChange }: {
+  api: TasksApi; parent: NativeTask; subtasks: NativeTaskSummary[]; directory: Directory; readOnly: boolean; onOpen: (id: string) => void; onCreated: () => void; onProtectedChange: (pending: boolean) => void;
 }) {
   const [title, setTitle] = useState(''), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null), [adding, setAdding] = useState(false);
-  // One request ID per draft, so a retry after an unknown outcome cannot add the subtask twice.
-  const requestId = useRef(crypto.randomUUID()), inputId = useId();
-  const add = (event: FormEvent) => {
-    event.preventDefault();
+  // Keep the attempted payload too: an unknown result must replay the same title and request ID.
+  const [pending, setPending] = useState<NativeTaskMutation | null>(null), sending = useRef(false);
+  const requestId = useRef(crypto.randomUUID()), inputId = useId(), protectedWrite = busy || pending !== null;
+  useEffect(() => { onProtectedChange(protectedWrite); return () => onProtectedChange(false); }, [protectedWrite, onProtectedChange]);
+  const add = (event?: FormEvent) => {
+    event?.preventDefault();
     const value = title.trim();
-    if (!value || busy) return;
-    setBusy(true); setError(null);
-    api.mutate(taskMutation({ operation: 'create', title: value, parentId: parent.id }, requestId.current)).then(() => {
-      requestId.current = crypto.randomUUID(); setTitle(current => current.trim() === value ? '' : current); onCreated();
+    if (readOnly || !value || sending.current) return;
+    const mutation = pending ?? taskMutation({ operation: 'create', title: value, parentId: parent.id }, requestId.current);
+    sending.current = true; setPending(mutation); setBusy(true); setError(null);
+    api.mutate(mutation).then(() => {
+      setPending(null); requestId.current = crypto.randomUUID(); setTitle(current => current.trim() === value ? '' : current); onCreated();
     }, e => {
       const settled = isSettledRefusal(e);
-      if (settled) requestId.current = crypto.randomUUID();
-      setError(settled ? errorText(e) : 'Could not confirm the subtask was added. Add again sends the same request; it will not add a duplicate.');
-    }).finally(() => setBusy(false));
+      if (settled) { setPending(null); requestId.current = crypto.randomUUID(); }
+      setError(settled ? errorText(e) : 'Could not confirm the subtask was added. Retry sends the same request; it will not add a duplicate.');
+    }).finally(() => { sending.current = false; setBusy(false); });
   };
   const progress = parent.subtaskProgress;
-  const close = () => { if (!busy) { setAdding(false); setTitle(''); setError(null); } };
+  const close = () => { if (!sending.current && !pending) { setAdding(false); setTitle(''); setError(null); } };
   if (readOnly && !subtasks.length) return null;
   return <section className="k42-task-section" aria-labelledby={`${inputId}-heading`}>
     <div className="k42-task-section-head"><h3 id={`${inputId}-heading`}>Subtasks</h3>{progress && <SubtaskRing {...progress} />}
@@ -666,9 +682,10 @@ function Subtasks({ api, parent, subtasks, directory, readOnly, onOpen, onCreate
     {progress && progress.total > 0 && progress.done === progress.total && !closedTask(parent) && <p className="muted k42-task-hint-inline">All subtasks are done or canceled. This task’s own status is still {statusLabel(parent.status)}.</p>}
     {/* Enter adds; Escape, or leaving the empty field, closes it. */}
     {!readOnly && adding && <form className="k42-task-inline" onSubmit={add}>
-      <input id={inputId} aria-label="New subtask title" value={title} maxLength={300} readOnly={busy} onChange={e => setTitle(e.target.value)} placeholder="Subtask title, then Enter" autoFocus
+      <input id={inputId} aria-label="New subtask title" value={title} maxLength={300} readOnly={protectedWrite} onChange={e => setTitle(e.target.value)} placeholder="Subtask title, then Enter" autoFocus
         onKeyDown={e => { if (e.key === 'Escape') { e.stopPropagation(); close(); } }} onBlur={() => { if (!title.trim()) close(); }} /></form>}
     {error && <p role="alert" className="error">{error}</p>}
+    {!readOnly && pending && !busy && <Button type="button" onClick={() => add()}>Retry adding subtask</Button>}
   </section>;
 }
 

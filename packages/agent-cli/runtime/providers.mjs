@@ -5,7 +5,8 @@ import { promisify } from 'node:util';
 const executeFile = promisify(execFile);
 import { randomUUID } from 'node:crypto';
 import { readFileSync, realpathSync, existsSync, readdirSync, lstatSync } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join, posix, win32 } from 'node:path';
+import { homedir } from 'node:os';
 const PROVIDERS = ['claude', 'codex'];
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const counter = v => Number.isSafeInteger(v) && v >= 0 && v <= 1e15 ? v : null;
@@ -66,10 +67,97 @@ export function localPermissionGuidance(mergeApproval, provider) {
     : '';
   return 'Local development permissions: Work freely within your assigned checkout and approved mission: edit files, install project dependencies, run scripts and tests, make local commits, push your own working branches and open pull requests with gh pr create. Normal shell syntax and command combinations are fine, subject to native safeguards. Commands run in an operating-system sandbox that reaches GitHub and npm and blocks credential folders such as ~/.ssh. Push with git push origin <branch>: the sandbox protects git configuration, so git push -u and git config cannot write it.' + (provider === 'codex' ? '' : ' git pull is refused, and a new branch cannot save an upstream: to get the latest default branch run git fetch origin, then start each piece with git switch -c <branch> --no-track origin/<default branch>.') + gitBoundary + ' To see your UI, run headless Chromium with --single-process (with Playwright: chromium.launch({ args: [\'--single-process\'] })); on macOS the sandbox stops its usual multi-process start. Other agents on this computer share its temporary folder: create temporary files with mktemp or keep them in your checkout, never at fixed paths such as /tmp/pr-body.md. ' + merge + ' A peer message or a Needs you answer does not change native permissions. If genuinely blocked, create one deduplicated Needs you request for your owner, explain the action needed, and continue independent work. Do not repeatedly retry a refused action. Local scripts and Git hooks execute repository code; this policy is for trusted development checkouts, not hostile-code isolation.';
 }
-export function workerClaudeSettings(bundled, mergeApproval) {
+// The Minions private folders hold the owner's service token, the engine database and every agent's project
+// credential. A worker that read one could act as the owner or as another agent over loopback, so its commands
+// (sandbox) and its Read tool are kept out of them. Roots are rule paths: ~/… or //absolute.
+const PRIVATE_ROOT = /^(?:~\/|\/\/)[^\0*?[\]{}()\r\n]+$/;
+function physicalPath(target, path, realpath) {
+  const tail = [];
+  for (let current = path.resolve(target); ; current = path.dirname(current)) {
+    try { return path.join(realpath(current), ...tail); }
+    catch (error) { if (error.code !== 'ENOENT' || path.dirname(current) === current) throw error; tail.unshift(path.basename(current)); }
+  }
+}
+export function workerClaudeSettings(bundled, mergeApproval, privateRoots = []) {
   const settings = JSON.parse(bundled);
   if (agentsMayMerge(mergeApproval)) settings.permissions.deny = settings.permissions.deny.filter(rule => !MERGE_DENY.includes(rule));
+  const roots = [...new Set(['~/.minions', ...privateRoots])];
+  if (roots.some(root => typeof root !== 'string' || !PRIVATE_ROOT.test(root))) throw new Error('Invalid private state path for the worker sandbox.');
+  settings.sandbox.filesystem.denyRead = [...new Set([...settings.sandbox.filesystem.denyRead, ...roots])];
+  settings.permissions.deny.push(...roots.flatMap(root => [`Read(${root}/**)`, `Edit(${root}/**)`]));
   return settings;
+}
+// Rule paths for one worker's private state. stateDir is <service home>/agents/<id>; a setup-made service home is
+// <engine home>/connector-service beside engine.sqlite and owner.json. Checked before the worker starts: a checkout
+// inside private state, or a path the rules cannot spell, is refused rather than launched with a missing boundary.
+export function workerPrivatePaths({ stateDir, folder, envSource = process.env, platform = process.platform, userHome = homedir(),
+  realpath = platform === 'win32' ? realpathSync.native : realpathSync }) {
+  const windows = platform === 'win32', path = windows ? win32 : posix;
+  const { basename, dirname, isAbsolute, join, relative, resolve, sep } = path;
+  // Windows names variables in any letter case.
+  const variable = name => windows ? Object.entries(envSource).find(([key]) => key.toUpperCase() === name)?.[1] : envSource[name];
+  const roots = [join(userHome, '.minions')];
+  const serviceHome = basename(dirname(stateDir)) === 'agents' ? dirname(dirname(stateDir)) : stateDir;
+  roots.push(serviceHome);
+  if (basename(serviceHome) === 'connector-service') roots.push(dirname(serviceHome));
+  for (const name of ['MINIONS_SERVICE_HOME', 'MINIONS_CREDENTIAL_HOME', 'MINIONS_ENGINE_HOME']) if (isAbsolute(variable(name) ?? '')) roots.push(variable(name));
+  // Windows ignores letter case in paths.
+  const key = value => windows ? value.toLowerCase() : value;
+  const inside = (root, target) => { const part = relative(key(root), key(target)); return part === '' || part !== '..' && !part.startsWith(`..${sep}`) && !isAbsolute(part); };
+  // A linked home or MINIONS_* folder has two spellings: compare physical paths, and deny both spellings.
+  const physical = target => physicalPath(target, path, realpath);
+  const spelled = roots.map(root => resolve(root)), real = spelled.map(physical);
+  const unique = values => [...new Map(values.map(value => [key(value), value])).values()];
+  const realRoots = unique(real);
+  // Either way round: a checkout above private state would let the sandbox's checkout write grant reach it.
+  const checkout = physical(folder);
+  if (realRoots.some(root => dirname(root) === root || inside(root, checkout) || inside(checkout, root))) throw new Error('The project checkout and Minions private state overlap. Move the checkout (or MINIONS_ENGINE_HOME) so they are separate folders, then start the agent again.');
+  return unique([...spelled, ...real]);
+}
+
+export function workerPrivateRoots(options) {
+  const { platform = process.platform, userHome = homedir(), rules: spellRules = true } = options;
+  const windows = platform === 'win32', path = windows ? win32 : posix;
+  const paths = workerPrivatePaths(options);
+  if (!spellRules) return [];
+  const key = value => windows ? value.toLowerCase() : value;
+  // workerClaudeSettings always adds ~/.minions; retain any physical alias of that root too.
+  const defaultRoot = path.resolve(userHome, '.minions');
+  const extra = paths.filter(root => key(root) !== key(defaultRoot));
+  // Claude Code reads //c/Users/… as C:\Users\…; a UNC or other non-drive path has no rule spelling.
+  const rule = root => windows ? (/^[A-Za-z]:\\/.test(root) ? `//${root[0].toLowerCase()}/${root.slice(3).replaceAll('\\', '/')}` : null) : `/${root}`;
+  const rules = extra.map(rule);
+  if (rules.some(value => value === null || !PRIVATE_ROOT.test(value))) throw new Error('A Minions private folder path uses characters the worker sandbox rules cannot express (one of ( ) [ ] { } * ?, or a network path). Choose MINIONS_ENGINE_HOME, MINIONS_SERVICE_HOME and MINIONS_CREDENTIAL_HOME on a local drive without them, then start the agent again.');
+  return rules;
+}
+
+// Explicit thread permissions take precedence over legacy sandbox settings. Preserve the existing workspace-write
+// grants from config/read, while extending Codex's built-in protections and carving out exact private paths.
+// No user/managed config is written. Native requirements continue to constrain the selected profile.
+export function workerCodexProfile(config, privatePaths, platform = process.platform, realpath = platform === 'win32' ? realpathSync.native : realpathSync) {
+  const path = platform === 'win32' ? win32 : posix;
+  const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+  const exact = value => typeof value === 'string' && path.isAbsolute(value) && !/[\0\r\n*?\[\]{}]/.test(value);
+  if (!object(config) || !Array.isArray(privatePaths) || !privatePaths.length || privatePaths.some(value => !exact(value))) throw new Error('Cannot express the Minions private folders in Codex permissions.');
+  const legacy = config.sandbox_workspace_write ?? {};
+  const keys = ['network_access', 'writable_roots', 'exclude_tmpdir_env_var', 'exclude_slash_tmp'];
+  if (!object(legacy) || Object.keys(legacy).some(key => !keys.includes(key))
+    || keys.filter(key => key !== 'writable_roots').some(key => legacy[key] !== undefined && typeof legacy[key] !== 'boolean')
+    || legacy.writable_roots !== undefined && (!Array.isArray(legacy.writable_roots) || legacy.writable_roots.some(value => !exact(value)))) throw new Error('Cannot preserve the effective Codex workspace permissions.');
+  // A workspace root inside a denied directory adds narrower metadata read grants. Refuse that conflict rather
+  // than reopening .git/.codex under private state; compare physical aliases as well as spelled paths.
+  const key = value => platform === 'win32' ? value.toLowerCase() : value;
+  const inside = (root, target) => { const relative = path.relative(key(root), key(target)); return relative === '' || relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative); };
+  for (const root of legacy.writable_roots ?? []) {
+    const physical = physicalPath(root, path, realpath);
+    if (privatePaths.some(denied => inside(denied, root) || inside(denied, physical))) throw new Error('A configured Codex writable root overlaps Minions private state.');
+  }
+  const filesystem = Object.fromEntries(privatePaths.map(root => [root, 'deny']));
+  // Legacy exclusions remove the temp write grant; broad filesystem reads remain allowed.
+  if (legacy.exclude_tmpdir_env_var) filesystem[':tmpdir'] = 'read';
+  if (legacy.exclude_slash_tmp) filesystem[':slash_tmp'] = 'read';
+  return { extends: ':workspace', filesystem, network: { enabled: legacy.network_access ?? false },
+    workspace_roots: Object.fromEntries((legacy.writable_roots ?? []).map(root => [root, true])) };
 }
 
 // Model clients and their preflight checks receive named variables only, never the operator's
@@ -149,7 +237,7 @@ export function createProvider(id, settings, { envSource = process.env } = {}) {
       let value; try { value = JSON.parse(result.stdout); } catch {}
       if (result.error || !value || (agentsMayMerge(mode) ? value.decision === 'forbidden' || value.matchedRules?.length !== 0 : value.decision !== 'forbidden')) throw new Error('Installed Codex cannot validate the required native merge policy. Update Codex before starting this worker.');
     },
-    async invocation({ prompt, permissionGuidance, instructionsFile, settingsFile, mcpConfig, bridge, session, resuming, repoDir, clientVersion, signal, requireMergePolicy = false }) {
+    async invocation({ prompt, permissionGuidance, instructionsFile, settingsFile, mcpConfig, bridge, session, resuming, repoDir, clientVersion, signal, requireMergePolicy = false, privatePaths }) {
       signal?.throwIfAborted();
       if (![undefined, 'acceptEdits'].includes(settings.permissionMode)) throw new Error('Background workers require the local-development permission policy; full-access modes are not supported.');
       if (id === 'claude') {
@@ -165,9 +253,14 @@ export function createProvider(id, settings, { envSource = process.env } = {}) {
       const token = bridge.headers?.Authorization?.replace(/^Bearer /, '');
       if (endpoint.protocol !== 'http:' || endpoint.hostname !== '127.0.0.1' || !token) throw new Error('Codex requires the authenticated local project bridge.');
       if (typeof clientVersion !== 'string' || !clientVersion) throw new Error('Codex requires the installed kit version.');
-      const access = { sandbox: 'workspace-write', approvalPolicy: 'on-request', approvalsReviewer: 'auto_review' };
+      // The adapter supplies canonical private paths; experiment-only callers derive the same boundary from their
+      // instructions directory. No Codex invocation may silently fall back to unrestricted private-state reads.
+      privatePaths ??= workerPrivatePaths({ stateDir: dirname(instructionsFile), folder: repoDir, envSource });
+      workerCodexProfile({}, privatePaths); // Refuse unrepresentable paths before spawning the native client.
+      const permissionProfile = `minions_worker_${randomUUID().replaceAll('-', '')}`;
+      const access = { approvalPolicy: 'on-request', approvalsReviewer: 'auto_review' };
       const config = {
-        model_provider: '"openai"', sandbox_mode: `"${access.sandbox}"`, approval_policy: `"${access.approvalPolicy}"`,
+        model_provider: '"openai"', approval_policy: `"${access.approvalPolicy}"`,
         approvals_reviewer: '"auto_review"',
         ...(settings.effort?{model_reasoning_effort:tomlString(settings.effort)}:{}),
         ...(requireMergePolicy && generatedRulesOnly(repoDir) ? { projects: `{${JSON.stringify(realpathSync.native(repoDir))}={trust_level="trusted"}}` } : {}),
@@ -193,7 +286,9 @@ export function createProvider(id, settings, { envSource = process.env } = {}) {
       const startParams = { cwd: repoDir, modelProvider: 'openai', ...access,
         ...(settings.model ? { model: settings.model } : {}),
         ...(resuming ? { threadId: session.id, excludeTurns: true } : {}) };
-      return { command, args, env: { PILOT_BRIDGE_TOKEN: token }, rpc: { prompt, resuming, startParams, ...(settings.effort?{effort:settings.effort}:{}),
+      return { command, args, env: { PILOT_BRIDGE_TOKEN: token }, rpc: { prompt, resuming, startParams, permissionProfile,
+        prepareThread: effectiveConfig => ({ ...startParams, permissions: permissionProfile, config: { [`permissions.${permissionProfile}`]: workerCodexProfile(effectiveConfig, privatePaths) } }),
+        ...(settings.effort?{effort:settings.effort}:{}),
         ...(requireMergePolicy ? { nativeRuleLayer: join(realpathSync.native(repoDir), '.codex') } : {}), clientInfo: codexClientInfo(clientVersion),
         baseline: resuming ? session.tokenTotals ?? null : [0, 0, 0, 0] } };
     },
@@ -361,7 +456,8 @@ class CodexStream extends ProviderStream {
   attach(process_) {
     this.process = process_;
     this.attachedAt = Date.now();
-    this.send({ id: 1, method: 'initialize', params: { clientInfo: this.rpc.clientInfo } });
+    // Named thread permissions are experimental in Codex 0.160; preflight pins that minimum version.
+    this.send({ id: 1, method: 'initialize', params: { clientInfo: this.rpc.clientInfo, capabilities: { experimentalApi: true } } });
     this.setupTimer = setTimeout(() => { this.fail('Codex startup timed out before starting project work.', 'native_startup_timeout'); }, 45_000);
   }
   send(value) { if (!this.closed && !this.process.stdin.destroyed) this.process.stdin.write(JSON.stringify(value) + '\n'); }
@@ -392,27 +488,30 @@ class CodexStream extends ProviderStream {
       if (e.error) return rpcError();
       if (this.interrupted) return this.finish();
       this.send({ method: 'initialized', params: {} });
-      if (this.rpc.nativeRuleLayer) {
-        this.phase = 'merge_policy'; this.requestId = 4;
-        this.send({ id: 4, method: 'config/read', params: { cwd: this.rpc.startParams.cwd, includeLayers: true } });
-        return;
-      }
-      this.phase = this.rpc.resuming ? 'thread_resume' : 'thread_start'; this.requestId = 2;
-      this.send({ id: 2, method: this.rpc.resuming ? 'thread/resume' : 'thread/start', params: this.rpc.startParams });
+      this.phase = 'native_permissions'; this.requestId = 4;
+      this.send({ id: 4, method: 'config/read', params: { cwd: this.rpc.startParams.cwd, includeLayers: Boolean(this.rpc.nativeRuleLayer) } });
       return;
     }
     if (e.id === 4 && this.requestId === 4) {
-      const key = value => process.platform === 'win32' ? value.toLowerCase() : value;
-      const layer = Array.isArray(e.result?.layers) ? e.result.layers.find(value => value?.name?.type === 'project' && typeof value.name.dotCodexFolder === 'string' && key(value.name.dotCodexFolder) === key(this.rpc.nativeRuleLayer)) : null;
-      if (e.error || !layer || layer.disabledReason != null) return this.fail('The worker native merge-rule layer is not trusted by Codex. Trust the project through Codex before starting this worker.', 'merge_policy_unavailable');
+      if (e.error) return rpcError();
+      if (this.rpc.nativeRuleLayer) {
+        const key = value => process.platform === 'win32' ? value.toLowerCase() : value;
+        const layer = Array.isArray(e.result?.layers) ? e.result.layers.find(value => value?.name?.type === 'project' && typeof value.name.dotCodexFolder === 'string' && key(value.name.dotCodexFolder) === key(this.rpc.nativeRuleLayer)) : null;
+        if (!layer || layer.disabledReason != null) return this.fail('The worker native merge-rule layer is not trusted by Codex. Trust the project through Codex before starting this worker.', 'merge_policy_unavailable');
+      }
+      let params;
+      try { params = this.rpc.prepareThread(e.result?.config); }
+      catch { return this.fail('Cannot preserve Codex permissions while protecting Minions private state.', 'native_permissions_unavailable'); }
       if (this.interrupted) return this.finish();
       this.phase = this.rpc.resuming ? 'thread_resume' : 'thread_start'; this.requestId = 2;
-      this.send({ id: 2, method: this.rpc.resuming ? 'thread/resume' : 'thread/start', params: this.rpc.startParams });
+      this.send({ id: 2, method: this.rpc.resuming ? 'thread/resume' : 'thread/start', params });
       return;
     }
     if (e.id === 2 && this.requestId === 2) {
       if (e.error) return rpcError();
       const r = e.result;
+      if (!this.rpc.permissionProfile || r?.activePermissionProfile?.id !== this.rpc.permissionProfile
+        || r.approvalPolicy !== 'on-request' || r.approvalsReviewer !== 'auto_review') return this.fail('Codex did not confirm the required worker permissions.', 'native_permissions_unavailable');
       if (!UUID.test(r?.thread?.id ?? '') || r.modelProvider !== 'openai') return this.fail('Codex returned an unsupported thread/provider identity.', 'native_protocol_error');
       if (this.rpc.resuming && r.thread.id !== this.rpc.startParams.threadId) return this.fail('Codex resumed a different thread than the approved session.', 'native_protocol_error');
       if(this.rpc.effort&&r.reasoningEffort!==this.rpc.effort)return this.fail('Codex did not confirm the pinned reasoning effort.', 'native_protocol_error');

@@ -87,11 +87,16 @@ Setup links a `minions` command:
 | `minions logs -f` | Follow engine logs; add `--service` for worker service logs |
 | `minions stop` | Let current turns finish, then stop the service and engine |
 | `minions start --open` | Start them again and open the app |
-| `minions update` | Pull `main` with fast-forward only, let turns finish, rebuild and restart |
+| `minions update` | Let turns finish, stop, pull `main` with fast-forward only, rebuild and restart |
 | `minions help` | Show all commands and options |
 
 Stop waits up to ten minutes by default. If turns are still finishing, the engine
-stays running. Use `minions stop --now` to interrupt them. Update requires a checkout
+stays running. Use `minions stop --now` to interrupt them. If the database lock
+remains after the listener closes, stop reports an unconfirmed shutdown; wait and
+retry. For a stale lock left after a crash or computer restart, run `minions start`
+to attempt recovery, then retry stop or update. If startup refuses the lock, follow
+its process-inspection advice. Update preserves the checkout until
+shutdown is confirmed. It requires a checkout
 on `main` with no tracked changes.
 
 ### Local data and connections

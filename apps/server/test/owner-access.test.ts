@@ -1,6 +1,6 @@
 import express from 'express';
 import { randomUUID } from 'node:crypto';
-import { setAccountDisabled } from '../src/identity/server-sessions.js';
+import { setAccountDisabled } from './server-sessions.js';
 import { beforeAll, afterAll, beforeEach, expect, test } from 'vitest';
 import type { Server } from 'node:http';
 import { hashToken, newToken, personIdentityFromIdToken } from '../src/auth.js';

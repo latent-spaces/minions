@@ -58,7 +58,13 @@ export async function runOwnedProcess(command, args, options = {}, { graceMs = 2
   const groupExists = () => {
     if (!child.pid) return false;
     try { process.kill(-child.pid, 0); return true; }
-    catch (error) { if (error.code === 'ESRCH') return false; throw error; }
+    catch (error) {
+      if (error.code === 'ESRCH') return false;
+      // macOS may briefly return EPERM while a signalled group exits. Treat
+      // this probe as still present; actual signal refusals remain hard errors.
+      if (error.code === 'EPERM') return true;
+      throw error;
+    }
   };
   const groupSignal = value => {
     try { process.kill(-child.pid, value); }

@@ -18,9 +18,18 @@ detached development servers, stop when their native turn ends. Unconfirmed clea
 retains checkout ownership. No PID/image-name sweep or silent in-chat fallback exists.
 Windows clients must be native `.exe` files or standard npm `.cmd` shims pointing to
 a JavaScript entry point, run with the service's Node without a command shell.
-Linux mission cleanup also requires readable environments for same-user processes in
-`/proc`. If the host denies that inspection, cleanup fails explicitly without signaling
-unverified processes or reporting success.
+Linux mission cleanup reads same-user process environments in `/proc`. Before a new
+mission can launch, the service saves a private, bounded baseline of existing process
+IDs and start ticks, bound to that mission and the kernel boot ID. An inaccessible
+process is excluded only when that exact identity was already in the pre-launch
+baseline; the baseline never authorizes a signal, and readable mission markers still
+receive normal cleanup. It is captured once and is not refreshed on later turns or
+recovery. Existing mission directories without a baseline retain the stricter behavior.
+
+A process outside that baseline that hides its environment (for example, an unrelated
+`ssh-agent` started during the mission) still makes cleanup unconfirmed. Inspect the
+reported PID and retry Stop after resolving it. Missing, corrupt or mismatched baseline
+evidence never permits an unverified process to be signaled or cleanup to claim success.
 
 ## Setup
 
@@ -30,8 +39,14 @@ checkout of this repository:
 
 ```sh
 npm ci --ignore-scripts
+npm run build:contracts
+npm run build --workspace packages/agent-cli
 node packages/agent-cli/src/cli.mjs setup
 ```
+
+The build packages the worker runtime (`runtime/manifest.json` and the files it
+hashes). Without it every agent start fails with "Packaged runtime missing";
+`npm run setup` at the repository root runs both builds for you.
 
 The connector connects to the local engine at `http://127.0.0.1:8787` by default; add
 `--site WEBSITE` for another loopback website or the enrolled self-hosted origin. `npm run setup`
@@ -41,8 +56,11 @@ again.
 
 Setup signs in to the engine as its owner with no human step, starts its shared service
 and connects every Claude Code and Codex it finds: it writes the one `minions` entry and
-removes older per-engine `minions-<8 hex>` entries and their permissions, leaving any other entry as it is, allows
+removes the pre-rename `mlswarm` entry and the older per-engine `mlswarm-<8 hex>` entries and their permissions, leaving any other entry as it is, allows
 Minions's tools once and installs the bundled skill, keeping a skill the person changed.
+To tell an edit from an older version on update, setup records the router it wrote in the
+service's `installed-skills.json`. If that record can't be read, setup keeps the skill. A skill installed before
+the record existed is updated, and setup first saves its old router under the service's `skill-backups/` and says where.
 Codex's `config.toml` is read with a TOML parser and edited line by line, so comments and
 layout outside the replaced entry stay; a file that does not parse, or that entry written as an inline table or
 dotted keys, is left unchanged and setup says so.
@@ -86,12 +104,18 @@ References: [Claude MCP authentication](https://code.claude.com/docs/en/mcp#use-
 
 For a separate installation (`--state-dir`, `MINIONS_SERVICE_HOME` or an enrolled origin)
 setup changes no client and prints the `mcp-config` command instead; `--no-client-hint`
-leaves that to its caller. `npm run setup` passes it and then runs `register`, which
+leaves that to its caller. `npm run setup` passes it and then runs `register --install-skill`, which
 registers the installation as `minions` through Claude Code's own `claude mcp add-json`
 (spawned without a shell; an npm `.cmd` shim on Windows runs its JavaScript entry point with
-Node) unless an entry with the same address exists, replaces an entry with an older
-address, removes older `minions-<8 hex>` entries, and writes the same entry into Codex's
-`config.toml` when Codex is installed. It exits 4 when neither client is found.
+Node) unless the complete user entry already matches, repairs stale addresses or
+authentication helpers, removes the retired `mlswarm` and `mlswarm-<8 hex>` entries, and writes the same entry into Codex's
+`config.toml` when Codex is installed. The flag also installs or repairs each found
+client's bundled Minions skill, preserving customized files and recording the router
+under this installation's service home. Skill write failures are reported separately
+and keep the successful MCP registration. Plain `register` changes only registration.
+The root wrapper skips registration and skill installation with `--no-register` or
+an isolated `MINIONS_ENGINE_HOME`. Neither registration mode signs in to GitHub or
+starts a model. It exits 4 when neither client is found.
 
 A client loads MCP tools only when its session starts. Until then, `tool --list [TOOL_NAME]`
 lists the running service's tools (one tool's full schema with a name), and
@@ -113,6 +137,9 @@ insufficient. The router's `references-sha256` covers every workflow, and its ha
 is the bundled skill's hash. Setup preserves customized references, linked
 destinations and unrelated files; it can repair missing canonical references. A
 saved file does not prove the client loaded it.
+Setup leaves pre-rename `mlswarm` skill directories intact: an older router's revision
+cannot prove it is unedited or that other files in its directory belong to Minions.
+Review and remove those directories manually if they are no longer needed.
 
 ## Service lifecycle and private state
 
@@ -156,6 +183,11 @@ Without an enrolled origin, the default service installation is `~/.minions/serv
 an isolated installation for development/testing. Computer and agent credentials
 remain in `~/.minions/mcp`; test isolation can use `MINIONS_CREDENTIAL_HOME`. Keep these
 private directories outside repositories. Do not delete them to fix a connection.
+After a crash, `service-start` can report that the process recorded as the service is
+still running when that PID now belongs to another program. A service that is still
+starting or stopping looks the same, so retry first. Only when the refusal repeats and
+your system's process list shows that PID is not a Minions service, remove the
+`service-owner.json` the message names, and the `runtime-endpoint.json` beside it.
 A service stop ends every turn in progress, so don't use it as a client-disconnect
 button; workers between turns keep waiting and continue when the service starts again.
 `service-stop --after-turns` ends none: the service starts no new turn, keeps serving
@@ -193,7 +225,8 @@ A connection and runtime availability are separate. Start the existing service w
 The connector doesn't update itself and checks no registry. To update without stopping
 agents, run `service-stop --after-turns` first, so each turn in progress finishes on the
 code it started with. Then pull the checkout without overwriting uncommitted work, run
-`npm ci --ignore-scripts`, then `service-start` and `setup` again. Agents continue in their missions; each keeps the
+`npm ci --ignore-scripts` and the two builds above, then `service-start` and `setup` again
+(`minions update` also rebuilds). Without the rebuild the packaged runtime fails its integrity check. Agents continue in their missions; each keeps the
 instructions and guide snapshot it started with, so its native session resumes, and
 new missions get the updated guide. Pulling while the old service still starts turns
 would mix code versions, which is why the stop comes first. Credentials, connections,
@@ -593,8 +626,20 @@ Use the clients' native permissions, without a custom shell parser or command
 hook. Claude uses `acceptEdits`, broad Bash/research grants, explicit protected
 command denials and its existing file/read safeguards. Personal settings and
 hooks stay disabled. Its directory safeguard can refuse `cd`; use the tool's
-working directory or `npm --prefix` instead. Codex uses `workspace-write`,
-`on-request` and native automatic approval review with explicit mission boundaries.
+working directory or `npm --prefix` instead. Codex uses an invocation-local named
+profile extending `:workspace`, `on-request` and native automatic approval review
+with explicit mission boundaries. Before each start or resume, the adapter reads
+the effective legacy workspace settings and preserves their network access,
+additional writable roots and temporary-directory exclusions in the profile.
+It adds exact read/write denials for the default Minions home, configured engine,
+service and credential homes, and their physical aliases. These are native absolute
+paths, separate from Claude's rule syntax. A checkout overlapping private state,
+an unrepresentable private path or a writable root inside private state is refused.
+The adapter selects the profile explicitly on the thread, so legacy sandbox
+configuration cannot silently select a different policy. It checks the returned
+profile identity and approval settings before submitting a prompt; an unconfirmed
+profile stops with `native_permissions_unavailable`. No personal configuration or
+managed requirements are rewritten, and native managed restrictions still apply.
 An approval that still reaches the headless adapter is declined for that action,
 without ending the turn. Automatic review may itself use model inference during
 an approved live mission; configuration/fake-process checks do not exercise it.
@@ -611,6 +656,21 @@ These are workflow permissions for trusted development checkouts. Editable scrip
 and Git hooks execute project code; shell deny rules are not complete OS isolation
 or a guarantee against disguised remote actions. No full-access mode, custom
 command grammar or persistent client permission changes are installed.
+
+Run `node packages/agent-cli/scripts/check-codex-private-state.mjs` from the repository
+root for a model-free native permission check (optionally pass the Codex executable).
+It uses an isolated client home and synthetic files, starts and resumes a thread
+without model turns, and checks private/symlink reads, workspace/additional writes,
+Git metadata, temp exclusions and enabled/disabled loopback network access.
+Native macOS acceptance does not establish Linux or Windows support. Codex refuses
+unsupported sandbox policies rather than executing the command without them;
+Windows's unelevated fallback cannot enforce every split read/write policy.
+**Compatibility change:** Windows Codex workers that previously started may now
+refuse to start when their native sandbox cannot enforce these private-read
+restrictions. There is no unrestricted fallback. Native Windows verification is
+still required before claiming these workers are supported.
+Approved escalations and local services have separate native controls; the named
+profile governs sandboxed command execution, not every possible local process.
 
 Inspect `get_agent_run`, `get_agent_control_result`, `list_agent_runs` and
 `list_agent_reports`. Durable command acceptance, native submission, saved result and

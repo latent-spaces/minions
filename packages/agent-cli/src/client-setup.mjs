@@ -1,4 +1,4 @@
-import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, rmSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, mkdirSync, readFileSync, realpathSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, isAbsolute, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -9,7 +9,8 @@ const parse = text => parseToml(text, { integersAsBigInt: 'asNeeded' });
 import { spawnSync } from 'node:child_process';
 import { reusableConfiguration, RETIRED_NAME } from './mcp-configuration.mjs';
 import { resolveWindowsCommand } from './windows-command.mjs';
-import { replaceFile } from './state.mjs';
+import { installationHome } from './service/installation.mjs';
+import { replaceFile, readPrivate, writePrivate, lstatExists } from './state.mjs';
 import { BUNDLED_SKILL, bundledGuideFiles, installedSkill, readInstalledGuideFile, skillTextHash } from './skill-bundle.mjs';
 
 // A settings file linked from elsewhere, such as a dotfiles folder, is updated where it lives, so the
@@ -86,15 +87,38 @@ export function withCodexEntry(text, table) {
   return result;
 }
 
-// The pre-rename mlswarm skill that setup installed, unchanged, goes; one the person changed stays.
-function retireOldSkill(path) {
-  if (['current', 'update_available'].includes(installedSkill({ path }, BUNDLED_SKILL).status)) rmSync(dirname(path), { recursive: true, force: true });
+// The router setup last wrote at each skill path, by hash. An older router's own hash is not known, so only this
+// record shows whether the person edited it since: a router edited after setup recorded it is kept on update.
+// An unreadable record keeps the skill. A skill from before the record existed is updated, with its old router
+// saved beside the record first, so an edit made then can be recovered.
+const installedRouters = home => join(home, 'installed-skills.json');
+function readRouters(home) {
+  if (!lstatExists(installedRouters(home))) return {};
+  const value = readPrivate(installedRouters(home), true);
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Unreadable skill record.');
+  return value;
+}
+function recordRouter(home, path, text) {
+  try { writePrivate(installedRouters(home), { ...readRouters(home), [path]: skillTextHash(text) }); return null; }
+  catch { return `could not record the skill it wrote in ${installedRouters(home)}, so a later update cannot tell your edits from an older version`; }
 }
 
-function installSkill(path) {
-  retireOldSkill(join(dirname(dirname(path)), 'mlswarm', 'SKILL.md'));
+function installSkill(path, home) {
   const installed = installedSkill({ path }, BUNDLED_SKILL), { status } = installed;
-  if (status === 'current') return null;
+  if (status === 'current') return recordRouter(home, path, bundledGuideFiles()['SKILL.md']);
+  let backup = null;
+  if (status === 'update_available') {
+    let routers;
+    try { routers = readRouters(home); } catch { return `kept your Minions skill at ${path}: setup could not read ${installedRouters(home)}, so it cannot tell your edits from an older version`; }
+    let router;
+    try { router = readInstalledGuideFile(dirname(path), 'SKILL.md'); } catch { return `kept your own Minions skill at ${path}`; }
+    if (routers[path] && skillTextHash(router) !== routers[path]) return `kept your own Minions skill at ${path}`;
+    if (!routers[path]) {
+      backup = join(home, 'skill-backups', `${skillTextHash(router)}.md`);
+      try { mkdirSync(dirname(backup), { recursive: true, mode: 0o700 }); writePrivate(backup, router); }
+      catch { return `kept your Minions skill at ${path}: setup could not save a copy of it before updating`; }
+    }
+  }
   if (['not_installed', 'update_available', 'incomplete'].includes(status)) {
     const root = dirname(path), files = bundledGuideFiles();
     // Inspect every destination before writing any file. In particular, a missing
@@ -109,9 +133,17 @@ function installSkill(path) {
     // References first: once the new router is visible, all its links exist.
     for (const [file, content] of Object.entries(files)) if (file !== 'SKILL.md') replace(join(root, file), content);
     replace(path, files['SKILL.md']);
-    return null;
+    const unrecorded = recordRouter(home, path, files['SKILL.md']);
+    const notes = [backup && `updated the Minions skill; its previous router, in case you had edited it, is saved at ${backup}`, unrecorded].filter(Boolean);
+    return notes.length ? notes.join('; ') : null;
   }
   return `kept your own Minions skill at ${path}`;
+}
+
+// The MCP entry is already saved. A separate skill write failure must not be reported as failed registration.
+function registeredSkillNote(path, home) {
+  try { return installSkill(path, home); }
+  catch { return `could not install the Minions skill at ${path}; MCP registration was kept. Check the skill folder and rerun setup.`; }
 }
 
 function connectClaude({ home, userHome }) {
@@ -122,7 +154,7 @@ function connectClaude({ home, userHome }) {
   if (!isDeepStrictEqual(current[config.name], config.entry) || Object.keys(kept).length !== Object.keys(current).length)
     replace(registry, `${JSON.stringify({ ...servers, mcpServers: { ...kept, [config.name]: config.entry } }, null, 2)}\n`);
   allowTools(userHome, config.name);
-  return installSkill(join(userHome, '.claude', 'skills', 'minions', 'SKILL.md'));
+  return installSkill(join(userHome, '.claude', 'skills', 'minions', 'SKILL.md'), home);
 }
 
 // Minions asks the person in chat before important actions, so Claude Code need not ask again for each tool.
@@ -146,17 +178,18 @@ function writeCodexEntry({ home, codexHome }) {
 
 function connectCodex({ home, userHome, codexHome }) {
   writeCodexEntry({ home, codexHome });
-  return installSkill(join(userHome, '.agents', 'skills', 'minions', 'SKILL.md'));
+  return installSkill(join(userHome, '.agents', 'skills', 'minions', 'SKILL.md'), home);
 }
 
 const codexFolder = (userHome, env) => isAbsolute(env.CODEX_HOME ?? '') ? env.CODEX_HOME : join(userHome, '.codex');
 
 // Writes the minions table into Codex's user config.toml when Codex is on this computer, replacing the retired
 // per-engine tables (owner decision, 14 November 2026). Returns missing, current or registered.
-export function registerWithCodex({ home, userHome = homedir(), env = process.env } = {}) {
+export function registerWithCodex({ home = installationHome(), userHome = homedir(), env = process.env, installBundledSkill = false } = {}) {
   const codexHome = codexFolder(userHome, env);
   if (!existsSync(codexHome)) return { status: 'missing', name: 'minions' };
-  return writeCodexEntry({ home, codexHome });
+  const result = writeCodexEntry({ home, codexHome });
+  return { ...result, ...(installBundledSkill ? { note: registeredSkillNote(join(userHome, '.agents', 'skills', 'minions', 'SKILL.md'), home) } : {}) };
 }
 
 // Connects every coding client found on this computer to the shared service: its registration, its
@@ -188,21 +221,24 @@ function claudeCommand(args, { env = process.env, platform = process.platform } 
 }
 
 // Registers this installation's HTTP entry in Claude Code's user settings through the claude command, the way
-// mcp-config tells a person to (owner decision, 13 November 2026). An entry with this installation's address is left
-// as it is; one with another address, from an earlier service, is replaced. The retired per-engine entries are
+// mcp-config tells a person to (owner decision, 13 November 2026). A matching user entry is left as it is;
+// a stale address or authentication helper is replaced. The retired per-engine entries are
 // removed, so the computer keeps one minions entry (owner decision, 14 November 2026). Returns missing, current or
 // registered.
-export function registerWithClaudeCode({ home, userHome = homedir(), run = claudeCommand } = {}) {
+export function registerWithClaudeCode({ home = installationHome(), userHome = homedir(), run = claudeCommand, installBundledSkill = false } = {}) {
   const config = reusableConfiguration({ client: 'claude', home });
   const existing = run(['mcp', 'get', config.name]);
   if (existing === null) return { status: 'missing', name: config.name };
-  for (const name of Object.keys(readJson(join(userHome, '.claude.json')).mcpServers ?? {}).filter(name => RETIRED_NAME.test(name)))
+  const servers = readJson(join(userHome, '.claude.json')).mcpServers ?? {};
+  for (const name of Object.keys(servers).filter(name => RETIRED_NAME.test(name)))
     run(['mcp', 'remove', '--scope', 'user', name]);
   allowTools(userHome, config.name);
-  if (existing.status === 0 && existing.stdout.includes(config.entry.url)) return { status: 'current', name: config.name };
+  const result = status => ({ status, name: config.name,
+    ...(installBundledSkill ? { note: registeredSkillNote(join(userHome, '.claude', 'skills', 'minions', 'SKILL.md'), home) } : {}) });
+  if (existing.status === 0 && isDeepStrictEqual(servers[config.name], config.entry)) return result('current');
   if (existing.status === 0) run(['mcp', 'remove', '--scope', 'user', config.name]);
   const added = run(['mcp', 'add-json', '--scope', 'user', config.name, JSON.stringify(config.entry)]);
   if (added === null) return { status: 'missing', name: config.name };
   if (added.status !== 0) throw new Error(`claude mcp add-json failed: ${(added.stderr || added.stdout).trim().slice(0, 500) || `exit ${added.status}`}`);
-  return { status: 'registered', name: config.name };
+  return result('registered');
 }

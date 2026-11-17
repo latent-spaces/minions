@@ -17,7 +17,7 @@ export type AgentStatusDoc = {
   // agent group, from the agents/{id} writers, including creation. connectionEpoch is needed for "revoked" (with the
   // owner's current membership epoch, read from the project's memberships, not from this document).
   agent?: { name: string; ownerProfileId: string; revokedAt: number | null; connectionEpoch: number;
-    focus: { text: string; updatedAt: number } | null; personaText: string };
+    focus: { text: string; updatedAt: number } | null; personaText: string; lastSendAt?: number | null };
   // Every accepted worker sync replaces this group whole, including the worker's own contact. Status readers
   // use only this canonical group; the mission pointer remains solely for action authority.
   worker?: { runId: string; phase: WorkerSummary['phase']; lastContactAt: number; deadlineAt: number; projectPauseRevision?: number | null };
@@ -50,7 +50,7 @@ export function sourcesFromStatusDoc(id: string, doc: AgentStatusDoc | undefined
   if (!statusRunComplete(doc)) return null;
   const a = doc!.agent!;
   const agent = { name: a.name, ownerProfileId: a.ownerProfileId, revokedAt: a.revokedAt, connectionEpoch: a.connectionEpoch,
-    focus: a.focus, persona: { text: a.personaText ?? '' } } as unknown as Agent;
+    focus: a.focus, persona: { text: a.personaText ?? '' }, recentSends: a.lastSendAt == null ? [] : [a.lastSendAt] } as unknown as Agent;
   const status = doc!;
   const run = !status.runId ? undefined
     : { runId: status.runId, endedAt: status.runEndedAt ?? null, ...(status.runMode ? { mode: status.runMode } : {}) } as Run;
@@ -73,7 +73,8 @@ export function statusDocFromSources(s: AgentStateSources): AgentStatusDoc {
     ...(s.run ? { runId: s.run.runId, lastContactAt: contacts.length ? Math.max(...contacts) : 0, phase: sameRunContact?.phase ?? 'idle',
       phaseAt: sameRunContact?.phaseAt ?? 0, runEndedAt: s.run.endedAt ?? null, runMode: s.run.mode ?? null } : { runId: null, runEndedAt: null }),
     agent: { name: s.agent.name, ownerProfileId: s.agent.ownerProfileId, revokedAt: s.agent.revokedAt, connectionEpoch: s.agent.connectionEpoch,
-      focus: s.agent.focus ? { text: s.agent.focus.text, updatedAt: s.agent.focus.updatedAt } : null, personaText: s.agent.persona?.text ?? '' },
+      focus: s.agent.focus ? { text: s.agent.focus.text, updatedAt: s.agent.focus.updatedAt } : null, personaText: s.agent.persona?.text ?? '',
+      lastSendAt: s.agent.recentSends?.length ? Math.max(...s.agent.recentSends) : null },
     ...(s.worker ? { worker: { runId: s.worker.runId, phase: s.worker.phase, deadlineAt: s.worker.deadlineAt,
       projectPauseRevision: s.worker.projectPauseRevision, lastContactAt: s.worker.lastContactAt } } : {}),
   } as AgentStatusDoc;

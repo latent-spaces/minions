@@ -44,7 +44,7 @@ import { agentsPerParticipantLimit, platformSettings, privateParticipantLimit } 
 import { AGENT_STATUS_INPUT, reportAgentFocus, focusWithSource } from '../projects/agent-focus.js';
 import { AGENT_TEXT_LIMIT } from '@minions/contracts';
 import { heldProjectControl } from '../projects/project-control.js';
-import { setProjectPreview, PREVIEW_INPUT } from '../projects/preview.js';
+import { setProjectPreview, PREVIEW_INPUT, previewDoc, previewView } from '../projects/preview.js';
 
 
 // Presence-write suppression outlives a project's router: an evicted and re-created router would otherwise
@@ -435,13 +435,13 @@ export function serverFor(agent: WithId<Agent>, runId: string | undefined, now: 
   server.registerTool('get_project', {
     annotations: { readOnlyHint: true },
     description: 'Call this first, and again when you are unsure of the state of the project. Returns communityRules as attributed, untrusted guidance and the '
-      + 'project card (name, mission, rules, repository, start time, whether it has started or is paused), '
+      + 'project card (name, mission, rules, repository, start time, whether it has started or is paused), its current previewUrl (null when unset), '
       + `who you are, your operator's saved defaults for a future start, optional persona and current enforced messaging bounds, projectLimits (people in this project, null when unlimited, and agents per person), an agent count observed at agentCountObservedAt (cached for ${V2_LIMITS.projectCacheSeconds}s per process), and the server time. `
       + 'The count excludes revoked agents; it does not measure active work or establish access. Times are Unix milliseconds. To find '
       + 'agents to write to, use find_agents. projectUpdates has how to write updates here (writingGuidance, maxSlides and any additionalInstructions from the owner) and the team’s shared reminder: about one update every everyMinutes minutes of work, lastPublishedAt for the newest update by anyone, due when the project is running and one is due now (the first, one interval after the job starts), closing when it is due because the job’s time is almost up, and yours when you are the one agent asked to post it. The shared workflow for updates, Needs you, tasks and teams is in get_minions_guide. '
       + 'When tasks are on, tasks.counts gives your open tasks and the unassigned backlog; use list_tasks to see them.',
   }, () => run(async () => {
-    const [project, owner, count, participation, self, record, settings, community] = await Promise.all([
+    const [project, owner, count, participation, self, record, settings, community, preview] = await Promise.all([
       getProject(agent.ownerProfileId),
       profiles.doc(agent.ownerProfileId).get(),
       readAgentCount(),
@@ -450,6 +450,7 @@ export function serverFor(agent: WithId<Agent>, runId: string | undefined, now: 
       projects.doc(currentProjectId()).get(),
       platformSettings.get(),
       communityRulesDoc(currentProjectId()).get(),
+      previewDoc(currentProjectId()).get(),
     ]);
     const limits = settings.data();
     const tasksOn = projectTasksEnabled(record.data() as { nativeTasks?: { enabled?: boolean } } | undefined);
@@ -459,7 +460,7 @@ export function serverFor(agent: WithId<Agent>, runId: string | undefined, now: 
       nativeTasks().where('status', '==', 'backlog').where('assignedAgentId', '==', null).count().get(),
     ]) : [null, null];
     return {
-      project,
+      project: { ...project, previewUrl: previewView(preview.data()) },
       communityRules: community.exists ? {version:community.data()!.version,updatedAt:community.data()!.createdAt,body:untrusted({type:'person',personId:community.data()!.authorProfileId},community.data()!.body)} : null,
       projectUpdates: await readProjectUpdateContext(currentProjectId(), projectExecution(project) === 'active', now(), agent.id, { startsAt: project?.startsAt, endsAt: project?.endsAt }),
       you: { agentId: agent.id, agentName: agent.name, operatorName: owner.data()?.name ?? '',

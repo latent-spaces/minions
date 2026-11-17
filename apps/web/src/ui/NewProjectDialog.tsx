@@ -20,7 +20,7 @@ const ideaPrompt = (idea: string, job: Job) => `Use the minions skill: create a 
 
 export type Created = { id: string; name: string } | null;
 export function NewProjectDialog({ open, onClose, created = null, onWaiting, onOpenProject }: { open: boolean; onClose: () => void; created?: Created; onWaiting?: (waiting: boolean) => void; onOpenProject?: (id: string) => void }) {
-  const [idea, setIdea] = useState(''), [copied, setCopied] = useState(false), [job, setJob] = useState<Job>(DEFAULT_JOB);
+  const [idea, setIdea] = useState(''), [copied, setCopied] = useState(false), [copyError, setCopyError] = useState(''), [job, setJob] = useState<Job>(DEFAULT_JOB);
   useEffect(() => { if (!copied) return; const timer = setTimeout(() => setCopied(false), 2000); return () => clearTimeout(timer); }, [copied]);
   const prompt = ideaPrompt(idea, job);
   // After Copy the popup waits for the project, then celebrates it (owner, 16 November 2026).
@@ -31,10 +31,17 @@ export function NewProjectDialog({ open, onClose, created = null, onWaiting, onO
   const [left, setLeft] = useState(4);
   useEffect(() => { if (!created) return; setLeft(4); const timer = setInterval(() => setLeft(n => n - 1), 1000); return () => clearInterval(timer); }, [created]);
   useEffect(() => { if (created && left <= 0) onOpenProject?.(created.id); }, [created, left, onOpenProject]);
-  const close = () => { setWaiting(false); onClose(); };
+  // Only a host that passes onOpenProject (the first-run flow) watches for the project, so only it may say it is waiting.
+  const watching = onOpenProject !== undefined;
+  const close = () => { setWaiting(false); setCopyError(''); onClose(); };
   const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => { if (copyError) dialog.current?.querySelector('[role="alert"]')?.scrollIntoView({ block: 'nearest' }); }, [copyError]);
   useEffect(() => { const d = dialog.current; if (!d) return; if (open && !d.open) d.showModal(); if (!open && d.open) d.close(); }, [open]);
-  const copy = () => { void navigator.clipboard.writeText(prompt).then(() => { setCopied(true); setWaiting(true); }, () => undefined); };
+  const copy = async () => {
+    setCopyError('');
+    try { await navigator.clipboard.writeText(prompt); setCopied(true); setWaiting(true); }
+    catch { setCopyError('Could not copy the prompt. Check clipboard permissions and try again.'); }
+  };
   return <dialog ref={dialog} className="k42-first-dialog" aria-labelledby="k42-first-step-title" onClose={close} onClick={event => { if (event.target === event.currentTarget) close(); }}>
       <div className="k42-first is-step">
     <button type="button" className="k42-first-close" aria-label="Close" onClick={close}><X size={18} aria-hidden="true" /></button>
@@ -49,14 +56,16 @@ export function NewProjectDialog({ open, onClose, created = null, onWaiting, onO
       <h2 id="k42-first-step-title">Now paste it in your chat</h2>
       <ol className="k42-first-checklist">
         <li className="is-done"><Check size={14} aria-hidden="true" />Prompt copied</li>
-        <li className="is-now"><Hourglass size={14} aria-hidden="true" />Paste it in a <strong>new</strong> Claude Code or Codex chat</li>
+        <li className="is-now"><Hourglass size={14} aria-hidden="true" /><span>Paste it in a <strong>new</strong> Claude Code or Codex chat</span></li>
         <li><Hourglass size={14} aria-hidden="true" />Say yes when it asks to create the project</li>
       </ol>
-      <p className="k42-first-wait" role="status"><span className="k42-first-dots" aria-hidden="true"><i /><i /><i /></span>Waiting for your project…</p>
-      {slow && <div className="k42-first-slow"><strong>Nothing yet?</strong> Make sure the chat was opened after you installed Minions, then paste again.
+      {watching ? <p className="k42-first-wait" role="status"><span className="k42-first-dots" aria-hidden="true"><i /><i /><i /></span>Waiting for your project…</p>
+        : <p className="k42-first-wait">It shows up under Projects once your chat creates it.</p>}
+      {watching && slow && <div className="k42-first-slow"><strong>Nothing yet?</strong> Make sure the chat was opened after you installed Minions, then paste again.
         <button type="button" onClick={copy}><Copy size={14} aria-hidden="true" />Copy again</button></div>}
       <div className="k42-first-wait-actions">
         <button type="button" className="k42-first-edit" onClick={() => setWaiting(false)}>Change the prompt</button>
+        {!watching && <button type="button" className="primary" onClick={close}>Done</button>}
       </div>
     </div> : <>
     <h2 id="k42-first-step-title">Describe it, then hand it to your chat</h2>
@@ -85,6 +94,7 @@ export function NewProjectDialog({ open, onClose, created = null, onWaiting, onO
       <li><b>2</b>Open a new Claude Code or Codex chat</li>
       <li><b>3</b>Paste it and say yes. Your project shows up here.</li>
     </ol></>}
+    {copyError && <p className="error" role="alert">{copyError}</p>}
       </div>
     </dialog>;
 }
