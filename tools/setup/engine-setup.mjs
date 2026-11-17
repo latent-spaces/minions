@@ -2,9 +2,9 @@
 // child this script starts is Node itself, without a shell, so checkout paths with spaces and Windows work alike; npm
 // runs the package build scripts as any npm run does. Nothing here runs a model.
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, lstatSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, realpathSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join, resolve } from 'node:path';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { npmCli } from './npm-cli.mjs';
@@ -168,4 +168,4 @@ async function main() {
   if (result !== 'interrupted') await finish(url, result === 'ready', files, connectorEnv, values);
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch(error => { console.error(error.message); process.exitCode = 1; });
+if (process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch(error => { console.error(error.message); process.exitCode = 1; });
