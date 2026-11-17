@@ -1,0 +1,18 @@
+
+.my-worker-list { list-style: none; padding: 0; margin: 12px 0 0; }
+.my-worker-list li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); }
+.my-worker-identity { display: flex; flex-direction: column; gap: 4px; min-width: 0; overflow-wrap: anywhere; }
+.my-worker-identity span, .my-worker-identity small { font-size: 12px; font-variant-numeric: tabular-nums; }
+.my-worker-list button { flex-shrink: 0; min-height: 44px; }
+.background-worker-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.k42-participant-all { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.background-worker-confirm { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+.my-worker-list .chat-participation-row { align-items: flex-start; flex-direction: column; }
+.chat-participation-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; width: 100%; }
+.chat-participation-grant { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.chat-participation-grant label, .chat-participation-grant small { font-size: 12px; }
+.chat-participation-grant > div { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.chat-participation-grant input { width: 110px; max-width: 100%; font-size: 16px; }
+/* Start work banner on Home (owner, from the 19 October onboarding test). */
+

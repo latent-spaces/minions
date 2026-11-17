@@ -1,0 +1,11 @@
+.k42-play-agent { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.k42-run-icon { min-width: 0; padding: 4px 6px; line-height: 0; }
+.k42-communication-tooltip-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+.k42-communication-tooltip-close { position: absolute; top: 10px; right: 10px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px; background: none; cursor: pointer; font-size: 18px; line-height: 1; color: var(--text-muted); }
+.k42-communication-tooltip-close:hover { background: var(--canvas-soft); color: var(--ink); }
+.k42-run-length { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.k42-run-length-other { display: inline-flex; align-items: center; gap: 6px; }
+.k42-run-length-other input { width: 5rem; }
+/* Sits in the card's top-right corner, outside the card's link; a start message drops below the card. */
+.k42-card-run { position: absolute; top: 8px; right: 8px; }
+.k42-card-run .error { position: absolute; top: 100%; right: 0; width: 220px; margin-top: 4px; padding: 6px 8px; background: var(--canvas); border: var(--card-border); border-radius: var(--field-radius); font-size: 12px; z-index: 5; }

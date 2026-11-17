@@ -1,0 +1,9 @@
+.personal-project-filter { margin-bottom:24px; }
+.personal-project-restore { position:relative; z-index:2; align-self:flex-start; display:inline-flex; align-items:center; gap:8px; min-height:44px; }
+.personal-project-notice { margin:0; color:var(--ink); }
+/* One chip row (owner, 26 October 2026): the selected chip is an ink outline, never a black fill; empty chips stay, muted. */
+.personal-project-filter button[aria-pressed="true"], .personal-project-filter button[aria-pressed="true"]:hover:not(:disabled) { background:var(--canvas); border-color:var(--ink); color:var(--ink); }
+.personal-project-filter button.is-empty:not([aria-pressed="true"]) { color:var(--muted); }
+/* One grid (Noa, 26 October 2026): New project, then projects, with no group headings. */
+.my-projects-grid > .personal-project-groups { display:contents; }
+.my-projects-grid .personal-project-empty { grid-column:1 / -1; margin:0; }

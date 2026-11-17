@@ -1,0 +1,104 @@
+.usage-analytics { max-width:none; margin:0; /* full width like every page (owner, 16 November 2026) */ padding:0 0 32px; font-variant-numeric:tabular-nums; }
+.usage-analytics-heading { margin:0 0 16px; }
+.analytics-filters { display:flex; align-items:end; flex-wrap:wrap; gap:12px; margin:24px 0; }
+.analytics-filters label { display:flex; flex:1 1 140px; flex-direction:column; gap:6px; min-width:0; font-size:12px; font-weight:600; }
+.analytics-filters input,.analytics-filters select { color:var(--ink); background:var(--canvas); border:1px solid var(--hairline); border-radius:var(--surface-radius); min-height:38px; padding:8px; max-width:100%; font:inherit; }
+.analytics-filters input { width:100%; box-sizing:border-box; }
+.analytics-filters button { min-height:38px; }
+.analytics-table-scroll { max-width:100%; overflow-x:auto; margin:12px 0; }
+.usage-analytics table { width:100%; border-collapse:collapse; text-align:left; font-size:14px; }
+.usage-analytics td,.usage-analytics th { padding:12px 8px; border-bottom:1px solid var(--hairline); vertical-align:middle; }
+.usage-analytics thead { color:var(--text-muted); }
+.usage-analytics tbody th { min-width:140px; max-width:280px; overflow-wrap:anywhere; }
+.usage-analytics :focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
+@media(max-width:600px) { .analytics-filters label { flex-basis:calc(50% - 12px); } }
+
+.analytics-filter-details { margin:12px 0 24px; }
+.analytics-filter-details>summary { cursor:pointer; padding:12px 0; font-size:14px; font-weight:600; }
+.analytics-filter-details>p { font-size:14px; color:var(--text-muted); }
+.analytics-project-picker { margin:24px 0; }
+@media(max-width:700px){
+ .analytics-filter-details summary { min-height:44px; display:flex; align-items:center; }
+}
+
+.context-project-scope { display:flex; align-items:center; flex-wrap:wrap; gap:16px; margin:24px 0; font-size:16px; }
+
+/* Overview charts. Categorical slots 1-6 are the brand's pastel hues (sky, peach, aqua, butter, lavender, pink) deepened to
+   one lightness and chroma, validated for the light surface and colorblind separation in this fixed order (owner, 11 November 2026).
+   Setup grays are neutral, not categorical: hatching and labels tell them apart. Status colors are the dataviz palette. */
+.usage-analytics { --series-1:#4081d2; --series-2:#e7885d; --series-3:#008f83; --series-4:#daad46; --series-5:#835cbe; --series-6:#e3769b; --series-other:#898781;
+  --setup-1:#a9a7a0; --setup-2:#cbc9c2;
+  --status-good:#0ca30c; --status-warning:#fab219; --status-serious:#ec835a; --status-critical:#d03b3b; }
+.usage-card { position:relative; min-width:0; margin:16px 0; padding:20px 24px; background:var(--canvas); border:1px solid var(--hairline); border-radius:var(--surface-radius); }
+.usage-card>header { display:flex; justify-content:space-between; align-items:baseline; gap:12px; margin-bottom:14px; }
+.usage-card h3 { margin:0; font-size:16px; }
+.usage-aside,.usage-empty { color:var(--text-muted); font-size:12px; }
+.usage-grid { display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:16px; }
+.usage-grid>.usage-card { margin:0; }
+.usage-legend { display:flex; flex-wrap:wrap; gap:6px 16px; margin:0 0 16px; padding:0; list-style:none; font-size:12px; color:var(--text-muted); }
+.usage-legend li { display:flex; align-items:center; gap:6px; }
+.usage-legend li::before { content:''; width:10px; height:10px; border-radius:2px; background-color:var(--swatch); }
+/* Hatched: Minions's own setup (instructions, tool definitions), as in Karma42; light hatch on its quiet grays. */
+.usage-analytics [data-setup=true],.usage-analytics button[data-setup=true]:is(:hover,:focus),.usage-legend li[data-setup=true]::before {
+ background-image:repeating-linear-gradient(135deg,transparent 0,transparent 4px,rgba(255,255,255,.75) 4px,rgba(255,255,255,.75) 6px);
+}
+.usage-legend li[data-setup=true] { background-image:none; }
+.usage-pattern-key { display:flex; align-items:center; gap:8px; margin:0 0 16px; color:var(--text-muted); font-size:12px; }
+.usage-pattern-key>span { flex:0 0 18px; height:12px; background-color:var(--setup-1); border-radius:2px; }
+.usage-now-column-labels { color:var(--text-muted); font-size:11px; font-weight:600; margin-bottom:-4px; }
+.usage-window { display:inline-flex; flex-direction:column; align-items:center; gap:2px; }
+.usage-window small { font-size:11px; color:var(--text-muted); white-space:nowrap; }
+.usage-legend-column { flex-direction:column; }
+.usage-legend-column b { margin-left:auto; padding-left:16px; color:var(--ink); font-weight:600; }
+.usage-tip { position:absolute; z-index:2; transform:translate(-50%,calc(-100% - 8px)); width:max-content; max-width:260px; padding:8px 10px; border-radius:6px; background:var(--ink); color:var(--on-ink); font-size:12px; line-height:1.5; pointer-events:none; }
+.usage-tip strong,.usage-tip span { display:block; }
+.usage-analytics .usage-seg,.usage-analytics .usage-bar { min-height:0; min-width:0; padding:0; border:0; border-radius:0; box-shadow:none; }
+.usage-now-rows { display:grid; gap:12px; }
+.usage-now-row { display:grid; grid-template-columns:minmax(72px,120px) minmax(0,1fr) 64px 72px 64px; align-items:center; gap:12px; font-size:14px; }
+.usage-now-row>.usage-stack { justify-self:start; }
+.usage-now-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600; }
+.usage-stack { display:flex; gap:2px; height:22px; min-width:4px; }
+.usage-stack>.usage-seg { flex-basis:0; height:100%; cursor:pointer; }
+.usage-stack>.usage-seg:first-child { border-radius:4px 0 0 4px; }
+.usage-stack>.usage-seg:last-child { border-radius:0 4px 4px 0; }
+.usage-stack>.usage-seg:only-child { border-radius:4px; }
+.usage-seg:hover,.usage-seg:focus-visible,.usage-bar:hover,.usage-bar:focus-visible { filter:brightness(.9); }
+.usage-none { color:var(--text-muted); font-size:12px; white-space:nowrap; }
+.usage-total { text-align:right; font-weight:600; white-space:nowrap; }
+.usage-ring { position:relative; display:inline-grid; place-items:center; width:40px; height:40px; color:var(--text-muted); }
+.usage-ring svg { position:absolute; inset:0; transform:rotate(-90deg); }
+.usage-ring circle { fill:none; stroke:var(--canvas-soft); stroke-width:3; }
+.usage-ring circle+circle { stroke:var(--ink); stroke-linecap:round; }
+.usage-ring b { font-size:11px; color:var(--ink); }
+.usage-spark { width:64px; height:24px; overflow:visible; }
+.usage-spark path { fill:none; stroke:var(--text-muted); stroke-width:1.5; stroke-linejoin:round; }
+.usage-bars { display:grid; gap:10px; }
+.usage-bar-row { display:grid; grid-template-columns:minmax(80px,150px) minmax(0,1fr) 64px; align-items:center; gap:12px; font-size:13px; }
+.usage-bar-row>span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-family:ui-monospace,monospace; font-size:12px; }
+.usage-bar-row>b { text-align:right; font-weight:600; }
+.usage-bar-track { display:block; height:12px; }
+.usage-bar-track>.usage-bar { display:block; height:100%; border-radius:0 4px 4px 0; background:var(--series-1); cursor:pointer; }
+.usage-donut { position:relative; display:grid; grid-template-columns:132px minmax(0,1fr); align-items:center; gap:24px; }
+.usage-donut svg { width:132px; height:132px; transform:rotate(-90deg); }
+.usage-donut circle { fill:none; stroke-width:14; cursor:pointer; }
+.usage-donut circle:focus-visible { outline:none; stroke-width:18; }
+.usage-donut .usage-donut-track { stroke:var(--canvas-soft); cursor:default; }
+.usage-donut-center { position:absolute; left:0; width:132px; display:grid; justify-items:center; pointer-events:none; }
+.usage-donut-center b { font-size:24px; }
+.usage-donut-center span { font-size:12px; color:var(--text-muted); }
+/* The tab shares the page with chat, so the overview adapts to its own width rather than the viewport's. */
+.usage-analytics { container-type:inline-size; }
+@container (max-width:760px){
+ .usage-grid { grid-template-columns:minmax(0,1fr); }
+ .usage-now-row { grid-template-columns:minmax(0,1fr) auto auto auto; row-gap:6px; }
+ .usage-now-row>.usage-stack { grid-column:1/-1; grid-row:2; }
+ .usage-now-column-labels { display:none; }
+}
+@container (max-width:480px){
+ .usage-card { padding:16px; }
+ .usage-now-row { grid-template-columns:minmax(0,1fr) auto auto; }
+ .usage-spark { display:none; }
+ .usage-donut { grid-template-columns:110px minmax(0,1fr); gap:16px; }
+ .usage-donut svg,.usage-donut-center { width:110px; height:110px; }
+ .usage-donut-center { align-content:center; }
+}

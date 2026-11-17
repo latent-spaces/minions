@@ -1,0 +1,24 @@
+.k42-cheatsheet-highlight { background: var(--canvas-soft, #f3f3f3); }
+/* Add your agent reminder on Home (Noa, 26 October 2026): one quiet row, not the whole cheat sheet. */
+.k42-add-agent-nudge { position:relative; display:flex; align-items:center; gap:12px; padding:12px 48px 12px 14px; border:1px solid var(--hairline); border-radius:16px; background:var(--canvas); }
+.k42-add-agent-nudge-icon { display:grid; place-items:center; flex:none; width:36px; height:36px; border-radius:10px; background:var(--canvas-soft); color:var(--muted); }
+.k42-add-agent-nudge > div { display:grid; gap:2px; flex:1; min-width:0; }
+.k42-add-agent-nudge > div span { font-size:13px; color:var(--muted); }
+.k42-add-agent-nudge-open { flex:none; min-height:36px; padding:0 14px; border:1px solid var(--hairline); border-radius:var(--pill-radius); background:var(--canvas); color:var(--ink); font:inherit; font-size:14px; cursor:pointer; }
+.k42-add-agent-nudge-open:hover { border-color:var(--ink); }
+.k42-add-agent-nudge .k42-close { position:absolute; top:50%; right:10px; transform:translateY(-50%); }
+@media (max-width:640px) { .k42-add-agent-nudge { flex-wrap:wrap; } }
+/* Your agent isn't here yet: heading on its own line, icon aligned with it. */
+.k42-add-agent-prompt-text { display:grid; gap:4px; margin:0 0 10px; }
+.k42-add-agent-prompt-text span { color:var(--muted); }
+.k42-notice.k42-add-agent-notice { align-items:flex-start; }
+/* Cheat sheet table: lighter and tighter (Noa, 26 October 2026). */
+.k42-cheatsheet .k42-tasks-table { font-size:13px; }
+.k42-cheatsheet .k42-tasks-table :is(th, td) { padding:8px 12px; vertical-align:middle; }
+.k42-cheatsheet .k42-tasks-table thead th { padding-top:6px; padding-bottom:6px; font-size:12px; font-weight:450; }
+.k42-cheatsheet .k42-tasks-table tbody th { font-weight:450; color:var(--muted); width:30%; }
+.k42-cheatsheet .k42-tasks-table code { font-size:12px; line-height:1.5; }
+.k42-cheatsheet .k42-run-icon { min-width:28px; min-height:28px; padding:0; }
+.k42-cheatsheet .k42-run-icon svg { width:13px; height:13px; }
+.k42-add-agent-notice .k42-add-agent-prompt-text { margin-bottom:8px; }
+.k42-add-agent-notice .k42-notice-text > * + * { margin-top:0; }

@@ -1,0 +1,75 @@
+// App locations live in the query string: the app is served statically at the root with no fallback route,
+// so a path per screen would not survive a reload. No parameters means My projects.
+export const SECTIONS = ['overview', 'preview', 'usage', 'teams', 'agents', 'conversations', 'control-center'] as const;
+export type Section = typeof SECTIONS[number];
+export const GLOBAL_VIEWS = ['projects', 'needs-you'] as const;
+export type GlobalView = typeof GLOBAL_VIEWS[number];
+export type Route =
+  | { view: GlobalView; projectList?: 'archived' }
+  | { view: 'project'; projectId: string; section: Section; thread: string | null; agent: string | null; q: string | null; message?: string;
+    /** Tasks section: the open task page (owner decision, 11 November 2026). */
+    task?: string };
+
+export const validProjectId = (id: string) => /^[a-f0-9]{64}$/.test(id);
+// Agents is the card directory and agent details (owner, 12 November 2026); its name search stays in links,
+// reloads and Back/Forward.
+export const projectRoute = (projectId: string, section: Section = 'overview', agent: string | null = null, q: string | null = null): Route =>
+  ({ view: 'project', projectId, section, thread: null, agent: section === 'agents' ? agent : null, q: section === 'agents' && q ? q : null });
+export const taskRoute = (projectId: string, taskId: string): Route =>
+  ({ view: 'project', projectId, section: 'overview', thread: null, agent: null, q: null, task: taskId });
+// Settings is one page; old links with a tab open it at the top.
+export const controlCenterRoute = (projectId: string): Route =>
+  ({ view: 'project', projectId, section: 'control-center', thread: null, agent: null, q: null });
+const validId = (id: string) => /^[\w-]{1,200}$/.test(id);
+// The service searches by up to 40 characters of a name.
+const validSearch = (q: string) => q.length > 0 && q.length <= 40;
+
+export function parseRoute(search: string): Route {
+  const query = new URLSearchParams(search);
+  const projectId = query.get('project');
+  if (projectId !== null) {
+    // URL parameters must never become arbitrary authenticated API path segments.
+    if (!validProjectId(projectId)) return { view: 'projects' };
+    const requested = query.get('section');
+    const asked = requested as Section | null;
+    const section = asked && (SECTIONS.includes(asked as typeof SECTIONS[number])) ? asked as Section : 'overview';
+    const thread = query.get('thread'), agent = query.get('agent'), q = query.get('q');
+    return { view: 'project', projectId, section, thread: section === 'conversations' && thread && validId(thread) ? thread : null,
+      agent: section === 'agents' && agent && validId(agent) ? agent : null, q: section === 'agents' && q && validSearch(q) ? q : null,
+      ...(section === 'conversations' && validId(query.get('message') ?? '') ? { message: query.get('message')! } : {}),
+      ...(section === 'overview' && validId(query.get('task') ?? '') ? { task: query.get('task')! } : {}) };
+  }
+  const view = query.get('view') as GlobalView | null;
+  const selected = view && GLOBAL_VIEWS.includes(view) ? view : 'projects';
+  return { view: selected, ...(selected === 'projects' && query.get('list') === 'archived' ? { projectList: 'archived' as const } : {}) };
+}
+
+export function formatRoute(route: Route): string {
+  if (route.view !== 'project') {
+    const query = new URLSearchParams({ view: route.view });
+    if (route.view === 'projects' && route.projectList === 'archived') query.set('list', 'archived');
+    return `?${query}`;
+  }
+  const query = new URLSearchParams({ project: route.projectId });
+  if (route.section !== 'overview') query.set('section', route.section);
+  if (route.thread) query.set('thread', route.thread);
+  if (route.message && route.section === 'conversations' && validId(route.message)) query.set('message', route.message);
+  if (route.agent) query.set('agent', route.agent);
+  if (route.q) query.set('q', route.q);
+  if (route.section === 'overview' && route.task && validId(route.task)) query.set('task', route.task);
+  return `?${query}`;
+}
+
+// Surfaces that keep an uncertain write for an exact retry hold the project open: leaving it
+// unmounts them and discards that retry, so a project change asks first. Reloading or leaving the
+// viewer discards it too, so the browser's own leave prompt is armed while anything is held.
+const holds = new Set<symbol>();
+const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+export function hold(): () => void {
+  const token = Symbol('hold');
+  if (holds.size === 0) window.addEventListener('beforeunload', warn);
+  holds.add(token);
+  return () => { holds.delete(token); if (holds.size === 0) window.removeEventListener('beforeunload', warn); };
+}
+export const mayLeaveProject = () => holds.size === 0
+  || window.confirm('You have unsaved changes or an action waiting for an exact retry. Leave this screen and discard them?');

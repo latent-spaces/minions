@@ -1,0 +1,25 @@
+/* Agents are rounded squares; CodingAgentAvatar puts the coding tool on the bottom-right corner and the state on the top-right. */
+.k42-agent-avatar { position:relative; flex:none; display:inline-grid; place-items:center; width:var(--k42-agent-size); height:var(--k42-agent-size); border-radius:30%; color:var(--ink); background:var(--canvas-soft); }
+.k42-agent-portrait { display:grid; place-items:center; width:100%; height:100%; border-radius:inherit; overflow:hidden; }
+.k42-agent-portrait { position:relative; z-index:1; }
+/* Canonical transparent heads already fit the square; do not cut ears at rounded corners. */
+.k42-agent-portrait:not(.is-custom) { border-radius:0; overflow:visible; }
+.k42-agent-portrait > img { width:100%; height:100%; object-fit:contain; }
+/* An image that fails to load shows the agent's initial, as the map does. */
+.k42-agent-initial { font-size:calc(var(--k42-agent-size) * .45); font-weight:650; line-height:1; }
+
+.k42-agent-avatar > img.k42-agent-hat { position:absolute; height:auto; border-radius:0; object-fit:contain; pointer-events:none; z-index:1; }
+
+/* Per-character crown measurements apply only while gaze owns the head.
+ * No transition carries a gaze correction into another pose. The whole head/hat
+ * root still squashes together; fixed preview is used only by comparison labs. */
+.k42-agent-avatar:not(.is-fixed-hat-preview)[data-character-gaze-active="true"] > img.k42-agent-hat { transform-origin:50% 95%; transform:translate(calc(var(--k42-agent-size) * var(--hat-x,0) / 192),calc(var(--k42-agent-size) * var(--hat-y,0) / 192)) rotate(var(--hat-r,0deg)); }
+.k42-agent-avatar[data-character-gaze-cell="0"] { --hat-x:var(--hat-gaze-x0,0); --hat-y:var(--hat-gaze-y0,0); --hat-r:var(--hat-gaze-r0,0deg); }
+.k42-agent-avatar[data-character-gaze-cell="1"] { --hat-x:var(--hat-gaze-x1,0); --hat-y:var(--hat-gaze-y1,0); --hat-r:var(--hat-gaze-r1,0deg); }
+.k42-agent-avatar[data-character-gaze-cell="2"] { --hat-x:var(--hat-gaze-x2,0); --hat-y:var(--hat-gaze-y2,0); --hat-r:var(--hat-gaze-r2,0deg); }
+.k42-agent-avatar[data-character-gaze-cell="3"] { --hat-x:var(--hat-gaze-x3,0); --hat-y:var(--hat-gaze-y3,0); --hat-r:var(--hat-gaze-r3,0deg); }
+.k42-agent-avatar[data-character-gaze-cell="4"] { --hat-x:var(--hat-gaze-x4,0); --hat-y:var(--hat-gaze-y4,0); --hat-r:var(--hat-gaze-r4,0deg); }
+.k42-agent-avatar[data-character-gaze-cell="5"] { --hat-x:var(--hat-gaze-x5,0); --hat-y:var(--hat-gaze-y5,0); --hat-r:var(--hat-gaze-r5,0deg); }
+.k42-agent-avatar[data-character-gaze-cell="6"] { --hat-x:var(--hat-gaze-x6,0); --hat-y:var(--hat-gaze-y6,0); --hat-r:var(--hat-gaze-r6,0deg); }
+.k42-agent-avatar[data-character-gaze-cell="7"] { --hat-x:var(--hat-gaze-x7,0); --hat-y:var(--hat-gaze-y7,0); --hat-r:var(--hat-gaze-r7,0deg); }
+.k42-agent-avatar[data-character-gaze-cell="8"] { --hat-x:var(--hat-gaze-x8,0); --hat-y:var(--hat-gaze-y8,0); --hat-r:var(--hat-gaze-r8,0deg); }

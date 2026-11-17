@@ -1,0 +1,36 @@
+{
+  "name": "minions-workspace",
+  "private": true,
+  "description": "Repository commands for the separately released Minions components",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "minions": "tools/setup/minions.mjs"
+  },
+  "scripts": {
+    "communication:lab": "node tools/communication-lab/start.mjs",
+    "setup": "node tools/setup/engine-setup.mjs",
+    "stop": "node tools/setup/minions.mjs stop",
+    "build:web": "npm --prefix apps/web run build --",
+    "build:backend": "npm --prefix apps/server run build:backend --",
+    "typecheck:backend": "npm --prefix apps/server run typecheck --",
+    "test:backend": "node tests/run.mjs",
+    "test:self-hosted": "node tests/self-hosted.mjs",
+    "test:connector": "npm --prefix packages/agent-cli test",
+    "build:contracts": "npm --prefix packages/contracts run build --",
+    "prepare": "npm --workspace @minions/contracts run build",
+    "benchmark": "node tools/benchmarks/run.mjs",
+    "test:all": "node tests/all.mjs",
+    "test:setup": "node --test \"tools/setup/test/*.test.mjs\""
+  },
+  "workspaces": [
+    "apps/web",
+    "apps/server",
+    "packages/contracts",
+    "packages/agent-cli",
+    "tests",
+    "tools/benchmarks"
+  ],
+  "license": "MIT"
+}

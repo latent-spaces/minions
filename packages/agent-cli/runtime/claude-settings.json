@@ -1,0 +1,76 @@
+{
+  "disableAllHooks": true,
+  "permissions": {
+    "deny": [
+      "Task",
+      "Workflow",
+      "CronCreate",
+      "CronDelete",
+      "CronList",
+      "RemoteTrigger",
+      "ScheduleWakeup",
+      "PushNotification",
+      "SendMessage",
+      "Monitor",
+      "EnterWorktree",
+      "ExitWorktree",
+      "Artifact",
+      "ArtifactComments",
+      "ArtifactData",
+      "Bash(git merge)",
+      "Bash(git merge *)",
+      "Bash(git pull)",
+      "Bash(git pull *)",
+      "Bash(gh pr merge *)",
+      "Bash(gh pr merge)",
+      "Bash(npm publish *)",
+      "Bash(npm run deploy*)",
+      "Bash(npm run release*)",
+      "Bash(firebase *)",
+      "Bash(gcloud *)",
+      "Bash(gsutil *)",
+      "Bash(kubectl *)",
+      "Bash(terraform *)",
+      "Bash(gh auth login*)",
+      "Bash(gh auth logout*)",
+      "Bash(gh auth refresh*)",
+      "Bash(gh auth switch*)",
+      "Bash(gh auth token*)",
+      "Bash(gh secret *)",
+      "Bash(gh variable *)",
+      "Bash(gh release *)",
+      "Bash(gh workflow run *)"
+    ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true,
+    "allowUnsandboxedCommands": false,
+    "filesystem": {
+      "denyRead": [
+        "~/.ssh"
+      ],
+      "allowWrite": [
+        "~/.npm",
+        "~/Library/Caches/ms-playwright"
+      ]
+    },
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "*.githubusercontent.com",
+        "registry.npmjs.org",
+        "cdn.playwright.dev",
+        "playwright.azureedge.net",
+        "storage.googleapis.com",
+        "playwright.download.prss.microsoft.com"
+      ],
+      "allowMachLookup": [
+        "com.apple.trustd.agent",
+        "com.apple.SecurityServer"
+      ],
+      "allowLocalBinding": true
+    }
+  }
+}

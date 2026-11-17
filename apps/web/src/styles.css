@@ -1,0 +1,209 @@
+@import './ui/theme.css';
+
+body { margin: 0; background: var(--bg); }
+.page { max-width: 1400px; margin: 0 auto; padding: 20px 28px; }
+h1 { font-size: 30px; line-height: 1.25; margin: 0; overflow-wrap: anywhere; }
+h2 { font-size: 20px; margin: 0 0 12px; }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 20px; }
+.card { margin-bottom: 12px; }
+.card p { margin: 4px 0; }
+
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { border-top: 1px solid var(--line); padding: 8px 4px; }
+.list li:first-child { border-top: 0; }
+dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 8px; margin: 6px 0 0; font-size: 12px; }
+dt { color: var(--muted); }
+dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.body { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.muted { color: var(--muted); }
+.warn { color: var(--warn); }
+.error { color: var(--error); }
+.badge { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: var(--pill-radius); border: 1px solid var(--line); margin-left: 4px; }
+.badge.direct { background: var(--direct); }
+table { border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+th, td { padding: 3px 10px 3px 0; text-align: right; white-space: nowrap; }
+th:nth-child(-n+2), td:nth-child(-n+2) { text-align: left; }
+th { color: var(--muted); font-weight: normal; }
+.pager { display: flex; gap: 8px; margin-top: 8px; }
+/* Gallery buttons (DESIGN.md): outline pill by default, .primary = ink pill, .soft = canvas-soft pill. */
+button { font: inherit; font-weight: 600; line-height: 1.43; padding: 0 16px; border: 1px solid var(--hairline); border-radius: var(--radius-button); background: var(--canvas); color: var(--ink); cursor: pointer; }
+:where(button.primary) { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+:where(button.primary) > svg { flex: none; }
+button:disabled { color: var(--text-faint); cursor: default; }
+a { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+summary { cursor: pointer; width: fit-content; margin: 8px 0; }
+h3 { font-size: 14px; margin: 20px 0 8px; }
+/* Field base (tokens, 18 October 2026): zero specificity, so every intentional local rule still wins. */
+:where(input:not([type=checkbox],[type=radio],[type=range],[type=hidden]), textarea, select) { min-height: var(--field-height); border: var(--field-border); border-radius: var(--field-radius); background: var(--field-bg); box-sizing: border-box; }
+:where(textarea) { min-height: calc(var(--field-height) * 2); padding: 10px 12px; }
+input { font: inherit; color: var(--text); padding: 8px 10px; min-width: 0; max-width: 100%; box-sizing: border-box; }
+input::placeholder { color: var(--muted); }
+button { min-height: 36px; }
+button:hover:not(:disabled) { background: var(--canvas-soft); }
+.primary { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.primary:hover:not(:disabled) { background: var(--ink-soft); border-color: var(--ink-soft); }
+.primary:disabled { background: var(--canvas-soft); border-color: var(--canvas-soft); color: var(--text-faint); }
+/* A black control stays black: a touch lighter on hover, never the grey of a plain button; a primary that is working stays black too. */
+.primary:active:not(:disabled), .primary[aria-busy="true"]:disabled { background: var(--ink-soft); border-color: var(--ink-soft); color: var(--on-ink); }
+:is(.k42-directory-chip, .k42-needs-chip)[aria-pressed="true"]:hover:not(:disabled), .k42-chat-latest:hover:not(:disabled) { background: var(--ink-soft); border-color: var(--ink-soft); color: var(--on-ink); }
+.soft { background: var(--canvas-soft); border-color: var(--canvas-soft); }
+.soft:hover:not(:disabled) { background: var(--field); border-color: var(--field); }
+button.danger { color: var(--error); }
+button.danger:disabled { color: var(--text-faint); }
+@media (max-width: 700px) { button { min-height: 44px; } }
+.my-agent { display: flex; justify-content: space-between; align-items: start; gap: 16px; flex-wrap: wrap; }
+.my-agent > div:first-child { flex: 1; min-width: 200px; }
+@media (max-width: 600px) { .my-agent .actions { width: 100%; } }
+
+textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* Compact community / repository language, chosen from the preferred round-two reference. */
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+.wordmark { font-size: 23px; letter-spacing: -0.02em; }
+.project-heading { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.badge.execution { background: var(--highlight); font-size: 12px; padding: 3px 10px; }
+.project-readme { min-width: 0; border: var(--card-border); border-radius: var(--surface-radius); background: var(--canvas); padding: 24px; }
+input, textarea { caret-color: var(--accent); }
+@media (max-width: 600px) { .page { padding: 16px; } .actions { min-width: 0; } }
+
+/* Selected B composition: global links, bounded project shortcuts and the open project's sections. */
+.workspace-content { min-width: 0; }
+.workspace-content:focus { outline: none; }
+.skip-link { position: absolute; left: 16px; top: -100px; z-index: 30; background: var(--panel); padding: 8px 12px; border: 1px solid var(--line); border-radius: 6px; }
+.skip-link:focus { top: 8px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; min-height: 0; min-width: 0; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.observation-age { margin: -8px 0 24px; font-size: 12px; }
+.settings-form { max-width: 75ch; margin-top: 24px; }
+.settings-form > fieldset { border: 0; margin: 0; padding: 0; }
+.settings-form > fieldset > legend { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+.settings-form > fieldset > label { display: block; margin: 12px 0 6px; }
+.settings-form input[type="url"] { width: 100%; }
+.proposal-form { margin-top: 0; }
+.proposal-form label { display: block; margin: 12px 0 6px; font-weight: 600; }
+.proposal-form input[type="text"], .proposal-form select { width: 100%; box-sizing: border-box; }
+select { font: inherit; color: var(--text); padding: 8px 10px; max-width: 100%; }
+select:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+input[type="checkbox"] { accent-color: var(--accent); }
+progress, input[type="radio"], input[type="range"] { accent-color: var(--ink); }
+.settings-section { margin-top: 32px; border-top: 1px solid var(--line); padding-top: 8px; }
+.pending-action { padding: 16px; margin: 16px 0; border: 1px solid var(--line); background: var(--highlight); border-radius: 6px; }
+
+/* Explore extends the compact light repository directory. */
+
+/* Agents: a directory searched by name and one agent's page, from the approved agents reference
+   with shared presentation. */
+.agent-help { color: var(--muted); font-size: 12px; }
+.agent-search-status { margin: -4px 0 16px; }
+.agent-search-status:empty { margin: 0; }
+.agent-grid { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+ .agent-name-line .badge { margin-left: 0; }
+.agent-mine { display: inline-block; padding: 1px 8px; border-radius: var(--pill-radius); border: 1px solid var(--line); background: var(--highlight); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.agent-phase { display: inline-flex; align-items:center; gap:4px; padding: 1px 8px; border-radius: var(--pill-radius); border: 1px solid var(--line); background: var(--subtle); font-size: 11px; white-space: nowrap; }
+.agent-phase.turn { background: var(--direct); }
+.agent-phase.unknown { color: var(--muted); }
+.agents-page dl > div { min-width: 0; }
+.agents-page dt { font-size: 11px; }
+.agents-page dd { font-size: 13px; }
+.agent-empty { padding: 40px 20px; text-align: center; border: 1px dashed var(--hairline-shell); border-radius: var(--surface-radius); background: var(--canvas); }
+.agent-empty h2, .agent-empty h3 { margin: 0 0 8px; }
+.agent-directory-footer { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+.agent-directory-footer .pager { margin-top: 0; }
+.agent-page-toolbar { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.agent-detail-page { display: flex; flex-direction: column; gap: 16px; max-width: 880px; }
+.agent-head { display: flex; align-items: center; gap: 16px; }
+.agent-head-text { flex: 1; min-width: 0; }
+.agent-meta { margin: 4px 0 0; color: var(--text-muted); display: flex; flex-wrap: wrap; align-items: center; gap: 0 6px; }
+.agent-head-controls { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 4px; max-width: min(360px, 50%); }
+/* A start or remove message drops below the buttons instead of squeezing the name. */
+.agent-head-controls .k42-play-agent { display: contents; }
+.agent-head-controls :is(.error, [role="alert"]) { order: 1; flex-basis: 100%; margin: 4px 0 0; text-align: right; font-size: 13px; }
+.agent-head-controls .k42-task-picker-trigger { margin: 0; padding: 8px; min-height: 40px; }
+.agent-now { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
+.agent-now-state { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--text-muted); font-size: 14px; }
+.agent-now-focus { margin: 6px 0 0; font-size: 18px; line-height: 1.45; font-weight: 500; overflow-wrap: anywhere; }
+.agent-tasks { list-style: none; margin: 8px 0 0; padding: 0; }
+.agent-tasks li { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); }
+.agent-tasks li > a { min-width: 0; overflow-wrap: anywhere; }
+.agent-tasks .k42-task-status { flex: none; }
+.agent-detail-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; align-items: start; }
+.agent-detail-pair .agent-panel h3 { margin: 0 0 8px; }
+.agent-panel { border: var(--card-border); border-radius: var(--surface-radius); background: var(--canvas); padding: 20px; min-width: 0; }
+.agent-panel h3 { font-size: 14px; margin: 0 0 12px; }
+.agent-panel p { margin: 4px 0; }
+.agent-name-line { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.agent-name-line h2 { font-size: 24px; margin: 0; overflow-wrap: anywhere; }
+.agent-details-list { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+.agent-details-list > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 12px; }
+.agent-section-line { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.agent-usage { grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0; }
+.agent-usage dd:first-of-type { font-size: 17px; font-weight: 600; }
+.agent-usage.extra { grid-template-columns: repeat(3, minmax(0, 1fr)); padding-top: 12px; border-top: 1px solid var(--line); }
+.agent-usage.extra dd { font-size: 13px; font-weight: normal; }
+@media (max-width: 1150px) { .agent-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .agent-grid { grid-template-columns: minmax(0, 1fr); } .agent-head { flex-wrap: wrap; } .agent-panel { padding: 16px; } }
+
+/* Project Card: the approved definition as a read-only document beside a compact details column (owner
+   choice D3, concept 2), in the overview grid and panels. */
+.card-setup { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.card-setup p { margin: 0 0 12px; }
+.card-document h2 { font-size: 16px; margin: 0 0 6px; }
+.card-goal { max-width: 75ch; margin: 0; }
+.card-goal .k42-chat-body { font-size: 16px; line-height: 1.6; }
+.card-field { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--line); }
+.card-field .body { font-size: 16px; line-height: 1.7; max-width: 75ch; margin: 0; }
+.card-rules { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--line); }
+.card-rules .body { max-width: 75ch; }
+.card-side { overflow-wrap: anywhere; }
+.card-side h3 { margin: 20px 0 8px; padding-top: 16px; border-top: 1px solid var(--line); }
+.card-side p { margin: 4px 0; }
+.card-side dl { gap: 12px 16px; margin: 0; }
+.card-side dl > div { min-width: 0; }
+.card-side dt { font-size: 12px; }
+.card-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.card-policy { grid-template-columns: minmax(0, 1fr); }
+.card-links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+/* The owner's Card edit form and the version history, in Settings (D5, D6). */
+.card-form input:not([type='checkbox']), .card-form textarea { display: block; width: 100%; box-sizing: border-box; }
+.card-form textarea { font: inherit; color: var(--text); padding: 10px; resize: vertical; line-height: 1.5; }
+.card-form label { display: block; margin: 12px 0 6px; }
+
+/* Public discovery reuses the established light workspace language. */
+/* Disclosures: a stroke chevron at the trailing edge, pointing down and turning up when open (owner direction, 16 October 2026). */
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::after { content: ''; display: inline-block; flex: none; width: 16px; height: 16px; margin-inline-start: 8px; vertical-align: -3px; background-color: currentColor; transition: transform .15s ease;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") center / contain no-repeat; }
+details[open] > summary::after { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { details > summary::after { transition: none; } }
+.k42-path-overflow summary::after, .k42-chat-actions summary::after { content: none; }
+.k42-brand-icon { display: inline-block; flex: none; vertical-align: -0.15em; margin-inline-end: 6px; }
+/* Pastel accents: color identifies people and kinds of projects; text on them stays ink. */
+.k42-tone-butter.k42-tone-butter { background: var(--pastel-butter); color: var(--ink); }
+.k42-tone-sky.k42-tone-sky { background: var(--pastel-sky); color: var(--ink); }
+.k42-tone-mint.k42-tone-mint { background: var(--pastel-mint); color: var(--ink); }
+.k42-tone-blush.k42-tone-blush { background: var(--pastel-blush); color: var(--ink); }
+.k42-tone-lilac.k42-tone-lilac { background: var(--pastel-lilac); color: var(--ink); }
+.k42-category-tag { display: inline-block; padding: 3px 8px; border-radius: 6px; background: var(--canvas-soft); color: var(--ink); font-size: 12px; font-weight: 500; line-height: 1.4; }
+.k42-tag { align-self: flex-start; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+/* Anchor the shared agent-status icon on detail portraits. */
+.agent-profile-photo { position: relative; flex: none; display: inline-flex; }
+/* Every project tab opens with the same heading and optional one-line intro (owner, 11 November 2026). */
+.k42-section-title.k42-section-title { margin:0; font-size:24px; font-weight:650; line-height:1.2; letter-spacing:0; color:var(--ink); }
+/* A tab title with its explanation behind a ? note (owner, 11 November 2026). */
+.k42-section-heading { display:flex; align-items:center; gap:4px; }
+.k42-section-heading > .k42-section-title { margin:0; }
+/* Every project page heading row: the same height and the same gap to the content under it (owner, 16 November 2026). */
+:is(.k42-tasks-head, .conversations-heading, .k42-preview-heading, .k42-teams-heading, .usage-analytics-heading, .control-center-heading, .k42-agents-heading) { min-height:44px; margin:0 0 16px; display:flex; align-items:center; }
+/* One dropdown look everywhere (owner, 16 November 2026): a white rounded field with a hairline, a soft chevron, a hover
+   lift and an ink focus ring; the open list stays the browser's own for keyboard and screen readers. */
+select { appearance: none; -webkit-appearance: none; min-height: 36px; padding: 0 36px 0 14px; border: 1px solid #dcdce4; border-radius: 12px; background-color: #fff; color: #141414; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; box-shadow: 0 1px 2px rgba(20,20,40,.04);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 256 256'%3E%3Cpath fill='none' stroke='%236b6b78' stroke-linecap='round' stroke-linejoin='round' stroke-width='20' d='M208 96l-80 80-80-80'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; background-size: 14px; transition: border-color .15s, box-shadow .15s; }
+select:hover:not(:disabled) { border-color: #c4c4d0; box-shadow: 0 2px 6px rgba(20,20,40,.08); }
+select:focus-visible { outline: none; border-color: #141414; box-shadow: 0 0 0 3px rgba(20,20,20,.12); }
+select:disabled { opacity: .55; cursor: not-allowed; }

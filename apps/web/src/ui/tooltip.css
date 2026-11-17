@@ -1,0 +1,11 @@
+.k42-tooltip-anchor { position:relative; display:inline-flex; }
+.k42-tooltip { position:absolute; z-index:20; padding:4px 8px; border-radius:6px; background:var(--ink); color:var(--on-ink); font-size:12px; font-weight:500; line-height:1.4; white-space:nowrap; pointer-events:none; opacity:0; visibility:hidden; transition:opacity .12s ease .25s, visibility 0s linear .37s; }
+.k42-tooltip-anchor.is-top .k42-tooltip { bottom:calc(100% + 6px); }
+.k42-tooltip-anchor.is-bottom .k42-tooltip { top:calc(100% + 6px); }
+.k42-tooltip-anchor.is-center .k42-tooltip { left:50%; transform:translateX(-50%); }
+.k42-tooltip-anchor.is-start .k42-tooltip { left:0; }
+.k42-tooltip-anchor.is-end .k42-tooltip { right:0; }
+.k42-tooltip-anchor:is(:hover, :focus-within):not(:has(details[open])) > .k42-tooltip { opacity:1; visibility:visible; transition-delay:.25s, 0s; }
+@media (hover:none) { .k42-tooltip-anchor:hover:not(:focus-within) > .k42-tooltip { opacity:0; visibility:hidden; } }
+@media (prefers-reduced-motion:reduce) { .k42-tooltip { transition:none; } }
+.k42-tooltip-anchor.is-wrap .k42-tooltip { width:max-content; max-width:280px; white-space:normal; font-weight:400; }

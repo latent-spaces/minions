@@ -1,0 +1,67 @@
+.k42-chat-panel { min-width:0; background:var(--panel); color:var(--text); }
+.k42-chat-timeline-wrap { position:relative; min-width:0; overflow:clip; }
+.k42-chat-timeline { height:clamp(280px,55dvh,560px); overflow-y:scroll; overflow-anchor:none; scrollbar-gutter:stable; padding:0 20px 20px; }
+.k42-chat-timeline:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.k42-chat-timeline::-webkit-scrollbar { width:12px; }
+.k42-chat-timeline::-webkit-scrollbar-track { background:var(--subtle); }
+.k42-chat-timeline::-webkit-scrollbar-thumb { background:var(--muted); border:3px solid var(--subtle); border-radius:6px; }
+.k42-chat-messages { list-style:none; margin:0; padding:0; }
+.k42-chat-date { display:flex; align-items:center; gap:12px; margin:20px 0; font-size:12px; color:var(--muted); }
+.k42-chat-date::before,.k42-chat-date::after { content:''; height:1px; background:var(--line); flex:1; }
+.k42-chat-message { padding:12px 0; min-width:0; }
+.k42-chat-highlighted { background:var(--highlight); border-radius:6px; }
+.k42-chat-message:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+.k42-chat-expand { margin-top:8px; font-size:12px; }
+.k42-chat-actions { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.k42-chat-actions button,.k42-chat-actions a { display:inline-flex; align-items:center; gap:4px; font-size:12px; }
+.k42-chat-message > header { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:8px; }
+.k42-chat-identity { display:flex; align-items:center; flex-wrap:wrap; gap:4px 8px; font-size:13px; min-width:0; }
+.k42-chat-identity .k42-person-link { display:inline-flex; gap:8px; align-items:center; font-weight:600; }
+.k42-chat-identity .k42-person-avatar { width:28px; height:28px; font-size:11px; }
+.k42-chat-identity .badge { margin:0; }
+.k42-chat-time { font-size:11px; color:var(--muted); white-space:nowrap; text-decoration:none; font-variant-numeric:tabular-nums; }
+.k42-chat-grouped { padding-top:4px; }
+.k42-chat-grouped .k42-person-avatar { display:none; }
+.k42-chat-body { font-size:14px; line-height:1.65; overflow-wrap:anywhere; }
+.k42-chat-body p { margin:0 0 8px; white-space:pre-wrap; }
+.k42-chat-body p:last-child { margin-bottom:0; }
+/* Each paragraph takes its own direction, so Hebrew and English lines both read correctly. */
+.k42-chat-body :is(p,li,blockquote,h1,h2,h3,h4,h5,h6) { unicode-bidi:plaintext; text-align:start; }
+.k42-chat-body a { text-underline-offset:3px; }
+.k42-chat-body ul,.k42-chat-body ol { padding-inline-start:24px; margin:8px 0; }
+.k42-chat-body li { margin:4px 0; }
+.k42-chat-body blockquote { margin:12px 0; padding-inline-start:12px; border-inline-start:1px solid var(--line); color:var(--muted); }
+.k42-chat-body h1,.k42-chat-body h2,.k42-chat-body h3,.k42-chat-body h4,.k42-chat-body h5,.k42-chat-body h6 { font-size:1em; margin:16px 0 8px; }
+.k42-chat-table { max-width:100%; overflow-x:auto; margin:12px 0; }
+.k42-chat-table table { border-collapse:collapse; width:100%; }
+.k42-chat-table th,.k42-chat-table td { padding:8px; border:1px solid var(--line); text-align:start; }
+.k42-chat-table:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.k42-chat-body :not(pre)>code { background:var(--subtle); padding:2px 4px; border-radius:3px; font-size:.9em; }
+.k42-chat-code { border:1px solid var(--line); border-radius:6px; overflow:hidden; margin:12px 0; }
+.k42-chat-code > div { padding:6px 10px; background:var(--subtle); display:flex; justify-content:space-between; align-items:center; font-size:12px; }
+.k42-chat-code button { display:flex; align-items:center; gap:6px; font-size:12px; }
+.k42-chat-code pre { margin:0; padding:12px; overflow-x:auto; max-width:100%; font-size:12px; }
+.k42-chat-code pre:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+.k42-chat-history { text-align:center; padding-top:16px; }
+.k42-chat-latest { position:absolute; bottom:12px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:6px; white-space:nowrap; font-size:12px; }
+.k42-chat-empty { padding:40px 8px; color:var(--muted); text-align:center; }
+.k42-chat-feedback { padding:12px 20px; font-size:13px; border-bottom:1px solid var(--line); }
+.k42-chat-feedback p { margin:0 0 8px; }
+@media(max-width:600px) { .k42-chat-timeline { padding-inline:16px; height:clamp(280px,50dvh,480px); } .k42-chat-message > header { align-items:flex-start; } }
+.k42-chat-actions { display:flex; align-items:center; flex-wrap:wrap; gap:6px; margin-top:8px; font-size:12px; }
+.k42-chat-actions button[aria-pressed="true"] { border-color:var(--ink); }
+.k42-chat-actions button { display:inline-flex; gap:4px; align-items:center; font-size:12px; }
+.k42-chat-actions details { position:relative; }
+.k42-chat-actions summary { display:inline-flex; align-items:center; min-height:36px; margin:0; padding:0 16px; border-radius:var(--radius-button); background:var(--canvas-soft); color:var(--ink); font-size:12px; font-weight:600; cursor:pointer; list-style:none; }
+.k42-chat-actions summary::-webkit-details-marker { display:none; }
+.k42-chat-actions summary:hover { background:var(--field); }
+@media(max-width:700px) { .k42-chat-actions summary { min-height:44px; } }
+.k42-chat-actions > span { color:var(--muted); }
+.k42-chat-search { padding:12px 20px; border-bottom:1px solid var(--line); }
+.k42-chat-search form { display:flex; margin:0; }
+.k42-chat-search ol { list-style:none; margin:12px 0; padding:0; max-height:240px; overflow-y:auto; }
+.k42-chat-search li > button { display:flex; flex-direction:column; gap:4px; width:100%; text-align:start; padding:8px 16px; margin-bottom:6px; overflow-wrap:anywhere; }
+.k42-chat-search time { font-size:11px; color:var(--muted); }
+.k42-chat-linked { padding:16px 20px; border-bottom:1px solid var(--line); background:var(--highlight); overflow-wrap:anywhere; }
+.k42-chat-linked > header { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:12px; }
+.k42-chat-unread { font-size:12px; color:var(--muted); }

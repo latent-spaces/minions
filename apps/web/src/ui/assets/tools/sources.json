@@ -1,0 +1,20 @@
+[
+  {
+    "file": "claude.svg",
+    "sourcePackage": "anthropic.claude-code-2.1.312-darwin-arm64",
+    "sourceFile": "resources/claude-logo.svg",
+    "sha256": "a3101f3047a119aa11825ad9369510f0c472428c8c52d420e31bc62db44a8364"
+  },
+  {
+    "file": "codex.svg",
+    "sourcePackage": "openai.chatgpt-26.1021.22027-darwin-arm64",
+    "sourceFile": "webview/assets/codex_new-f14177b03534.svg",
+    "sha256": "0b490f33f9c5b62c7db578f5101497efb87b774720f91b9e878243e761952c52"
+  },
+  {
+    "file": "chatgpt.svg",
+    "sourcePackage": "openai.chatgpt-26.1021.22027-darwin-arm64",
+    "sourceFile": "resources/blossom-black.svg",
+    "sha256": "8652777b55544c572ba445dd230a90c2e248611e92eaa77de5805e8d0561fc30"
+  }
+]

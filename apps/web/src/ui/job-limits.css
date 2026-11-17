@@ -1,0 +1,33 @@
+/* The job bar above the Agents cards: one row, time then tokens; it wraps on a narrow screen (owner, 12 November 2026). */
+.k42-job-bar { display: flex; flex-direction: column; gap: 12px; margin: 0 0 16px; padding: 10px 14px; border: var(--card-border); border-radius: var(--surface-radius); background: var(--canvas); min-width: 0; }
+.k42-job-parts { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; }
+.k42-job-part { display: flex; align-items: center; gap: 10px; min-width: 0; font-variant-numeric: tabular-nums; }
+.k42-job-part + .k42-job-part { padding-left: 28px; border-left: 1px solid var(--line); }
+.k42-job-label { font-size: 12px; color: var(--text-muted); }
+.k42-job-value { font-weight: 600; white-space: nowrap; }
+.k42-job-value.is-alert { color: var(--error); }
+.k42-job-part button { display: inline-flex; align-items: center; gap: 4px; min-height: 32px; padding: 4px 10px; font-size: 13px; }
+.k42-job-saved:empty { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }  /* the live region stays in the page */
+.k42-job-saved { font-size: 12px; }
+.k42-job-meter { width: 80px; height: 6px; border-radius: 3px; background: var(--hairline-soft); overflow: hidden; }
+.k42-job-meter > span { display: block; height: 100%; background: var(--ink); }
+.k42-job-meter.is-full > span { background: var(--error); }
+@media (max-width: 600px) { .k42-job-part + .k42-job-part { padding-left: 0; border-left: 0; } }
+.k42-cap-editor { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.k42-cap-editor label { font-weight: 600; }
+.k42-cap-editor small { font-size: 12px; line-height: 1.5; }
+.k42-cap-row { display: flex; align-items: center; gap: 8px; }
+.k42-cap-row input { width: 14rem; max-width: 100%; min-height: 44px; font-size: 16px; font-variant-numeric: tabular-nums; }
+.k42-cap-row input[aria-invalid="true"] { border-color: var(--error); }
+@media (max-width: 600px) { .k42-cap-row input { flex: 1 1 auto; width: auto; } }
+/* The token cap opens in place, in the same row: a small field, Save, and quiet text buttons (owner, 16 November 2026). */
+.k42-cap-editor.is-inline { display:flex; flex-direction:row; align-items:center; flex-wrap:wrap; gap:8px; margin:0; padding:0; }
+.k42-cap-editor.is-inline input { width:120px; height:32px; padding:0 10px; font:inherit; font-size:14px; border:1px solid var(--hairline); border-radius:10px; background:var(--canvas); }
+.k42-cap-editor.is-inline input:focus { outline:none; border-color:var(--ink); }
+.k42-cap-editor.is-inline .primary { min-height:32px; height:32px; padding:0 14px; }
+.k42-cap-text { min-height:32px; height:32px; padding:0 8px; border:0; background:transparent; color:var(--text-muted); font-weight:600; }
+.k42-cap-text:hover { color:var(--ink); background:transparent; }
+.k42-cap-note { flex-basis:100%; font-size:12px; }
+.k42-job-part:has(> .k42-cap-editor) { flex:1 1 auto; min-width:0; }
+.k42-cap-editor.is-inline { flex-wrap:nowrap; white-space:nowrap; }
+.k42-cap-editor.is-inline .k42-cap-note { white-space:normal; }

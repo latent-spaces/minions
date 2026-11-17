@@ -1,0 +1,81 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { reusableConfiguration, renderReusableConfiguration } from '../src/mcp-configuration.mjs';
+import { ensureInstallation, readInstallation } from '../src/service/installation.mjs';
+import { registerWithClaudeCode } from '../src/client-setup.mjs';
+
+async function installation(t) {
+  const home = mkdtempSync(join(tmpdir(), 'minions-configuration-'));
+  t.after(() => rmSync(home, { recursive: true, force: true }));
+  await ensureInstallation({ home, site: 'http://127.0.0.1:8787' });
+  return home;
+}
+
+test('Claude and Codex registration share HTTP without exposing installation credentials', async t => {
+  const home = await installation(t), privateRecord = readInstallation(home);
+  const claude = reusableConfiguration({ client: 'claude', home });
+  const codex = reusableConfiguration({ client: 'codex', home });
+  // One minions entry per computer (owner decision, 14 November 2026).
+  assert.equal(claude.name, 'minions');
+  assert.equal(codex.name, claude.name);
+  assert.equal(claude.entry.url, codex.entry.url);
+  assert.equal(claude.entry.type, 'http');
+  assert.equal(claude.entry.headersHelper, codex.entry.http_headers_helper);
+  if (process.platform === 'win32') {
+    // Windows registration deliberately uses a JSON settings entry, not a shell command.
+    assert.equal(claude.command, null);
+    const instructions = renderReusableConfiguration(claude);
+    assert.match(instructions, /on Windows, use the JSON entry in the settings editor/);
+    assert.ok(instructions.includes(JSON.stringify(claude.generic, null, 2)));
+    assert.deepEqual(claude.generic.mcpServers[claude.name], claude.entry);
+  } else assert.match(claude.command, /add-json/);
+  assert.match(codex.toml, /http_headers_helper = /);
+  for (const config of [claude, codex, reusableConfiguration({ client: 'other', home })]) {
+    assert.equal(config.site, 'http://127.0.0.1:8787');
+    const printed = JSON.stringify(config) + renderReusableConfiguration(config);
+    assert(!printed.includes(privateRecord.token));
+    assert(!printed.includes('mcp-serve'));
+    assert(!Object.hasOwn(config.entry, 'args'));
+    assert(!Object.hasOwn(config.entry, 'env'));
+    assert.match(renderReusableConfiguration(config), /never stop or restart running agents/);
+  }
+});
+
+test('setup retires the pre-rename mlswarm entries and keeps the minions one', async () => {
+  const { RETIRED_NAME } = await import('../src/mcp-configuration.mjs');
+  const { withCodexEntry } = await import('../src/client-setup.mjs');
+  for (const name of ['mlswarm', 'mlswarm-0a1b2c3d']) assert.equal(RETIRED_NAME.test(name), true, name);
+  for (const name of ['minions', 'minions-0a1b2c3d', 'mlswarm-extra', 'other']) assert.equal(RETIRED_NAME.test(name), false, name);
+  const before = '[mcp_servers.mlswarm]\nurl = "http://127.0.0.1:1/mcp"\n\n[mcp_servers.mlswarm-0a1b2c3d]\nurl = "http://127.0.0.1:2/mcp"\n\n[mcp_servers.other]\nurl = "http://127.0.0.1:3/mcp"\n';
+  const after = withCodexEntry(before, '[mcp_servers.minions]\nurl = "http://127.0.0.1:8787/mcp"\n');
+  assert.doesNotMatch(after, /mlswarm/);
+  assert.match(after, /\[mcp_servers\.minions\]/);
+  assert.match(after, /\[mcp_servers\.other\]/);
+});
+
+test('Claude registration repairs stale helpers and only keeps a complete matching user entry', async t => {
+  const home = await installation(t), userHome = join(home, 'user');
+  mkdirSync(userHome);
+  const { entry } = reusableConfiguration({ client: 'claude', home });
+  for (const stale of [
+    { type: 'http', url: entry.url },
+    { ...entry, headersHelper: 'old-node old-helper.mjs' },
+    { ...entry, url: `${entry.url}-old` },
+  ]) {
+    writeFileSync(join(userHome, '.claude.json'), JSON.stringify({ mcpServers: { minions: stale } }));
+    const calls = [];
+    const run = args => { calls.push(args); return { status: 0, stdout: `URL: ${stale.url}`, stderr: '' }; };
+    assert.equal(registerWithClaudeCode({ home, userHome, run }).status, 'registered');
+    assert.deepEqual(calls.find(args => args[1] === 'remove'), ['mcp', 'remove', '--scope', 'user', 'minions']);
+    const added = calls.find(args => args[1] === 'add-json');
+    assert.deepEqual(JSON.parse(added.at(-1)), entry);
+  }
+  writeFileSync(join(userHome, '.claude.json'), JSON.stringify({ mcpServers: { minions: entry } }));
+  const calls = [];
+  const run = args => { calls.push(args); return { status: 0, stdout: 'localized output', stderr: '' }; };
+  assert.equal(registerWithClaudeCode({ home, userHome, run }).status, 'current');
+  assert.deepEqual(calls, [['mcp', 'get', 'minions']], 'a matching user entry needs no CLI mutation');
+});

@@ -1,0 +1,5 @@
+# Preserve generated PDF bytes and avoid treating their object tables as text.
+*.pdf binary
+
+# npm rewrites bin shebangs to LF; keep script checkouts consistent on Windows.
+*.mjs text eol=lf

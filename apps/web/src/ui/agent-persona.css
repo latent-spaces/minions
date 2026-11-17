@@ -1,0 +1,13 @@
+.agent-persona-summary { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.agent-persona-item { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.agent-persona-item > span:last-child { display: grid; min-width: 0; }
+.agent-persona-item strong { font-weight: 500; }
+.agent-persona-item small { color: var(--text-muted); font-size: 13px; }
+.agent-persona-custom { display: grid; gap: 8px; margin-top: 8px; }
+.agent-persona-custom button { justify-self: start; }
+.agent-persona-prompt-button { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: var(--radius-button); background: none; color: var(--text-muted); cursor: pointer; }
+.agent-persona-prompt-button:hover, .agent-persona-prompt-button[aria-expanded="true"] { background: var(--canvas-soft); color: var(--ink); }
+.agent-persona-prompt { grid-column: 1 / -1; margin: 0 10px 8px 48px; font-size: 13px; color: var(--text-muted); white-space: pre-wrap; }
+/* In the agent header, persona is a quiet inline control under the name, not a separate card (owner, 16 November 2026). */
+.agent-head-text .agent-persona.agent-panel { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.agent-head-text .agent-persona > h3 { margin: 0; font-size: 13px; font-weight: 600; color: var(--text-muted); }
