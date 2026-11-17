@@ -70,7 +70,7 @@ function typeRank(v: any): number {
   if (typeof v === 'number') return 2;
   if (v instanceof Timestamp) return 3;
   if (typeof v === 'string') return 4;
-  if (Buffer.isBuffer(v)) return 5;
+  if (v instanceof Uint8Array) return 5;
   if (v instanceof DocRef) return 6;
   if (Array.isArray(v)) return 8;
   return 9;
@@ -147,7 +147,7 @@ function resolveTransforms(value: any, previous: any, now: Timestamp): any {
   const kind = transformKind(value);
   if (kind === 'FieldValue.delete') throw new Error('FieldValue.delete() is only allowed in update or merge');
   if (kind) return applyTransform(kind, value, previous, now);
-  if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Timestamp) && !Buffer.isBuffer(value) && !(value instanceof DocRef) && !(value instanceof Date)) {
+  if (value && typeof value === 'object' && !Array.isArray(value) && !(value instanceof Timestamp) && !(value instanceof Uint8Array) && !(value instanceof DocRef) && !(value instanceof Date)) {
     const out: Data = {};
     for (const [k, v] of Object.entries(value)) if (v !== undefined) putField(out, k, resolveTransforms(v, previous && Object.hasOwn(previous, k) ? previous[k] : undefined, now));
     return out;
@@ -168,7 +168,7 @@ function mergeInto(target: Data, patch: Data, now: Timestamp) {
   }
 }
 function isPlainMap(v: any): boolean {
-  return !!v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Timestamp) && !Buffer.isBuffer(v) && !(v instanceof DocRef)
+  return !!v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Timestamp) && !(v instanceof Uint8Array) && !(v instanceof DocRef)
     && !(v instanceof Date) && !transformKind(v);
 }
 function splitFieldPath(p: any): string[] {
