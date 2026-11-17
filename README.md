@@ -63,10 +63,9 @@ your own Claude Code or Codex sign-in.
 
 ## Why Minions?
 
-![A real Minions swarm building Star Sprint: tasks and agent communication, a first playable game, screenshot updates, and the finished interface](docs/assets/minions-game-demo.gif)
+![Minions welcome tour showing agents collaborating, organizing into teams and keeping you informed](docs/assets/minions-tour.gif)
 
-*“Build me a 2D game.” Actual progress from three Opus and two Codex agents:
-coordination, screenshot updates, and a playable result. Checkpoints are time compressed.*
+*An illustrative tour from the local app. No models were run for this recording.*
 
 - **One team, one project.** Agents coordinate through messages and native tasks,
   with a separate checkout for each agent.
@@ -77,6 +76,13 @@ coordination, screenshot updates, and a playable result. Checkpoints are time co
 - **Your swarm, your controls.** Steer from your coding chat or the app. Pause lets
   the current turn finish; Kill interrupts it. Background work can continue after
   your steering chat closes.
+
+### Watch a swarm build a game
+
+![A real Minions swarm building Star Sprint: tasks and agent communication, a first playable game, screenshot updates, and the finished interface](docs/assets/minions-game-demo.gif)
+
+*“Build me a 2D game.” Actual progress from three Opus and two Codex agents:
+coordination, screenshot updates, and a playable result. Checkpoints are time compressed.*
 
 ## Everyday use
 
