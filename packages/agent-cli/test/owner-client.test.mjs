@@ -240,6 +240,15 @@ test('project reads any member can make go to their fixed project paths',async()
   assert.equal(f.requests.length,before);
  }finally{f.close();}
 });
+test('task detail keeps its own hard reply limit and other owner reads keep the default limit',async()=>{
+ const f=fixture();try{
+  await f.client.signIn();
+  f.respond(()=>({padding:'a'.repeat(256*1024)}));
+  await assert.rejects(f.client.operation('get_project_overview',{project_id:P}),/unexpected reply/);
+  f.respond(()=>({padding:'a'.repeat(512*1024)}));
+  await assert.rejects(f.client.operation('read_project_task',{project_id:P,task_id:'task_1'}),/unexpected reply/);
+ }finally{f.close();}
+});
 test('list tools return short rows by default and the server rows with detail: true',async()=>{
  const f=fixture();try{
   await f.client.signIn();
