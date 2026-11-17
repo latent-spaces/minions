@@ -6,11 +6,14 @@ import type { Agent } from '../firestore.js';
 // agent input. Other status groups are preserved. Preparation reads the progress shard before any writes;
 // group, authoritative agent and durable progress all commit atomically. Historical records need no migration.
 export type AgentGroup = { name: string; ownerProfileId: string; revokedAt: number | null; connectionEpoch: number;
-  focus: { text: string; updatedAt: number } | null; personaText: string };
-type GroupFields = Pick<Agent, 'name' | 'ownerProfileId' | 'revokedAt' | 'connectionEpoch' | 'focus' | 'persona'>;
+  focus: { text: string; updatedAt: number } | null; personaText: string;
+  // The newest message the agent sent, so every status reader can derive Talking (deriveAgentState) as the agents list does.
+  lastSendAt: number | null };
+type GroupFields = Pick<Agent, 'name' | 'ownerProfileId' | 'revokedAt' | 'connectionEpoch' | 'focus' | 'persona'> & { recentSends?: number[] };
 export const agentGroup = (a: GroupFields): AgentGroup => ({ name: a.name, ownerProfileId: a.ownerProfileId,
   revokedAt: a.revokedAt ?? null, connectionEpoch: a.connectionEpoch,
-  focus: a.focus ? { text: a.focus.text, updatedAt: a.focus.updatedAt } : null, personaText: a.persona?.text ?? '' });
+  focus: a.focus ? { text: a.focus.text, updatedAt: a.focus.updatedAt } : null, personaText: a.persona?.text ?? '',
+  lastSendAt: a.recentSends?.length ? Math.max(...a.recentSends) : null });
 // `status` is the agent's presence document: presence().doc(agentId), or the same path where no project scope is set.
 // `stop`: a revocation that also marks the run group stopping, and records the run's end when it ended the run in this
 // transaction, does all of it in this one status write plus its durable change and progress writes.
