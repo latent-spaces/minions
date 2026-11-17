@@ -28,9 +28,12 @@ test('private roots cover the service, credential and setup engine homes', () =>
   assert.deepEqual(roots({ stateDir, folder: '/work/project', platform: 'win32' }), []);
 });
 
-test('a checkout inside private state is refused before launch, including the default ~/.minions', () => {
-  assert.throws(() => roots({ stateDir: '/srv/minions/engine/connector-service/agents/abc', folder: '/srv/minions/engine/checkout' }), /checkout is inside Minions private state/);
-  assert.throws(() => roots({ stateDir: '/srv/state/agents/abc', folder: '/home/person/.minions/projects/repo' }), /checkout is inside Minions private state/);
+test('a checkout overlapping private state is refused before launch, including the default ~/.minions', () => {
+  // A checkout above private state: its write grant would cover the credentials.
+  assert.throws(() => roots({ stateDir: '/srv/state/agents/abc', folder: '/srv', envSource: { MINIONS_CREDENTIAL_HOME: '/srv/creds' } }), /overlap/);
+  assert.throws(() => roots({ stateDir: '/srv/state/agents/abc', folder: '/home/person' }), /overlap/);
+  assert.throws(() => roots({ stateDir: '/srv/minions/engine/connector-service/agents/abc', folder: '/srv/minions/engine/checkout' }), /checkout and Minions private state overlap/);
+  assert.throws(() => roots({ stateDir: '/srv/state/agents/abc', folder: '/home/person/.minions/projects/repo' }), /checkout and Minions private state overlap/);
 });
 
 test('a private path the rules cannot spell is refused rather than left readable', () => {
