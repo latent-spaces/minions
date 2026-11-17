@@ -25,7 +25,7 @@ const confirmations: Record<Action, string> = {
   add_time: '',
   set_tokens: '',
 };
-const notices: Record<Action, string> = { start: 'Project started.', pause: 'Pause requested. Waiting for agent feedback.', resume: 'Agents resumed.', close: 'Project closed. All its agents stopped.', reopen: 'Project reopened. Start work when you’re ready.', add_time: 'Time added.', set_tokens: '' };
+const notices: Record<Action, string> = { start: 'Project started.', pause: 'Pause requested. Waiting for agent feedback.', resume: 'Agents resumed.', close: 'Project closed.', reopen: 'Project reopened. Start work when you’re ready.', add_time: 'Time added.', set_tokens: '' };
 
 // Resume copy (owner, 11 November 2026): says where agents pick up and when the job ends.
 const resumeMessage = (workspace: Workspace) => workspace.endsAt && workspace.endsAt > Date.now()
