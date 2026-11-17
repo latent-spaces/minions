@@ -16,6 +16,23 @@ async function fixture(t) {
 const suite = (name, script, extra = {}) => ({ name, args: ['-e', script], cwd: process.cwd(), ...extra });
 const quiet = { onResult() {} };
 
+async function descendantStopped(pid) {
+  for (const deadline = Date.now() + 2000; Date.now() < deadline;) {
+    try { process.kill(pid, 0); }
+    catch (error) { if (error.code === 'ESRCH') return true; throw error; }
+    if (process.platform === 'linux') {
+      // A container's PID 1 may leave an exited orphan unreaped. A zombie
+      // cannot execute or hold the output descriptor, although kill(0) sees it.
+      try {
+        const stat = await readFile(`/proc/${pid}/stat`, 'utf8');
+        if (stat.slice(stat.lastIndexOf(')') + 2).startsWith('Z ')) return true;
+      } catch (error) { if (error.code !== 'ENOENT') throw error; }
+    }
+    await new Promise(resolve => setTimeout(resolve, 25));
+  }
+  return false;
+}
+
 test('a failed suite preserves output, skips its dependents and continues independent checks', async t => {
   const folder = await fixture(t);
   const code = await runSuites([
@@ -66,5 +83,5 @@ test('a suite cleans descendants that outlive its root and hold output open', { 
   const log = await readFile(join(folder, 'descendant.log'), 'utf8');
   const pid = Number(log.match(/descendant:(\d+)/)?.[1]);
   assert.ok(pid);
-  assert.throws(() => process.kill(pid, 0), { code: 'ESRCH' });
+  assert.equal(await descendantStopped(pid), true, 'the owned descendant must have exited');
 });
