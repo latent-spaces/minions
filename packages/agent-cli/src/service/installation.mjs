@@ -132,7 +132,11 @@ export async function statusInstalledService({ home = installationHome() } = {})
 // afterTurns: each turn in progress finishes and no new one starts, then the service stops by itself. Workers keep
 // their missions and continue when the service starts again, so an update stops no agent. Waiting gives up after
 // timeoutMs, leaving the service to stop once its turns end.
-export async function stopInstalledService({ home = installationHome(), afterTurns = false, timeoutMs = afterTurns ? 3600000 : 15000, pollMs = afterTurns ? 500 : 50 } = {}) {
+// A plain stop ends the turns in progress: a guard escalates its native group to SIGKILL after 8 s, and each mission's
+// leftover sweep allows 3 s, then 3 s more after SIGKILL, with process scans between. Wait past those bounds before
+// saying shutdown is unconfirmed; the service still finishes either way.
+const STOP_WAIT_MS = 30_000;
+export async function stopInstalledService({ home = installationHome(), afterTurns = false, timeoutMs = afterTurns ? 3600000 : STOP_WAIT_MS, pollMs = afterTurns ? 500 : 50 } = {}) {
   const before = await statusInstalledService({ home });
   if (!before.running) return { stopped: true, alreadyStopped: true };
   if (afterTurns && !before.finishesTurns) throw fail('The connector running now is older than --after-turns and cannot let turns finish first. Nothing was stopped. Update it this once with service-stop, which ends the turns in progress, ideally while no agent is mid-turn. Later updates can use --after-turns.');
