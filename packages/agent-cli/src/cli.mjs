@@ -36,11 +36,13 @@ Commands:
       caller (npm run setup registers them itself).
   mcp-config --client claude|codex|other [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
       Print HTTP registration for another client; changes no client settings.
-  register [--state-dir ABSOLUTE_PRIVATE_DIRECTORY]
+  register [--state-dir ABSOLUTE_PRIVATE_DIRECTORY] [--install-skill]
       Register this installation's MCP server as minions with Claude Code (through its
       claude command) and Codex (in its config.toml), replacing older mlswarm-…
       entries. Exit 0 when at least one is registered, 4 when neither is found, 2 when
       a registration failed.
+      --install-skill: also install the bundled Minions skill for each found client,
+      preserving customized skills. npm run setup uses this flag.
   tool --list [TOOL_NAME]
   tool TOOL_NAME ['JSON_ARGUMENTS']
       Call one of the running shared service's MCP tools, as your coding agent would,
@@ -108,7 +110,7 @@ export const specs = {
   'run-recover': {...runQuerySpec,generation:{type:'string'},'request-id':{type:'string'},action:{type:'string'},reason:{type:'string'},approve:{type:'boolean'},report:{type:'string'},attempts:{type:'string'},'error-code':{type:'string'}},
   'mcp-config': { site: { type: 'string' }, client: { type: 'string' }, 'state-dir': { type: 'string' } },
   setup: {...stateSpec,site:{type:'string'},'wait-seconds':{type:'string'},'no-client-hint':{type:'boolean'}},
-  register: {...stateSpec},
+  register: {...stateSpec,'install-skill':{type:'boolean'}},
   tool: {...stateSpec,list:{type:'boolean'}},
   'service-start': {...stateSpec,site:{type:'string'}}, 'service-status':stateSpec, 'service-stop':{...stateSpec,'after-turns':{type:'boolean'},'wait-minutes':{type:'string'}}, 'service-run':stateSpec,
   'project-overview': {...stateSpec,project:{type:'string'}},
@@ -151,11 +153,12 @@ export async function main(args, out = console.log, err = console.error) {
       let found = false, failed = false;
       for (const [client, register] of [['Claude Code', registerWithClaudeCode], ['Codex', registerWithCodex]]) {
         let outcome;
-        try { outcome = register({ home }); } catch (error) { failed = true; out(`${client} could not be registered: ${error.message}`); continue; }
+        try { outcome = register({ home, installBundledSkill: values['install-skill'] === true }); } catch (error) { failed = true; out(`${client} could not be registered: ${error.message}`); continue; }
         if (outcome.status === 'missing') { out(`${client} was not found, so it was not registered.`); continue; }
         found = true;
         out(outcome.status === 'current' ? `${client} already has Minions (${outcome.name}).`
           : `Registered Minions (${outcome.name}) with ${client}. A new ${client} session loads its tools.`);
+        if (outcome.note) out(`${client}: ${outcome.note}`);
       }
       return failed ? 2 : found ? 0 : 4;
     }

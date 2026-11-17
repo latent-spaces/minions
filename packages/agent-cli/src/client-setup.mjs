@@ -9,6 +9,7 @@ const parse = text => parseToml(text, { integersAsBigInt: 'asNeeded' });
 import { spawnSync } from 'node:child_process';
 import { reusableConfiguration, RETIRED_NAME } from './mcp-configuration.mjs';
 import { resolveWindowsCommand } from './windows-command.mjs';
+import { installationHome } from './service/installation.mjs';
 import { replaceFile, readPrivate, writePrivate, lstatExists } from './state.mjs';
 import { BUNDLED_SKILL, bundledGuideFiles, installedSkill, readInstalledGuideFile, skillTextHash } from './skill-bundle.mjs';
 
@@ -139,6 +140,12 @@ function installSkill(path, home) {
   return `kept your own Minions skill at ${path}`;
 }
 
+// The MCP entry is already saved. A separate skill write failure must not be reported as failed registration.
+function registeredSkillNote(path, home) {
+  try { return installSkill(path, home); }
+  catch { return `could not install the Minions skill at ${path}; MCP registration was kept. Check the skill folder and rerun setup.`; }
+}
+
 function connectClaude({ home, userHome }) {
   const config = reusableConfiguration({ client: 'claude', home });
   const registry = join(userHome, '.claude.json');
@@ -178,10 +185,11 @@ const codexFolder = (userHome, env) => isAbsolute(env.CODEX_HOME ?? '') ? env.CO
 
 // Writes the minions table into Codex's user config.toml when Codex is on this computer, replacing the retired
 // per-engine tables (owner decision, 14 November 2026). Returns missing, current or registered.
-export function registerWithCodex({ home, userHome = homedir(), env = process.env } = {}) {
+export function registerWithCodex({ home = installationHome(), userHome = homedir(), env = process.env, installBundledSkill = false } = {}) {
   const codexHome = codexFolder(userHome, env);
   if (!existsSync(codexHome)) return { status: 'missing', name: 'minions' };
-  return writeCodexEntry({ home, codexHome });
+  const result = writeCodexEntry({ home, codexHome });
+  return { ...result, ...(installBundledSkill ? { note: registeredSkillNote(join(userHome, '.agents', 'skills', 'minions', 'SKILL.md'), home) } : {}) };
 }
 
 // Connects every coding client found on this computer to the shared service: its registration, its
@@ -217,7 +225,7 @@ function claudeCommand(args, { env = process.env, platform = process.platform } 
 // a stale address or authentication helper is replaced. The retired per-engine entries are
 // removed, so the computer keeps one minions entry (owner decision, 14 November 2026). Returns missing, current or
 // registered.
-export function registerWithClaudeCode({ home, userHome = homedir(), run = claudeCommand } = {}) {
+export function registerWithClaudeCode({ home = installationHome(), userHome = homedir(), run = claudeCommand, installBundledSkill = false } = {}) {
   const config = reusableConfiguration({ client: 'claude', home });
   const existing = run(['mcp', 'get', config.name]);
   if (existing === null) return { status: 'missing', name: config.name };
@@ -225,10 +233,12 @@ export function registerWithClaudeCode({ home, userHome = homedir(), run = claud
   for (const name of Object.keys(servers).filter(name => RETIRED_NAME.test(name)))
     run(['mcp', 'remove', '--scope', 'user', name]);
   allowTools(userHome, config.name);
-  if (existing.status === 0 && isDeepStrictEqual(servers[config.name], config.entry)) return { status: 'current', name: config.name };
+  const result = status => ({ status, name: config.name,
+    ...(installBundledSkill ? { note: registeredSkillNote(join(userHome, '.claude', 'skills', 'minions', 'SKILL.md'), home) } : {}) });
+  if (existing.status === 0 && isDeepStrictEqual(servers[config.name], config.entry)) return result('current');
   if (existing.status === 0) run(['mcp', 'remove', '--scope', 'user', config.name]);
   const added = run(['mcp', 'add-json', '--scope', 'user', config.name, JSON.stringify(config.entry)]);
   if (added === null) return { status: 'missing', name: config.name };
   if (added.status !== 0) throw new Error(`claude mcp add-json failed: ${(added.stderr || added.stdout).trim().slice(0, 500) || `exit ${added.status}`}`);
-  return { status: 'registered', name: config.name };
+  return result('registered');
 }

@@ -34,7 +34,8 @@ The command:
 4. initializes the database on the first run, and keeps it on later runs;
 5. starts the engine and opens the local app in your browser;
 6. runs the connector's `setup` for this computer, then registers its shared MCP
-   server with the Claude Code and Codex clients it finds.
+   server and installs the bundled Minions skill for the Claude Code and Codex
+   clients it finds, preserving customized skills.
    It also links the `minions` command when eligible (below).
 
 Install and build output is shown only when a step fails. The engine's routine
@@ -63,12 +64,13 @@ the engine keeps running; run `npm run setup` again.
 The final registration command writes one shared `minions` HTTP entry for each
 client it finds. It registers Claude Code through `claude mcp add-json` when its
 command is available and adds Minions to Claude's tool allowlist. It updates
-Codex's `config.toml` when its home exists (`CODEX_HOME` when set, otherwise
+Codex's `config.toml` when its home exists (`CODEX_HOME` when absolute, otherwise
 `~/.codex`), preserving unrelated settings. Older `mlswarm` MCP entries are retired.
 It runs clients without a shell; on Windows an npm `.cmd` shim runs its JavaScript
 entry with Node.
 
-Pass `--no-register` (`npm run setup -- --no-register`) to skip client registration;
+Pass `--no-register` (`npm run setup -- --no-register`) to skip client registration
+and skill installation;
 an isolated engine selected with `MINIONS_ENGINE_HOME` also skips it. Isolated
 engines and Git worktrees skip command linking. See the
 [setup tool guide](../tools/setup/README.md) for details. A failed registration is a
@@ -82,8 +84,10 @@ background until `minions stop`, the client registration result, and the `tool`
 fallback or manual `mcp-config` command. On an everyday main checkout, setup links
 the `minions` command with `npm link --ignore-scripts`; a failed link prints the
 manual command. The engine wrapper selects a separate connector installation,
-so connector setup skips its usual skill installation and GitHub sign-in steps;
-the Minions skill and GitHub sign-in are not changed. The summary reminds you to
+so connector setup skips its usual client and GitHub steps. The wrapper installs
+the skill through `register --install-skill`; its customization checks and skill
+records use this engine's selected service home. GitHub sign-in is not changed.
+The summary reminds you to
 sign in with `gh auth login` for repository work. Setup starts no model.
 
 The owner's name and email come from `--owner-name` and `--owner-email`

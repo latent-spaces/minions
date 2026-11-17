@@ -3,10 +3,11 @@
 `npm run setup` takes a fresh clone to a running standalone engine with the
 connector signed in and its shared service started, as [the engine instructions](../../docs/self-hosted-engine.md)
 describe: dependencies, builds, database initialization, engine start, opening
-the local app, the connector's `setup` and the connector's `register`, which
+the local app, the connector's `setup` and the connector's `register --install-skill`, which
 registers one `minions` entry with Claude Code and Codex where they are installed
-(skipped with `--no-register` or for a test engine in its own `MINIONS_ENGINE_HOME`;
-a failure is a warning). The engine runs detached in the
+and installs their bundled Minions skill, preserving customized files. Both are
+skipped with `--no-register` or for a test engine in its own `MINIONS_ENGINE_HOME`;
+a failure is a warning. The engine runs detached in the
 background, with its output in `engine.log`, so it keeps running after the
 command, the terminal or the coding session that ran it ends; `minions stop`
 stops it. The port it ran on is saved in

@@ -2,9 +2,10 @@
 // child this script starts is Node itself, without a shell, so checkout paths with spaces and Windows work alike; npm
 // runs the package build scripts as any npm run does. Nothing here runs a model.
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, lstatSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, realpathSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { npmCli } from './npm-cli.mjs';
 import { connectorCommand, initializationState, interruptedByUser, occupiedMessage, ownerIdentity, requireNode24, settingsText } from './engine-plan.mjs';
@@ -36,11 +37,11 @@ async function connectorSetup(url, env) {
 /**
  * Registers the MCP server as minions with Claude Code and Codex, where they are on this computer, replacing older
  * mlswarm-… entries (owner decisions, 13 and 14 November 2026). Resolves to the register command's lines and whether
- * anything was registered; a failure is reported and setup carries on.
+ * anything was registered. Also installs the bundled skill through that registration; a failure is reported and setup carries on.
  */
 function registerClients(env) {
   return new Promise(accept => {
-    const child = spawn(process.execPath, [connectorCli, 'register'],
+    const child = spawn(process.execPath, [connectorCli, 'register', '--install-skill'],
       { cwd: repository, env, stdio: ['ignore', 'pipe', 'pipe'], shell: false, windowsHide: true });
     let output = '';
     for (const stream of [child.stdout, child.stderr]) stream.on('data', chunk => { output += chunk; });
@@ -86,11 +87,16 @@ For agents that work on repositories, sign in to GitHub with gh auth login.`);
  * MINIONS_ENGINE_HOME never replaces the computer's minions entry (owner decision, 14 November 2026).
  */
 async function finish(url, ready, files, connectorEnv, values) {
-  const registration = !ready ? { registered: false, lines: 'No coding agent was registered: the connector is not set up yet.' }
-    : values['no-register'] ? { registered: false, lines: 'No coding agent was registered (--no-register).' }
-    : process.env.MINIONS_ENGINE_HOME ? { registered: false, lines: 'This is a test engine (MINIONS_ENGINE_HOME), so no coding agent was registered.' }
-    : await registerClients(connectorEnv);
+  const registration = await registerSetupClients({ ready, connectorEnv, values });
   summary(url, ready, files, registration, await linkCommand());
+}
+
+/** Keep isolated engines and --no-register out of the client/skill registration path. */
+export async function registerSetupClients({ ready, connectorEnv, values = {}, env = process.env }) {
+  return !ready ? { registered: false, lines: 'No coding agent was registered: the connector is not set up yet.' }
+    : values['no-register'] ? { registered: false, lines: 'No coding agent was registered (--no-register).' }
+    : env.MINIONS_ENGINE_HOME ? { registered: false, lines: 'This is a test engine (MINIONS_ENGINE_HOME), so no coding agent was registered.' }
+    : await registerClients(connectorEnv);
 }
 
 async function main() {
@@ -162,4 +168,13 @@ async function main() {
   if (result !== 'interrupted') await finish(url, result === 'ready', files, connectorEnv, values);
 }
 
-main().catch(error => { console.error(error.message); process.exitCode = 1; });
+/** Physical path equivalence keeps linked checkouts and Windows case/short-name aliases working on Node 24.0+. */
+export function isSetupEntry(script, moduleFile = fileURLToPath(import.meta.url), { platform = process.platform,
+  realpath = target => { try { return realpathSync.native(target); } catch { return realpathSync(target); } } } = {}) {
+  if (!script) return false;
+  const physical = target => { const value = realpath(target); return platform === 'win32' ? value.toLowerCase() : value; };
+  try { return physical(script) === physical(moduleFile); }
+  catch (error) { if (error.code === 'ENOENT') return false; throw error; }
+}
+
+if (isSetupEntry(process.argv[1])) main().catch(error => { console.error(error.message); process.exitCode = 1; });

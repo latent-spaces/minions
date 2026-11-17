@@ -95,12 +95,18 @@ References: [Claude MCP authentication](https://code.claude.com/docs/en/mcp#use-
 
 For a separate installation (`--state-dir`, `MINIONS_SERVICE_HOME` or an enrolled origin)
 setup changes no client and prints the `mcp-config` command instead; `--no-client-hint`
-leaves that to its caller. `npm run setup` passes it and then runs `register`, which
+leaves that to its caller. `npm run setup` passes it and then runs `register --install-skill`, which
 registers the installation as `minions` through Claude Code's own `claude mcp add-json`
 (spawned without a shell; an npm `.cmd` shim on Windows runs its JavaScript entry point with
 Node) unless the complete user entry already matches, repairs stale addresses or
 authentication helpers, removes the retired `mlswarm` and `mlswarm-<8 hex>` entries, and writes the same entry into Codex's
-`config.toml` when Codex is installed. It exits 4 when neither client is found.
+`config.toml` when Codex is installed. The flag also installs or repairs each found
+client's bundled Minions skill, preserving customized files and recording the router
+under this installation's service home. Skill write failures are reported separately
+and keep the successful MCP registration. Plain `register` changes only registration.
+The root wrapper skips registration and skill installation with `--no-register` or
+an isolated `MINIONS_ENGINE_HOME`. Neither registration mode signs in to GitHub or
+starts a model. It exits 4 when neither client is found.
 
 A client loads MCP tools only when its session starts. Until then, `tool --list [TOOL_NAME]`
 lists the running service's tools (one tool's full schema with a name), and
