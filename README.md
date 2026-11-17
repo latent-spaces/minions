@@ -19,7 +19,7 @@ Open your coding chat on the computer where you want to run Minions and paste:
 
 ```text
 Install and start Minions: https://github.com/latent-spaces/minions
-Use the minions skill to help me start my first swarm.
+Use the minions skill to build me a 2D game with a small swarm.
 ```
 
 You need **Node.js 24+**, **Git** and an installed, signed-in **Claude Code or Codex**
@@ -52,7 +52,7 @@ npm run setup -- --owner-name "Your Name" --owner-email you@example.com
 Restart a coding chat that was open during setup to load the tools. Then ask:
 
 ```text
-Use the minions skill to help me start my first swarm.
+Use the minions skill to build me a 2D game with a small swarm.
 ```
 
 </details>
