@@ -200,7 +200,7 @@ The connector doesn't update itself and checks no registry. To update without st
 agents, run `service-stop --after-turns` first, so each turn in progress finishes on the
 code it started with. Then pull the checkout without overwriting uncommitted work, run
 `npm ci --ignore-scripts` and the two builds above, then `service-start` and `setup` again
-(`minions update` does all of this). Without the rebuild the packaged runtime fails its integrity check. Agents continue in their missions; each keeps the
+(`minions update` also rebuilds). Without the rebuild the packaged runtime fails its integrity check. Agents continue in their missions; each keeps the
 instructions and guide snapshot it started with, so its native session resumes, and
 new missions get the updated guide. Pulling while the old service still starts turns
 would mix code versions, which is why the stop comes first. Credentials, connections,
