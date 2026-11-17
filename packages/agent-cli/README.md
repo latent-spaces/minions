@@ -20,7 +20,10 @@ Windows clients must be native `.exe` files or standard npm `.cmd` shims pointin
 a JavaScript entry point, run with the service's Node without a command shell.
 Linux mission cleanup also requires readable environments for same-user processes in
 `/proc`. If the host denies that inspection, cleanup fails explicitly without signaling
-unverified processes or reporting success.
+unverified processes or reporting success. A process that is not dumpable, such as
+`ssh-agent` or a setuid helper, has a root-owned `/proc` entry whose environment can't be
+read, so cleanup can't see its mission marker and leaves it running. Stop such a process
+yourself if a mission started it.
 
 ## Setup
 
