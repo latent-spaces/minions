@@ -4,10 +4,15 @@ import { PROJECT_IMAGE_TOOL, uploadProjectImage } from '../src/project-image.mjs
 // Single-writer local intent journal, owned by the foreground runner (OPE-20).
 // The MCP child accesses it through an authenticated loopback bridge, never by writing the file.
 import { createServer } from 'node:http';
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { replaceFile } from '../src/state.mjs';
 import { existsSync, readFileSync, statSync, writeFileSync, openSync, fsyncSync, closeSync, rmSync } from 'node:fs';
 import { dirname } from 'node:path';
+// Constant-time, as on the service's own endpoints: a local process must not learn the secret byte by byte.
+export const bearerMatches = (header, secret) => {
+  const given = Buffer.from(typeof header === 'string' ? header : ''), expected = Buffer.from(`Bearer ${secret}`);
+  return given.length === expected.length && timingSafeEqual(given, expected);
+};
 
 const JOURNAL_BYTES = 2 * 1024 * 1024;
 const JOURNAL_SLOTS = 128;
@@ -301,7 +306,7 @@ export class ProjectOperations {
   }
   async openListener() {
     this.server = createServer(async (req, res) => {
-      if (this.closed || req.url !== '/mcp' || req.headers.authorization !== `Bearer ${this.secret}`) { res.writeHead(401); res.end(); return; }
+      if (this.closed || req.url !== '/mcp' || !bearerMatches(req.headers.authorization, this.secret)) { res.writeHead(401); res.end(); return; }
       if (req.method !== 'POST') { res.writeHead(405, { Allow: 'POST' }); res.end(); return; }
       try {
         let text = '', bytes = 0; req.setEncoding('utf8');
