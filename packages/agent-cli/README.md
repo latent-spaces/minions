@@ -647,6 +647,10 @@ Git metadata, temp exclusions and enabled/disabled loopback network access.
 Native macOS acceptance does not establish Linux or Windows support. Codex refuses
 unsupported sandbox policies rather than executing the command without them;
 Windows's unelevated fallback cannot enforce every split read/write policy.
+**Compatibility change:** Windows Codex workers that previously started may now
+refuse to start when their native sandbox cannot enforce these private-read
+restrictions. There is no unrestricted fallback. Native Windows verification is
+still required before claiming these workers are supported.
 Approved escalations and local services have separate native controls; the named
 profile governs sandboxed command execution, not every possible local process.
 

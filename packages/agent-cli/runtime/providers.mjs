@@ -153,6 +153,7 @@ export function workerCodexProfile(config, privatePaths, platform = process.plat
     if (privatePaths.some(denied => inside(denied, root) || inside(denied, physical))) throw new Error('A configured Codex writable root overlaps Minions private state.');
   }
   const filesystem = Object.fromEntries(privatePaths.map(root => [root, 'deny']));
+  // Legacy exclusions remove the temp write grant; broad filesystem reads remain allowed.
   if (legacy.exclude_tmpdir_env_var) filesystem[':tmpdir'] = 'read';
   if (legacy.exclude_slash_tmp) filesystem[':slash_tmp'] = 'read';
   return { extends: ':workspace', filesystem, network: { enabled: legacy.network_access ?? false },
@@ -455,6 +456,7 @@ class CodexStream extends ProviderStream {
   attach(process_) {
     this.process = process_;
     this.attachedAt = Date.now();
+    // Named thread permissions are experimental in Codex 0.160; preflight pins that minimum version.
     this.send({ id: 1, method: 'initialize', params: { clientInfo: this.rpc.clientInfo, capabilities: { experimentalApi: true } } });
     this.setupTimer = setTimeout(() => { this.fail('Codex startup timed out before starting project work.', 'native_startup_timeout'); }, 45_000);
   }
