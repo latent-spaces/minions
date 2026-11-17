@@ -8,6 +8,8 @@ import { ensureHome, physicalPath, pathInside, writePrivate, assertStateOutsideW
 import { createLocalWorkerAdapter } from '../native-worker-adapter.mjs';
 import { RuntimeError, sameTarget, validateTarget } from './contracts.mjs';
 import { snapshotWorkerInstructions } from '../worker-guidance.mjs';
+import { missionMark } from '../leftover-processes.mjs';
+import { prepareMissionProcessBaseline } from '../linux-process-baseline.mjs';
 import { canonicalGithubRepo } from '../github-repository.mjs';
 
 const overlap = (a, b) => pathInside(a, b) || pathInside(b, a);
@@ -59,7 +61,7 @@ export function createNativeAdapterFactory({ bindings, registryRoot, executables
     try {
       signal?.throwIfAborted();
       const stateDir = join(binding.stateDir, `mission-${mission.missionId}-${mission.generation}`);
-      ensureHome(stateDir);
+      prepareMissionProcessBaseline(stateDir, missionMark(mission));
       snapshotWorkerInstructions(binding.stateDir, stateDir);
       issued = await binding.createBridge(mission, { signal, stateDir });
       signal?.throwIfAborted();

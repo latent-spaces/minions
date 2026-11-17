@@ -11,6 +11,7 @@ import { digest, ensureHome, lstatExists, readPrivate, writePrivate } from './st
 import { verifyBundle } from './system.mjs';
 import { prepareSupervisedModel } from './model-guard.mjs';
 import { MISSION_MARK, missionMark, stopMarkedProcesses } from './leftover-processes.mjs';
+import { readLinuxProcessBaseline } from './linux-process-baseline.mjs';
 import { readWorkerGuidance } from './worker-guidance.mjs';
 import { probeWindowsSupervision, stopWindowsMission } from './windows-supervision.mjs';
 import { MAX_REMAINING_MS } from './run-length.mjs';
@@ -200,7 +201,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
   // Every process this adapter's turns start inherits it; see leftover-processes.mjs.
   const mark = missionMark(journalIdentity);
   return {
-    async stopLeftovers() { const result = process.platform === 'win32' ? await stopWindowsMission(mark, { env: provider.environment() }) : await stopMarkedProcesses(mark); await mergePolicy?.cleanup(); return result; },
+    async stopLeftovers() { const result = process.platform === 'win32' ? await stopWindowsMission(mark, { env: provider.environment() }) : await stopMarkedProcesses(mark, { ...(process.platform === 'linux' ? { baseline: readLinuxProcessBaseline(stateDir, mark) } : {}) }); await mergePolicy?.cleanup(); return result; },
     async run({ turnId = randomUUID(), prompt, promptSources, steeringMessages, signal, onActivity, onStatus, onMetadata, onPermission, onModelStarting, onGuardStarted, onGuardClosed, onModelStarted, onPromptSubmitted, onTurnStarted, recovering = false, pauseUpdate = false, updateNudge = false, onlyIfUpdateDue = false }) {
       const basePrompt = prompt;
       let publishedUpdate = false;
