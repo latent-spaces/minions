@@ -19,8 +19,8 @@ the connector CLI (`packages/agent-cli/src/cli.mjs`), each package's own build
 script and the npm resolution in `tools/setup/npm-cli.mjs`; it adds no second
 implementation of any of them.
 
-Setup includes development dependencies even with `NODE_ENV=production` or npm's
-`omit=dev`, because it builds from source. It checks the installed dependency tree
+Setup includes development dependencies even with npm's `omit=dev` setting,
+because it builds from source. It checks the installed dependency tree
 before reusing an install; missing packages trigger a fresh `npm ci`.
 
 Every child the script starts is Node itself (npm's JS entry, the engine, the
