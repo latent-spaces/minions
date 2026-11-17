@@ -32,7 +32,7 @@ test('a burst of starts launches one at a time, shares one provider probe, and k
     addAgent: async ({ agent_name }, _client, options) => ({ record: { agentId: `agent-${agent_name}`, webStartId: options.webStartId, ownerProfileId: 'owner', agentName: agent_name, service: `${site}/p/${projectId}`, folder: join(root, agent_name) } }),
     prepareCheckout: async record => {
       mostAtOnce = Math.max(mostAtOnce, ++preparing); await pause(20); preparing--;
-      if (record.agentName === 'cid') throw Object.assign(new Error('Command failed: git rev-parse (timed out) token ghp_secretsecret'), { code: 'ETIMEDOUT' });
+      if (record.agentName === 'cid') throw Object.assign(new Error(`Command failed: git rev-parse (timed out) token ghp_secretsecret; fatal: unable to access 'https://x:hunter2pass@github.com/o/r'; ${'f'.repeat(64)} sk-ant-abcdefghijklmnop1234`), { code: 'ETIMEDOUT' });
     } });
   await starts.poll();
   for (const until = Date.now() + 5000; accepted.length + receipts.filter(r => r.state === 'failed').length < 4 && Date.now() < until;) await pause(10);
@@ -46,6 +46,6 @@ test('a burst of starts launches one at a time, shares one provider probe, and k
   assert.equal(intent.failure.step, 'preparing the checkout');
   assert.equal(intent.failure.code, 'ETIMEDOUT');
   assert.match(intent.failure.message, /timed out/);
-  assert.doesNotMatch(JSON.stringify(intent) + logs.join('\n'), /ghp_secret/);
+  assert.doesNotMatch(JSON.stringify(intent) + logs.join('\n'), /ghp_secret|hunter2pass|f{64}|sk-ant-abc/);
   assert.ok(logs.some(line => line.includes(failed.id) && line.includes('preparing the checkout') && line.includes('ETIMEDOUT')), logs.join('\n'));
 });

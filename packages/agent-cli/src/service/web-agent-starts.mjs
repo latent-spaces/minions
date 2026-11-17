@@ -29,7 +29,8 @@ const fingerprint = r => createHash('sha256').update(JSON.stringify([r.id,r.proj
 const failure = code => Object.assign(new Error(code),{code});
 // What a failed start keeps for diagnosis, in its saved intent and service.log: the step, a code and a short message,
 // never a credential. Error messages here are our own or a command's, which can name a URL but not a token.
-const safeText = value => String(value ?? '').replace(/\b(?:gh[pousr]_|github_pat_)[A-Za-z0-9_]+/g,'[redacted]')
+const safeText = value => String(value ?? '').replace(/\/\/[^/\s:@]+:[^/\s@]+@/g,'//[redacted]@')
+  .replace(/\b(?:gh[pousr]_|github_pat_)[A-Za-z0-9_]+/g,'[redacted]').replace(/\b[a-f0-9]{64}\b/g,'[redacted]').replace(/\bsk-[A-Za-z0-9_-]{16,}/g,'[redacted]')
   .replace(/\b(Bearer|token)\s+\S+/gi,'$1 [redacted]').replace(/[\x00-\x1f\x7f-\x9f]+/g,' ').trim().slice(0,300);
 export const startFailure = (step, error, at) => ({ step,
   code: typeof error?.code === 'string' && /^[A-Za-z][\w-]{0,63}$/.test(error.code) ? error.code : error?.name === 'TimeoutError' ? 'timeout' : 'error',
