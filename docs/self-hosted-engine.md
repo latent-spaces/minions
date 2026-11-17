@@ -131,14 +131,16 @@ loopback-only listener, the `Host` and `Origin` checks on owner sessions and the
 signed stop request keep other computers and other websites out: a web page in
 your browser cannot get an owner session or stop the engine. They do not stop a
 program running as your own account. Such a program can send those same headers,
-read the private owner file and database, and act as the owner. The same holds for
+read the private owner file (`owner.json`) and database (`engine.sqlite`), and act as the owner. The same holds for
 code in a checkout you run setup in, and for any account that can read your Minions
 home. Do not run setup in a checkout you do not trust, and do not share the account.
 
-The controls on agent work, such as per-agent permissions, Pause and the connector's
-mission and checkout checks, keep a team's workflow orderly and limit what an
-ordinary session does by mistake. They are not a sandbox against a hostile model or
-program running under your account.
+Background agents' commands run in their coding client's sandbox, which keeps their
+writes to their checkout; how far it also limits reads depends on the client. That
+sandbox can still reach this engine over loopback, so it does not stop a hostile model
+from asking for an owner session. Treat per-agent permissions, Pause and the
+connector's mission and checkout checks as workflow controls, not as protection from
+a hostile model or program running under your account.
 
 ## Stopping and recovery
 
