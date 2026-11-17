@@ -56,7 +56,7 @@ export function NewProjectDialog({ open, onClose, created = null, onWaiting, onO
       <h2 id="k42-first-step-title">Now paste it in your chat</h2>
       <ol className="k42-first-checklist">
         <li className="is-done"><Check size={14} aria-hidden="true" />Prompt copied</li>
-        <li className="is-now"><Hourglass size={14} aria-hidden="true" />Paste it in a <strong>new</strong> Claude Code or Codex chat</li>
+        <li className="is-now"><Hourglass size={14} aria-hidden="true" /><span>Paste it in a <strong>new</strong> Claude Code or Codex chat</span></li>
         <li><Hourglass size={14} aria-hidden="true" />Say yes when it asks to create the project</li>
       </ol>
       {watching ? <p className="k42-first-wait" role="status"><span className="k42-first-dots" aria-hidden="true"><i /><i /><i /></span>Waiting for your project…</p>
