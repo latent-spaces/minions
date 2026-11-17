@@ -88,9 +88,10 @@ Discovery is project-specific: never reuse another project's catalog or identity
 `list_tasks` returns short rows (ID, attributed title, state and assigned agent),
 without descriptions or links; `detail: true` adds priority and revision. Set `limit`
 from 1 to 100 (default 20). Pass `nextCursor` as `cursor` with the same state/assignment
-filters and `search`; null means the end of that traversal. `search` matches literal
-title text anywhere, ignoring case and surrounding search whitespace (up to 300
-characters). Each request scans up to 200 filtered candidates: an empty page with
+filters and `search`; null means the end of that traversal. `search` accepts up to 300
+characters and ignores case and accents. Every search word must match, in any order,
+as title text or, for words of four or more letters, a title word or its start one typo
+away. Each request scans up to 200 filtered candidates: an empty page with
 `nextCursor` is not the end; continue with that cursor. Pages are live, so restart the list
 to discover changes on earlier pages. Use `get_task` for requirements and context.
 
