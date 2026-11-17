@@ -173,7 +173,7 @@ so make changes through the engine where you can.
 
 Stale-lock recovery uses a private `.lock.recovery` guard so concurrent starts
 cannot both replace the stale lock. A crash during recovery can leave that guard
-behind; it is never automatically removed. Wait and retry first, then inspect
+behind; `minions start` does not automatically remove it. Wait and retry first, then inspect
 its recorded PID and confirm no engine is starting or recovering this database
 before removing only the guard named in the error.
 

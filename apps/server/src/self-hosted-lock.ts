@@ -97,7 +97,13 @@ export function lockSelfHostedStore(file: string, gone: (pid: number) => boolean
         && (gone(owner.pid) || (owner.createdAt !== null && restartedSince(owner.createdAt, boot())));
       if (!stale) throw new Error(lockedMessage(lock));
       if (!unchanged(lock, owner)) throw new Error(`The standalone lock changed during recovery and was preserved: ${lock}`);
-      unlinkWhenFree(lock); create();
+      unlinkWhenFree(lock);
+      try { create(); }
+      catch (error) {
+        // A normal starter can win the now-empty path without needing recovery.
+        if ((error as NodeJS.ErrnoException).code === 'EEXIST') throw new Error(lockedMessage(lock));
+        throw error;
+      }
     });
   }
   const stat = lstatSync(lock);
