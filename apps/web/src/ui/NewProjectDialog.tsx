@@ -35,6 +35,7 @@ export function NewProjectDialog({ open, onClose, created = null, onWaiting, onO
   const watching = onOpenProject !== undefined;
   const close = () => { setWaiting(false); setCopyError(''); onClose(); };
   const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => { if (copyError) dialog.current?.querySelector('[role="alert"]')?.scrollIntoView({ block: 'nearest' }); }, [copyError]);
   useEffect(() => { const d = dialog.current; if (!d) return; if (open && !d.open) d.showModal(); if (!open && d.open) d.close(); }, [open]);
   const copy = async () => {
     setCopyError('');
