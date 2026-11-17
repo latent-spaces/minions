@@ -3,8 +3,9 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { installDependencies } from '../dependencies.mjs';
+import { childEnvironment } from '../engine-plan.mjs';
 import { npmCli } from '../npm-cli.mjs';
 
 // Local file dependencies keep this real npm check offline and independent of the workspace install.
@@ -17,8 +18,8 @@ async function fixture(check) {
     writeFileSync(join(cwd, 'package.json'), JSON.stringify({ name: 'setup-fixture', version: '1.0.0',
       scripts: { prepare: 'node check.cjs' }, devDependencies: { 'setup-build-tool': 'file:tool' } }));
     writeFileSync(join(cwd, 'check.cjs'), "require('setup-build-tool'); require('node:fs').writeFileSync('built', 'ok');");
-    const env = { ...process.env, NODE_ENV: 'production', npm_config_omit: 'dev', npm_config_offline: 'true',
-      npm_config_cache: join(cwd, 'cache'), npm_config_ignore_scripts: 'false' };
+    const env = childEnvironment({ ...process.env, NODE_ENV: 'production', npm_config_omit: 'dev', npm_config_offline: 'true',
+      npm_config_cache: join(cwd, 'cache'), npm_config_ignore_scripts: 'false' }, { nodeDirectory: dirname(process.execPath) });
     const npm = npmCli();
     const command = args => {
       const result = spawnSync(process.execPath, [npm, ...args, '--no-audit', '--no-fund'], { cwd, env, encoding: 'utf8', timeout: 30_000 });
@@ -29,7 +30,7 @@ async function fixture(check) {
   } finally { rmSync(cwd, { recursive: true, force: true }); }
 }
 
-test('source setup includes build dependencies despite production and omit=dev settings, then reuses a complete install', () => fixture(async options => {
+test('source setup includes build dependencies despite npm omit=dev, then reuses a complete install', () => fixture(async options => {
   const messages = [];
   const install = () => installDependencies({ ...options, info: message => messages.push(message) });
   await install();
