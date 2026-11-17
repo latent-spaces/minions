@@ -49,10 +49,10 @@ function lockOwner(lock: string): { pid: number; createdAt: number | null } | nu
   } catch { return null; }
 }
 
-/** The refusal names the lock file, so a lock no engine holds (one minions stop cannot find) can be removed by hand. */
+/** An unreachable listener does not prove the lock's owner has finished startup or shutdown. */
 export function lockedMessage(lock: string): string {
-  return `The standalone database is locked by a running engine. Stop it first (minions stop). If minions stop finds no engine, `
-    + `the lock is left over from an earlier run and is safe to delete: ${lock}`;
+  return `The standalone database has an existing lock. Stop its engine first (minions stop). A starting or stopping engine may not answer; wait and retry. `
+    + `Remove this lock only after inspecting its recorded PID and confirming in the system process list that no engine process is using this database: ${lock}`;
 }
 
 export function lockSelfHostedStore(file: string, gone: (pid: number) => boolean = processGone, boot: () => number = bootTime) {
