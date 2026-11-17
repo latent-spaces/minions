@@ -104,7 +104,7 @@ export function registerTaskTools(server: McpServer, actor: () => ProgressActor,
 
   server.registerTool('get_task', {
     annotations: { readOnlyHint: true },
-    description: 'Read one task with a page of its comments and activity, its parent chain (ancestors, top-level first) and its direct subtasks. Read it before changing it and pass its revision as expected_revision.',
+    description: 'Read one task with a page of its comments and activity, its parent chain (ancestors, top-level first) and up to 100 direct subtasks. Use list_tasks with parent_task_id and its cursors for every child. Read it before changing it and pass its revision as expected_revision.',
     inputSchema: { task_id: TASK_ID, comment_cursor: z.string().max(1000).optional(), activity_cursor: z.string().max(1000).optional(), activity_id: TASK_ID.optional().describe('Read one saved history version; ordinary activity pages contain compact summaries.'),
       limit: z.number().int().min(1).max(100).optional().describe('Comments and activity entries per page, 1–100 (default 50). The task, ancestors and subtask summaries are separate.'),
       activity_order: z.enum(['asc', 'desc']).optional().describe('Activity order: asc is oldest first (default); desc is newest first. Keep the same order when paging. Comment pages always select the newest comments first.') },

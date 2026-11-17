@@ -240,6 +240,24 @@ test('project reads any member can make go to their fixed project paths',async()
   assert.equal(f.requests.length,before);
  }finally{f.close();}
 });
+test('owner task lists page direct children and retain compact hierarchy metadata',async()=>{
+ const f=fixture();try{
+  await f.client.signIn();
+  const child={id:'child_1',title:'First child',status:'backlog',assignedAgentId:null,parentId:'parent_1',proposed:true,description:'Full text'};
+  f.respond(url=>new URL(url).searchParams.has('cursor')
+   ? {tasks:[{...child,id:'child_2',proposed:undefined}],nextCursor:null}
+   : {tasks:[child],nextCursor:'child_1'});
+  const first=await f.client.operation('list_project_tasks',{project_id:P,parent_task_id:'parent_1',limit:1});
+  assert.equal(f.requests.at(-1).url,`${site}/api/owner/projects/${P}/tasks?limit=1&parentId=parent_1`);
+  assert.deepEqual(first.tasks,[{id:'child_1',title:child.title,status:'backlog',assignedAgentId:null,parentId:'parent_1',proposed:true}]);
+  const second=await f.client.operation('list_project_tasks',{project_id:P,parent_task_id:'parent_1',limit:1,cursor:first.nextCursor});
+  assert.equal(f.requests.at(-1).url,`${site}/api/owner/projects/${P}/tasks?cursor=child_1&limit=1&parentId=parent_1`);
+  assert.equal(second.nextCursor,null);assert.equal(second.tasks[0].id,'child_2');assert.equal('proposed' in second.tasks[0],false);
+  const before=f.requests.length;
+  for(const parent_task_id of ['', '../parent', 'a'.repeat(201), 3])await assert.rejects(f.client.operation('list_project_tasks',{project_id:P,parent_task_id}));
+  assert.equal(f.requests.length,before);
+ }finally{f.close();}
+});
 test('owner task reads forward comment/history cursors and saved versions without changing the task',async()=>{
  const f=fixture();try{
   await f.client.signIn();
