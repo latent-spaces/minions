@@ -119,6 +119,9 @@ insufficient. The router's `references-sha256` covers every workflow, and its ha
 is the bundled skill's hash. Setup preserves customized references, linked
 destinations and unrelated files; it can repair missing canonical references. A
 saved file does not prove the client loaded it.
+Setup leaves pre-rename `mlswarm` skill directories intact: an older router's revision
+cannot prove it is unedited or that other files in its directory belong to Minions.
+Review and remove those directories manually if they are no longer needed.
 
 ## Service lifecycle and private state
 
