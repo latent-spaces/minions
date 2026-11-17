@@ -1,0 +1,1 @@
+ONE AGENT? CUTE. Minions runs a whole swarm of Claude Code and Codex agents on your computer. They keep building after you close your chat, ping you when they're stuck, and stop the second you say kill.

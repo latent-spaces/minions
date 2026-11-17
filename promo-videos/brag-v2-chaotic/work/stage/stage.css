@@ -1,0 +1,59 @@
+html,body{margin:0;background:#141414;overflow:hidden}
+.stage{position:relative;width:1920px;height:1080px;overflow:hidden;background:#141414;font-family:'Inter Variable',-apple-system,system-ui,sans-serif;color:var(--ink)}
+.layer{position:absolute;inset:0}
+.ink{background:#141414}
+.tile{position:absolute;border-radius:30%;box-shadow:0 2px 4px rgba(0,0,0,.12),0 14px 40px rgba(0,0,0,.18)}
+.tile-face{position:absolute;inset:11%}
+.tile-face>img{width:100%;height:100%;object-fit:contain;display:block}
+.big{position:absolute;left:0;right:0;margin:0;text-align:center;font-weight:900;letter-spacing:-.045em;line-height:.92;color:#fff;text-transform:uppercase;transform-origin:50% 50%;white-space:nowrap}
+.big.accent{color:#FDF0C4}
+.big.outline{color:#141414;-webkit-text-stroke:0;text-shadow:8px 8px 0 #fff}
+.big.ink-text{color:#141414}
+.big.accent-text{color:#0066ff}
+.big.white{color:#fff}
+.big.tag{color:#141414;text-shadow:6px 6px 0 #FDF0C4}
+.mark{position:absolute;left:0;right:0;top:170px;text-align:center;transform-origin:50% 50%}
+.mark .wordmark-logo{display:inline-block;color:#fff;font-size:330px;letter-spacing:-.03em}
+.mark.outro{top:300px}
+.mark.outro .wordmark-logo{font-size:280px}
+.sub{position:absolute;left:0;right:0;top:580px;margin:0;text-align:center;color:#fff;font-size:76px;font-weight:900;letter-spacing:-.03em;line-height:1}
+.sub.outro{top:150px;font-size:70px;color:#FDF0C4}
+.term{position:absolute;left:50%;top:50%;width:1500px;background:#141414;border-radius:26px;box-shadow:0 40px 100px rgba(20,20,20,.35);overflow:hidden;color:#f3f3f3}
+.term.small{width:1100px}
+.term-bar{display:flex;align-items:center;gap:10px;padding:20px 26px;border-bottom:1px solid #2b2b2b}
+.term-bar i{width:16px;height:16px;border-radius:50%;background:#3a3a3a}
+.term-bar i.red{background:#ff5f57}
+.term-bar span{margin-left:14px;color:#8a8a8a;font:500 20px ui-monospace,SFMono-Regular,Menlo,monospace}
+.term-body{padding:36px 44px 44px;min-height:250px;font:500 38px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace}
+.term-user{margin:0 0 24px;color:#fff}
+.term-chev{color:#8a8a8a;margin-right:20px}
+.term-caret{display:inline-block;width:20px;height:42px;background:#fff;vertical-align:-8px;margin-left:4px}
+.term-done{display:flex;align-items:center;gap:16px;color:#7ee2a8;font-weight:700;margin:0}
+.map-frame{position:absolute;left:50%;top:58%;width:980px;height:520px}
+.map-frame iframe{border:0;width:100%;height:100%;display:block;background:#fff}
+.map-only-root,.map-only-root .k42-communication{position:fixed;inset:0;margin:0;border:0;border-radius:0;box-shadow:none}
+.map-only-root .k42-communication-body,.map-only-root .k42-communication-network,.map-only-root .k42-communication-graph,.map-only-root .k42-communication-map-stage{height:100%}
+.needs-wrap{position:absolute;left:640px;top:330px;width:820px;zoom:1.5;transform-origin:50% 50%}
+.needs-wrap{left:420px;top:240px}
+.k42-needs-answer{border-top:1px solid var(--hairline);padding-top:10px;margin-top:10px}
+.k42-needs-answer p{margin:0}
+.ctl-btn{position:absolute;left:50%;top:50%;display:flex;align-items:center;gap:40px;padding:50px 100px;border-radius:999px;background:#fff;color:#141414;font-size:220px;font-weight:900;letter-spacing:-.045em;line-height:1;white-space:nowrap}
+.ctl-btn.dark{background:#141414;color:#fff;border:8px solid #fff}
+.pill{position:absolute;left:50%;top:640px;display:inline-flex;align-items:center;height:96px;padding:0 48px;background:#fff;color:#141414;border-radius:999px;font:700 46px ui-monospace,SFMono-Regular,Menlo,monospace;transform-origin:50% 50%}
+.pill code{font:inherit;background:none;color:inherit}
+
+/* 1:1 */
+.stage.sq{width:1080px;height:1080px}
+.sq .big.wrap{white-space:normal;padding:0 40px}
+.sq .mark .wordmark-logo{font-size:230px}
+.sq .mark{top:230px}
+.sq .sub{top:560px;font-size:64px}
+.sq .mark.outro{top:330px}.sq .mark.outro .wordmark-logo{font-size:220px}
+.sq .sub.outro{top:200px;font-size:60px}
+.sq .pill{top:600px}
+.sq .term{width:960px}.sq .term.small{width:800px}
+.sq .term-body{font-size:32px}
+.sq .map-frame{width:700px;height:640px}
+.sq .needs-wrap{zoom:1.25;left:52px;top:376px;width:760px}
+.sq .ctl-btn{font-size:140px;gap:28px;padding:36px 70px}
+.sq .ctl-btn svg{width:84px;height:84px}

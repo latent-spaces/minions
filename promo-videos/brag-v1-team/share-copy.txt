@@ -1,0 +1,1 @@
+One coding agent is a chat. Minions is a team: a few Claude Code or Codex agents working in the background on your own computer, talking to each other, and asking you when they're stuck. Start it from your chat, pause or kill it whenever you like.
