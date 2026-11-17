@@ -199,7 +199,7 @@ export function createProvider(id, settings, { envSource = process.env } = {}) {
   const probe = async (args, options = {}) => {
     try {
       const native = process.platform === 'win32' ? resolveWindowsCommand(command, args, { env: environment(), cwd: options.cwd ?? settings.repoDir }) : { command, args };
-      return { ...await executeFile(native.command, native.args, { env: environment(), encoding: 'utf8', timeout: 15_000, maxBuffer: 1024 * 1024, killSignal: 'SIGKILL', ...options }), status: 0 };
+      return { ...await executeFile(native.command, native.args, { env: environment(), encoding: 'utf8', timeout: 15_000, maxBuffer: 1024 * 1024, killSignal: 'SIGKILL', windowsHide: true, ...options }), status: 0 };
     }
     catch (error) { options.signal?.throwIfAborted(); return { error, status: error.code, stdout: error.stdout ?? '' }; }
   };

@@ -74,6 +74,19 @@ and a Git worktree keep the computer's existing command. Its commands:
   An interrupted or failed update keeps an ignored marker in the backend build
   directory, so the next update retries setup even if the backend was already emitted.
 
+Windows checkouts keep `.mjs` scripts in LF format so npm's bin linking does not
+leave tracked files modified. Existing checkouts may still contain mixed line
+endings from earlier setup runs. If `minions update` refuses those changes, inspect
+`git diff --ignore-space-at-eol -- packages/agent-cli/src/cli.mjs tools/setup/minions.mjs`
+and preserve any intentional edits first. When the only changes are line endings,
+run `git restore -- packages/agent-cli/src/cli.mjs tools/setup/minions.mjs`, then
+retry the update. After pulling the line-ending rule, run the same restore once
+more to refresh both scripts to LF. Fresh clones need no recovery step.
+
+Provider readiness checks run without opening Windows console windows. An already
+running service loads that fix after `minions stop` followed by `minions start`;
+stop lets current agent turns finish first.
+
 At a terminal it draws a few ASCII critters and colors; when piped or called by an
 agent, or with `MINIONS_PLAIN=1`, it prints plain lines, and `NO_COLOR` drops the
 colors. Both commands share [engine-control.mjs](engine-control.mjs) for finding the
