@@ -57,3 +57,20 @@ test('closing a child checks every accepted sibling before notifying the parent 
     expect(notices.docs[0].data().payload).toMatchObject({ taskId: parent.id });
   });
 });
+
+test('human subtask creation stops at the readable 50-ancestor boundary', async () => {
+  await inProject(TEST_PROJECT, async () => {
+    const { actor, parent } = await fixture();
+    for (let i = 0; i < 50; i++) {
+      const id = `level-${i}`;
+      await nativeTasks().doc(id).set({ ...parent, id, ...(i ? { parentId: `level-${i - 1}` } : {}) });
+    }
+    const create = (parentId: string) => mutateNativeTask(actor, {
+      operation: 'create', clientRequestId: randomUUID(), title: 'Nested child', parentId,
+    });
+    const accepted = await create('level-49');
+    expect((await getNativeTask(actor, accepted.task.id)).ancestors).toHaveLength(50);
+    await expect(create(accepted.task.id)).rejects.toMatchObject({ code: 'bad_input' });
+    expect((await nativeTasks().where('parentId', '==', accepted.task.id).get()).size).toBe(0);
+  });
+});
