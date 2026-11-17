@@ -69,7 +69,7 @@ Usage: minions <command> [options]
   setup [setup options]     The full setup: install, build, initialize, start, sign in and
                             connect Claude Code and Codex. Same as npm run setup.
   update [--now] [--wait-minutes N]
-                            Pull main (fast-forward only), let turns finish, stop, rebuild and
+                            Let turns finish, stop, pull main (fast-forward only), rebuild and
                             start again with setup.
   help                      This page.
 
@@ -141,7 +141,7 @@ async function start(args) {
  * Stops the shared service, letting the turns in progress finish unless now, then the engine. Resolves false and
  * leaves the engine running when turns are still finishing, so they can complete.
  */
-async function rest(installation, { now, minutes }) {
+async function rest(installation, { now, minutes, requireServiceStopped = false }) {
   const service = await serviceStatus(installation);
   if (service.running) {
     const done = spinner(now ? 'Stopping the shared service' : `Letting minions finish their turns (up to ${minutes} min)`);
@@ -156,8 +156,10 @@ async function rest(installation, { now, minutes }) {
   } else if (service.error) {
     // An unreadable status may hide a service still running turns, so only --now stops the engine under it (review of PR 69).
     say(`${yellow('!')} ${service.error}`, service.error);
-    if (!now) {
-      console.error('The shared service state is unknown, so the engine was left running. Run minions stop --now to stop it anyway.');
+    if (!now || requireServiceStopped) {
+      console.error(requireServiceStopped
+        ? 'The shared service state is unknown, so the checkout and engine were left alone. Resolve the service status before updating.'
+        : 'The shared service state is unknown, so the engine was left running. Run minions stop --now to stop it anyway.');
       return false;
     }
   }
@@ -265,26 +267,41 @@ async function update(args) {
   if (branch !== 'main') throw new Error(`Update follows main, and ${repository} is on ${branch}. Nothing was changed.`);
   if (git(['status', '--porcelain', '--untracked-files=no']).stdout?.trim()) throw new Error(`${repository} has uncommitted changes. Commit or set them aside, then run minions update again. Nothing was changed.`);
   const before = git(['rev-parse', 'HEAD']).stdout.trim();
-  say(`${yellow('(o.o)')} Fetching the newest minions from main...`, 'Pulling main (fast-forward only).');
-  const pulled = spawnSync('git', ['pull', '--ff-only', 'origin', 'main'], { cwd: repository, stdio: 'inherit', shell: false, windowsHide: true });
-  if (pulled.status !== 0) throw new Error('git pull --ff-only did not complete; nothing was rebuilt or stopped.');
-  const after = git(['rev-parse', 'HEAD']).stdout.trim();
-  const installation = locate();
+  // Fetch only: active turns and newly spawned guards must keep the old checkout until the service drains.
+  say(`${yellow('(o.o)')} Checking the newest minions on main...`, 'Checking main for updates.');
+  const fetched = spawnSync('git', ['fetch', 'origin', 'main'], { cwd: repository, stdio: 'inherit', shell: false, windowsHide: true });
+  if (fetched.status !== 0) throw new Error('git fetch did not complete; nothing was changed or stopped.');
+  const target = git(['rev-parse', 'FETCH_HEAD']).stdout?.trim();
+  if (!target) throw new Error('Could not read the fetched main revision. Nothing was changed or stopped.');
+  const current = git(['merge-base', '--is-ancestor', target, before]).status === 0;
+  if (!current && git(['merge-base', '--is-ancestor', before, target]).status !== 0)
+    throw new Error('main cannot fast-forward to origin/main. Nothing was changed or stopped.');
   // A build older than the checked-out commit means someone pulled by hand; rebuild then too (review of PR 69).
   const committed = Number(git(['log', '-1', '--format=%ct']).stdout.trim()) * 1000;
-  if (before === after && existsSync(engineMain) && statSync(engineMain).mtimeMs >= committed) {
+  if (current && existsSync(engineMain) && statSync(engineMain).mtimeMs >= committed) {
     art('awake');
     say(bold('Already up to date. The minions are as fresh as they get!'), 'Already up to date; nothing was rebuilt.');
     return 0;
   }
-  if (before === after) say(`${green('*')} The build is older than ${after.slice(0, 7)}`, `The build is older than ${after.slice(0, 7)}.`);
-  else say(`${green('*')} Pulled ${before.slice(0, 7)} → ${after.slice(0, 7)}`, `Pulled ${before.slice(0, 7)} to ${after.slice(0, 7)}.`);
-  if (!await rest(installation, options)) {
-    console.error('The new code is pulled but not built yet. Run minions update again once those turns have finished, or minions update --now.');
+  const installation = locate();
+  if (!await rest(installation, { ...options, requireServiceStopped: true })) {
+    console.error('The checkout was left unchanged. Run minions update again once those turns have finished, or minions update --now.');
     return 1;
   }
+  if (git(['rev-parse', '--abbrev-ref', 'HEAD']).stdout?.trim() !== 'main'
+    || git(['rev-parse', 'HEAD']).stdout?.trim() !== before
+    || git(['status', '--porcelain', '--untracked-files=no']).stdout?.trim())
+    throw new Error('The checkout changed while turns were finishing. Minions is stopped; nothing was pulled or rebuilt. Resolve the checkout and run minions update again.');
+  say(`${yellow('(o.o)')} Fetching the newest minions from main...`, 'Pulling main (fast-forward only).');
+  const pulled = spawnSync('git', ['pull', '--ff-only', 'origin', 'main'], { cwd: repository, stdio: 'inherit', shell: false, windowsHide: true });
+  if (pulled.status !== 0) throw new Error('git pull --ff-only did not complete. Minions is stopped; nothing was rebuilt. Run minions start to restart the existing build.');
+  const after = git(['rev-parse', 'HEAD']).stdout.trim();
+  if (before === after) say(`${green('*')} The build is older than ${after.slice(0, 7)}`, `The build is older than ${after.slice(0, 7)}.`);
+  else say(`${green('*')} Pulled ${before.slice(0, 7)} → ${after.slice(0, 7)}`, `Pulled ${before.slice(0, 7)} to ${after.slice(0, 7)}.`);
   say(`${yellow('(^o^)')} Rebuilding and waking them with setup!`, 'Rebuilding and starting with setup.');
-  return setup();
+  const result = await setup();
+  if (result !== 0) console.error('Update setup did not complete. Resolve the error above and run minions setup to finish rebuilding and starting.');
+  return result;
 }
 
 const COMMANDS = { start, stop, status, open, logs, update, setup: args => setup(args) };
