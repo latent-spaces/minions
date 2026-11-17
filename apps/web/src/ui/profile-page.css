@@ -1,0 +1,11 @@
+
+.k42-profile-summary { border: var(--card-border); border-radius: var(--surface-radius); background: var(--canvas); padding: 24px; }
+.k42-profile-identity { display: flex; align-items: flex-start; gap: 16px; }
+.k42-profile-identity > div { min-width: 0; }
+.k42-profile-identity h2 { margin: 0 0 8px; overflow-wrap: anywhere; }
+.k42-profile-links { display: grid; gap: 10px; margin: 24px 0; }
+.k42-profile-links a { display: flex; align-items: flex-start; gap: 8px; overflow-wrap: anywhere; }
+.k42-profile-links svg { flex: 0 0 auto; margin-top: 3px; }
+.k42-person-link { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; overflow-wrap: anywhere; }
+.k42-person-link > span:last-child { min-width: 0; }
+@media (max-width: 600px) { .k42-profile-summary { padding: 20px; } .k42-profile-identity { gap: 12px; } }

@@ -1,0 +1,107 @@
+.k42-communication { min-width:0; overflow:hidden; }
+.k42-project-pause-status { display:flex; align-items:flex-start; gap:12px; padding:12px 16px; margin-block-end:12px; background:var(--canvas-soft); border-radius:var(--radius-sm,16px); font-size:14px; overflow-wrap:anywhere; }
+.k42-project-pause-status > svg { flex:none; margin-block-start:2px; }
+.k42-project-pause-status strong { font-weight:600; }
+.k42-project-pause-status p { margin:4px 0 0; color:var(--text-muted); }
+/* Keep the live-refresh notice from resizing the map or shifting the page. */
+.k42-communication-refresh-status { block-size:1.5em; line-height:1.5; margin:0 0 8px; color:var(--text-muted); font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.k42-communication-body { display:grid; grid-template-columns:minmax(0,1fr); border-top:1px solid var(--line); border-bottom:1px solid var(--line); }
+.k42-communication-network { position:relative; min-width:0; display:flex; flex-direction:column; justify-content:center; }
+.k42-communication-graph { position:relative; min-width:0; }
+.k42-communication-add-agent { display:flex; flex-direction:column; align-items:center; gap:4px; font-size:12px; color:var(--text-muted); }
+.k42-communication-add-agent > button { display:grid; place-items:center; width:44px; height:44px; min-width:44px; padding:0; border-radius:30%; border:1.5px dashed var(--hairline-strong); background:var(--canvas); color:var(--text-muted); box-shadow:none; }
+.k42-communication-add-agent > button:hover { border-color:var(--ink); color:var(--ink); background:var(--canvas-sunken); }
+.k42-communication-agent { cursor:pointer; outline:none; }
+.k42-communication-agent-hit { fill:transparent; stroke:none; }
+.k42-communication-avatar-frame { fill:var(--canvas-soft); stroke:var(--line); stroke-width:1; }
+.k42-communication-agent:hover .k42-communication-avatar-frame,.k42-communication-agent:focus-visible .k42-communication-avatar-frame,.k42-communication-agent.selected .k42-communication-avatar-frame { stroke:var(--ink); stroke-width:2; }
+.k42-communication-avatar { pointer-events:none; }
+.k42-communication-agent text { fill:var(--ink); font-family:inherit; pointer-events:none; }
+.k42-communication-agent .k42-communication-initials { font-size:12px; font-weight:600; }
+.k42-communication-name { font-size:12px; font-weight:600; }
+.k42-communication-agent .k42-communication-state { font-size:12px; fill:var(--muted); }
+.k42-communication-agent .k42-communication-state:is(.state-working,.state-talking,.state-needs_you) { fill:var(--ink); font-weight:600; }
+.k42-communication-agent-tooltip { position:fixed; z-index:80; width:min(280px,calc(100vw - 24px)); padding:16px; border:1px solid var(--hairline); border-radius:16px; color:var(--ink); background:var(--canvas); font-size:14px; line-height:1.43; overflow-wrap:anywhere; }
+.k42-communication-tooltip-identity { display:flex; align-items:center; gap:12px; padding-right:20px; }
+.k42-communication-tooltip-who { min-width:0; }
+.k42-communication-tooltip-who strong { display:block; font-size:15px; font-weight:600; }
+.k42-communication-tooltip-who small { display:block; margin-top:2px; font-size:12px; color:var(--text-muted); }
+.k42-communication-tooltip-section { margin-top:12px; padding-top:12px; border-top:1px solid var(--hairline); }
+.k42-communication-tooltip-label { margin:0 0 4px; font-size:12px; font-weight:600; color:var(--text-muted); }
+.k42-communication-tooltip-focus { margin:0; white-space:pre-wrap; }
+.k42-communication-tooltip-focus.is-empty { color:var(--text-muted); }
+.k42-communication-tooltip-footer { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:12px; padding-top:12px; border-top:1px solid var(--hairline); font-size:12px; color:var(--text-muted); }
+.k42-communication-tooltip-footer .k42-communication-tooltip-actions { margin:0 0 0 auto; }
+.k42-communication-tooltip-note { margin:8px 0 0; font-size:12px; color:var(--muted); }
+.k42-communication-empty { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:20px; text-align:center; }
+.k42-communication-empty p { font-size:12px; color:var(--muted); }
+/* How to add your first agent, along the bottom of the map so other agents stay visible. */
+.k42-communication-invite { position:absolute; left:50%; bottom:16px; transform:translateX(-50%); width:min(560px, calc(100% - 32px)); box-sizing:border-box; padding:12px 16px; border:1px solid var(--hairline); border-radius:12px; background:var(--canvas); font-size:12px; color:var(--muted); }
+.k42-communication-invite p { margin:0 0 8px; }
+.k42-communication-invite strong { color:var(--ink); font-weight:600; }
+.k42-communication :is(button,input,select,a):focus-visible { outline:2px solid var(--ink); outline-offset:3px; }
+@media (max-width:600px) { .k42-communication { padding:16px; } .k42-communication-name { font-size:12px; } }
+/* Full screen for the communication window (owner, 19 October 2026). */
+.k42-communication .k42-activity-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.k42-communication-fullscreen { display:grid; place-items:center; width:36px; height:36px; padding:0; border:0; border-radius:10px; background:transparent; color:var(--ink); cursor:pointer; }
+.k42-communication-fullscreen:hover { background:var(--canvas-soft); }
+.k42-communication-fullscreen:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+.k42-communication.is-expanded { position:fixed; inset:0; z-index:40; margin:0; max-width:none; border-radius:0; overflow:auto; background:var(--canvas); padding:24px max(24px, calc((100% - 1600px) / 2)); box-sizing:border-box; }
+.k42-communication.is-expanded:fullscreen { padding:24px max(24px, calc((100% - 1600px) / 2)); }
+
+/* Show the agents or their published result. */
+.k42-communication-map-stage[hidden] { display:none; }
+.k42-communication > .k42-activity-heading { justify-content:flex-start; gap:8px; margin-bottom:8px; }
+
+.k42-communication-add-agent.is-map { position:absolute; right:12px; bottom:12px; z-index:1; }
+
+/* One stage height in both views; content follows normal document flow. */
+.k42-communication-graph { height:clamp(500px,65vh,700px); }
+.k42-communication-map-stage, .k42-communication-map-stage > .communication-map { height:100%; min-height:0; }
+.k42-communication.is-expanded .k42-communication-graph { height:max(420px,calc(100dvh - 290px)); }
+@media(max-width:600px) { .k42-communication:not(.is-expanded) .k42-communication-graph { height:560px; } }
+/* One toolbar row above the map (owner, 26 October 2026): All owners, the people and agents,
+   add person, then zoom, Fit map and full screen on the right. */
+.k42-communication > .k42-activity-heading { flex-wrap:wrap; }
+.k42-communication > .k42-activity-heading .k42-communication-controls-slot { flex:1 1 auto; display:flex; min-width:0; }
+.k42-communication > .k42-activity-heading .k42-communication-controls-slot[hidden] { display:none; }
+.k42-communication-controls-slot .communication-map-controls { position:static; flex:1; justify-content:flex-start; align-items:center; flex-wrap:wrap; gap:8px; }
+.k42-communication-controls-slot :is(.communication-map-controls > select, .communication-map-zoom > button) { min-height:36px; padding:4px 10px; }
+.k42-communication-controls-slot .communication-map-zoom > button { min-width:36px; }
+.k42-map-crowd { display:flex; align-items:center; list-style:none; margin:0; padding:0; }
+.k42-map-crowd li { display:flex; margin-left:-8px; }
+.k42-map-crowd li:first-child { margin-left:0; }
+.k42-map-crowd .k42-person-avatar, .k42-map-crowd .k42-agent-avatar { box-shadow:0 0 0 2px var(--canvas); }
+.k42-map-crowd .is-more { display:grid; place-items:center; min-width:32px; height:32px; padding:0 6px; box-sizing:border-box; border-radius:16px; background:var(--canvas-sunken); color:var(--text-muted); font-size:12px; font-weight:650; box-shadow:0 0 0 2px var(--canvas); }
+.k42-map-share { display:grid; place-items:center; width:36px; height:36px; padding:0; border:1px solid var(--line); border-radius:var(--radius-button); background:var(--canvas); color:var(--ink); cursor:pointer; }
+.k42-map-share:hover { border-color:var(--hairline-strong); background:var(--canvas-soft); }
+.k42-map-share:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+.k42-communication-focus { font-size:11px; fill:var(--text-muted); }
+/* The invite floats over the map (Noa, 26 October 2026). */
+.k42-communication-invite { z-index:3; border-radius:16px; box-shadow:0 12px 32px rgba(20,20,20,.14), 0 2px 6px rgba(20,20,20,.08); }
+.k42-communication-invite { display:flex; align-items:flex-start; gap:12px; }
+.k42-communication-invite > div { flex:1; min-width:0; }
+.k42-communication-invite .k42-notice-icon { background:var(--canvas-soft); color:var(--muted); }
+/* People and agents strip at 120% (Noa, 26 October 2026). */
+.k42-map-crowd, .k42-map-share { zoom:1.2; }
+.k42-communication-agent-tooltip { box-shadow:0 12px 32px rgba(20,20,20,.14), 0 2px 6px rgba(20,20,20,.08); }
+/* Hovering an avatar lifts it whole above its neighbours and names it (Noa, 26 October 2026). */
+.k42-map-crowd li { position:relative; transition:transform .12s ease; }
+.k42-map-crowd li:hover, .k42-map-crowd li:focus-within { z-index:3; transform:translateY(-2px) scale(1.12); }
+.k42-map-crowd li[data-tip]::after { content:attr(data-tip); position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%); z-index:4; padding:4px 8px; border-radius:8px; background:var(--ink); color:#fff; font-size:11px; font-weight:500; line-height:1.4; white-space:nowrap; box-shadow:0 4px 12px rgba(20,20,20,.16); opacity:0; visibility:hidden; pointer-events:none; transition:opacity .12s; }
+.k42-map-crowd li[data-tip]:hover::after { opacity:1; visibility:visible; }
+.k42-map-counts { font-size:13px; color:var(--text-muted); white-space:nowrap; font-variant-numeric:tabular-nums; }
+
+/* In a .k42-fit region (the side panel's Map) the map fills the space left and resizes with it, instead of a fixed
+   height that makes the panel scroll (owner, 13 November 2026). The map refits itself when its box changes. */
+.k42-fit :is(.k42-activity-part, .k42-communication, .k42-communication-body, .k42-communication-network) { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+.k42-fit .k42-activity-main > :not(.k42-activity-part), .k42-fit .k42-communication > :not(.k42-communication-body) { flex:none; }
+.k42-fit .k42-communication-graph { flex:1 1 auto; height:auto; min-height:0; }
+.k42-fit .communication-map { height:100%; min-height:0; }
+/* In the panel, the map is the panel's own content: no second card frame, and full screen sits beside the toolbar
+   instead of wrapping onto a row of its own, so short windows keep room for the map (owner, 13 November 2026). */
+.k42-fit .k42-communication { padding:0; border:0; border-radius:0; background:none; }
+.k42-fit .k42-communication > .k42-activity-heading { flex-wrap:nowrap; align-items:flex-start; }
+.k42-fit .k42-communication > .k42-activity-heading .k42-communication-controls-slot { min-width:0; }
+@media (max-height:640px) { .k42-fit .k42-project-pause-status p { display:none; } .k42-fit .k42-project-pause-status { padding-block:8px; } }
+.communication-map-controls .k42-communication-fullscreen { width:32px; height:32px; } /* beside Fit map (owner, 16 November 2026) */

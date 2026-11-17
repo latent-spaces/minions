@@ -1,0 +1,18 @@
+{
+  "name": "minions-benchmarks",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "run": "node run.mjs",
+    "test": "node --import tsx --test calibration.test.ts capacity-shapes.test.ts loadgen-transport.test.ts delivery-envelope.test.ts limiter-distribution.test.ts limiter-tenant-capacity.test.ts current-state-conformance.test.ts current-state-acceptance.test.ts current-state-model.test.ts"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15",
+    "@types/node": "22.20.5",
+    "@modelcontextprotocol/sdk": "1.32.1"
+  },
+  "license": "MIT"
+}

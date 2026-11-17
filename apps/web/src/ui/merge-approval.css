@@ -1,0 +1,11 @@
+.k42-merge-policy { margin:16px 0 0; padding:0; border:0; min-width:0; }
+.k42-merge-policy legend { padding:0; margin-bottom:10px; font-weight:650; }
+.k42-merge-policy input[type=range] { display:block; width:100%; margin:0; accent-color:var(--accent); cursor:pointer; }
+.k42-merge-policy-stops { display:grid; grid-template-columns:repeat(4, 1fr); margin:6px 0 0; padding:0; list-style:none; }
+.k42-merge-policy-stops li:not(:first-child):not(:last-child) { text-align:center; }
+.k42-merge-policy-stops li:last-child { text-align:right; }
+.k42-merge-policy-stops button { border-color:transparent; background:transparent; color:var(--text-muted); font-size:13px; font-weight:400; }
+.k42-merge-policy-stops button:hover:not(:disabled) { color:var(--ink); }
+.k42-merge-policy-stops .selected button { background:var(--canvas-soft); border-color:var(--canvas-soft); color:var(--ink); font-weight:600; }
+.k42-merge-policy-help { margin:10px 0 0; font-size:14px; line-height:1.5; color:var(--muted); }
+.k42-merge-policy-help strong { color:var(--text); font-weight:600; }

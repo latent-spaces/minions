@@ -1,0 +1,13 @@
+.k42-coding-agent-avatar { position:relative; display:inline-flex; flex:none; vertical-align:middle; }
+.k42-tool-badge { position:absolute; bottom:-3px; right:-3px; z-index:3; display:grid; place-items:center; width:var(--k42-tool-badge-size); height:var(--k42-tool-badge-size); box-sizing:border-box; border:1px solid var(--hairline); border-radius:50%; background:var(--canvas); color:var(--ink); }
+.k42-tool-glyph { display:inline-block; flex:none; width:14px; height:14px; background:currentColor; mask:center / contain no-repeat; }
+.k42-tool-badge .k42-tool-glyph { width:68%; height:68%; }
+.k42-tool-glyph.is-claude { mask-image:url('./assets/tools/claude.svg'); }
+.k42-tool-glyph.is-codex { mask-image:url('./assets/tools/codex.svg'); }
+.k42-tool-badge:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+.k42-tool-tooltip { position:absolute; z-index:10; top:100%; right:0; margin-top:4px; padding:5px 8px; border-radius:var(--radius-button); background:var(--ink); color:var(--on-ink); font-size:12px; font-weight:400; line-height:1.4; white-space:nowrap; visibility:hidden; }
+.k42-tool-badge:is(:hover,:focus-visible) .k42-tool-tooltip { visibility:visible; }
+.k42-tool-label { display:inline-flex; align-items:center; gap:6px; }
+/* A small corner state keeps the animal visible on 24–40px faces. */
+.k42-coding-agent-avatar > .k42-agent-status-icon.is-overlay { width:16px; height:16px; top:-6px; right:-6px; }
+.k42-coding-agent-avatar > .k42-agent-status-icon.is-overlay svg { width:10px; height:10px; }

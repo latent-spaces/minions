@@ -1,0 +1,70 @@
+.k42-needs-you { max-width: 1000px; }
+.k42-needs-intro { color: var(--muted); margin: 0 0 24px; max-width: 70ch; }
+/* Chips like Community's, not tabs inside the project's tabs (owner, 19 October 2026). */
+.k42-needs-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 24px; }
+.k42-needs-filters .k42-needs-chip { min-height: 36px; padding: 0 14px; border: var(--card-border); border-radius: var(--pill-radius); background: var(--canvas); color: var(--ink); font-size: 13px; font-weight: 600; }
+.k42-needs-filters .k42-needs-chip:hover { border-color: var(--hairline-strong); background:var(--canvas-soft); }
+.k42-needs-filters .k42-needs-chip[aria-pressed=true] { background: var(--ink); border-color: var(--ink); color: var(--on-ink); }
+@media (max-width:700px) { .k42-needs-filters .k42-needs-chip { min-height:44px; } }
+.k42-needs-list { display: grid; gap: 12px; margin-bottom: 20px; }
+.k42-needs-history { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+.k42-needs-history p { margin: 0; flex: 1; min-width: 180px; }
+.k42-needs-empty { padding: 32px 0; }
+.k42-needs-empty h2 { font-size: 20px; }
+
+/* One request: who asks whom, the question, one paragraph, then lettered choices (owner, 12 November 2026).
+ * A request waiting on this person's answer is tinted butter until answered. */
+.k42-needs-item { --needs-line: var(--hairline); border: 1px solid var(--needs-line); border-radius: 16px; background: var(--canvas); padding: 18px 20px; min-width: 0; }
+.k42-needs-item[data-waiting=true] { --needs-line: #EFDD9C; background: #FFF9E3; }
+.k42-needs-who { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 13px; }
+.k42-needs-who strong { font-weight: 600; }
+.k42-needs-arrow { color: var(--muted); }
+.k42-needs-meta { margin-left: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; color: var(--muted); }
+.k42-needs-visibility { display: inline-flex; align-items: center; gap: 4px; }
+.k42-needs-question { font-size: 18px; line-height: 1.35; font-weight: 650; letter-spacing: -.01em; margin: 12px 0 6px; max-width: 40em; overflow-wrap: anywhere; white-space: pre-wrap; }
+.k42-needs-detail { color: var(--muted); margin: 0 0 14px; max-width: 66ch; overflow-wrap: anywhere; white-space: pre-wrap; }
+.k42-needs-note { font-size: 12px; color: var(--muted); }
+
+.k42-needs-choices { border: 1px solid var(--needs-line); border-radius: 12px; background: var(--canvas); overflow: hidden; margin: 0; padding: 0; min-width: 0; }
+.k42-needs-choices legend { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.k42-needs-choice { position: relative; display: flex; align-items: center; gap: 12px; min-height: 48px; padding: 10px 14px; border-top: 1px solid var(--hairline); cursor: pointer; overflow-wrap: anywhere; }
+.k42-needs-choice:first-of-type { border-top: 0; }
+.k42-needs-choice:hover { background: var(--canvas-soft); }
+.k42-needs-choice > input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: inherit; }
+.k42-needs-letter { width: 24px; height: 24px; border-radius: 50%; background: var(--canvas-soft); display: grid; place-items: center; font-size: 12px; font-weight: 650; flex: none; }
+.k42-needs-choice-text { flex: 1; min-width: 0; font-weight: 500; line-height: 1.45; }
+.k42-needs-tick { flex: none; visibility: hidden; }
+.k42-needs-choice:has(> input:checked) { background: var(--canvas-soft); }
+.k42-needs-choice:has(> input:checked) .k42-needs-letter { background: var(--ink); color: var(--on-ink); }
+.k42-needs-choice:has(> input:checked) .k42-needs-tick { visibility: visible; }
+.k42-needs-choice:has(> input:focus-visible) { outline: 2px solid var(--ink); outline-offset: -2px; }
+.k42-needs-choices:disabled .k42-needs-choice { cursor: default; opacity: .65; }
+.k42-needs-choice.is-own textarea { position: relative; z-index: 1; flex: 1; min-width: 0; border: 0; background: transparent; outline: 0; padding: 4px 0; resize: none; font: inherit; color: var(--ink); field-sizing: content; min-height: 1.5em; max-height: 12em; }
+.k42-needs-choice.is-own textarea::placeholder { color: var(--muted); }
+.k42-needs-own { display: block; width: 100%; resize: vertical; min-height: 96px; font: inherit; color: var(--ink); padding: 10px 12px; border: 1px solid var(--needs-line); border-radius: var(--field-radius); background: var(--canvas); }
+.k42-needs-send { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; margin-top: 14px; }
+.k42-needs-send small { color: var(--muted); font-size: 12px; flex: 1 1 200px; }
+
+.k42-needs-answer { margin-top: 12px; padding: 10px 12px; border-radius: var(--field-radius); background: var(--canvas-soft); }
+.k42-needs-answer p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; max-width: 72ch; }
+.k42-needs-answer p + p, .k42-needs-answer h3 + p { margin-top: 6px; }
+.k42-needs-answer h3 { font-size: 14px; margin: 0; }
+.k42-needs-answer li { overflow-wrap:anywhere; }
+.k42-needs-sent { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:12px 0 0; padding:10px 12px; border-radius:var(--field-radius); background:var(--pastel-mint); color:var(--ink); font-size:14px; }
+.k42-needs-receipt { margin-top: 8px; }
+.k42-needs-receipt ol { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 0; margin: 0; list-style: none; }
+.k42-needs-receipt li { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.k42-needs-receipt li[data-complete=true] { color: var(--ink); }
+.k42-needs-receipt li svg { flex: none; }
+.k42-needs-receipt > p, .k42-needs-project-link { font-size: 12px; margin: 8px 0 0; }
+
+/* Pinned at the top of Communication. */
+.k42-needs-waiting { margin: 4px 0 20px; }
+.k42-needs-label { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; font-size: 13px; font-weight: 600; }
+.k42-needs-waiting .k42-needs-list { margin-bottom: 0; }
+
+@media (max-width: 600px) {
+  .k42-needs-item { padding: 14px 14px; }
+  .k42-needs-meta { margin-left: 0; width: 100%; }
+  .k42-needs-question { font-size: 17px; }
+}

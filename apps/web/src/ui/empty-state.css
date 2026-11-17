@@ -1,0 +1,26 @@
+/* Empty state for popups, drawers and menus (shell polish 2026-10-18). Not a card: the surface around it is already white.
+   Selectors carry the .k42-empty prefix so ambient paragraph rules (for example .agent-panel p) cannot change its spacing. */
+.k42-empty { display:flex; flex-direction:column; align-items:center; gap:6px; padding:28px; text-align:center; color:var(--ink); }
+.k42-empty .k42-empty-icon { display:grid; place-items:center; flex:none; width:40px; height:40px; margin:0 0 6px; border-radius:50%; }
+.k42-empty .k42-empty-title { margin:0; font-size:15px; font-weight:600; line-height:1.4; color:var(--ink); overflow-wrap:anywhere; }
+.k42-empty .k42-empty-text { margin:0; max-width:36ch; font-size:13px; font-weight:450; line-height:1.5; color:var(--text-muted); overflow-wrap:anywhere; text-wrap:balance; }
+.k42-empty .k42-empty-action { margin:6px 0 0; font-size:13px; font-weight:600; }
+/* Any action is a full-size touch target with a visible hover and focus ring (44px, like the shell controls). */
+.k42-empty .k42-empty-action a, .k42-empty .k42-empty-action button { display:inline-flex; align-items:center; justify-content:center; min-height:var(--shell-control-size); padding:0 14px; border-radius:var(--radius-button); }
+.k42-empty .k42-empty-action a:hover, .k42-empty .k42-empty-action button:not(.primary):hover { background:var(--canvas-soft); }
+.k42-empty .k42-empty-action a:focus-visible, .k42-empty .k42-empty-action button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+.k42-empty .k42-empty-icon.is-neutral { background:var(--canvas-sunken); color:var(--text-muted); }
+.k42-empty.k42-empty-compact { gap:4px; padding:16px; }
+.k42-empty.k42-empty-compact .k42-empty-icon { width:32px; height:32px; margin-bottom:4px; }
+.k42-empty.k42-empty-compact .k42-empty-action { margin-top:2px; }
+/* Large: a whole page with nothing in it yet. It matches the Teams empty card everywhere: a white card, a small grey
+   icon, a short title and one line (owner, 16 November 2026). */
+.k42-empty.k42-empty-large { padding:28px; margin:0; background:var(--canvas); border:var(--card-border); border-radius:var(--surface-radius); }
+.k42-empty.k42-empty-large .k42-empty-icon { background:var(--canvas-sunken); color:var(--text-muted); }
+/* A quiet one-line empty state, left-aligned in a white card (owner, 21 October 2026). */
+.k42-empty-row { display:flex; align-items:center; gap:14px; padding:18px 20px; background:var(--canvas); border:var(--card-border); border-radius:var(--surface-radius); color:var(--text-muted); font-size:14px; text-align:left; }
+.k42-empty-row-icon { flex:none; width:40px; height:40px; border-radius:12px; display:grid; place-items:center; background:var(--canvas-sunken); color:var(--ink); }
+.k42-empty-row > div { display:grid; gap:2px; }
+.k42-empty-row strong { color:var(--ink); font-size:15px; font-weight:600; }
+.project-directory-empty:has(.k42-empty-row) { border:0; padding:0; background:none; min-height:0; }
+.project-directory-empty:has(.k42-empty-row) > p:empty { display:none; }

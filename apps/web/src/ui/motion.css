@@ -1,0 +1,50 @@
+/* Reveal motion (shell polish 2026-10-18). Pages rise in block by block; popups pop in.
+   Views that stay mounted (Explore, My projects, the project page) toggle [hidden] and reveal
+   again each time they are shown. Views that mount conditionally (Profiles, Messages, My profile, Public
+   profile, the public project) replay on mount instead.
+   A data refresh updates nodes in place and never restarts these animations. */
+@keyframes k42-rise { from { opacity:0; transform:translateY(12px); filter:blur(4px); } to { opacity:1; transform:none; filter:none; } }
+@keyframes k42-rise-light { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+@keyframes k42-pop { from { opacity:0; transform:translateY(8px) scale(.98); } to { opacity:1; transform:none; } }
+@keyframes k42-fade { from { opacity:0; } }
+@keyframes k42-slide-in { from { opacity:0; transform:translateX(-16px); } }
+
+/* Page blocks: the direct children of a .k42-reveal root rise in sequence. */
+/* `backwards` shows the `from` frame during the delay and releases opacity, transform and filter when it ends.
+   The stagger selectors sit inside :where() so they stay at (0,1,0): a child that carries its own animation
+   keeps its own delay of 0. */
+.k42-reveal > * { animation:k42-rise 520ms var(--k42-ease) backwards; }
+.k42-reveal > :where(:nth-child(2)) { animation-delay:50ms; }
+.k42-reveal > :where(:nth-child(3)) { animation-delay:100ms; }
+.k42-reveal > :where(:nth-child(4)) { animation-delay:150ms; }
+.k42-reveal > :where(:nth-child(5)) { animation-delay:200ms; }
+.k42-reveal > :where(:nth-child(6)) { animation-delay:250ms; }
+.k42-reveal > :where(:nth-child(7)) { animation-delay:300ms; }
+.k42-reveal > :where(:nth-child(8)) { animation-delay:350ms; }
+.k42-reveal > :where(:nth-child(n+9)) { animation-delay:400ms; }
+/* Cards stagger the same way, without the blur: a grid of blurred cards is costly to paint. */
+:where(.project-directory-grid).k42-reveal > * { animation-name:k42-rise-light; }
+/* The project column holds one visible section among several [hidden] siblings; counting the hidden ones
+   would delay the visible section by up to 400ms, so everything after the tabs shares one short delay.
+   It comes after the stagger rules above, so at equal specificity it wins. */
+:where(.k42-project-main).k42-reveal > :where(:nth-child(n+4)) { animation-delay:150ms; }
+/* A layout wrapper between two reveal layers stays still, so the layers do not compound. */
+.k42-reveal > .k42-reveal-skip { animation:none; }
+
+/* Popups. */
+dialog[open] { animation:k42-pop 260ms var(--k42-ease); }
+dialog[open]::backdrop { animation:k42-fade 200ms var(--k42-ease); }
+.project-sidebar.drawer[open] { animation:k42-slide-in 260ms var(--k42-ease); }
+.k42-path-overflow details[open] > *:not(summary){ animation:k42-pop 200ms var(--k42-ease); }
+/* Its own rule: a browser without :popover-open drops only this one. */
+.k42-popover:popover-open { animation:k42-pop 200ms var(--k42-ease); }
+
+@media (prefers-reduced-motion: reduce) {
+  .k42-reveal > *,
+  :where(.project-directory-grid).k42-reveal > *,
+  dialog[open],
+  dialog[open]::backdrop,
+  .project-sidebar.drawer[open],
+  .k42-path-overflow details[open] > *:not(summary){ animation:none; }
+  .k42-popover:popover-open { animation:none; }
+}

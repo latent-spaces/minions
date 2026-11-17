@@ -1,0 +1,69 @@
+/* First-run welcome in My projects: team, what Minions is, three steps and the start prompt (Concept A, owner 16 November 2026). */
+.k42-welcome { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 24px 0 40px; color: #141414; }
+.k42-welcome-team { display: flex; gap: 6px; justify-content: center; }
+.k42-welcome-face { width: 112px; height: 112px; background-size: 300% 300%; background-repeat: no-repeat; transition: transform .2s; }
+.k42-welcome-face:hover { transform: translateY(-4px) rotate(-3deg); }
+.k42-welcome h2 { font-size: 34px; font-weight: 650; line-height: 1.12; letter-spacing: -.01em; margin: 20px 0 10px; }
+/* The prompt is a chat composer: a white box with a frame and soft shadow, the text inside, and a round ink copy
+   button where Send sits in Claude Code (owner, 16 November 2026). */
+.k42-welcome-prompt { margin-top: 28px; display: flex; flex-direction: column; gap: 14px; background: #fff; border: 1px solid #dcdce4; border-radius: 22px; padding: 16px 12px 12px 18px; max-width: 860px; width: 100%; text-align: left; box-shadow: 0 6px 24px rgba(40, 40, 80, .08), 0 1px 2px rgba(20, 20, 20, .05); }
+.k42-welcome-prompt-text { margin: 0; font-size: 15px; line-height: 1.5; color: #141414; }
+.k42-welcome-prompt-footer { display: flex; align-items: center; gap: 8px; }
+.k42-composer-chip { white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border-radius: 999px; background: #f3f3f5; font-size: 12px; font-weight: 600; color: #4a4a55; margin-right: auto; }
+.k42-composer-edit { display: inline-flex; align-items: center; gap: 6px; height: 32px; min-height: 0; padding: 0 10px; border: 0; border-radius: 999px; background: transparent; color: #4a4a55; font-size: 13px; font-weight: 600; cursor: pointer; }
+.k42-composer-edit:hover { background: #f3f3f5; color: #141414; }
+.k42-composer-send { width: 36px; height: 36px; min-height: 0; padding: 0; display: grid; place-items: center; border: 0; border-radius: 999px; background: #141414; color: #fff; cursor: pointer; }
+.k42-composer-send:hover { background: #333; }
+:is(.k42-composer-edit, .k42-composer-send):focus-visible { outline: 2px solid #141414; outline-offset: 2px; }
+.k42-composer-compact { margin-top: 8px; gap: 10px; padding: 12px 8px 8px 12px; border-radius: 16px; box-shadow: none; }
+.k42-composer-compact .k42-welcome-prompt-text { font-size: 13px; }
+.k42-composer-compact .k42-composer-send { width: 30px; height: 30px; }
+.k42-welcome .k42-prompt-editor { margin-top: 12px; width: 100%; max-width: 860px; text-align: left; }
+@media (max-width: 760px) {
+  .k42-welcome-face { width: 88px; height: 88px; }
+  .k42-welcome h2 { font-size: 26px; }
+}
+@media (prefers-reduced-motion: reduce) { .k42-welcome-face { transition: none; } .k42-welcome-face:hover { transform: none; } }
+.k42-welcome-goal { display: inline-block; font-weight: 600; color: #0066ff; animation: k42-goal-in .28s cubic-bezier(.2,.8,.2,1) both; }
+.k42-welcome-goal.is-leaving { animation: k42-goal-out .28s cubic-bezier(.4,0,1,1) both; }
+@keyframes k42-goal-in { from { opacity: 0; transform: translateY(70%); } to { opacity: 1; transform: none; } }
+@keyframes k42-goal-out { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(-70%); } }
+.k42-welcome-goal[data-tone="1"] { color: #7a3cff; }
+.k42-welcome-goal[data-tone="2"] { color: #d6336c; }
+.k42-welcome-goal[data-tone="3"] { color: #0b8a5f; }
+.k42-welcome-goal[data-tone="4"] { color: #c2410c; }
+@media (prefers-reduced-motion: reduce) { .k42-welcome-goal, .k42-welcome-goal.is-leaving { animation: none; } }
+.project-directory-empty:has(> p:empty:only-child) { display: none; }
+.k42-projects-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 8px 0 16px; }
+.k42-projects-heading { font-size: 20px; font-weight: 650; line-height: 1.25; margin: 0; color: #141414; }
+/* The welcome stands in for the page title, which stays for screen readers. */
+.explore:has(.k42-welcome) > .explore-heading, .explore:has(.k42-first) > .explore-heading, .explore:has(.k42-projects-bar) > .explore-heading { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* Three value points under the heading (owner, 16 November 2026). */
+.k42-welcome-values { list-style: none; padding: 0; margin: 8px 0 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; width: 100%; max-width: 860px; }
+.k42-welcome-values li { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.k42-welcome-value-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 999px; background: rgba(255, 255, 255, .8); color: #141414; box-shadow: 0 1px 3px rgba(20, 20, 40, .08); margin-bottom: 4px; }
+.k42-welcome-values h3 { margin: 0; font-size: 18px; font-weight: 650; letter-spacing: -.01em; color: #141414; }
+.k42-welcome-values p { margin: 0; font-size: 14px; line-height: 1.45; color: #5a5a66; max-width: 30ch; }
+@media (max-width: 760px) { .k42-welcome-values { grid-template-columns: 1fr; gap: 16px; } }
+/* The simulated swarm above the heading (owner, 16 November 2026). Faces are 112px with a 6px gap. */
+.k42-welcome-swarm { display:flex; flex-direction:column; align-items:center; }
+.k42-swarm-line { animation:k42-swarm-line .4s ease-out; white-space:nowrap; }
+@keyframes k42-swarm-line { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+.k42-welcome-swarm .k42-welcome-team { position:relative; }
+.k42-welcome-face { transition:transform .3s, filter .3s; filter:saturate(.85); }
+.k42-welcome-face.is-active { transform:translateY(-8px) scale(1.08); filter:none; }
+.k42-welcome-face.is-sending { filter:none; }
+@media (max-width: 760px) { .k42-swarm-line { white-space:normal; max-width:90%; } .k42-welcome-connection { display:none; } }
+@media (prefers-reduced-motion: reduce) { .k42-swarm-line, .k42-welcome-face { animation:none; transition:none; } }
+.k42-swarm-line { position: relative; background: #fff; border-radius: 16px; padding: 10px 14px; font-size: 13px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(20,20,40,.06); }
+.k42-swarm-line::after { content: ""; position: absolute; bottom: -6px; left: 50%; width: 12px; height: 12px; background: #fff; transform: translateX(-50%) rotate(45deg); }
+.k42-tool-marks { display:inline-flex; align-items:center; gap:3px; } .k42-tool-marks img { display:block; border-radius:3px; }
+.k42-handoff-node small { display:inline-flex; align-items:center; gap:5px; }
+
+/* Match the old 320px sheet cell’s 192px face footprint while using the app renderer. */
+.k42-welcome-team > .k42-welcome-face { position:relative; z-index:1; display:grid; place-items:center; }
+.k42-welcome-team > .k42-welcome-face > .k42-character-avatar { width:60%; height:60%; }
+
+.k42-welcome-swarm { position:relative; isolation:isolate; }
+.k42-welcome-swarm > .k42-swarm-line { z-index:2; }
+.k42-welcome-connection { position:absolute; z-index:0; left:0; top:-120px; width:100%; height:calc(100% + 120px); pointer-events:none; }

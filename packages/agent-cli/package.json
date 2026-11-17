@@ -1,0 +1,33 @@
+{
+  "name": "minions",
+  "version": "0.1.0-beta.74",
+  "private": true,
+  "description": "Model-independent Minions MCP connector for project agents",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "bin": {
+    "minions-agent": "./src/cli.mjs"
+  },
+  "scripts": {
+    "test": "node --test --test-concurrency=1 \"test/*.test.mjs\"",
+    "build": "node scripts/build.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/latent-spaces/minions.git",
+    "directory": "packages/agent-cli"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "2.3.1",
+    "@modelcontextprotocol/node": "2.1.1",
+    "@modelcontextprotocol/server": "2.3.1",
+    "smol-toml": "1.9.1",
+    "zod": "4.6.5"
+  }
+}

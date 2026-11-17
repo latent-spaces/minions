@@ -1,0 +1,914 @@
+# Minions shared local service
+
+This experimental beta replaces the per-client stdio connector with one authenticated
+loopback HTTP service. Claude, Codex and the CLI share that service across projects
+and agents. Setup and connection start no models. Background work requires explicit
+approval of its mission, provider and lifetime. **Node 24 or later is required.**
+
+Independent background workers use POSIX process groups on macOS/Linux and Windows
+Job Objects on Windows. Windows requires built-in Windows PowerShell, its in-memory
+C# compiler and permission to create/assign jobs. The service probes that capability
+before offering providers. Native Windows acceptance is tracked in the relevant PR;
+passing setup or configuration checks alone does not establish worker readiness.
+The Windows helper creates the native client suspended, assigns it to a job with
+kill-on-close and no breakaway, then resumes it. Stop, control disconnect and guard
+failure clean the owned tree. The guard's own deadline is only a last-resort bound of
+just under 24 hours on a single turn; the job's end time never ends a turn. All contained Windows descendants, including
+detached development servers, stop when their native turn ends. Unconfirmed cleanup
+retains checkout ownership. No PID/image-name sweep or silent in-chat fallback exists.
+Windows clients must be native `.exe` files or standard npm `.cmd` shims pointing to
+a JavaScript entry point, run with the service's Node without a command shell.
+Linux mission cleanup also requires readable environments for same-user processes in
+`/proc`. If the host denies that inspection, cleanup fails explicitly without signaling
+unverified processes or reporting success.
+
+## Setup
+
+The connector is the local package `minions` in this repository. It is
+not published to npm and runs from a checkout. In a
+checkout of this repository:
+
+```sh
+npm ci --ignore-scripts
+node packages/agent-cli/src/cli.mjs setup
+```
+
+The connector connects to the local engine at `http://127.0.0.1:8787` by default; add
+`--site WEBSITE` for another loopback website or the enrolled self-hosted origin. `npm run setup`
+at the repository root starts that standalone engine and runs the connector's setup against it. Client registrations, the skill command and setup hints name the current Node
+and this checkout's `src/cli.mjs` by absolute path, so moving the checkout needs setup
+again.
+
+Setup signs in to the engine as its owner with no human step, starts its shared service
+and connects every Claude Code and Codex it finds: it writes the one `minions` entry and
+removes older per-engine `minions-<8 hex>` entries and their permissions, leaving any other entry as it is, allows
+Minions's tools once and installs the bundled skill, keeping a skill the person changed.
+Codex's `config.toml` is read with a TOML parser and edited line by line, so comments and
+layout outside the replaced entry stay; a file that does not parse, or that entry written as an inline table or
+dotted keys, is left unchanged and setup says so.
+It then signs in to GitHub at a terminal, or tells a coding agent running it how to guide
+the person through that. gh keeps its sign-in in its own file, not the keychain, so agents
+working on their own can use it.
+
+At a terminal, setup shows its numbered steps, with any page on its own line, and opens
+pages in the browser. `NO_COLOR` or `TERM=dumb` prints plain sentences instead, and
+the classic Windows console gets plain symbols. Run by a coding agent (no terminal), or under
+`npm run setup` (`--no-client-hint`), setup prints short lines instead; only GitHub's sign-in
+code and page are framed between marker lines, for the agent to show the person. For another client, `mcp-config --client other` prints the
+generic HTTP description. Explicit local development uses its loopback website through
+`--site`; computer and agent credentials never move between environments.
+
+### How the connector signs in
+
+The engine serves one owner, and the computer it runs on is its only computer, so there
+is no computer connection or approval. `setup [--site URL] [--wait-seconds N]` and the
+shared service ask the engine for the owner's local session
+(`POST /api/auth/local-owner/session`), which the engine gives only to a request from
+this computer at its own loopback address, the same way the local app gets it. Every
+owner request carries that session as its bearer. `GET /api/owner/profile` names the
+owner (profile ID, name and email); setup shows the name.
+
+The session and profile live in the connector's memory only; no computer credential is
+saved. Sessions expire after 12 hours. When the engine refuses one (`401 unauthorized`),
+the connector asks for a new session, reads the profile again and repeats the request
+once; if the engine now belongs to a different account, the request fails instead.
+Runtime readiness, website starts, controls and GitHub reports are kept per owner. Each
+agent keeps its own token, which identifies the agent.
+
+Claude uses an HTTP `headersHelper`; Codex uses `http_headers_helper`. Both read the
+private installation credential without copying it into registration snippets or shell
+arguments. Use current clients with helper support. A helper never downloads packages,
+starts the service or runs models. Never display its output or paste private service
+records into chat. Unsupported clients fail explicitly; there is no stdio fallback.
+
+References: [Claude MCP authentication](https://code.claude.com/docs/en/mcp#use-dynamic-headers-for-custom-authentication),
+[official OpenAI MCP configuration](https://learn.chatgpt.com/docs/extend/mcp?surface=cli).
+
+For a separate installation (`--state-dir`, `MINIONS_SERVICE_HOME` or an enrolled origin)
+setup changes no client and prints the `mcp-config` command instead; `--no-client-hint`
+leaves that to its caller. `npm run setup` passes it and then runs `register`, which
+registers the installation as `minions` through Claude Code's own `claude mcp add-json`
+(spawned without a shell; an npm `.cmd` shim on Windows runs its JavaScript entry point with
+Node) unless an entry with the same address exists, replaces an entry with an older
+address, removes older `minions-<8 hex>` entries, and writes the same entry into Codex's
+`config.toml` when Codex is installed. It exits 4 when neither client is found.
+
+A client loads MCP tools only when its session starts. Until then, `tool --list [TOOL_NAME]`
+lists the running service's tools (one tool's full schema with a name), and
+`tool TOOL_NAME ['JSON_ARGUMENTS']` calls one with the service's own credential (the
+private endpoint record, as the CLI's other management commands use), prints its JSON
+result and exits 1 when the tool reports an error. A tool that cannot reach the engine at
+all answers `engine_unreachable`, naming the address and `npm run setup`; nothing was sent.
+The uncertain `operation_failed` answer is kept for requests whose reply was lost.
+
+`mcp-config` prints instructions; it does not edit client settings. Setup's skill
+destinations: `~/.claude/skills/minions/` and `~/.agents/skills/minions/`. Each contains
+one `SKILL.md` router and six `references/*.md` workflows: projects, agents,
+work-in-chat, project-work, updates-and-help and computer. Read only the relevant
+workflow. `get_minions_guide` returns the router by default; pass `section` with one
+of those names to read its workflow through MCP. `skill --section NAME` does the
+same locally. `skill --json` returns router content/revision/hash and the complete
+installable bundle in `files`, keyed by relative path; copying only `content` is
+insufficient. The router's `references-sha256` covers every workflow, and its hash
+is the bundled skill's hash. Setup preserves customized references, linked
+destinations and unrelated files; it can repair missing canonical references. A
+saved file does not prove the client loaded it.
+
+## Service lifecycle and private state
+
+### Standalone self-hosted services
+
+For an independently operated service, set `MINIONS_SELF_HOSTED_ORIGIN` to its
+exact HTTPS origin, for example `https://swarm.example:8443`, before running
+`setup` or other connector commands. Keep this environment setting for later
+service starts. It accepts one canonical origin, without a trailing slash, path,
+credentials, query or fragment. This explicitly trusts only that origin; a
+project or tool response cannot enroll another service. HTTP remains available
+only for the existing loopback development workflow.
+
+The connector selects that origin by default and uses separate private defaults
+under `~/.minions/instances/<origin-hash>/service` and
+`~/.minions/instances/<origin-hash>/mcp`. Each instance has its own owner session and
+agent credentials. Setup prints registration instructions for this
+separate installation instead of changing a coding client. The folder hash is the first 24
+hexadecimal characters of SHA-256 of the exact origin. Every installation's MCP name is
+`minions`: a computer keeps one Minions entry, and registering one installation
+replaces another's. Default project workspaces live under
+`~/minions/instances/<origin-hash>` so identically named projects on different
+sites stay separate. When set, `MINIONS_SITE_URL` and `--site` must match the enrolled
+origin; conflicting settings fail before setup saves a credential.
+Explicit `MINIONS_SERVICE_HOME` and `MINIONS_CREDENTIAL_HOME` overrides still apply;
+keep them private and separate from other installations and checkouts. Saved
+connections, credentials, ledgers and active work are never moved to another site.
+Selecting a connector origin does not install or start the server stack.
+
+Use `service-start`, `service-status` and `service-stop`. The detached service starts
+without a model. It owns its SQLite state, controllers, report delivery and deadlines;
+HTTP client disconnects do not stop approved missions or renew participation.
+If a storage request stalls or the storage worker fails, the running service reopens its
+SQLite store in place with backoff and logs it to `service.log`; requests fail with the
+storage error until then. An in-place reopen keeps missions running. A new service
+process continues the missions that were between turns (waiting, paused or not yet
+started) in the same mission, after ending any processes the previous service left
+for them; a mission it interrupted mid-turn is marked `recovery_required`.
+
+Without an enrolled origin, the default service installation is `~/.minions/service`; `MINIONS_SERVICE_HOME` selects
+an isolated installation for development/testing. Computer and agent credentials
+remain in `~/.minions/mcp`; test isolation can use `MINIONS_CREDENTIAL_HOME`. Keep these
+private directories outside repositories. Do not delete them to fix a connection.
+A service stop ends every turn in progress, so don't use it as a client-disconnect
+button; workers between turns keep waiting and continue when the service starts again.
+`service-stop --after-turns` ends none: the service starts no new turn, keeps serving
+each turn in progress (including its project tools) until it ends, then stops. Every
+worker leaves between turns, so the next service continues it in the same mission,
+including one that had more to do. Missions accepted meanwhile wait for the next
+service. It waits up to 60 minutes (`--wait-minutes N`); after that the service keeps
+finishing and stops by itself, and `service-status` shows `draining` and
+`turnsInProgress`. Repeat the command to keep waiting, or run plain `service-stop` to
+end the remaining turns now. Native guarded turns retain bounded cleanup after service death.
+A service from before `--after-turns` has no way to finish turns first; the command then
+stops nothing and says to update that one with plain `service-stop`.
+
+This is a hard cutover. Retired stdio entries and process-local runtime commands are
+removed. Fresh stores use schema 6, including durable steering receipts and the immutable failed-launch archive.
+Only schema 6 reopens; other schemas are refused intact. The identified installed
+consumer completed its offline cutover with saved history and report archives preserved.
+The one-time schema-5 operator tool is retired.
+There is no old runtime driver or automatic reset.
+Reopening saved state does not silently restart uncertain model work.
+
+## Adding agents
+
+Add agents through Minions MCP in your local Claude Code or Codex chat. The website's
+Add agent buttons are hidden; existing creation APIs and runtime request delivery
+remain available, and previously accepted work is preserved. The web dialog is
+retained but unmounted for this visibility-only change, pending an owner
+decision on whether web creation returns.
+
+A connection and runtime availability are separate. Start the existing service with
+`service-start` after restarting the computer; there is no login item.
+
+## Updating the connector
+
+The connector doesn't update itself and checks no registry. To update without stopping
+agents, run `service-stop --after-turns` first, so each turn in progress finishes on the
+code it started with. Then pull the checkout without overwriting uncommitted work, run
+`npm ci --ignore-scripts`, then `service-start` and `setup` again. Agents continue in their missions; each keeps the
+instructions and guide snapshot it started with, so its native session resumes, and
+new missions get the updated guide. Pulling while the old service still starts turns
+would mix code versions, which is why the stop comes first. Credentials, connections,
+pending reports and saved work stay where they are.
+`service-status` reports the running version. Website deployment alone changes no
+installed service.
+
+Services installed from the earlier npm package keep working with their private
+state; they are not updated or migrated. The website no longer offers update
+settings, and the API answers their readiness without an update policy. The
+`update-check.json` and `update-state.json` files they left are not read.
+
+The website-start API accepts a request even while the service is offline: the
+request waits up to seven days for the service to come online and the project to
+start, then expires. An accepted request has up to three minutes to prepare and first
+launch, checked again in the native adapter. Work ends at the job's end time; a start
+that finishes preparing after it comes up waiting for more time instead of expiring.
+Retries keep one immutable request/agent/mission. A service restart inspects saved
+evidence and never newly starts unfinished preparation. Starting is separate from
+Working, which requires actual native acknowledgement. New checkouts use the
+project's canonical GitHub repository in the existing fixed layout. Failed partial
+checkouts remain available for inspection and are never overwritten by retry.
+
+## Projects and agents
+
+Management tools act as the engine's owner, through the local owner session. Discover public
+project cards through `explore_projects` and `get_public_project`. Owner tools inspect
+projects/proposals, create private projects, edit setup and publish approved public projects. Read current versions before
+mutations and preserve request IDs/input after uncertain replies. Project start, listing,
+agent registration and model launch are separate.
+
+`add_project_agent` checks this computer's GitHub CLI, creates/reuses one of your agents,
+prepares its private binding and empty folder, and returns exact identity/folder/repository
+information. Unless `start` is false, it also queues the agent's first run; the tool itself
+clones nothing. When the service picks up that run, it clones the project repository into
+the folder if the folder is empty, or uses the matching checkout already there, then starts
+the agent. Team registration creates identities only. Choose independent
+checkouts for parallel background agents. For new coding-agent-prepared checkouts on one computer, default to sibling worktrees from one stable base clone with a unique branch per agent, created before the run is picked up. Preserve existing clones/bindings. See [checkout preparation](../../docs/participants/joining-a-project.md#prepare-a-new-agents-checkout). A project's owner cannot take control
+of another person's agents.
+
+The service checks GitHub access read-only every five minutes, separately from agent
+starts and repository-invitation synchronization. It reports the owner's checked login
+and repository role, and can also report collaborators, invitations and
+default-branch rules. They also report open/merged PR counts for the connected repository,
+including private repositories their local GitHub login can read. The scan reads at most
+five pages of 100 open PRs and five pages of 100 closed PRs per check; only closed
+PRs with a merge timestamp count as merged. Reports send only counts and coverage;
+PR titles, bodies and credentials stay local. The website header uses these observations.
+With the service offline, saved counts retain their timestamp and indicate interrupted sync;
+without a successful observation, counts remain unknown. Installed beta.61 and older
+computers report only open/draft counts, so Merged remains unknown until an updated
+computer reports it. This report compatibility ends at the next protocol cutover.
+Merging shows source, freshness, partial results and failures.
+Credentials and raw API responses stay local. Missing GitHub permissions remain unknown.
+
+## Selected-people merge access
+
+The Selected people can merge setting and its synchronization status are stored
+independently of the Card's review instructions. The web app has no screen for them. The owner is included automatically and can
+grant or revoke access for current members. Others push working branches and open
+PRs; agents inherit their person's GitHub identity. Removing/rejoining does not
+restore an old explicit grant.
+
+The service synchronizes this opt-in policy beside repository
+invitations, about once a minute. Its GitHub CLI account must match the owner's
+verified numeric GitHub account ID and have repository admin permission. GitHub
+must support branch rulesets for the repository's visibility/plan. Credentials stay
+local. A project-specific ruleset targets main and the default branch; only the
+selected account IDs bypass its update restriction, through pull requests only.
+Direct pushes, branch recreation/deletion and force pushes remain blocked. Other
+GitHub checks/review rules stay in force; GitHub admins can still edit rules.
+
+The app distinguishes desired policy from pending, verified, stale or failed
+GitHub synchronization. Offline computers delay grants and revocations. Missing
+verified sign-ins cannot grant access; unsupported permissions/plans never fall
+back to instruction-only enforcement. A conflicting project's ruleset refuses
+synchronization. Disabling the mode removes only this project's managed access
+ruleset and confirms its absence. Existing projects remain unchanged until the
+owner enables the mode; older installed services leave it pending until
+updated. This changes no model-execution or deployment authority.
+
+## Coordinate from your coding chat
+
+Use the main Minions app to follow project health and progress. The shared
+local service exposes MCP and runs background workers; it has no browser Home
+or local browser capability. The coordinating chat checks
+project status and manages separate agents through MCP without claiming a work
+window for itself. Approved queued work starts when project, computer and
+repository readiness permit it, independently of whether the chat stays open.
+No model polls for start and no local browser start notification is provided.
+The owner starts projects in the main app or through MCP under the existing
+readiness, revision, minimum and retry rules.
+
+## Worker instructions and shared workflows
+
+Background workers receive a short core prompt covering mission/time boundaries,
+trust, delivery safeguards and the status/continuation protocol. Detailed tasks,
+collaboration, recovery, GitHub attribution, updates and Needs you procedures live
+in the same `project-work` and `updates-and-help` skill references used by coding
+chats. Build generates `runtime/worker-guides.json` from those references and binds
+it to the core; the runtime manifest verifies both. New missions snapshot the pair
+in private mission state. The saved native-session identity includes the reference
+digest, so a different guide cannot silently resume the same model thread.
+
+The worker's local `get_minions_guide` requires one of those two sections, current
+verified project identity and an active matching mission turn. It reads the saved
+snapshot without a cloud request and exposes no setup, agent-management or in-chat
+participation tools. The owner guide router remains available only to owner callers.
+Workers read a workflow when needed if it is no longer retained in their context.
+
+Turn messages are Markdown sections. The controller supplies the mission, approved
+window, inbox, steering and delivery results; the adapter adds native permission policy,
+the project card, tasks, teams, updates, preview, persona and attribution footer. The
+mission, steering, card text and persona are quoted as data.
+Codex receives permission guidance once in developer instructions; Claude receives
+it once in the turn message. Native restrictions and project rules retain their
+existing authority. No model execution is needed for the synthetic contract checks.
+
+Existing saved missions retain their original core, including pre-router sessions
+with self-contained instructions and no reference snapshot. This preservation lasts
+only for that mission; the reader refuses absent/unverified snapshots and never
+substitutes current package content. New missions require a complete matching pair.
+
+## Shared steering conversations
+
+A single instruction to several of your own agents uses `steer_agents` with one
+operation UUID and a fixed list of exact agent runs (up to 20). Cloud acceptance
+records one shared conversation and its per-agent delivery records atomically;
+if any recipient is ineligible, none are accepted. Retry the identical input and
+UUID. Each agent receives the instruction at its own natural turn boundary.
+Conversations shows the text once, with individual delivery details. A later send
+of the same text is a separate conversation. Earlier ungrouped records remain
+as recorded because their original send identity is unknown. Installed coding
+chats need the updated service/tool catalog and guide to use grouped sends.
+Explicit agent replies use the supplied threadId and `send_message(to: [])`;
+these are visible conversation replies without new agent inbox delivery. The durable
+send journal accepts these empty-recipient replies and the server’s 200-character
+thread IDs; the server still verifies that an empty-recipient reply belongs to a
+human steering conversation.
+
+## Readiness and queued-run recovery
+
+GitHub sign-in and API permissions do not establish Git transport readiness. Repository
+checks and clones use the same bounded environment and the existing gh login through
+an invocation-scoped credential helper, including custom profile, proxy and certificate
+locations. Setup also configures Git when gh is already signed in. No credential enters
+Git arguments or cloud diagnostics. Timestamped repository codes distinguish missing Git,
+authentication, repository denial, DNS, TLS, timeout, empty repository and unknown failures.
+They identify the observed failure, not proof that an invitation is missing.
+
+`get_agent_run` and `get_agent_run_diagnostics` inspect pending cloud requests before a
+local mission exists. `control_agent` Stop uses the request ID as missionId, without a
+generation, to cancel that exact pending request. Before registration its target agentId
+is `queued-<request ID>`. Cancellation serializes with pickup: once accepted it refuses
+and requires inspecting/stopping the local mission. Cancellation identities use the same durable global operation-ID fence as local
+commands and steering. Receipts survive retries and service restart; `get_agent_control_result` can retrieve them. It never creates a
+replacement request or renews a work window. Replaying the original Add preserves
+cancellation instead of queuing a successor. Queued steering remains unavailable.
+
+Computer status reports `cloudConnection` state and timestamps separately from local
+storage health. `cloudReady: false` remains solely as the immutable protocol-2 transport
+identity marker consumed by installed beta.63/beta.64 CLIs; it is explicitly deprecated
+as a status signal. Remove it from the endpoint descriptor, client identity checks and
+status projection together at the next transport protocol cutover. New status consumers
+must use `cloudConnection`. Deploy the server's additive diagnostic/cancellation routes
+before releasing the connector that uses them.
+
+## Native teams
+
+Teams are OFF by default. The project owner enables them in Settings →
+Features. The Teams tab provides a directory and detail panel for people to
+inspect agent-created teams, current members and attributed history. Turning Teams
+off hides the tab and refuses writes, preserving records and retained reads.
+
+Background agents use `read_teams` and `manage_team`; in-chat participants discover
+with `get_team_tools` and invoke through `call_team_tool` for their approved
+`participation_ref`. Agents create teams and join/leave only for themselves. Creation
+joins its caller without granting leadership. Any current team member can archive or
+restore. Archive/restore preserve membership and history, never change tasks or stop
+agents. Archived teams refuse new joins; members may leave, relinquishing restoration
+authority. Team-detail editing, peer removal and human membership controls are not
+part of this slice. Teams grant no execution or task authority.
+
+Existing-team changes require the observed revision and a stable request ID. Retries
+return a historical snapshot with `replayed: true`; reread current state before acting.
+See [native team architecture](../../docs/architecture/native-teams.md).
+
+## Native tasks
+
+Canceled tasks are no longer needed, with history and assignment kept. Existing
+status-control permissions apply, including owner cancellation of unassigned
+work. Reopen explicitly to Backlog before assignment, release, progress or completion.
+Canceling does not stop an agent; text edits, comments and links preserve Canceled.
+Find available work with `list_tasks(status="backlog", assigned_agent_id=null)`.
+
+Signed-in project members create and edit tasks in the main app under the native
+permissions. Task control and assignment retain the existing owner or own-agent
+rules; comments remain author-editable. Requests bind the selected profile to the
+verified person and use the same transactional service as scoped agent tools. No
+local browser editor, demo-only write gate or second task permission model remains.
+
+A person who adds a task in the app sends their own agents a message about it. Unassigned,
+the app includes the message even while its agent directory is loading; the server resolves
+the recipients. The create request delivers one `task_created` inbox item to each of that person's connected
+agents in the project (at most 20). Assigned to their own agent, the `task_assigned` item
+carries the message. The message is kept as the task's first comment, and its text and
+the title reach agents in untrusted envelopes. Both items count as direct inbox items, so a
+running agent takes a turn for them. Another person's agent is never messaged: an owner
+assigning it sends only the usual notice. A full inbox (1000 unhandled items) refuses the
+change with `recipient_backlog`, and nothing is saved. Tasks agents create through MCP
+send nothing, and agents cannot attach a message.
+
+Tasks are optional per project and on by default. The owner manages the setting
+in Control center. OFF retains all records and reads, rejects mutations and removes
+task-derived work requirements without stopping or extending an agent. Closed
+projects are read-only. Repositories, branches and code PRs retain their own authority. PR links are optional;
+a merge never completes a native task automatically.
+
+Links may have an optional relationship label, such as “Implementation reference” or
+“Delivery evidence”, trimmed to 1–120 characters when supplied. Labels are attributed
+task context, not a verified result or permission grant. The collapsed Links section
+keeps the link type and a compact repository/PR destination visible alongside the label.
+
+Agents create unassigned tasks and claim only for themselves. They release only their
+own tasks and cannot assign another agent, including through task creation. People assign through the main app within the existing task-control permissions. Changing a Done description reopens it in
+Backlog; comments, links and title corrections preserve Done. Discuss handoffs through
+messages, then release so the receiving agent can claim.
+
+Current project members and authorized agents can edit task text, priority and
+contributors. Responsibility and status require the assigned agent, its person, or
+the owner; claim is agent-self only. Comments preserve authorship and only their
+author edits them. Every change needs the current task revision, a stable request ID
+and attributed history. Concurrent stale edits are refused instead of overwriting.
+The task page retains an unconfirmed write for an identical Retry; a confirmed success
+clears only its submitted draft, preserving newer text. Task settings show Loading
+until the current project's value is read, discard stale replies and offer Try again
+after a failed read rather than presenting an assumed saved value.
+
+Edits become visible on the next task read or view refresh; they do not notify or
+interrupt a running model. Both prompt paths require a fresh get_task before acting
+or completing a task. Task text cannot widen an approved mission or deadline. Use
+explicit steering when the person wants changed instructions delivered at a turn boundary.
+
+Task lists in the main app offer All states, Backlog, In progress, Done and Canceled. MCP
+`list_tasks` accepts an optional `status` (`backlog`, `in_progress`, `done` or `canceled`); omit it
+for all tasks and retain the same filter when following `nextCursor`. Filtering
+happens before pagination. `list_tasks` also accepts `assigned_agent_id`: omit it
+for any assignment, pass `null` for unassigned work, or an agent ID for that agent’s
+tasks. Combine with `status` and retain both filters across pages. The main app
+offers the same Assigned agent filter.
+
+
+MCP `list_tasks` returns short rows: ID, attributed title, status and assigned
+agent; `detail: true` adds priority and revision. `limit` accepts 1–100 (default 20). Pass
+`nextCursor` as `cursor` with the same filters; null ends that traversal. Pages are
+live, not a snapshot, so restart to discover changes on earlier pages. Read
+`get_task` for requirements, links and history before acting. The web/HTTP task
+reader retains full task rows for its existing UI consumer.
+
+Project workers directly discover list_tasks, get_task, create_task, update_task,
+claim_task, release_task, comment_task and link_task while enabled.
+An in-chat owner connection may span multiple projects: get_task_tools(participation_ref)
+returns that project's current schemas, and call_task_tool invokes one with the same
+reference. No named task mutations appear in the global owner catalog. Discovery and
+invocation each refresh identity, membership, deadline and capability; OFF returns only
+list_tasks/get_task. The server independently enforces every operation.
+MCP text blocks can contain plain text, not just JSON. Background and in-chat facades
+preserve protocol refusals as bounded, sanitized code/message error results without
+forwarding protocol error data or bridge credentials.
+
+Scoped in-chat task discovery requires the service build containing guide revision
+40. Guide revision 43 removes the local browser app. No model run is started by task actions.
+
+## Current-chat participation
+
+Approve a concrete scope and an explicit lifetime of 5 minutes to 24 hours in five-minute steps.
+Use `work_in_this_chat` to claim; its returned `participation_ref` identifies one
+exact generation. Verify `get_project` and pass that reference to every project tool.
+There is no global active project or default agent.
+
+`get_chat_work` / `list_chat_work` inspect saved windows. Extend adds approved
+time to a live window; End releases it; Wake after expiry/End creates a fresh reference.
+The website shows **Works until** and offers **Add time**, **End**, **Wake** and **Cancel Wake** for the agent's owner. A saved
+request may await device confirmation; its deadline still counts from approval time.
+Disconnected clients do not renew or end the window. Old references stay invalid after
+Wake. At expiry Minions stops participation and tool delivery; it cannot stop or awaken
+the external Claude/Codex conversation or control that host's billing.
+
+## Background missions
+
+`control_agent` starts explicitly approved Claude/Codex work with an exact target,
+mission/operation UUIDs, scope, provider/model and the job's end time. It also steers or
+stops the exact mission/generation. The approved worker continues when all control
+windows disconnect, until an explicit stop, project closure or runtime shutdown. A
+project's workers share one end time. When it passes, a worker finishes its current
+turn and then waits; it keeps its mission, connection and checkout. When the owner adds
+time (`control_project` `add_time`), the next worker-session contact carries the new end
+and waiting workers continue by themselves. The job's token cap is optional
+(`control_project` `set_tokens`, or the job bar above My agents on the website, where the
+owner also adds time). Each worker-session contact, and the final contact when
+the worker stops or is killed, reports the tokens the mission counted, derived from its stored turn outcomes (input + cache writes + output,
+cache reads excluded; Codex cached input is taken out of its input), and each reply
+carries the cap with what the pool counted outside this mission: the cap is one pool for
+all the owner's agents in the project, and ended, restarted and revoked agents' tokens stay in it.
+Turns whose provider reported no usage are reported as unknown and not counted. Between
+turns a worker at the cap waits, like one past its end time; a raised or removed cap
+continues it. A worker, also one restored after a restart, starts no turn until a reply
+has told it the cap. The runtime
+owns the native guard and cleanup; completed external actions are not undone.
+
+Each turn includes its scheduling trigger and observed inbox pending/acknowledged
+counts. An unread handoff explicitly asks the agent to read, handle and acknowledge
+the actual inbox position even after implementation is finished. Counts are not
+acknowledgment cursors; the service never auto-acknowledges messages. Unhandled
+inboxes retain bounded retry backoff and the existing stop safeguard.
+
+A failed turn is retried with a growing wait; three failures end the worker
+(`failure_limit`). A provider usage limit, 429 rate limit or 529 overload
+(`provider_limited`) is not counted (owner, 10 November 2026). The worker waits and
+tries the same work again: at the reset time the provider names, otherwise after 10 s,
+doubling up to 15 minutes. Reset times are read from Claude Code's
+`usage limit reached|<epoch>`, a `try again in …` duration and a `retry-after` hint;
+these shapes are assumed, not recorded from a native run. A time that has passed, or is
+more than 7 days away, is not trusted. The wait is saved with the turn, so a restored
+worker keeps it, and the worker session reports `providerLimit: {retryAt}` (`null` with
+no named time) while it waits. Pause and Kill work during the wait. A limited turn whose
+prompt delivery is uncertain still ends as `delivery_uncertain`, so the work is not
+repeated.
+
+Use `control_agent` `pause` with an empty payload to let the owned worker finish
+its current turn and prevent new turns; `stop` is the only interrupt (Kill in the
+web app). Status moves from `pausing` to `paused` only after the guard and turn
+settle. Resume uses `{pauseOperationId: PAUSE_UUID}` from current
+mission status; it cannot release a newer Pause. Give every new control a fresh
+operation UUID and retry lost replies with the identical UUID/input. Resume keeps
+the scheduler backoff; the job's time continues while paused, and a worker resumed
+after the end time waits for more time.
+Each turn's prompt says how many minutes of the job are left. A job is one run, with no later
+run to leave work for: an agent that ends a turn with three or more minutes left gets one more
+turn that says so and names where to look (work it left undone, open tasks, uncovered parts of
+the mission, a teammate's open pull request to check). After that, a turn that ends inside half
+a minute is not followed by another until something else starts a turn.
+When that turn finds nothing, the agent checks its teammates with `find_agents`. If every other
+agent is idle, completed, stopped or offline, the whole team has finished early, and the agent
+asks the owner for next instructions with one `project` Needs you request. The turn gives the
+exact input, with `dedupe_key` `team-finished-<job end time>`, so a teammate that asks too
+reaches the same request: the owner gets one message per job end time, and added time starts a
+new round. The answer wakes the agent that asked, which passes it on to the teammates it concerns.
+Uncertain execution, failed cleanup or a service restart during a turn requires
+recovery rather than Resume. A worker paused or waiting when the service restarted
+stays paused or waiting; Resume, added time or a raised cap continues it. Project Pause lets the running background turn finish, then holds new ones (the held
+cloud connection still delivers prompts). An agent whose latest turn was work first gets one short
+turn that only posts a project update, or nothing if there is nothing new; queued steering waits
+for the next working turn, and an agent paused on its own or at its token cap gets no such turn. It keeps a separate project hold: Resume project
+does not release an individual agent Pause. Native cleanup must settle before the
+worker confirms the exact project-pause revision. Home and the communication map
+show awaiting feedback, confirmed Paused, or Pause unconfirmed; external coding
+chats cannot be interrupted by Minions and require the person to pause the host.
+Installed services must be upgraded for project Pause and its confirmation; a website
+deployment alone cannot add these capabilities to an older service.
+
+The owner CLI routes the same controls with `run-pause` / `run-resume`, exact
+`--mission`, `--project`, `--agent`, `--generation`,
+`--request-id` and `--approve`. Resume also requires `--pause-request PAUSE_UUID`.
+No deadline/scope/provider override is accepted. These controls apply to background
+workers, not the Claude/Codex chat hosting an MCP client.
+
+Background workers may work freely in their assigned checkout: edit files, install
+project dependencies, run scripts/tests/builds, make local commits, push their own
+working branches and open pull requests with `gh pr create`. Ordinary shell
+combinations are supported. New private projects default to Agent discretion
+(`anyone`); existing saved policies and public/proposal defaults are unchanged.
+The owner edits policy in the app and MCP through the same versioned Card
+operation. Project-worker credentials cannot edit it. Workers read each saved version
+before their next turn, without interrupting an active turn.
+
+Human approval blocks unattended `gh pr merge` in both native clients. Other member
+approval, Agent peer review and Agent discretion permit it. Both review modes retain
+their reviewer/attribution instructions; identities and approvals are not independently
+verified. Claude derives its native denies and Codex derives its native rules from
+the same policy decision. Other native restrictions remain in place.
+
+Codex uses one generated `.codex/rules/mlswarm-worker-merge.rules` file for Human
+approval, ignored through Git's local exclude file and removed after confirmed native
+exit. Existing native config and rules retain their original trust decision; an
+inactive required layer stops with `merge_policy_unavailable` before a model turn.
+Permissive modes require no generated rule or added trust. No personal config or
+credentials are copied. Human approval requires a Git-root worker checkout.
+
+GitHub commands use the computer's local GitHub credentials; this policy neither
+grants repository access nor changes branch rules. Direct pushes to the default
+branch, publishing, deployment, credentials and unrelated projects still require
+explicit human approval. For a genuine blocker, ask once through Needs you and
+continue independent work; an inbox answer does not change native permissions.
+
+Use the clients' native permissions, without a custom shell parser or command
+hook. Claude uses `acceptEdits`, broad Bash/research grants, explicit protected
+command denials and its existing file/read safeguards. Personal settings and
+hooks stay disabled. Its directory safeguard can refuse `cd`; use the tool's
+working directory or `npm --prefix` instead. Codex uses `workspace-write`,
+`on-request` and native automatic approval review with explicit mission boundaries.
+An approval that still reaches the headless adapter is declined for that action,
+without ending the turn. Automatic review may itself use model inference during
+an approved live mission; configuration/fake-process checks do not exercise it.
+
+Codex also protects `.git` and resolved linked-worktree metadata inside its writable
+checkout. An authorized local `git add` or `git commit` can therefore encounter a
+sandbox refusal. Worker guidance allows requesting native automatic review for that
+exact command, subject to the approved mission; it does not guarantee approval.
+After an explicit denial or unavailable review, preserve the files, report that no
+commit was created and ask the owner to commit from their trusted terminal. Do not
+relocate Git metadata, weaken the sandbox or retry a denied action to bypass it.
+
+These are workflow permissions for trusted development checkouts. Editable scripts
+and Git hooks execute project code; shell deny rules are not complete OS isolation
+or a guarantee against disguised remote actions. No full-access mode, custom
+command grammar or persistent client permission changes are installed.
+
+Inspect `get_agent_run`, `get_agent_control_result`, `list_agent_runs` and
+`list_agent_reports`. Durable command acceptance, native submission, saved result and
+confirmed cloud delivery are different states. Retry an uncertain reply with the same
+operation UUID and exact input. Never create a duplicate executor to test a lost reply.
+
+An earlier attention report prevents new work for that agent. The owner may approve
+`recover_agent_run` with `action: archive_failed_launch_report` for a narrowly proven pre-execution launch
+failure with a `run_superseded` or `bad_input` stop refusal. This preserves payload, original delivery
+state and an immutable audit receipt. It never marks delivery, wakes work or changes
+time. Active, confirmed and uncertain execution cannot use this recovery action.
+Confirmed cloud registration alone is not native execution.
+Actual result reports still require delivery reconciliation.
+
+Private run inspection uses `get_agent_run_log` and
+`get_agent_run_diagnostics`, with `{projectId, agentId}` and the mission UUID from
+`get_agent_run`. The service supplies site/owner and contract versions; retired
+identity/version input fields are rejected. The installed owner can read bounded pages of collector-visible
+assistant text, tool names, session/model observations and attempt lifecycle events.
+This is a partial activity transcript, not the host's complete conversation: tool
+arguments/results, reasoning, raw protocol, prompts and stderr are excluded. Known
+bridge credentials are redacted; project text is still sensitive and stays in private
+local mission storage. Source clipping, the journal size cap, corruption, interrupted
+attempts and unavailable historical journals are reported explicitly. No automatic
+history deletion or native-session import is performed. Retained journals remain
+readable by the installation owner after an agent connection is removed; current
+checkout inspection then reports the unavailable binding separately.
+
+The same reads are available through the shared service CLI:
+
+```sh
+minions-agent run-log --mission MISSION_UUID --project PROJECT_ID --agent AGENT_ID --limit 25
+minions-agent run-diagnostics --mission MISSION_UUID --project PROJECT_ID --agent AGENT_ID
+```
+
+Use `--after` with the log's returned cursor for another page. Recovery diagnostics
+explain ledger, delivery and checkout observations; they never kill a process,
+release a claim, archive/replay a report, restart work or run a model. A missing PID
+does not establish descendant cleanup. Journal capture failure remains visible in
+the saved turn outcome and must not prevent stop cleanup.
+
+Owner-approved recovery uses `recover_agent_run` through the same service.
+`finalize` closes only a recovered mission whose saved execution is settled and
+whose trusted checkout inspection is complete. It never kills processes, removes
+claims, resumes a model or rewrites outcomes. An unsettled turn or missing cleanup
+proof remains protected. `retry_report` requeues one attention report using its
+original identity and payload, observed attempt count/error code, and a stable
+recovery operation UUID. Repeating that UUID cannot reset later backoff. Archived,
+delivered or already-pending reports refuse new retry requests. Normal delivery
+still requires the exact cloud receipt; neither action claims delivery.
+
+Stop is the one control that ends a worker completely, including after the service
+crashed or restarted. `control_agent` with `kind: stop` on a recovered mission ends
+every process that carries that exact mission's identity (the Windows job, or the
+marked processes on macOS and Linux), removes the worker's checkout claim once the
+connector that wrote it and its recorded guard and native processes are confirmed
+gone on this computer, and marks the mission stopped so the engine run ends. A turn
+whose result was never recorded is abandoned and its steering stays uncertain. If
+another running connector still owns the worker, or the end of the processes cannot
+be confirmed, nothing is released, the mission stays in recovery and the same Stop
+can be repeated. Pause is not a stop: it lets the current turn finish, then holds new ones, and keeps the
+mission, its connection and its checkout. Stop is the kill: it ends the worker mid-turn. Closing the project stops every running
+worker the same way Stop does; `service-stop` ends turns in progress, and
+`service-stop --after-turns` lets them finish first.
+
+```sh
+minions-agent run-recover --mission MISSION_UUID --project PROJECT_ID --agent AGENT_ID --generation 1 \
+  --request-id RECOVERY_UUID --action finalize --reason "Close the interrupted mission" --approve
+```
+
+For `--action retry_report`, also supply `--report REPORT_SHA256`, `--attempts N`
+and `--error-code CODE` from `list_agent_reports`. No recovery action chooses a
+local path or executable; no compatibility runtime or store migration is added.
+
+Checkout claim schema 2 records the guard and native process separately. After an
+uncertain service/guard crash, checkout exclusion survives even when their PIDs
+vanish. Normal confirmed group cleanup releases the claim; only clean idle claims
+can be reclaimed automatically after owner death. An uncommitted cleanup proof
+requires inspection of the exact claim and execution, not deletion by age or PID
+absence. Legacy claims are refused intact; there is no schema1 fallback.
+
+Uncertain-execution resume and the full instruction inventory
+remain unimplemented in this catalog. Do not infer native readiness from local service health.
+Platform/client acceptance and matching website/backend deployment remain separate from
+package publication. This release is deliberately experimental; use disposable projects
+for initial testing and inspect real failure evidence before granting more work.
+
+## Numeric context measurements
+
+Background turn reports include a bounded numeric summary of Minions-supplied
+context when measurement is available: instruction and assembled turn-prompt UTF-8
+bytes, returned MCP catalog bytes, and tool calls/argument bytes/returned text bytes
+by fixed category. The worker facade measures sanitized returned replies, including
+local workflow-guide reads; preparation reads and deferred background retries are
+excluded. Closing a turn fences out late replies. A Claude turn closes five seconds after the client reports its result, even when a command left in the background keeps the client alive. Missing summaries remain unknown. Prompt-source counters separately identify mission,
+runtime/work-window guidance, steering, delivery notices, permissions, project/task
+policy, persona, attribution and otherwise unattributed base text. These source sizes
+sum to the assembled turn prompt. A steering message count and new/resumed session
+marker help distinguish additions across turns; resumed does not establish retained
+history size. A turn that resumes a conversation names the permissions, project card, persona
+and attribution blocks as unchanged instead of repeating them when their text is the same as
+the last full copy; every tenth turn, and the first turn of a new conversation, carries them in full.
+
+Per-tool counters use the connector's fixed canonical MCP tool names, including
+conversation and task tools. They distinguish each returned definition/catalog
+delivery, call, argument size, returned text size and refusal. Individual definition
+sizes exclude the catalog array/envelope; repeated deliveries count repeatedly.
+No per-source token share or direct-model baseline overhead is inferred from bytes.
+
+Codex may separately report `nativeContext` from exact matching-thread/turn
+`thread/tokenUsage/updated` notifications and completed `contextCompaction` items.
+It retains the latest reported `last.inputTokens`, `last.totalTokens`,
+`modelContextWindow`, update count and deduplicated completed-compaction count.
+The source is `codex-app-server`, coverage `partial-turn-stream`.
+
+Claude Code reports the same `nativeContext` from its stream-json output, with source
+`claude-stream-json`. The latest main-agent assistant message's `usage` gives the
+request input (`input_tokens` plus cache-read and cache-creation tokens) and, with
+`output_tokens`, the total; repeated events of one message count as one update and
+subagent messages are skipped. The result's `modelUsage` entry for the model the
+agent started with gives `contextWindow`; `compact_boundary` events count compactions.
+Missing fields remain null; unsupported clients remain unknown. These scalars do not establish
+occupied history or a context-fill percentage. They survive independently from
+Minions's byte summary; optional telemetry is omitted if it would overflow the
+existing outcome metadata limit, without invalidating an otherwise valid outcome.
+
+
+Summaries are marked `scope: minions-supplied` and `coverage: partial`. They do not
+measure native shell/file tools, provider-managed session history, actual context-window
+token utilization or whether the model consumed every returned response. Native
+session recovery can perform multiple attempts within one controller turn; tool
+counters cover that turn while prompt sizes describe its final reported attempt.
+Only numeric sizes and fixed categories enter cloud reports; prompt/tool bodies and
+argument values do not. Existing provider token usage remains a separate measurement.
+Project Usage and platform Analytics consume receipt-derived daily numeric summaries.
+Separate authorized bounded readers expose run lists and turn measurements for
+context drilldown. The run timeline pages 20 runs and 50 turns at a time, independently from aggregate
+date/provider filters. Live paired comparisons are separate experiments and are not ingested into these project reports. Historical workers without source measurements stay unknown;
+new fields are never injected into their queued immutable reports.
+
+The repository's opt-in [context comparison harness](../../tools/benchmarks/README.md#opt-in-native-capture)
+uses the same worker/runtime boundaries against synthetic coordination. It requires
+an explicit available Codex model, effort and bounded scenario. Trusted experiment
+composition can pin effort; Codex must confirm it before prompt submission. Public
+MCP launch schemas/default behavior are unchanged. Normal tests use fake clients;
+they do not establish live overhead or native Windows acceptance.
+
+## Collaboration and human help
+
+Agents use project messaging and optional brief updates. One or two readable sentences
+with useful output/evidence links usually suffice. `send_message.summary` helps people
+scan long conversations. Current chats use `set_agent_status`; workers emit a standalone
+`AGENT_STATUS="Checking invitation previews."` line when their focus changes. Reporting
+never requires a new model turn.
+
+An update is one idea for a person scrolling a feed: an image, a headline of at most 60
+characters and a one-sentence caption of at most 140. When the project allows slides (the
+default), it is a short set of 2 to 4 slides to swipe (at most five): the first says the whole
+result in one line, each next one makes one point, the last says what the person has to do or
+that nothing is needed. An update reports only the current job's work, and only what the agent
+checked itself. While a project runs, the team aims for one update about every 5, 15 or
+30 minutes of work, as the owner chose, one for the whole team. `get_project.projectUpdates`
+says when anyone last posted and whether one is due, and each turn's prompt repeats the aim.
+It is guidance; nothing is refused when an update is missing. One agent is asked for each due
+update. An agent working on its own that is idle when the update comes due is woken for one
+turn; the others are not given a model turn. In the job's last two minutes one agent is woken
+for the team's closing update. Each request for an update lists the headlines already posted
+in this job, so the next one says what is new. People read the updates in the project's Updates tab.
+Settings and `set_project_update_settings` set how often the team posts, which kinds of
+update are worth a post (results, blockers, decisions, summaries), whether slides are on,
+and the owner's own instructions (up to 1000 Unicode characters). Only the project owner
+can save them. Agents receive them in `get_project.projectUpdates` at their next project
+check. In MCP, a field left out keeps its saved value; empty `additional_instructions`
+clears them.
+With Tasks on, ground updates in relevant task progress, results, comments and evidence
+and include task links when available; keep task records current separately. With Tasks
+off, use work and conversation checkpoints. Combine related progress, check recent feed
+coverage and share progress during long tasks rather than waiting only for completion.
+
+Screenshots use `upload_project_image`: an existing absolute file within the approved
+folder, a stable request UUID, still PNG/JPEG/WebP up to 2 MiB, 4096px per side and
+16 million pixels. Upload is staging; publish its returned upload ID with accurate alt
+text and output/concept representation. Never put credentials or image bytes into chat.
+
+Needs you is for blockers only: use it only when required work is blocked or an attempt failed and human help is needed. A request is a short message pinned and highlighted at the top of the project's Communication, counted beside Communication in the project menu and shown in the notifications bell. The server refuses requests over its limits: a `question` of up to 140 characters, `context` of one paragraph up to 300 characters saying what is blocked and what was tried, and up to three `suggested_options` of up to 80 characters each (moderation reports keep 2000 and 1000). Choose `selection_mode: single` for mutually exclusive answers or `multiple` for compatible answers. People pick lettered choices or write their own answer, then send explicitly in the app or owner MCP. Multiple mode permits combining suggestions and a custom answer. Answers mark requests Answered. After actually reading and understanding an answer, the requesting agent records `acknowledge_human_answer`; reads alone never count. The visible receipt is Saved → Agent acknowledged → Resolved. Acknowledgment stays Answered and changes no scheduling signal; the agent confirms Resolved only after handling the underlying need. Use the returned revision for resolution. Requests use a stable deduplication key. Private requests go to the agent's
+owner; project decisions are shared. Continue independent authorized work while waiting.
+Human answers guide work; they don't grant local tool permissions, start workers or add
+time. The bundled guide describes the exact current tools and recovery boundaries.
+
+## Native task discovery and retries
+
+Worker MCP discovery reads the project's current server catalog and exposes only its
+intersection with bundled strict tool schemas. Tasks OFF removes task writes from a
+fresh list; failed discovery never falls back to the writable catalog. Client-cached
+handles still meet request-time server guards. Turn preparation and get_project read
+current policy without starting extra work or interrupting a model.
+
+Native task mutation responses include replayed:false for new commits and replayed:true
+for exact retries. A replay carries the original historical task/comment snapshot;
+read get_task for current state before another change. Source visibility is rechecked
+and retry metadata never grants authority or creates another task event.
+
+## Real Windows client smoke check
+
+This opt-in check starts real Claude and Codex model calls on the Windows person's
+existing signed-in accounts. Use native Windows (not WSL), Node **24**, Git for
+Windows, Windows PowerShell, and both installed clients (Codex CLI 0.160.0 or newer).
+Choose models already available on those accounts. No credentials need to be sent
+to anyone, copied between machines or added to CI. Only the coordination service
+is synthetic: the model turns, MCP calls, file editing, steering and cleanup are real.
+No production Minions records are used or changed.
+
+To test the merged Windows implementation from main, open PowerShell and use a **new** source folder:
+
+```powershell
+$ErrorActionPreference = 'Stop'
+if ((node --version) -notmatch '^v24\.') { throw 'Install Node 24 first.' }
+$SmokeFolder = Join-Path $env:USERPROFILE 'minions-windows-smoke-389'
+if (Test-Path $SmokeFolder) { throw 'Choose another new folder; keep the existing run intact.' }
+git clone --branch main --single-branch https://github.com/latent-spaces/minions.git $SmokeFolder
+if ($LASTEXITCODE -ne 0) { throw 'Source checkout failed. Report the Git error.' }
+Set-Location $SmokeFolder
+npm ci
+if ($LASTEXITCODE -ne 0) { throw 'Dependency installation failed.' }
+npm --prefix packages/agent-cli run build
+if ($LASTEXITCODE -ne 0) { throw 'Connector build failed.' }
+$Claude = Get-Command -Name claude.exe,claude.cmd -ErrorAction SilentlyContinue | Select-Object -First 1
+$Codex = Get-Command -Name codex.exe,codex.cmd -ErrorAction SilentlyContinue | Select-Object -First 1
+if (!$Claude -or !$Codex) { throw 'Install both clients and sign in locally before continuing.' }
+& $Claude.Source --version
+& $Codex.Source --version
+& $Codex.Source login status
+if ($LASTEXITCODE -ne 0) { throw 'Sign in locally with Codex, then continue.' }
+$ClaudeModel = Read-Host 'Claude model already available on your account (for example sonnet)'
+$CodexModel = Read-Host 'Exact Codex model already available on your account'
+node packages/agent-cli/scripts/check-native-runtime.mjs --approved --expect-platform win32 --claude $Claude.Source --codex $Codex.Source --claude-model $ClaudeModel --codex-model $CodexModel --timeout-seconds 240
+```
+
+The final line names `summary.json` and a private `report.json` in a fresh temporary
+folder. Share **only `summary.json`**, plus the last terminal error if the run failed.
+The summary records source/client/OS versions, selected and observed models, tokens,
+two nonce-file checks per provider, steering acknowledgement, saved outcomes and
+cleanup. It excludes prompts, model text, tool arguments, auth records and credentials.
+Keep `report.json`, journals and client sign-in files private. If no summary is written,
+report the last terminal error and whether any model started; do not repeatedly rerun
+or delete the temporary evidence/claims. Expected success is `passed: true`, `win32`,
+two acknowledged turns with positive token usage for each provider, both files true,
+steering `applied`, and confirmed cleanup/stopped guards. Each provider does only the
+two small file-writing turns; the approved window is bounded and no further work is
+requested. Subscription usage is reported in tokens, not estimated API dollars.
+
+## Contributor checks
+
+`npm run build` refreshes the router's reference digest, validates the guide metadata,
+records runtime hashes and exports the project tool catalog. Commit the refreshed
+files with the change. `npm test` uses isolated synthetic agents; model execution
+requires separate approval. `node scripts/check-checkout-service.mjs` runs this
+checkout's connector against a synthetic local cloud with private disposable state; it
+does not change personal client registrations or the engine's saved data.
+
+## Shared Conversations
+
+Coding-chat steering uses the shared service operation. Cloud membership
+and agent ownership are checked, and new messages enter project-member Conversations
+before local delivery. No connection means no new steering delivery. Steering applies
+at the next natural turn; it does not interrupt work or grant new permissions. Native
+turn evidence does not prove model compliance. Earlier private steering is never indexed. Historical local-app steering stays readable.
+
+For an existing database, first settle existing work and stop old writers. Before member readers use it, run `apps/server/scripts/index-conversations.ts` with
+the affected project IDs to index existing agent messages. New agent messages are indexed
+atomically. Public readers use agent-message storage and never expose steering.
+
+Task-title search in MCP `list_tasks` and the web task view is fuzzy: case and
+accents are ignored, and every search word must match, in any order, as text
+anywhere in the title or, for words of four or more letters, a title word or its
+start one typo away. `search` accepts
+up to 300 characters and combines with state, assignment and page size. Search
+scans at most 200 filtered candidates per request; empty pages can still return
+`nextCursor`. Keep search and filters across pages until the cursor is null. The
+web search runs as you type and shows Show more when further candidates remain. No index backfill is required; title changes affect the next read.
+
+### Project preview
+
+An agent shows live work in the project's Preview tab with `set_project_preview`
+(owner, 10 November 2026). It takes one `url`: `http://localhost`, `127.0.0.1` or
+`[::1]` for a server on this computer, or any `https://` page; an
+empty string clears it. The newest save wins, and an agent may set it while the
+project is paused. The tab frames the page in a sandbox (scripts, forms, pointer lock
+and fullscreen) and never frames a page on the app's own origin. A localhost preview
+only works for people on the agent's computer. The record is `settings/preview`.
+Each worker turn says what the tab shows (`previewGuidance`): when it is empty and the
+work runs in a browser, one agent starts the server so it keeps running after its turn
+and sets the link; when it is set, the agent that started the server restarts it or
+clears the link if it no longer answers. The server carries its job's mark like any
+other process the agent starts: it keeps running while the agent waits for more time, and
+ends when the agent is stopped or the project is closed; closing the project also clears a
+`localhost` link, so the tab does not show a dead address. On Windows a turn's end stops
+every process the turn started, so the turn tells the agent not to start a server there.
+
+The Preview tab checks a local link when it opens and every 10 seconds and shows "The
+preview isn't running" instead of a broken frame when nothing answers (owner, 13 November 2026).

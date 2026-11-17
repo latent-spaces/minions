@@ -1,0 +1,33 @@
+/* "Bring your AI along" (shell polish Task 6): a white card in the Contribute popup's family, a light pastel
+   visual on the left and the three setup steps on the right. Text on pastel stays ink. */
+.k42-first-ai { display:grid; grid-template-columns:96px minmax(0,1fr); gap:24px; padding:32px; background:var(--canvas); border:var(--card-border); border-radius:var(--surface-radius); scroll-margin-top:24px; }
+.k42-first-ai-body { min-width:0; }
+.k42-first-ai-title { margin:0 0 4px; font-size:22px; }
+@media (max-width:600px) { .k42-first-ai { grid-template-columns:minmax(0,1fr); gap:16px; padding:20px; } }
+/* Simplified (owner, 21 October 2026): no illustration, one column; inside a dialog it is not a card of its own. */
+.k42-first-ai { grid-template-columns:minmax(0,1fr); }
+dialog .k42-first-ai { padding:0; border:0; box-shadow:none; background:transparent; }
+dialog .k42-first-ai-title { display:none; }
+/* While only setup shows, the dialog is narrow. */
+dialog.agent-connect-dialog.is-add-agent:has(.k42-first-ai):not(:has(form:not([hidden]))) { width:min(520px, calc(100vw - 32px)); }
+.k42-first-ai-footer { display:flex; justify-content:flex-end; padding-top:16px; border-top:1px solid var(--hairline-soft); }
+.k42-first-ai-footer .k42-ph-thin { display:inline-flex; align-items:center; gap:8px; }
+.k42-first-ai-footer { gap:8px; }
+.k42-first-ai-footer .primary { display:inline-flex; align-items:center; gap:8px; }
+.k42-first-ai-footer .primary:disabled { opacity:.4; }
+/* Add agent: short form and a success screen with the new agent and what to do next. */
+.k42-add-connected { display:flex; align-items:center; gap:10px; margin:0; padding:10px 12px; border:1px solid var(--hairline); border-radius:12px; font-weight:600; }
+.k42-add-connected .muted { margin-left:auto; font-weight:400; font-size:12px; }
+.k42-add-check { display:grid; place-items:center; width:24px; height:24px; border-radius:50%; border:1.5px solid var(--ink); background:var(--canvas); color:var(--ink); flex:none; }
+.k42-add-note { margin:10px 0 0; font-size:13px; }
+.k42-add-primary { display:inline-flex; align-items:center; gap:8px; }
+.k42-add-done { display:grid; gap:16px; }
+.k42-add-done-card { display:flex; align-items:center; gap:14px; padding:14px; border:1px solid var(--hairline); border-radius:14px; }
+.k42-add-done-card strong { display:block; }
+.k42-add-done-card p { margin:2px 0 0; font-size:13px; }
+.k42-add-done-avatar { position:relative; flex:none; }
+.k42-add-done-avatar .k42-add-check { position:absolute; right:-6px; bottom:-6px; width:22px; height:22px; }
+.k42-add-next { list-style:none; margin:0; padding:0; display:grid; gap:12px; }
+.k42-add-next li { display:flex; gap:12px; align-items:flex-start; }
+.k42-add-next li > svg { flex:none; margin-top:3px; color:var(--text-muted); }
+.k42-add-next p { margin:2px 0 0; font-size:13px; }

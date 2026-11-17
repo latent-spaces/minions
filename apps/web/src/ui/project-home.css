@@ -1,0 +1,39 @@
+.k42-activity-main h2 { margin:0; }
+.k42-activity-main { min-width:0; display:flex; flex-direction:column; gap:16px; }
+.k42-overview:not([hidden]) { display:flex; flex-direction:column; gap:16px; margin-bottom:24px; }
+.k42-swarm-panel { border:var(--card-border); border-radius:var(--surface-radius); background:var(--canvas); padding:20px; }
+.k42-activity-heading { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+.k42-project-main { min-width:0; container-type:inline-size; }
+/* The project page is framed: the header and notices keep their height, and the open tab below them (.k42-project-body)
+   either scrolls or fits; Preview fits, the other tabs scroll (owner, 13 November 2026). */
+.workspace-content > div:has(> .k42-project-layout) { flex:1 1 auto; min-height:0; display:flex; flex-direction:column; }
+.k42-project-main { display:flex; flex-direction:column; min-height:0; }
+.k42-project-main > :not(.k42-project-body) { flex:none; }
+/* Agent chat tabs. */
+.k42-chat-identity svg { flex:none; color:var(--muted); }
+/* Project updates are a right panel on every project tab (owner, 11 November 2026); narrow screens open it from a button. */
+/* The Updates panel grows with the screen: 360px up to 460px (owner, 11 November 2026: wider updates). */
+.k42-project-layout { flex:1 1 auto; min-height:0; display:grid; grid-template-columns:minmax(0,1fr) clamp(360px,28vw,460px); gap:20px; align-items:stretch; }
+/* The panel runs the full height on the right, beside the project column. Its switch keeps its height; Updates scrolls
+   below it and the map fits the space left. */
+.k42-updates-panel { min-width:0; min-height:0; box-sizing:border-box; display:flex; flex-direction:column; overflow:clip; padding:16px; border:var(--card-border); border-radius:var(--surface-radius); background:var(--canvas); }
+.k42-updates-panel > * { flex:none; }
+.k42-updates-panel > :is(.k42-scroll, .k42-fit) { flex:1 1 auto; }
+.k42-updates-toggle, .k42-updates-close { display:none; }
+@media(max-width:1199px) {
+  .k42-project-layout { display:flex; flex-direction:column; }
+  .k42-project-main { flex:1 1 auto; }
+  .k42-updates-toggle { display:inline-flex; position:fixed; right:16px; bottom:16px; z-index:30; gap:6px; align-items:center; box-shadow:var(--shadow-raised, 0 4px 16px rgba(0,0,0,.12)); }
+  .k42-updates-panel { display:none; }
+  .k42-updates-panel[data-open] { display:flex; position:fixed; inset:0 0 0 auto; z-index:40; width:min(460px,92vw); border-radius:0; border:0; background:var(--canvas); box-shadow:-8px 0 24px rgba(0,0,0,.14); }
+  .k42-updates-panel[data-open] .k42-updates-close { display:flex; justify-content:flex-end; }
+}
+/* Tasks merges Home: setup notes in a strip, then the tasks across the main column. */
+.k42-overview-strip { display:flex; flex-direction:column; gap:12px; }
+.k42-overview-strip:empty { display:none; }
+.k42-overview-tasks { min-width:0; }
+/* The panel's Updates / Map switch spans its width (owner, 11 November 2026: the map moved into the panel). */
+.k42-panel-switch.k42-task-segments { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); width:100%; margin-bottom:12px; }
+.k42-panel-switch .k42-task-segment { display:inline-flex; align-items:center; justify-content:center; gap:6px; font-size:13px; padding:5px 12px; }
+.k42-updates-count { display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; padding:0 5px; border-radius:9px; background:var(--ink); color:var(--on-ink,#fff); font-size:11px; font-weight:650; font-variant-numeric:tabular-nums; line-height:1; }
+.k42-panel-crowd { display:flex; align-items:center; gap:8px; padding:4px 4px 10px; }

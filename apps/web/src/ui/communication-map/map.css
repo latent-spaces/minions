@@ -1,0 +1,56 @@
+.communication-map{position:relative;height:clamp(500px,65vh,700px);min-height:500px;overflow:hidden;touch-action:none;color:var(--ink)}
+.communication-map>canvas,.communication-map>svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.communication-map>canvas{pointer-events:none}
+.communication-map-controls{position:absolute;top:8px;right:8px;left:8px;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:4px;pointer-events:none}
+.communication-map-controls>*{pointer-events:auto}
+.communication-map-controls>select,.communication-map-zoom>button{min-height:44px;background:var(--canvas);border:1px solid var(--line);border-radius:var(--radius-button);color:var(--ink);padding:6px 10px;font:inherit;cursor:pointer}
+.communication-map-controls>select:hover,.communication-map-zoom>button:hover{border-color:var(--hairline-strong);background:var(--canvas-soft)}
+.communication-map-controls>select:focus-visible,.communication-map-zoom>button:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.communication-map-controls>select{max-width:180px;min-width:100px}
+/* Zoom out, Fit map and Zoom in sit together at the row's right end. */
+.communication-map-zoom{display:inline-flex;gap:4px;margin-left:auto}.communication-map-zoom>button{min-width:44px}
+.communication-map-error{position:absolute;bottom:12px;left:12px;right:12px;padding:12px;background:var(--canvas);border:1px solid var(--line)}
+.k42-communication.is-expanded .communication-map{height:max(420px,calc(100dvh - 290px))}
+@media(max-width:480px){.communication-map-controls{justify-content:center}.communication-map{height:560px}}
+.communication-map:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.communication-map [data-map-edge]{cursor:pointer;outline:none}
+.communication-map [data-map-edge]:focus-visible path{stroke:var(--ink);stroke-width:5}
+
+.communication-map-orbit-note { position:absolute; bottom:8px; left:12px; margin:0; font-size:12px; color:var(--text-muted); pointer-events:none; }
+.k42-communication-persona-hat { filter: drop-shadow(0 1.5px 2px rgb(0 0 0 / 0.35)); }
+
+.communication-map .k42-communication-owner-ring { fill:none; stroke:var(--owner-color,var(--muted)); stroke-width:3; pointer-events:none; }
+.communication-map [data-owner-id=""] .k42-communication-owner-ring { stroke-dasharray:3 3; }
+.communication-map [data-map-id].is-owner-dimmed { opacity:.2; }
+.communication-map .k42-communication-agent.is-crowded :is(.k42-communication-name,.k42-communication-state,.k42-communication-focus) { visibility:hidden; }
+.communication-map .k42-communication-agent.is-crowded:is(:hover,:focus-visible,.selected,.is-inspecting) :is(.k42-communication-name,.k42-communication-state,.k42-communication-focus) { visibility:visible; paint-order:stroke; stroke:var(--canvas); stroke-width:4; stroke-linejoin:round; }
+/* Keep transparent hit padding from covering adjacent fitted portraits. Labels
+   remain interactive through their parent group; portraits retain a 54px target. */
+.communication-map .k42-communication-agent-hit { x:-27; y:-27; width:54px; height:54px; }
+/* Crowding options other than the default draw quiet agents as owner-coloured dots. */
+.communication-map [data-map-id].is-dot .k42-communication-agent > :not(.k42-communication-owner-ring,.k42-communication-agent-hit) { display:none; }
+.communication-map [data-map-id].is-dot .k42-communication-owner-ring { fill:var(--owner-color,var(--muted)); stroke:var(--canvas); stroke-width:6; }
+.communication-map [data-map-id].is-dot .k42-communication-agent-hit { x:-70; y:-70; width:140px; height:140px; }
+.communication-map-outside { position:absolute; bottom:30px; right:12px; margin:0; font-size:12px; color:var(--muted); }
+.communication-map-outside button { min-height:32px; padding:4px 8px; border:1px solid var(--line); border-radius:var(--radius-button); background:var(--canvas); color:var(--ink); cursor:pointer; }
+
+/* A local stacking context keeps all tube pixels below every SVG/HTML avatar. */
+.communication-map { isolation:isolate; }
+.communication-map>[data-map-layer="grid"] { z-index:0; }
+.communication-map>[data-map-layer="connectors"] { z-index:1; }
+.communication-map>[data-map-layer="avatars"] { z-index:2; }
+.communication-map-controls,.communication-map-outside,.communication-map-orbit-note,.communication-map-error { z-index:3; }
+.k42-connection-popover { position:fixed; z-index:1000; width:min(300px,calc(100vw - 24px)); display:grid; gap:6px; padding:14px; border:1px solid var(--hairline,#e0e0e0); border-radius:12px; background:var(--canvas,#fff); color:var(--ink,#141414); font-size:14px; line-height:1.45; }
+.k42-connection-popover > strong { font-weight:650; overflow-wrap:anywhere; }
+.k42-connection-popover > small { color:var(--text-muted,#6b6b6b); font-size:12px; }
+.k42-connection-excerpt { margin:0; overflow-wrap:anywhere; white-space:normal; }
+.k42-connection-popover > a { display:block; padding:8px 0 2px; color:inherit; text-underline-offset:3px; }
+.k42-connection-popover > a:focus-visible { outline:2px solid var(--ink,#141414); outline-offset:3px; border-radius:3px; }
+
+/* State bubbles carry the compact overview; inspection reveals full text. */
+.communication-map[data-map-labels="compact"] :is(.k42-communication-state,.k42-communication-focus),
+.communication-map[data-map-labels="compact"] .has-label-collision .k42-communication-name,
+.communication-map[data-map-labels="inspect"] :is(.k42-communication-name,.k42-communication-state,.k42-communication-focus) { visibility:hidden; }
+.communication-map[data-map-labels] .k42-communication-agent:is(:hover,:focus-visible,.selected,.is-inspecting) :is(.k42-communication-name,.k42-communication-state,.k42-communication-focus) { visibility:visible; paint-order:stroke; stroke:var(--canvas); stroke-width:4; stroke-linejoin:round; }
+/* People are 25% larger; counter-scale their type to keep the same reading size. */
+.communication-map .k42-communication-person :is(.k42-communication-name,.k42-communication-state) { font-size:9.6px; }

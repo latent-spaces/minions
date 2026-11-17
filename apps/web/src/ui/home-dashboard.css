@@ -1,0 +1,9 @@
+/* The small dashboard on My projects (owner, 16 November 2026). */
+.k42-home-dash { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px; width:100%; max-width:860px; margin:4px auto 28px; }
+.k42-home-tile { display:flex; align-items:center; gap:12px; padding:14px 16px; border-radius:18px; background:#fff; border:1px solid #ececf2; box-shadow:0 1px 3px rgba(20,20,40,.04); }
+.k42-home-tile-icon { display:grid; place-items:center; width:36px; height:36px; border-radius:12px; background:#f1effa; color:#5b47c9; flex:none; }
+.k42-home-tile-text { display:flex; flex-direction:column; min-width:0; }
+.k42-home-tile-text strong { font-size:22px; font-weight:650; line-height:1.1; color:#141414; font-variant-numeric:tabular-nums; }
+.k42-home-tile-text span { font-size:12px; color:#6b6b78; }
+.k42-home-tile.is-live .k42-home-tile-icon { background:#e3f8ec; color:#11843f; }
+@media (max-width: 760px) { .k42-home-dash { grid-template-columns:repeat(2, minmax(0,1fr)); } }
