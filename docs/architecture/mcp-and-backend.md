@@ -4,7 +4,7 @@ Minions coordinates coding agents through a local engine and shared service on y
 
 This reference explains the current implementation and its consequences for reliability, privacy, performance and operations. It is intended for the owner, contributors and reviewers who need to follow an operation across the website, connector, local runtime and backend.
 
-The local engine runs the API, website, delivery worker, SQLite database and media directory in one process (section 21). In this reference, “cloud” records and API names refer to the engine server side rather than a hosted service. Performance targets are distinct from measured acceptance.
+The local engine runs the API, website, delivery worker, SQLite database and media directory in one process (section 21). The Firestore-shaped API in `firestore.ts` is a local SQLite adapter, not a connection to Firestore. In this reference, “cloud” records and API names refer to the engine server side rather than a hosted service. Performance targets are distinct from measured acceptance.
 
 The core boundaries are: the person's steering conversation stays separate from background work; each person steers their own agents; native tasks belong to Minions; and visible progress must not be mistaken for permission or proof of execution.
 
@@ -41,8 +41,8 @@ A quick reading route: owners can start with sections 1–3, 6 and 20–21; conn
 
 There are two independent paths from the person's computer to the backend:
 
-- The browser uses human-facing HTTP APIs, authenticated by a server session issued for the person's verified GitHub identity (or the engine's local owner sign-in).
-- The local connector uses its computer credential for owner operations and project-agent credentials for agent operations.
+- The browser uses human-facing HTTP APIs, authenticated by the engine's signed local-owner session.
+- The connector uses the same local-owner session for owner operations and separate project-agent credentials for agent operations.
 
 The website and, in the steering journey, the coding chat are control clients. Neither replaces the local execution service. A chat can separately join as an explicit current-chat participant (section 8), doing project work without giving Minions ownership of its model process. Conversely, a local process or a private SQLite row does not grant project membership or permission to mutate cloud records.
 
@@ -63,7 +63,7 @@ flowchart TB
     Model -->|"Scoped worker MCP"| Local
   end
   Browser["Minions website"] -->|"Human HTTP APIs"| API["Engine API"]
-  Local -->|"Computer-credential HTTP APIs"| API
+  Local -->|"Local-owner session HTTP APIs"| API
   Local -->|"Agent HTTP and project MCP"| API
   API <--> Store["SQLite authoritative records"]
   API <--> Objects["Media directory"]
@@ -74,7 +74,7 @@ flowchart TB
 
 The backend runs **project coordination**, not the person's Claude Code or Codex turns. The private delivery worker processes durable delivery and lifecycle work; it is not a hosted coding agent.
 
-There is no separate local Minions browser application. The main website provides project views and controls. A game or application produced by an agent may have its own local preview, but that preview is an output of the project, not a second Minions runtime.
+The engine serves the local browser app from `apps/web/dist`; the connector has no separate browser UI. A game or application produced by an agent may have its own local preview, but that preview is an output of the project, not a second Minions runtime.
 
 ## 2 Components and ownership
 
@@ -102,16 +102,16 @@ The public server does not put every caller through one authentication middlewar
 | Route family | Boundary |
 | --- | --- |
 | `/integrations/github` | GitHub HMAC verification over original request bytes |
-| `/api/owner` | Human profile operations and computer-credential operations, separated inside the router |
+| `/api/owner` | Owner profile and management operations authenticated with the local-owner session |
 | `/api/platform` | Verified platform administration and diagnostics |
 | `/api/project-chat`, `/api/project-progress`, `/api/needs-you` | Human domain APIs with audience and project checks |
 | `/p/{projectId}/v2` | Authenticated project-agent coordination and run-fenced operations |
 | `/p/{projectId}/api/view` | Human-authenticated project views |
 | `/p/{projectId}/api/join` | Project-scoped onboarding |
 
-The server first applies no-store response policy, mounts provider-specific authentication/parsing and special snapshot parsers, then installs the MCP SDK's host/JSON middleware and ordinary routes. GitHub requires the original bytes for HMAC verification; Postmark uses its configured authorization secret. These integration checks must not be conflated with one another or with project-agent bearer authentication.
+The server first applies no-store response policy, mounts provider-specific authentication/parsing and special snapshot parsers, then installs the MCP SDK's host/JSON middleware and ordinary routes. GitHub requires the original bytes for HMAC verification. This integration check is separate from local-owner sessions and project-agent bearer authentication.
 
-Project routing validates the 64-hex project ID, selects a bounded per-project router and enters `AsyncLocalStorage` through `inProject`. Firestore helpers resolve project references from that context and refuse an absent context. This selects a namespace; it does not authorize a caller. Authentication, membership, run fences and committing domain checks still establish whether the operation may use that namespace.
+Project routing validates the 64-hex project ID, selects a bounded per-project router and enters `AsyncLocalStorage` through `inProject`. Document-store helpers in `firestore.ts` resolve project references from that context and refuse an absent context. This selects a namespace; it does not authorize a caller. Authentication, membership, run fences and committing domain checks still establish whether the operation may use that namespace.
 
 **Source:** [route composition](../../apps/server/src/api.ts), [project context and routers](../../apps/server/src/projects/routes.ts), [scoped store helpers](../../apps/server/src/firestore.ts).
 
@@ -123,8 +123,8 @@ A useful way to understand the system is to ask who issues a credential, what it
 
 | Credential or identifier | Meaning and enforcement |
 | --- | --- |
-| Server session | Human sign-in. The engine issues it after GitHub confirms the account (or for the local owner), checks it on every request, including revocation and disabled accounts, then resolves an active invited profile from verified identity information. The connector uses the same local-owner session on owner routes: it asks the engine for one (`POST /api/auth/local-owner/session`, given only to this computer at its loopback address), keeps it in memory and asks again when it expires or is refused. There is no computer credential. |
-| Project-agent bearer | Identifies one agent in one project. Firestore stores a token hash. Current agent, owner and membership state remain authoritative. |
+| Server session | Human sign-in. The engine signs it for its configured local owner, verifies expiry and revocation, then resolves the active owner profile through that identity. The connector uses the same local-owner session on owner routes: it asks the engine for one (`POST /api/auth/local-owner/session`, given only to this computer at its loopback address), keeps it in memory and asks again when it expires or is refused. There is no computer credential. |
+| Project-agent bearer | Identifies one agent in one project. The local document store retains a token hash. Current agent, owner and membership state remain authoritative. |
 | Local owner bearer | Protects the shared loopback service. Stored in private installation files and supplied to coding clients through the installed header helper. |
 | Local worker bearer | Random, revocable capability for one target, mission and generation. Accepted only while that mission has an active turn before its deadline. |
 | Cloud run ID | Fences project operations to an issued run. It is not a substitute for an authenticated bearer. |
@@ -136,9 +136,9 @@ A tool's public arguments normally select `{projectId, agentId}`. The installed 
 
 ### 3.2 Human identity
 
-Human-facing routes verify server sessions with revocation checking (`apps/server/src/identity/`). GitHub sign-in is the participant path: the server asks GitHub for the account's verified emails and keeps that mapping, because a self-declared email is insufficient for the repository's identity policy.
+The self-hosted engine installs `localOwnerIdentity` from its private owner configuration. Human-facing routes verify its signed sessions and configured owner identity (`apps/server/src/identity/`, `self-hosted-engine.ts` and `auth.ts`). The app and connector obtain their session through the engine's restricted loopback exchange; the connector keeps it in memory.
 
-An active Minions profile is resolved from those verified emails. Administrator and reviewer privileges use their own verified-session checks. A session-store outage propagates as a retryable server failure rather than falsely telling an invited person that they lack an invitation.
+The shared domain resolves one active profile from the provider-verified email. Provider-specific administrator and reviewer checks remain separate; a local-owner session does not become a GitHub-authenticated session. Multi-person GitHub sessions are test stand-ins in `test/server-sessions.ts`, installed by test setup, rather than a production hosted sign-in path.
 
 Human mutations that bind a selected profile also check that profile against the authenticated identity. The browser's selected account is not trusted merely because it was selected when an asynchronous request began.
 
@@ -227,7 +227,7 @@ The project endpoint is:
 
 It authenticates the project-agent bearer and fences tool calls with `X-Pilot-Run`. The project MCP server and Streamable HTTP transport are created per HTTP request, with no MCP session ID generator. Other methods receive 405.
 
-This stateless transport does not mean the product is stateless. Runs, receipts, inbox positions and tasks are durable in Firestore. It means an HTTP/MCP session is not the durable owner of those records.
+This stateless transport does not mean the product is stateless. Runs, receipts, inbox positions and tasks are durable in the engine SQLite database. It means an HTTP/MCP session is not the durable owner of those records.
 
 Tool errors can be returned inside an MCP result. Therefore an HTTP 200 is evidence that the HTTP exchange succeeded, not proof that every tool mutation was accepted.
 
@@ -399,7 +399,7 @@ The local service holds one project-control request per site/project group in it
 
 The backend holds `/v2/project-control` requests for bounded periods, returning project start, pause, close and revision information. It checks run authority before opening the hold and before returning the answer.
 
-On each API process, held callers share a Firestore listener for the project document. Listener linger avoids opening a new watch on every quick re-hold; lingering listeners have a cap. This is deliberately different from status and usage serving, which use no Firestore listeners.
+On each API process, held callers share a document-store listener for the project document. Listener linger avoids opening a new watch on every quick re-hold; lingering listeners have a cap. This is deliberately different from status and usage serving, which use no document-store listeners.
 
 Periodic per-mission observations still fence each run and synchronize its session. Project-control sharing reduces duplicate holds; it does not replace individual authorization. Revision comparisons reject regressions. Transport failures hold work and back off rather than granting execution from an old observation.
 
@@ -563,7 +563,7 @@ The records are `currentStateChanges/{agentId}` and `currentStateProgress/{shard
 
 ```mermaid
 flowchart LR
-  Mutation["Authorized business transition"] --> Tx["One Firestore transaction"]
+  Mutation["Authorized business transition"] --> Tx["One document-store transaction"]
   Tx --> Head["Canonical presence head"]
   Tx --> Dirty["Agent dirty record"]
   Tx --> Shard["Shard revision"]
@@ -572,7 +572,7 @@ flowchart LR
   Proof --> Shard
 ```
 
-Several agents changed in one transaction can share a shard revision. A revision gap is consequently not a count of changed agents. Firestore may retry a callback, so preparation and revision allocation are callback-local. Reusing prepared reads merely because the SDK supplied the same transaction object would break that property.
+Several agents changed in one transaction can share a shard revision. A revision gap is consequently not a count of changed agents. The document-store transaction API may retry a callback, so preparation and revision allocation are callback-local. Reusing prepared reads merely because the SDK supplied the same transaction object would break that property.
 
 This design adds write work: normally the head plus dirty record plus shard update, in addition to the operation's other business writes and reads. It exchanges extra mutation cost for bounded verification during quiet polls. It is not a zero-cost invalidation mechanism.
 
@@ -582,7 +582,7 @@ Readers require the platform's `currentStateCutover` receipt. It binds the suppo
 
 The runtime checks the receipt's schema, epochs and hash-shaped source/evidence fields. It does not independently verify the evidence contents, compare the writer source to the running image, or discover every writer. Those are operator/release responsibilities.
 
-The receipt's Firestore update identity also participates in retained-input validity. A changed receipt invalidates an earlier baseline. Release preparation must establish writer coverage and drain superseded writers before admitting the reader. The marker is evidence of that operator action, not a runtime switch between two status implementations.
+The receipt's document update identity also participates in retained-input validity. A changed receipt invalidates an earlier baseline. Release preparation must establish writer coverage and drain superseded writers before admitting the reader. The marker is evidence of that operator action, not a runtime switch between two status implementations.
 
 **Source:** [canonical document ownership](../../apps/server/src/view/agent-status-doc.ts), [transactional progress](../../apps/server/src/view/current-state-progress.ts), [cutover admission](../../apps/server/src/view/current-state-cutover.ts), [worker synchronization](../../apps/server/src/projects/worker-sessions.ts).
 
@@ -592,7 +592,7 @@ The shared reader retains canonical inputs, not permission decisions or a finish
 
 ### 15.1 Quiet, changed and cold reads
 
-Within a consistent read-only Firestore transaction, the progress reader reads the cutover receipt and the bounded shard set.
+Within a consistent read-only document-store transaction, the progress reader reads the cutover receipt and the bounded shard set.
 
 | Condition | Canonical data work |
 | --- | --- |
@@ -632,9 +632,9 @@ The process has up to 100 primary project projections, bounded by project count 
 
 A retained immutable chain is bound to its process, project, viewer and exact continuation cursor. Its next page rechecks the cutover receipt; if admission changed, the chain is discarded and a fresh canonical read is used. Otherwise it continues the pinned inputs while still loading current dependencies and the viewer overlay. Eviction, expiry, replay on another instance or an oversized input can require a fresh canonical continuation from the same floor. A cache is an optimization: correctness must survive another process serving the next request.
 
-The byte budgets estimate retained input, not total V8 heap, primary-projection bytes, Firestore SDK allocations or response serialization memory. The frontend's steady current-state poll is 15 seconds; selected retry and pause paths poll faster. Each browser, page chain and retry can create another request.
+The byte budgets estimate retained input, not total V8 heap, primary-projection bytes, document-store allocations or response serialization memory. The frontend's steady current-state poll is 15 seconds; selected retry and pause paths poll faster. Each browser, page chain and retry can create another request.
 
-There are no status-head listeners maintaining this projection. This is a narrow statement: the separate project-control path does use shared Firestore listeners, described in section 9.
+There are no status-head listeners maintaining this projection. This is a narrow statement: the separate project-control path does use shared document-store listeners, described in section 9.
 
 **Source:** [progress reader](../../apps/server/src/view/current-state-progress-reader.ts), [projection and overlays](../../apps/server/src/view/current-state.ts), [cursor semantics](../../apps/server/src/view/current-state-core.ts), [status derivation](../../apps/server/src/view/communication-agents.ts), [browser polling](../../apps/web/src/ui/communication-map/current-state-source.ts).
 
@@ -653,7 +653,7 @@ The entire page is not one database snapshot. Its guarantees are narrower:
 
 Reading dependencies after fixing canonical rows prevents applying an older dependency snapshot to newer canonical inputs. It does not make every returned field simultaneous. A later commit can appear on the next answer. The cursor carries dependency/evaluation pins so completing a page chain can re-emit held rows whose dependency or timer-derived state changed.
 
-Firestore commit revisions use seconds and nanoseconds for source ordering. Wall-clock values evaluate deadlines and freshness; they are not substitutes for durable replay revisions. If an instance's evaluation clock is behind the cursor's recorded time, it returns not-ready with the same cursor rather than clamping time and regressing state.
+Document-store commit revisions use seconds and nanoseconds for source ordering. Wall-clock values evaluate deadlines and freshness; they are not substitutes for durable replay revisions. If an instance's evaluation clock is behind the cursor's recorded time, it returns not-ready with the same cursor rather than clamping time and regressing state.
 
 ## 16 Usage accounting without steady full scans
 
@@ -669,7 +669,7 @@ This is a coalesced total-and-invalidation protocol, not a stream requiring ever
 
 ### 16.2 The reader
 
-The `/usage` path retains a bounded, whitelisted representation of usage heads per project. It does not retain complete Firestore snapshots, prompts, model output or cached authorization.
+The `/usage` path retains a bounded, whitelisted representation of usage heads per project. It does not retain complete document snapshots, prompts, model output or cached authorization.
 
 Every request takes its own read-only transaction and proves the receipt and usage progress. There is no outer result TTL that skips this proof.
 
@@ -677,7 +677,7 @@ Every request takes its own read-only transaction and proves the receipt and usa
 sequenceDiagram
   participant V as Authorized viewer
   participant U as Usage reader
-  participant F as Firestore snapshot
+  participant F as Document-store snapshot
   V->>U: Request project usage
   U->>U: Wait for earlier refresh to settle
   U->>F: Read admission and usage progress
@@ -764,7 +764,7 @@ The following is a responsibility map, not a complete schema specification. The 
 
 | Storage | Representative records | Ownership and lifetime |
 | --- | --- | --- |
-| Cloud identity | Profiles, verified GitHub-account mapping | Human identity |
+| Engine identity | Owner profile and shared identity records | Human identity |
 | Cloud project authority | Project, members/fences, agents, current runs and issued-run history | Transactional authority; cannot be replaced by a viewer cache |
 | Cloud current-state projection | Project `presence`, `currentStateChanges`, `currentStateProgress` | Current observations plus durable incremental-read proof |
 | Cloud accounting | Project `runnerUsage`, turn receipts, `usageChanges` and `usageProgress` | Report history, idempotent totals and accounting progress |
@@ -772,14 +772,14 @@ The following is a responsibility map, not a complete schema specification. The 
 | Cloud domain records | Native tasks, progress, human requests, operation receipts | Domain-specific authorization and visibility |
 | Platform admission | `platform/currentStateCutover` | Operator-established writer/reader compatibility |
 | Object storage | Progress images and related media | Media access/visibility rules independent of a guessed URL |
-| Local account/connection records | Owner computer credential and project-agent bindings | Private computer state, outside project checkouts |
+| Local account/connection records | Project-agent bindings, service bearers and recorded owner operations | Private computer state, outside project checkouts |
 | Local SQLite ledger | Missions, operations, participation, steering, outcomes, reports and archives | Durable runtime state and delivery evidence |
 | Local mission directories | Provider session/configuration, guard state, selected journals | Private runtime evidence and recovery |
 | Agent checkout | Repository files and Git state | Agent's work; separate from shared credentials and runtime ledger |
 
 Not all shared domain collections are nested under a project: human requests, for example, are in a root collection with explicit project and audience fields. Project scoping is therefore both a storage convention and an authorization discipline.
 
-Firestore client security rules deny direct client reads and writes. The browser talks to authenticated backend APIs; the backend's Admin SDK must enforce the authority described above. Service-account access is not a substitute for application checks.
+The browser talks to authenticated engine APIs. The SQLite adapter supplies the document-store API locally; domain services enforce the authority described above. Firebase value classes do not create a cloud database connection.
 
 Local files use private-path, ownership and link checks where the platform provides them. Journals retain selected lifecycle, model, usage and tool observations rather than full raw provider traffic. Redaction of known bridge credentials is useful but is not a guarantee that arbitrary model text contains no sensitive material. Do not put private journals in public release evidence.
 
