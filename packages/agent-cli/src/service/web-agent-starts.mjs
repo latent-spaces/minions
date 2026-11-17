@@ -105,9 +105,10 @@ export async function prepareWebCheckout(record,{signal}={}) {
   // The private owner client allocated this exact folder for this new request.
   // Default folders sit under ~/minions without resolving links, so a linked ~/minions or home parent is
   // allowed; the checkout folder itself must not be a link, and Git must report its physical path.
-  const folder=record.folder,stat=lstatSync(folder),physical=physicalPath(folder);
+  const folder=record.folder,stat=lstatSync(folder);
   if(!stat.isDirectory()||stat.isSymbolicLink()||process.getuid&&stat.uid!==process.getuid())
     throw failure('preparation_failed');
+  const physical=physicalPath(folder);
   if(!canonicalRepo(record.repo))throw failure('preparation_failed');
   if(!readdirSync(folder).length){
     // A large repository takes longer than the other git commands' two minutes; the caller's signal bounds it.

@@ -21,5 +21,7 @@ test('a website start reuses its prepared checkout through a linked parent, neve
   await prepareWebCheckout({ folder, repo });
   await symlink(folder, join(root, 'agent-link'));
   await assert.rejects(prepareWebCheckout({ folder: join(root, 'agent-link'), repo }), { code: 'preparation_failed' });
+  await symlink(join(root, 'missing'), join(root, 'dangling-link'));
+  await assert.rejects(prepareWebCheckout({ folder: join(root, 'dangling-link'), repo }), { code: 'preparation_failed' });
   await assert.rejects(prepareWebCheckout({ folder: linked, repo: 'https://github.com/example/other' }), { code: 'preparation_failed' });
 });
