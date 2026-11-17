@@ -92,11 +92,21 @@ export function workerPrivateRoots({ stateDir, folder, envSource = process.env, 
   if (basename(serviceHome) === 'connector-service') roots.push(dirname(serviceHome));
   for (const name of ['MINIONS_SERVICE_HOME', 'MINIONS_CREDENTIAL_HOME', 'MINIONS_ENGINE_HOME']) if (isAbsolute(envSource[name] ?? '')) roots.push(envSource[name]);
   const inside = (root, path) => { const part = relative(root, path); return part === '' || part !== '..' && !part.startsWith(`..${sep}`) && !isAbsolute(part); };
-  const unique = [...new Set(roots.map(root => resolve(root)))];
+  // A linked home or MINIONS_* folder has two spellings: compare physical paths, and deny both spellings.
+  const physical = path => {
+    const tail = [];
+    for (let current = resolve(path); ; current = dirname(current)) {
+      try { return join(realpathSync(current), ...tail); }
+      catch (error) { if (error.code !== 'ENOENT' || dirname(current) === current) throw error; tail.unshift(basename(current)); }
+    }
+  };
+  const spelled = roots.map(root => resolve(root)), real = spelled.map(physical);
+  // ~/.minions itself is always denied by its rule spelling; only its other spellings need entries.
+  const extra = [...new Set([...spelled.slice(1), ...real])].filter(root => root !== spelled[0]), realRoots = [...new Set(real)];
   // Either way round: a checkout above private state would let the sandbox's checkout write grant reach it.
-  const checkout = resolve(folder);
-  if (unique.some(root => root === '/' || inside(root, checkout) || inside(checkout, root))) throw new Error('The project checkout and Minions private state overlap. Move the checkout (or MINIONS_ENGINE_HOME) so they are separate folders, then start the agent again.');
-  const rules = unique.slice(1).map(root => `/${root}`);
+  const checkout = physical(folder);
+  if (realRoots.some(root => root === '/' || inside(root, checkout) || inside(checkout, root))) throw new Error('The project checkout and Minions private state overlap. Move the checkout (or MINIONS_ENGINE_HOME) so they are separate folders, then start the agent again.');
+  const rules = extra.map(root => `/${root}`);
   if (rules.some(rule => !PRIVATE_ROOT.test(rule))) throw new Error('A Minions private folder path uses characters the worker sandbox rules cannot express (one of ( ) [ ] { } * ?). Choose MINIONS_ENGINE_HOME, MINIONS_SERVICE_HOME and MINIONS_CREDENTIAL_HOME without them, then start the agent again.');
   return rules;
 }
