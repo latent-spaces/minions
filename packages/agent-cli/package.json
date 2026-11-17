@@ -20,9 +20,6 @@
     "url": "git+https://github.com/latent-spaces/minions.git",
     "directory": "packages/agent-cli"
   },
-  "devDependencies": {
-    "esbuild": "0.28.2"
-  },
   "dependencies": {
     "@modelcontextprotocol/client": "2.3.1",
     "@modelcontextprotocol/node": "2.1.1",

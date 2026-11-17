@@ -5,7 +5,6 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { buildSync } from 'esbuild';
 import { VERSION, GUIDE_REVISION } from '../src/version.mjs';
 import { bundledGuideFiles, referenceHash, skillMetadata } from '../src/skill-bundle.mjs';
 import { createWorkerGuidance, WORKER_GUIDE_SECTIONS } from '../src/worker-guidance.mjs';
