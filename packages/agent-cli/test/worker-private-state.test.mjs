@@ -59,6 +59,14 @@ test('a private path the rules cannot spell is refused rather than left readable
   assert.throws(() => roots({ stateDir: at('srv', 'state', 'agents', 'abc'), folder: at('work', 'project'), envSource: { MINIONS_CREDENTIAL_HOME: at('creds[1]') } }), /cannot express/);
 });
 
-test('Windows rule spellings differ: only the default ~/.minions entry applies there', () => {
-  assert.deepEqual(workerPrivateRoots({ stateDir: 'D:\\Minions\\agents\\abc', folder: 'C:\\work\\repo', platform: 'win32', envSource: {} }), []);
+test('Windows roots use the //c/… spelling Claude Code reads as C:\\…, compared without letter case', () => {
+  const win = options => workerPrivateRoots({ platform: 'win32', userHome: 'C:\\Users\\Person', realpath: path => path, envSource: {}, ...options });
+  assert.deepEqual(win({ stateDir: 'D:\\Minions\\engine\\connector-service\\agents\\abc', folder: 'C:\\Users\\Person\\minions\\projects\\repo',
+    envSource: { minions_credential_home: 'D:\\Minions\\engine\\connector-credentials' } }),
+  ['//d/Minions/engine/connector-service', '//d/Minions/engine', '//d/Minions/engine/connector-credentials']);
+  // The default install needs no entry beyond ~/.minions.
+  assert.deepEqual(win({ stateDir: 'C:\\Users\\Person\\.minions\\engine\\connector-service\\agents\\abc', folder: 'C:\\Users\\Person\\minions\\projects\\repo' }),
+    ['//c/Users/Person/.minions/engine/connector-service', '//c/Users/Person/.minions/engine']);
+  assert.throws(() => win({ stateDir: 'C:\\Users\\Person\\.minions\\engine\\connector-service\\agents\\abc', folder: 'c:\\users\\person\\.MINIONS\\projects\\repo' }), /overlap/);
+  assert.throws(() => win({ stateDir: '\\\\server\\share\\minions\\agents\\abc', folder: 'C:\\work\\repo' }), /network path/);
 });

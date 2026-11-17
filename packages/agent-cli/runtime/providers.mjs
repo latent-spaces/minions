@@ -5,7 +5,7 @@ import { promisify } from 'node:util';
 const executeFile = promisify(execFile);
 import { randomUUID } from 'node:crypto';
 import { readFileSync, realpathSync, existsSync, readdirSync, lstatSync } from 'node:fs';
-import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { join, posix, win32 } from 'node:path';
 import { homedir } from 'node:os';
 const PROVIDERS = ['claude', 'codex'];
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
@@ -83,31 +83,39 @@ export function workerClaudeSettings(bundled, mergeApproval, privateRoots = []) 
 // Rule paths for one worker's private state. stateDir is <service home>/agents/<id>; a setup-made service home is
 // <engine home>/connector-service beside engine.sqlite and owner.json. Checked before the worker starts: a checkout
 // inside private state, or a path the rules cannot spell, is refused rather than launched with a missing boundary.
-export function workerPrivateRoots({ stateDir, folder, envSource = process.env, platform = process.platform, userHome = homedir() }) {
-  // Windows rule spellings differ; there only the default ~/.minions entry applies, and custom homes stay readable.
-  if (platform === 'win32') return [];
+export function workerPrivateRoots({ stateDir, folder, envSource = process.env, platform = process.platform, userHome = homedir(),
+  realpath = platform === 'win32' ? realpathSync.native : realpathSync }) {
+  const windows = platform === 'win32', path = windows ? win32 : posix;
+  const { basename, dirname, isAbsolute, join, relative, resolve, sep } = path;
+  // Windows names variables in any letter case.
+  const variable = name => windows ? Object.entries(envSource).find(([key]) => key.toUpperCase() === name)?.[1] : envSource[name];
   const roots = [join(userHome, '.minions')];
   const serviceHome = basename(dirname(stateDir)) === 'agents' ? dirname(dirname(stateDir)) : stateDir;
   roots.push(serviceHome);
   if (basename(serviceHome) === 'connector-service') roots.push(dirname(serviceHome));
-  for (const name of ['MINIONS_SERVICE_HOME', 'MINIONS_CREDENTIAL_HOME', 'MINIONS_ENGINE_HOME']) if (isAbsolute(envSource[name] ?? '')) roots.push(envSource[name]);
-  const inside = (root, path) => { const part = relative(root, path); return part === '' || part !== '..' && !part.startsWith(`..${sep}`) && !isAbsolute(part); };
+  for (const name of ['MINIONS_SERVICE_HOME', 'MINIONS_CREDENTIAL_HOME', 'MINIONS_ENGINE_HOME']) if (isAbsolute(variable(name) ?? '')) roots.push(variable(name));
+  // Windows ignores letter case in paths.
+  const key = value => windows ? value.toLowerCase() : value;
+  const inside = (root, target) => { const part = relative(key(root), key(target)); return part === '' || part !== '..' && !part.startsWith(`..${sep}`) && !isAbsolute(part); };
   // A linked home or MINIONS_* folder has two spellings: compare physical paths, and deny both spellings.
-  const physical = path => {
+  const physical = target => {
     const tail = [];
-    for (let current = resolve(path); ; current = dirname(current)) {
-      try { return join(realpathSync(current), ...tail); }
+    for (let current = resolve(target); ; current = dirname(current)) {
+      try { return join(realpath(current), ...tail); }
       catch (error) { if (error.code !== 'ENOENT' || dirname(current) === current) throw error; tail.unshift(basename(current)); }
     }
   };
   const spelled = roots.map(root => resolve(root)), real = spelled.map(physical);
+  const unique = values => [...new Map(values.map(value => [key(value), value])).values()];
   // ~/.minions itself is always denied by its rule spelling; only its other spellings need entries.
-  const extra = [...new Set([...spelled.slice(1), ...real])].filter(root => root !== spelled[0]), realRoots = [...new Set(real)];
+  const extra = unique([...spelled.slice(1), ...real]).filter(root => key(root) !== key(spelled[0])), realRoots = unique(real);
   // Either way round: a checkout above private state would let the sandbox's checkout write grant reach it.
   const checkout = physical(folder);
-  if (realRoots.some(root => root === '/' || inside(root, checkout) || inside(checkout, root))) throw new Error('The project checkout and Minions private state overlap. Move the checkout (or MINIONS_ENGINE_HOME) so they are separate folders, then start the agent again.');
-  const rules = extra.map(root => `/${root}`);
-  if (rules.some(rule => !PRIVATE_ROOT.test(rule))) throw new Error('A Minions private folder path uses characters the worker sandbox rules cannot express (one of ( ) [ ] { } * ?). Choose MINIONS_ENGINE_HOME, MINIONS_SERVICE_HOME and MINIONS_CREDENTIAL_HOME without them, then start the agent again.');
+  if (realRoots.some(root => dirname(root) === root || inside(root, checkout) || inside(checkout, root))) throw new Error('The project checkout and Minions private state overlap. Move the checkout (or MINIONS_ENGINE_HOME) so they are separate folders, then start the agent again.');
+  // Claude Code reads //c/Users/… as C:\Users\…; a UNC or other non-drive path has no rule spelling.
+  const rule = root => windows ? (/^[A-Za-z]:\\/.test(root) ? `//${root[0].toLowerCase()}/${root.slice(3).replaceAll('\\', '/')}` : null) : `/${root}`;
+  const rules = extra.map(rule);
+  if (rules.some(value => value === null || !PRIVATE_ROOT.test(value))) throw new Error('A Minions private folder path uses characters the worker sandbox rules cannot express (one of ( ) [ ] { } * ?, or a network path). Choose MINIONS_ENGINE_HOME, MINIONS_SERVICE_HOME and MINIONS_CREDENTIAL_HOME on a local drive without them, then start the agent again.');
   return rules;
 }
 
