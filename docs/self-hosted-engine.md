@@ -171,6 +171,12 @@ worker in the same process. Live views follow the engine's own writes at once; a
 another program commits to the database file reaches them within about a second,
 so make changes through the engine where you can.
 
+Stale-lock recovery uses a private `.lock.recovery` guard so concurrent starts
+cannot both replace the stale lock. A crash during recovery can leave that guard
+behind; it is never automatically removed. Wait and retry first, then inspect
+its recorded PID and confirm no engine is starting or recovering this database
+before removing only the guard named in the error.
+
 An engine started by hand (`self-hosted-main.js start`, without the setup command)
 keeps the default SIGHUP behavior on macOS and Linux, so one started with `nohup`
 survives a closed terminal.
