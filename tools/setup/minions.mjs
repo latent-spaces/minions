@@ -260,12 +260,14 @@ async function logs(args) {
   let decoder = new StringDecoder('utf8');
   // The last 512 KiB is plenty for any --lines a person reads at a terminal.
   const initial = read(Math.max(0, size - 512 * 1024), size);
-  const tail = (values.follow ? decoder.write(initial) : initial.toString('utf8')).split(/\r?\n/);
+  const text = values.follow ? decoder.write(initial) : initial.toString('utf8');
+  const tail = text.split(values.follow ? '\n' : /\r?\n/);
   if (tail.at(-1) === '') tail.pop();
   say(dim(`── ${file} ──`), `${file}:`);
-  console.info(tail.slice(-count).join('\n'));
-  if (!values.follow) return 0;
-  say(dim('── following; Ctrl+C to stop ──'), '');
+  if (!values.follow) { console.info(tail.slice(-count).join('\n')); return 0; }
+  if (tty) say(dim('── following; Ctrl+C to stop ──'));
+  // Keep the final line open so later bytes continue it, including split UTF-8.
+  process.stdout.write(tail.slice(-count).join('\n') + (text.endsWith('\n') ? '\n' : ''));
   for (;;) {
     await new Promise(accept => setTimeout(accept, 500));
     const now = statSync(file).size;

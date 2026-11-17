@@ -46,8 +46,8 @@ test('followed logs preserve UTF-8 across initial and later reads, and reset aft
   let closed;
   let output = '', errors = '';
   try {
-    writeFileSync(file, Buffer.concat([Buffer.from('ready\n'), character.subarray(0, 2)]));
-    child = spawn(process.execPath, [script, 'logs', '--follow'], {
+    writeFileSync(file, Buffer.concat([Buffer.from('discard\nready\r\npartial:'), character.subarray(0, 2)]));
+    child = spawn(process.execPath, [script, 'logs', '--follow', '--lines', '2'], {
       env: { ...process.env, MINIONS_ENGINE_HOME: home, MINIONS_ENGINE_PORT: String(await freePort()), MINIONS_NO_BROWSER: '1' },
       stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true,
     });
@@ -62,9 +62,10 @@ test('followed logs preserve UTF-8 across initial and later reads, and reset aft
         await new Promise(accept => setTimeout(accept, 10));
       }
     };
-    await until('ready\n');
+    await until('partial:');
     appendFileSync(file, Buffer.concat([character.subarray(2), Buffer.from(' initial\n')]));
     await until('🛠 initial\n');
+    assert.equal(output.slice(output.indexOf('\n') + 1), 'ready\r\npartial:🛠 initial\n');
 
     // The marker proves a poll consumed the incomplete character before the rest is appended.
     appendFileSync(file, Buffer.concat([Buffer.from('poll marker:'), character.subarray(0, 2)]));
