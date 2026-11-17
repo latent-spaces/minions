@@ -176,7 +176,8 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
   const settings = { claude: executables.claude, codex: executables.codex, model, effort, repoDir: folder, permissionMode: 'acceptEdits', allowedTools: CLAUDE_ALLOWED_TOOLS, passEnv: '', turnBudgetUsd: 0 };
   const provider = createProvider(client, settings, { envSource });
   // Refuses before any launch when this worker's private state cannot be kept out of its reach.
-  const privateRoots = client === 'claude' ? workerPrivateRoots({ stateDir, folder, envSource }) : [];
+  // The overlap refusal applies to every client; only Claude receives the deny rules.
+  const privateRoots = workerPrivateRoots({ stateDir, folder, envSource, rules: client === 'claude' });
   if (process.platform === 'win32') await probeWindowsSupervision({ env: provider.environment(), signal });
   const mergePolicy = client === 'codex' ? createCodexMergePolicy({ folder, stateDir, env: provider.environment() }) : null;
   await provider.preflight({ signal });
