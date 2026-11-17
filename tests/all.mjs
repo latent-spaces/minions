@@ -1,12 +1,11 @@
 // Tracked validation entrypoint. Each suite gets its own log; failures never hide later results.
-import { spawn } from 'node:child_process';
 import { mkdir, mkdtemp, open, writeFile } from 'node:fs/promises';
-import { finished } from 'node:stream/promises';
 import { tmpdir } from 'node:os';
 import { delimiter, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 import { testEnvironment } from './support/disposable-session.mjs';
+import { runOwnedProcess } from './support/owned-process-tree.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const require = createRequire(new URL('../apps/server/package.json', import.meta.url));
@@ -19,6 +18,7 @@ const step = (name, args, cwd = '.', needs = []) => ({ name, args, cwd: join(rep
 // The fast core (owner decision, 15 November 2026): typechecks plus a handful of smoke tests per package.
 export function validationSteps() {
   return [
+    step('runner-tests', ['--test', 'tests/all.test.mjs']),
     step('contracts-build', [bin('typescript', 'tsc'), '-p', 'tsconfig.json'], 'packages/contracts'),
     step('connector-build', ['scripts/build.mjs'], 'packages/agent-cli', ['contracts-build']),
     step('connector-tests', ['--test', '--test-concurrency=1', 'test/*.test.mjs'], 'packages/agent-cli', ['connector-build']),
@@ -48,30 +48,36 @@ export async function runSuites(steps, { logDirectory, env = testEnvironment(), 
       const result = { name: suite.name, status: 'skipped', reason: signal?.aborted ? 'Interrupted' : `Failed prerequisite: ${blocked.join(', ')}`, log };
       await writeFile(log, `${result.reason}\n`); results.push(result); onResult(result); continue;
     }
-    let stream;
-    try { stream = (await open(log, 'w')).createWriteStream(); }
+    let handle;
+    try { handle = await open(log, 'w'); }
     catch (error) {
       const result = { name: suite.name, status: 'failed', exitCode: 1, log, error: `Cannot open suite log: ${error.message}` };
       results.push(result); onResult(result); continue;
     }
-    const streamDone = finished(stream);
-    // Attach rejection handling immediately, including while the child is running.
-    streamDone.catch(() => {});
-    stream.write(`${JSON.stringify({ executable: process.execPath, args: suite.args, cwd: suite.cwd })}\n`);
     const started = Date.now();
-    let error;
-    const exitCode = await new Promise(accept => {
-      const child = spawn(process.execPath, suite.args, { cwd: suite.cwd, env: childEnv, stdio: ['ignore', 'pipe', 'pipe'], signal });
-      const timer = setTimeout(() => { error = 'Suite timed out'; child.kill(); }, suite.timeoutMs ?? 30 * 60 * 1000);
-      timer.unref();
-      stream.once('error', value => { error = `Cannot write suite log: ${value.message}`; child.kill(); });
-      child.stdout.pipe(stream, { end: false }); child.stderr.pipe(stream, { end: false });
-      child.once('error', value => { clearTimeout(timer); error = value.message; });
-      child.once('close', (code, terminationSignal) => { clearTimeout(timer); if (terminationSignal) error ??= `Terminated by ${terminationSignal}`; accept(code ?? 1); });
-    });
-    if (error) stream.write(`${error}\n`);
-    stream.end();
-    try { await streamDone; } catch (value) { error = `Cannot write suite log: ${value.message}`; }
+    let error, exitCode = 1;
+    const controller = new AbortController();
+    const interrupt = () => { error ??= 'Interrupted'; controller.abort(); };
+    signal?.addEventListener('abort', interrupt, { once: true });
+    if (signal?.aborted) interrupt();
+    const timer = setTimeout(() => { error = 'Suite timed out'; controller.abort(); }, suite.timeoutMs ?? 30 * 60 * 1000);
+    timer.unref();
+    try {
+      await handle.writeFile(`${JSON.stringify({ executable: process.execPath, args: suite.args, cwd: suite.cwd })}\n`);
+      // Direct file output avoids waiting on pipes held open by descendants. The
+      // owned launcher bounds shutdown and cleans only this suite's process tree.
+      exitCode = await runOwnedProcess(process.execPath, suite.args, {
+        cwd: suite.cwd, env: childEnv, stdio: ['ignore', handle.fd, handle.fd], signal: controller.signal,
+      });
+    } catch (value) { error ??= value.message; }
+    finally {
+      clearTimeout(timer);
+      signal?.removeEventListener('abort', interrupt);
+      try { if (error) await handle.writeFile(`${error}\n`); }
+      catch (value) { error = `Cannot write suite log: ${value.message}`; }
+      try { await handle.close(); }
+      catch (value) { error = `Cannot close suite log: ${value.message}`; }
+    }
     const result = { name: suite.name, status: exitCode === 0 && !error ? 'passed' : 'failed', exitCode: error ? (exitCode || 1) : exitCode, log, durationMs: Date.now() - started, ...(error ? { error } : {}) };
     results.push(result); onResult(result);
   }
