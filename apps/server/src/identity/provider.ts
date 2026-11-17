@@ -1,5 +1,6 @@
-// The sign-in service that proves who a person is: the engine's GitHub sessions (server-sessions.ts) or its single
-// local owner (local-owner.ts). Both report through this interface, so auth.ts applies one set of authority checks.
+// The sign-in service that proves who a person is: the engine's single local owner (local-owner.ts; tests
+// use a multi-person stand-in in test/server-sessions.ts). Providers report through this interface, so auth.ts applies one set of
+// authority checks.
 
 /** A session token the provider accepted. `subject` is the provider's stable account ID. */
 export type VerifiedSession = {
