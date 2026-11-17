@@ -76,10 +76,11 @@ async function fixture(options, check) {
     await new Promise((accept, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', accept); });
     env.MINIONS_ENGINE_PORT = String(server.address().port);
     await new Promise(accept => server.close(accept));
-    const result = spawnSync(process.execPath, [join(checkout, 'tools/setup/minions.mjs'), 'update', ...(options.now ? ['--now'] : [])],
+    const run = () => spawnSync(process.execPath, [join(checkout, 'tools/setup/minions.mjs'), 'update', ...(options.now ? ['--now'] : [])],
       { cwd: checkout, env, encoding: 'utf8', windowsHide: true, timeout: 15_000 });
-    const recorded = existsSync(events) ? readFileSync(events, 'utf8').trim().split('\n') : [];
-    await check({ result, recorded, version: readFileSync(join(checkout, 'version.txt'), 'utf8') });
+    const readEvents = () => existsSync(events) ? readFileSync(events, 'utf8').trim().split('\n') : [];
+    const result = run();
+    await check({ result, recorded: readEvents(), version: readFileSync(join(checkout, 'version.txt'), 'utf8'), run, readEvents, env, checkout });
   } finally { rmSync(root, { recursive: true, force: true }); }
 }
 
@@ -141,4 +142,18 @@ test('update refuses unknown service state even with --now', () => fixture({ sta
   assert.deepEqual(recorded, []);
   assert.equal(version, 'old');
   assert.match(result.stderr, /Resolve the service status before updating/);
+}));
+
+test('a failed setup is retried even when the backend build looks newer than the commit', () => fixture({ setupFails: true }, ({ result, run, readEvents, env, checkout }) => {
+  assert.equal(result.status, 1);
+  // A real setup can emit the backend before a later web/connector build fails.
+  utimesSync(join(checkout, 'apps/server/dist/self-hosted-main.js'), new Date(), new Date());
+  env.MINIONS_UPDATE_TEST_SETUP_FAIL = '0';
+  const retried = run();
+  assert.equal(retried.status, 0, retried.stderr || retried.error?.message);
+  assert.deepEqual(readEvents(), ['stop:old', 'setup:new', 'stop:new', 'setup:new']);
+  const completed = run();
+  assert.equal(completed.status, 0, completed.stderr || completed.error?.message);
+  assert.match(completed.stdout, /Already up to date/);
+  assert.equal(readEvents().length, 4, 'a completed retry restores no-op behavior');
 }));
