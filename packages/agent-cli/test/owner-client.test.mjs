@@ -240,6 +240,26 @@ test('project reads any member can make go to their fixed project paths',async()
   assert.equal(f.requests.length,before);
  }finally{f.close();}
 });
+test('owner task reads forward comment/history cursors and saved versions without changing the task',async()=>{
+ const f=fixture();try{
+  await f.client.signIn();
+  const event='000000000001_'+'b'.repeat(64);
+  f.respond(()=>({task:{id:'task_1'},nextCommentCursor:'comment_1',nextActivityCursor:event}));
+  const first=await f.client.operation('read_project_task',{project_id:P,task_id:'task_1'});
+  await f.client.operation('read_project_task',{project_id:P,task_id:'task_1',comment_cursor:first.nextCommentCursor,activity_cursor:first.nextActivityCursor});
+  assert.equal(f.requests.at(-1).url,`${site}/api/owner/projects/${P}/tasks/task_1?commentCursor=comment_1&activityCursor=${event}`);
+  assert.equal(f.requests.at(-1).method,'GET');
+  await f.client.operation('read_project_task',{project_id:P,task_id:'task_1',activity_id:event});
+  assert.equal(f.requests.at(-1).url,`${site}/api/owner/projects/${P}/tasks/task_1?activityId=${event}`);
+  const before=f.requests.length;
+  for(const key of ['comment_cursor','activity_cursor','activity_id'])for(const value of ['', '../other-task', 'a'.repeat(201), 3]){
+   await assert.rejects(f.client.operation('read_project_task',{project_id:P,task_id:'task_1',[key]:value}),/task/);
+  }
+  assert.equal(f.requests.length,before);
+  const schema=OWNER_TOOLS.find(tool=>tool.name==='read_project_task').inputSchema;
+  for(const key of ['comment_cursor','activity_cursor','activity_id'])assert.equal(schema.properties[key].type,'string');
+ }finally{f.close();}
+});
 test('task detail keeps its own hard reply limit and other owner reads keep the default limit',async()=>{
  const f=fixture();try{
   await f.client.signIn();
