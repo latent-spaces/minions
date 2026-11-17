@@ -7,6 +7,7 @@ import { spawn, spawnSync } from 'node:child_process';
 import { closeSync, existsSync, lstatSync, mkdirSync, openSync, readSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
+import { StringDecoder } from 'node:string_decoder';
 import { initializationState, occupiedMessage, requireNode24, settingsText } from './engine-plan.mjs';
 import { at, connector, engineMain, engineState, locate, openPage, portHolder, repository, startEngine, stopEngine } from './engine-control.mjs';
 
@@ -253,11 +254,13 @@ async function logs(args) {
   if (!existsSync(file)) throw new Error(`There is no log at ${file} yet.`);
   const read = (from, to) => {
     const fd = openSync(file, 'r');
-    try { const buffer = Buffer.alloc(to - from); readSync(fd, buffer, 0, buffer.length, from); return buffer.toString('utf8'); } finally { closeSync(fd); }
+    try { const buffer = Buffer.alloc(to - from); const count = readSync(fd, buffer, 0, buffer.length, from); return buffer.subarray(0, count); } finally { closeSync(fd); }
   };
   let size = statSync(file).size;
+  let decoder = new StringDecoder('utf8');
   // The last 512 KiB is plenty for any --lines a person reads at a terminal.
-  const tail = read(Math.max(0, size - 512 * 1024), size).split(/\r?\n/);
+  const initial = read(Math.max(0, size - 512 * 1024), size);
+  const tail = (values.follow ? decoder.write(initial) : initial.toString('utf8')).split(/\r?\n/);
   if (tail.at(-1) === '') tail.pop();
   say(dim(`── ${file} ──`), `${file}:`);
   console.info(tail.slice(-count).join('\n'));
@@ -266,8 +269,8 @@ async function logs(args) {
   for (;;) {
     await new Promise(accept => setTimeout(accept, 500));
     const now = statSync(file).size;
-    if (now < size) size = 0; // The log was replaced; start from its beginning.
-    if (now > size) { process.stdout.write(read(size, now)); size = now; }
+    if (now < size) { size = 0; decoder = new StringDecoder('utf8'); } // A truncated log starts a new byte stream.
+    if (now > size) { process.stdout.write(decoder.write(read(size, now))); size = now; }
   }
 }
 
