@@ -72,7 +72,7 @@ export function TokenCapEditor({ id, initial, cap, used, locked, busy, failed, o
   const described = [`${id}-help`, error ? `${id}-error` : '', below ? `${id}-below` : ''].filter(Boolean).join(' ');
   return <form className="k42-cap-editor is-inline" onSubmit={submit} onKeyDown={escape} noValidate>
     <label htmlFor={id} className="visually-hidden">Token cap</label>
-    <input ref={input} id={id} type="text" inputMode="numeric" autoComplete="off" spellCheck={false} value={text} aria-invalid={!!error} aria-describedby={described}
+    <input ref={input} id={id} type="text" inputMode="numeric" autoComplete="off" spellCheck={false} value={text} disabled={locked} aria-invalid={!!error} aria-describedby={described}
       title="One pool for all your agents in this project. Input, cache writes and output count; cache reads don’t." placeholder="e.g. 500,000"
       onChange={event => setText(event.target.value)} onBlur={() => setText(tidyTokenCap(text))} />
     <span className="muted">tokens</span>
@@ -82,6 +82,6 @@ export function TokenCapEditor({ id, initial, cap, used, locked, busy, failed, o
     <small id={`${id}-help`} className="visually-hidden">One pool for all your agents in this project. Input, cache writes and output count; cache reads don’t.</small>
     {error && <small id={`${id}-error`} className="error k42-cap-note">{error}</small>}
     {below && !error && <small id={`${id}-below`} className="k42-cap-note">Your agents have used {formatTokens(used)} tokens. With this cap they wait after their current turn until you raise or remove it.</small>}
-    {tried && failed && <small className="error k42-cap-note">Not saved. Try again, or check the message above.</small>}
+    {tried && failed && <small className="error k42-cap-note">Save not confirmed. Check the message above.</small>}
   </form>;
 }
