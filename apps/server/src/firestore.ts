@@ -79,7 +79,7 @@ export type Profile = {
   photo?: { id: string; publicConsent: true; publishedAt: number } | null;
   profile?: { linkedinProfileUrl: string | null; bio?: string };
   profileRevision?: number;
-  // From the person's latest GitHub sign-in (identity/server-sessions.ts). Shown on their profile; owners' agents add it to repositories.
+  // From the person's latest GitHub sign-in (test/server-sessions.ts). Shown on their profile; owners' agents add it to repositories.
   githubUsername?: string;
   name: string;
   email: string;

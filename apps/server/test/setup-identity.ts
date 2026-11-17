@@ -5,7 +5,7 @@ import { deploymentKind } from '../src/deployment.js';
 import { setIdentityProvider, type IdentityProvider } from '../src/identity/index.js';
 
 if (deploymentKind() === 'test') {
-  const sessions = async () => (await import('../src/identity/server-sessions.js')).serverSessionIdentity();
+  const sessions = async () => (await import('./server-sessions.js')).serverSessionIdentity();
   setIdentityProvider({
     verifySession: async token => (await sessions()).verifySession(token),
     account: async subject => (await sessions()).account(subject),

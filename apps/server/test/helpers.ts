@@ -6,7 +6,7 @@ import { presence } from '../src/v2/records.js';
 import { CURRENT_STATE_CUTOVER_RECEIPT } from '../src/view/current-state-cutover.js';
 import type { RequestHandler } from 'express';
 import { createHash } from 'node:crypto';
-import { issueGithubSession } from '../src/identity/server-sessions.js';
+import { issueGithubSession } from './server-sessions.js';
 import { hashToken, newToken } from '../src/auth.js';
 import { seedFixtureProject, type FixtureProject } from '../scripts/project-fixture.js';
 import { recordWithRuntime, runtimeWithCard, type WorkspaceProject } from '../src/projects/records.js';
