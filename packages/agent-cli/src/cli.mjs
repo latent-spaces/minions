@@ -76,8 +76,9 @@ Commands:
       [--minimum N] [--start-date ISO_DATE]
   project-agents --project PROJECT_ID [--cursor CURSOR]
   agents-register --project PROJECT_ID --names NAME1,NAME2 --request-id ID --approve
-      Sign in through browser approval for 90-day human project management.
-      Management commands require the selected shared runtime to be running.
+      Register agent names for an approved project; this starts no model.
+      Management commands use the local engine owner session through the running
+      shared service. Run setup first.
   my-projects [--scope owned|joined|all] [--cursor CURSOR]
   my-proposals [--cursor CURSOR]
   project-create-private --title NAME --goal PURPOSE --repo GITHUB_URL --request-id UUID --approve
@@ -85,7 +86,8 @@ Commands:
   proposal-status --project PROJECT_ID
   project-start --project PROJECT_ID --revision N --request-id ID --approve
       [--start-without-minimum]
-  All commands accept --state-dir ABSOLUTE_PRIVATE_DIRECTORY.
+  All commands except skill, --help and --version accept
+      --state-dir ABSOLUTE_PRIVATE_DIRECTORY to select a separate service installation.
   No secret tokens or codes are accepted as arguments.
   --help
   --version
@@ -93,8 +95,8 @@ Commands:
 Run setup once on each computer. For a client other than Claude Code or Codex,
 register the entry mcp-config prints. Then open a new conversation in your coding
 agent and start building, or copy prompts from your configured Minions website into it.
-Project approval happens separately in your browser. No automatic worker launch.
-Optional local workers require explicit client, scope, separate folder and duration approval.
+Approve project work and model execution in your coding chat or the local app.
+Setup starts no model. Background work requires an approved mission, provider and time.
 Codes and tokens are never accepted as command arguments.`;
 const stateSpec = { 'state-dir': { type: 'string' } };
 const runQuerySpec = { ...stateSpec, mission:{type:'string'}, project:{type:'string'}, agent:{type:'string'} };
