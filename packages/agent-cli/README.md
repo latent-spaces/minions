@@ -102,7 +102,8 @@ Node) unless the complete user entry already matches, repairs stale addresses or
 authentication helpers, removes the retired `mlswarm` and `mlswarm-<8 hex>` entries, and writes the same entry into Codex's
 `config.toml` when Codex is installed. The flag also installs or repairs each found
 client's bundled Minions skill, preserving customized files and recording the router
-under this installation's service home. Plain `register` changes only registration.
+under this installation's service home. Skill write failures are reported separately
+and keep the successful MCP registration. Plain `register` changes only registration.
 The root wrapper skips registration and skill installation with `--no-register` or
 an isolated `MINIONS_ENGINE_HOME`. Neither registration mode signs in to GitHub or
 starts a model. It exits 4 when neither client is found.

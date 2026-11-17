@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, rm, chmod, symlink } from 'node:fs/promises';
 import { dirname, join, delimiter } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { registerSetupClients } from '../engine-setup.mjs';
+import { registerSetupClients, isSetupEntry } from '../engine-setup.mjs';
 import { connectorEnvironment } from '../engine-plan.mjs';
 import { finishSetup } from '../../../packages/agent-cli/src/cli.mjs';
 import { hostToolEnvironment } from '../../../packages/agent-cli/src/windows-command.mjs';
@@ -90,4 +90,36 @@ test('root registration preserves edited older skills and reports its existing c
   const result = await f.register(); assert.equal(result.registered, true);
   assert.match(result.lines, /kept your own Minions skill/);
   for (const skill of f.skills) assert.equal(await readFile(skill, 'utf8'), edited);
+});
+
+test('a skill write failure leaves successful MCP registration intact and visible', { skip: process.platform === 'win32' || process.getuid?.() === 0 }, async t => {
+  const f = await fixture(t);
+  const directories = f.skills.map(dirname);
+  for (const path of directories) { await mkdir(path, { recursive: true }); await chmod(path, 0o500); }
+  try {
+    const result = await f.register();
+    assert.equal(result.registered, true, result.lines);
+    assert.match(result.lines, /could not install.*Minions skill/);
+    assert.equal(JSON.parse(await readFile(join(f.user, '.claude.json'), 'utf8')).mcpServers.minions.type, 'http');
+    assert.match(await readFile(join(f.user, '.codex', 'config.toml'), 'utf8'), /mcp_servers\.minions/);
+  } finally { for (const path of directories) await chmod(path, 0o700); }
+});
+
+test('entry detection compares both physical paths and handles Windows aliases without making POSIX case-insensitive', () => {
+  const seen = [];
+  const realpath = path => { seen.push(path); return path === 'C:\\LINKED~1\\setup.mjs' ? 'C:\\Code Folder\\SETUP.mjs' : 'c:\\code folder\\setup.mjs'; };
+  assert.equal(isSetupEntry('C:\\LINKED~1\\setup.mjs', 'c:\\Code Folder\\setup.mjs', { platform: 'win32', realpath }), true);
+  assert.deepEqual(seen, ['C:\\LINKED~1\\setup.mjs', 'c:\\Code Folder\\setup.mjs']);
+  assert.equal(isSetupEntry('/link/setup.mjs', '/disk/setup.mjs', { platform: 'darwin', realpath: () => '/physical/setup.mjs' }), true);
+  assert.equal(isSetupEntry('/A/setup.mjs', '/a/setup.mjs', { platform: 'linux', realpath: path => path }), false);
+  assert.equal(isSetupEntry(undefined), false);
+  assert.throws(() => isSetupEntry('/unreadable', '/module', { realpath: () => { throw Object.assign(new Error('denied'), { code: 'EACCES' }); } }), /denied/);
+});
+
+test('a symlinked setup command still performs argument validation before setup', { skip: process.platform === 'win32' }, async t => {
+  const root = await mkdtemp(join(tmpdir(), 'minions setup entry '));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  const script = join(root, 'linked-setup.mjs');
+  await symlink(fileURLToPath(new URL('../engine-setup.mjs', import.meta.url)), script);
+  await assert.rejects(execute(process.execPath, [script, '--invalid-option']), error => error.code === 1 && /Unknown option/.test(error.stderr));
 });

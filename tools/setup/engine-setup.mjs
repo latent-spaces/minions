@@ -168,4 +168,13 @@ async function main() {
   if (result !== 'interrupted') await finish(url, result === 'ready', files, connectorEnv, values);
 }
 
-if (process.argv[1] && existsSync(process.argv[1]) && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) main().catch(error => { console.error(error.message); process.exitCode = 1; });
+/** Physical path equivalence keeps linked checkouts and Windows case/short-name aliases working on Node 24.0+. */
+export function isSetupEntry(script, moduleFile = fileURLToPath(import.meta.url), { platform = process.platform,
+  realpath = target => { try { return realpathSync.native(target); } catch { return realpathSync(target); } } } = {}) {
+  if (!script) return false;
+  const physical = target => { const value = realpath(target); return platform === 'win32' ? value.toLowerCase() : value; };
+  try { return physical(script) === physical(moduleFile); }
+  catch (error) { if (error.code === 'ENOENT') return false; throw error; }
+}
+
+if (isSetupEntry(process.argv[1])) main().catch(error => { console.error(error.message); process.exitCode = 1; });

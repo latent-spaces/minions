@@ -140,6 +140,12 @@ function installSkill(path, home) {
   return `kept your own Minions skill at ${path}`;
 }
 
+// The MCP entry is already saved. A separate skill write failure must not be reported as failed registration.
+function registeredSkillNote(path, home) {
+  try { return installSkill(path, home); }
+  catch { return `could not install the Minions skill at ${path}; MCP registration was kept. Check the skill folder and rerun setup.`; }
+}
+
 function connectClaude({ home, userHome }) {
   const config = reusableConfiguration({ client: 'claude', home });
   const registry = join(userHome, '.claude.json');
@@ -183,7 +189,7 @@ export function registerWithCodex({ home = installationHome(), userHome = homedi
   const codexHome = codexFolder(userHome, env);
   if (!existsSync(codexHome)) return { status: 'missing', name: 'minions' };
   const result = writeCodexEntry({ home, codexHome });
-  return { ...result, ...(installBundledSkill ? { note: installSkill(join(userHome, '.agents', 'skills', 'minions', 'SKILL.md'), home) } : {}) };
+  return { ...result, ...(installBundledSkill ? { note: registeredSkillNote(join(userHome, '.agents', 'skills', 'minions', 'SKILL.md'), home) } : {}) };
 }
 
 // Connects every coding client found on this computer to the shared service: its registration, its
@@ -228,7 +234,7 @@ export function registerWithClaudeCode({ home = installationHome(), userHome = h
     run(['mcp', 'remove', '--scope', 'user', name]);
   allowTools(userHome, config.name);
   const result = status => ({ status, name: config.name,
-    ...(installBundledSkill ? { note: installSkill(join(userHome, '.claude', 'skills', 'minions', 'SKILL.md'), home) } : {}) });
+    ...(installBundledSkill ? { note: registeredSkillNote(join(userHome, '.claude', 'skills', 'minions', 'SKILL.md'), home) } : {}) });
   if (existing.status === 0 && isDeepStrictEqual(servers[config.name], config.entry)) return result('current');
   if (existing.status === 0) run(['mcp', 'remove', '--scope', 'user', config.name]);
   const added = run(['mcp', 'add-json', '--scope', 'user', config.name, JSON.stringify(config.entry)]);
