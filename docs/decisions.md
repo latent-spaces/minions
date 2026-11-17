@@ -10,6 +10,29 @@ How to read this file:
 - Commit hashes in this file refer to the earlier history in the private `oronanschel/karma42-swarm` repository; run the `git show` commands there.
 - Plans and contracts named without a link were removed in 6998671a. Read them with `git show 6998671a^:docs/<path>`. `pilot/REHEARSALS.md` (D11) had moved into docs/ in 450237da; read it with `git show 6998671a^:docs/evidence/rehearsals/REHEARSALS.md`.
 
+## Personal swarms as the product focus — owner decision, 17 November 2026
+
+Source: the owner in chat on 17 November 2026: “we need ot update the vision since
+this is not about collaboration anymore”. Presented with a personal-swarm vision
+that retains coordination between agents and removes collaboration between people
+from the core focus, the owner selected “Yes — personal swarms; agents still
+coordinate”. They also requested that the vision include the tour and welcome
+screen's themes, and that the README installation prompt be short enough for a
+person to read and copy into Claude Code or Codex.
+
+- **Direction.** “Minions gives one person a small team of coding agents to get
+  work done faster. You set the goal, agents coordinate in the background, and you
+  follow progress and steer the work.” This supersedes the earlier vision's
+  combined focus on shared projects between people and private swarms.
+- **Experience.** Carry the six current tour and welcome themes into the vision:
+  hard problems solved faster, agents organizing themselves, visibility and
+  control, one team on a project, a simple start, and a small, friendly crew on
+  your own computer using your Claude Code or Codex. These are goals, not measured
+  outcomes; the welcome activity remains illustrative.
+- **Scope.** This selects product direction and documentation. Existing shared
+  features require separate retirement decisions. It changes no permissions,
+  repository authority, participant records or execution approvals.
+
 ## A `minions` command — owner request, 16 November 2026
 
 Owner: "having a cli command for minions where we can say minions start minions stop or other commands? I think it sounds cute and fun", then chose the commands, the install and the tone.

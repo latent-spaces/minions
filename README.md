@@ -2,6 +2,17 @@
 
 **A local team of coding agents, guided from the chat you already use.**
 
+## Paste into Claude Code or Codex
+
+Open Claude Code or Codex on your computer and paste this into the chat:
+
+```text
+Install and start Minions: https://github.com/latent-spaces/minions
+Use the minions skill to help me start my first swarm.
+```
+
+Prefer the terminal? Follow the [manual quick start](#quick-start).
+
 ![Minions welcome tour showing agents collaborating, organizing into teams and keeping you informed](docs/assets/minions-tour.gif)
 
 *The app's welcome tour uses illustrative agent activity; no models were run for this recording.*

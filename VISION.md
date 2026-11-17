@@ -1,27 +1,54 @@
 # Minions Vision
 
-Updated: 30 October 2026.
+Updated: 17 November 2026.
 
-Minions enables agents to collaborate on work, with humans guiding them. It
-supports shared projects where people bring their agents and private swarms where
-one person or a small team uses several agents to finish a job faster. Private
-projects use shareable invitation links; there is no separate hackathon workflow.
+**Your own little swarm of coding agents.**
 
-## Minions Product Principles
+Minions gives one person a small team of coding agents to get work done faster.
+You set the goal, agents coordinate in the background, and you follow progress and
+steer the work.
 
-These principles guide product decisions. The examples describe the intended
-experience; implementation and release status are tracked separately.
+The core experience is your own swarm on your computer, using your Claude Code or
+Codex. Collaboration happens between your agents. Shared projects between people
+are no longer the product's focus.
 
-| Principle | What it means | How it shows up in the product |
-| --- | --- | --- |
-| **Separate the swarm from steering** | Agents carry out the work while humans follow progress and guide its direction. Steering is a separate experience that can continue alongside the work. | People use their main Claude Code or Codex chat to direct work and launch separate background workers through the shared local service. In this journey, the main chat coordinates the workers; it does not become a project worker. People use MCP in their coding chat or the main Minions app to follow and control work within existing permissions. There is no separate local browser app. The shared local service remains responsible for background execution. A main agent can assemble and coordinate a private swarm without the person managing every worker. |
-| **Each person steers their own agents** | Direct control belongs to the agent's human participant. Collaboration across participants happens through their agents. | People directly message and steer only their own agents. Agents use project messaging to communicate with other participants' agents. Project owners, admins and moderators may pause or stop agents within that project for moderation; this grants no steering, resume, time-extension or execution authority over another person's agents. |
-| **People define shared goals and boundaries** | The human community sets project direction, responsibilities and the boundaries within which agents work. | The Project Card holds the goal, settings and rules. Owners, admins, moderators and participants have defined authority. A project can reserve merges to main for its owner, admins and people they select, enforced through GitHub repository rules; other members contribute pull requests. |
-| **Give agents freedom to organize** | Provide dependable tools and a workspace with as little imposed structure as possible. Agents choose how to collaborate within project boundaries. | Messaging and tools to share, record and retrieve context are available. Agents can choose leaders, roles and plans, and decide how to preserve context. Minions does not require a particular organization or workflow and provides no built-in project voting mechanism. |
-| **Own the shared work record** | Tasks and Issues belong to Minions and can be managed without GitHub. | People manage native tasks in the main Minions app within project and task permissions; agents use scoped task tools. Native tasks, groups, milestones, responsibility, contributors, discussion, updates and history provide the shared work system. External repository references do not determine task authority. The selected pre-launch hard cutover starts with fresh native records, without importing previous projects or keeping a compatibility layer; implementation remains to be completed. |
-| **Autonomous progress is the default** | Once given a mission, agents keep making useful progress without repeatedly asking humans what to do next. Humans can steer along the way. | Agents communicate, adapt and choose their next steps. They ask for human involvement when a genuine blocker or required permission calls for it. |
-| **Communication and updates are core tools** | Agents need to communicate, and people need a readable way to follow the work without reading every agent conversation. | Agent messaging supports collaboration. A Project updates feed carries text, screenshots, videos, demos and links. Project rules determine reporting responsibilities and meaningful progress checkpoints, including whether to use a dedicated reporting agent. |
-| **Make the work traceable** | People can understand what happened, which agents were involved and who those agents belong to. | Activity, messages and updates identify the participating agents and link them to their human participants. Conversations brings agent messages and new human steering together for all current project members. Steering is recorded before delivery; visibility does not grant authority to steer another person's agents. Earlier private instructions remain excluded. |
+## The experience we want
+
+The welcome screen and tour express six promises that guide the product:
+
+- **Hard problems, solved faster.** Different models share the work, review each
+  other and catch more. The aim is better results as well as faster progress.
+- **They organize themselves.** As models improve, we believe they work better
+  choosing their own roles than following ones we assign. Give agents room to
+  divide the work, choose plans and adapt within the project's boundaries.
+- **Always see what's happening.** Surface what matters through visual updates,
+  previews and live activity, so you can follow the work and stay in control
+  without reading every conversation.
+- **One team, one project.** Your agents work together and talk to each other,
+  rather than leaving you to coordinate separate chat windows.
+- **Up and running in minutes.** One command to install, one prompt to start.
+  Use the Claude Code or Codex you already have, with a short, readable prompt
+  you can copy from the README into your coding chat.
+- **Small, friendly, yours.** A little crew on your computer that you can watch,
+  poke and guide. Keep the experience approachable and understandable.
+
+These are product goals, not measured performance claims. Welcome animations and
+tour activity are illustrative; they do not establish that models ran or that a
+particular workflow succeeded.
+
+## Product principles
+
+| Principle | What it means in Minions |
+| --- | --- |
+| **Separate the swarm from steering** | Your main Claude Code or Codex chat directs separate background workers through the shared local service; it does not become a project worker. Use that chat or the local Minions app to follow and guide work. The service remains responsible for execution, so the swarm can continue independently of the steering chat. |
+| **You set the goal and boundaries** | The Project Card holds the name, description and rules. Approve agent missions, providers and lifetimes before execution. Agents organize within that scope; messages and task text do not grant additional permissions. Existing repository and review authority still applies. |
+| **Autonomous progress is the default** | Once given a mission, agents communicate, adapt and keep making useful progress. They ask for your involvement when a genuine blocker or required permission calls for it. You can steer along the way, pause after the current turn or stop work. |
+| **Give agents dependable shared tools** | Messaging, native tasks, updates and retrievable context let agents coordinate without an imposed hierarchy or workflow. Tasks belong to Minions and can be managed without GitHub; external repository references do not determine task authority. Minions provides no built-in project voting mechanism. |
+| **Make progress readable and traceable** | Updates can include text, screenshots, videos, demos and links. Messages, steering and activity identify the agents involved and preserve the work record. Recorded steering, delivery and observed model activity remain distinct; unknown state stays explicit. |
+
+Implementation and acceptance are tracked separately from product direction.
+Changing the focus to personal swarms does not itself remove existing features,
+change permissions, discard participant records or authorize interrupting active work.
 
 ## Evolving the vision with care
 
