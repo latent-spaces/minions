@@ -4,7 +4,7 @@
 // second implementation of any of them. At a terminal it is playful; piped or called by an agent it prints plain
 // lines (owner, 16 November 2026). Nothing here runs a model.
 import { spawn, spawnSync } from 'node:child_process';
-import { closeSync, existsSync, openSync, readSync, statSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdirSync, openSync, readSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { initializationState, occupiedMessage, requireNode24, settingsText } from './engine-plan.mjs';
@@ -261,6 +261,8 @@ async function logs(args) {
 
 async function update(args) {
   const options = waitOptions(args);
+  const pending = at('apps/server/dist/.minions-update-pending');
+  const incomplete = existsSync(pending);
   const git = gitArgs => spawnSync('git', gitArgs, { cwd: repository, encoding: 'utf8', shell: false, windowsHide: true });
   const branch = git(['rev-parse', '--abbrev-ref', 'HEAD']).stdout?.trim();
   if (!branch) throw new Error(`Could not read the Git branch of ${repository}. Update needs Git and a cloned checkout.`);
@@ -278,7 +280,7 @@ async function update(args) {
     throw new Error('main cannot fast-forward to origin/main. Nothing was changed or stopped.');
   // A build older than the checked-out commit means someone pulled by hand; rebuild then too (review of PR 69).
   const committed = Number(git(['log', '-1', '--format=%ct']).stdout.trim()) * 1000;
-  if (current && existsSync(engineMain) && statSync(engineMain).mtimeMs >= committed) {
+  if (current && !incomplete && existsSync(engineMain) && statSync(engineMain).mtimeMs >= committed) {
     art('awake');
     say(bold('Already up to date. The minions are as fresh as they get!'), 'Already up to date; nothing was rebuilt.');
     return 0;
@@ -288,6 +290,10 @@ async function update(args) {
     console.error('The checkout was left unchanged. Run minions update again once those turns have finished, or minions update --now.');
     return 1;
   }
+  // A partial setup may emit the backend before a later build fails. Its mtime alone cannot complete this update.
+  // Keep the ignored marker through pull/build failures and interruptions; clear it only after setup succeeds.
+  mkdirSync(at('apps/server/dist'), { recursive: true });
+  writeFileSync(pending, '');
   if (git(['rev-parse', '--abbrev-ref', 'HEAD']).stdout?.trim() !== 'main'
     || git(['rev-parse', 'HEAD']).stdout?.trim() !== before
     || git(['status', '--porcelain', '--untracked-files=no']).stdout?.trim())
@@ -296,11 +302,13 @@ async function update(args) {
   const pulled = spawnSync('git', ['pull', '--ff-only', 'origin', 'main'], { cwd: repository, stdio: 'inherit', shell: false, windowsHide: true });
   if (pulled.status !== 0) throw new Error('git pull --ff-only did not complete. Minions is stopped; nothing was rebuilt. Run minions start to restart the existing build.');
   const after = git(['rev-parse', 'HEAD']).stdout.trim();
-  if (before === after) say(`${green('*')} The build is older than ${after.slice(0, 7)}`, `The build is older than ${after.slice(0, 7)}.`);
+  if (before === after) say(incomplete ? `${yellow('*')} Finishing the incomplete update` : `${green('*')} The build is older than ${after.slice(0, 7)}`,
+    incomplete ? 'Finishing the incomplete update.' : `The build is older than ${after.slice(0, 7)}.`);
   else say(`${green('*')} Pulled ${before.slice(0, 7)} → ${after.slice(0, 7)}`, `Pulled ${before.slice(0, 7)} to ${after.slice(0, 7)}.`);
   say(`${yellow('(^o^)')} Rebuilding and waking them with setup!`, 'Rebuilding and starting with setup.');
   const result = await setup();
   if (result !== 0) console.error('Update setup did not complete. Resolve the error above and run minions setup to finish rebuilding and starting.');
+  else rmSync(pending, { force: true });
   return result;
 }
 
