@@ -31,6 +31,8 @@ export function NewProjectDialog({ open, onClose, created = null, onWaiting, onO
   const [left, setLeft] = useState(4);
   useEffect(() => { if (!created) return; setLeft(4); const timer = setInterval(() => setLeft(n => n - 1), 1000); return () => clearInterval(timer); }, [created]);
   useEffect(() => { if (created && left <= 0) onOpenProject?.(created.id); }, [created, left, onOpenProject]);
+  // Only a host that passes onOpenProject (the first-run flow) watches for the project, so only it may say it is waiting.
+  const watching = onOpenProject !== undefined;
   const close = () => { setWaiting(false); onClose(); };
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => { const d = dialog.current; if (!d) return; if (open && !d.open) d.showModal(); if (!open && d.open) d.close(); }, [open]);
@@ -52,11 +54,13 @@ export function NewProjectDialog({ open, onClose, created = null, onWaiting, onO
         <li className="is-now"><Hourglass size={14} aria-hidden="true" />Paste it in a <strong>new</strong> Claude Code or Codex chat</li>
         <li><Hourglass size={14} aria-hidden="true" />Say yes when it asks to create the project</li>
       </ol>
-      <p className="k42-first-wait" role="status"><span className="k42-first-dots" aria-hidden="true"><i /><i /><i /></span>Waiting for your project…</p>
-      {slow && <div className="k42-first-slow"><strong>Nothing yet?</strong> Make sure the chat was opened after you installed Minions, then paste again.
+      {watching ? <p className="k42-first-wait" role="status"><span className="k42-first-dots" aria-hidden="true"><i /><i /><i /></span>Waiting for your project…</p>
+        : <p className="k42-first-wait">It shows up under Projects once your chat creates it.</p>}
+      {watching && slow && <div className="k42-first-slow"><strong>Nothing yet?</strong> Make sure the chat was opened after you installed Minions, then paste again.
         <button type="button" onClick={copy}><Copy size={14} aria-hidden="true" />Copy again</button></div>}
       <div className="k42-first-wait-actions">
         <button type="button" className="k42-first-edit" onClick={() => setWaiting(false)}>Change the prompt</button>
+        {!watching && <button type="button" className="primary" onClick={close}>Done</button>}
       </div>
     </div> : <>
     <h2 id="k42-first-step-title">Describe it, then hand it to your chat</h2>
