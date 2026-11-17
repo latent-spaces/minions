@@ -87,24 +87,36 @@ export function withCodexEntry(text, table) {
 }
 
 // The router setup last wrote at each skill path, by hash. An older router's own hash is not known, so only this
-// record shows whether the person edited it since; a router edited after setup recorded it is kept on update.
-// Skills installed before this record existed have none and are updated as before.
+// record shows whether the person edited it since: a router edited after setup recorded it is kept on update.
+// An unreadable record keeps the skill. A skill from before the record existed is updated, with its old router
+// saved beside the record first, so an edit made then can be recovered.
 const installedRouters = home => join(home, 'installed-skills.json');
 function readRouters(home) {
-  try { const value = lstatExists(installedRouters(home)) ? readPrivate(installedRouters(home), true) : {}; return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; }
-  catch { return {}; }
+  if (!lstatExists(installedRouters(home))) return {};
+  const value = readPrivate(installedRouters(home), true);
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Unreadable skill record.');
+  return value;
 }
 function recordRouter(home, path, text) {
-  try { writePrivate(installedRouters(home), { ...readRouters(home), [path]: skillTextHash(text) }); } catch {} // A missing record only loses this protection.
+  try { writePrivate(installedRouters(home), { ...readRouters(home), [path]: skillTextHash(text) }); return null; }
+  catch { return `could not record the skill it wrote in ${installedRouters(home)}, so a later update cannot tell your edits from an older version`; }
 }
 
 function installSkill(path, home) {
   const installed = installedSkill({ path }, BUNDLED_SKILL), { status } = installed;
-  if (status === 'current') { recordRouter(home, path, bundledGuideFiles()['SKILL.md']); return null; }
+  if (status === 'current') return recordRouter(home, path, bundledGuideFiles()['SKILL.md']);
+  let backup = null;
   if (status === 'update_available') {
-    const recorded = readRouters(home)[path];
-    try { if (recorded && skillTextHash(readInstalledGuideFile(dirname(path), 'SKILL.md')) !== recorded) return `kept your own Minions skill at ${path}`; }
-    catch { return `kept your own Minions skill at ${path}`; }
+    let routers;
+    try { routers = readRouters(home); } catch { return `kept your Minions skill at ${path}: setup could not read ${installedRouters(home)}, so it cannot tell your edits from an older version`; }
+    let router;
+    try { router = readInstalledGuideFile(dirname(path), 'SKILL.md'); } catch { return `kept your own Minions skill at ${path}`; }
+    if (routers[path] && skillTextHash(router) !== routers[path]) return `kept your own Minions skill at ${path}`;
+    if (!routers[path]) {
+      backup = join(home, 'skill-backups', `${skillTextHash(router)}.md`);
+      try { mkdirSync(dirname(backup), { recursive: true, mode: 0o700 }); writePrivate(backup, router); }
+      catch { return `kept your Minions skill at ${path}: setup could not save a copy of it before updating`; }
+    }
   }
   if (['not_installed', 'update_available', 'incomplete'].includes(status)) {
     const root = dirname(path), files = bundledGuideFiles();
@@ -120,8 +132,9 @@ function installSkill(path, home) {
     // References first: once the new router is visible, all its links exist.
     for (const [file, content] of Object.entries(files)) if (file !== 'SKILL.md') replace(join(root, file), content);
     replace(path, files['SKILL.md']);
-    recordRouter(home, path, files['SKILL.md']);
-    return null;
+    const unrecorded = recordRouter(home, path, files['SKILL.md']);
+    const notes = [backup && `updated the Minions skill; its previous router, in case you had edited it, is saved at ${backup}`, unrecorded].filter(Boolean);
+    return notes.length ? notes.join('; ') : null;
   }
   return `kept your own Minions skill at ${path}`;
 }

@@ -33,7 +33,16 @@ test('a guide update replaces the skill setup wrote, and keeps one the person ed
   assert.match(setup().note, /kept your own Minions skill/);
   assert.match(await readFile(skill, 'utf8'), /My own note/, 'an edited older skill is kept');
 
+  // An unreadable record keeps the skill rather than guessing.
+  await writeFile(records, '{broken', { mode: 0o600 });
+  assert.match(setup().note, /could not read/);
+  assert.match(await readFile(skill, 'utf8'), /My own note/, 'an unreadable record keeps the skill');
+
+  // An install from before the record existed is updated, and its old router is saved first.
   await rm(records);
-  assert.equal(setup().note, null, 'an install from before the record is updated as before');
+  const note = setup().note;
   assert.equal(await readFile(skill, 'utf8'), bundled);
+  const saved = /saved at (\S+\.md)/.exec(note)?.[1];
+  assert.ok(saved, note);
+  assert.match(await readFile(saved, 'utf8'), /My own note/, 'the previous router can be recovered');
 });
