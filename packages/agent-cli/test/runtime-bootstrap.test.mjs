@@ -36,7 +36,8 @@ async function fixture(t, { uniqueAgents = false, sessions = true } = {}) {
   };
   const owner = createOwnerClient({home:credentials,workspace:join(root,'workspace'),site,fetchImpl});
   return {root,credentials,folder,calls,owner,async compose(){
-    composed = await composeInstalledRuntime({home,site,credentialHome:credentials,fetchImpl,webStartOptions:{capabilities:async()=>[]},
+    // Never discover or migrate the person's gh login through the inherited HOME.
+    composed = await composeInstalledRuntime({home,site,credentialHome:credentials,fetchImpl,webStartOptions:{capabilities:async()=>[],githubSignIn:async()=> 'missing'},
       getService:()=>{throw new Error('No native worker bridge may be requested in this no-model test.');}});
     return composed;
   }};
