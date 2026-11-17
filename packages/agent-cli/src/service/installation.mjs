@@ -189,7 +189,7 @@ export async function startDetachedService({ home = installationHome(), site, en
   const fd = openSync(path, constants.O_WRONLY | constants.O_CREAT | constants.O_APPEND | constants.O_NOFOLLOW, 0o600);
   let child;
   try {
-    child = spawn(process.execPath, [entryPoint, ...args], { detached: true, cwd: home, stdio: ['ignore', fd, fd],
+    child = spawn(process.execPath, [entryPoint, ...args], { detached: true, windowsHide: true, cwd: home, stdio: ['ignore', fd, fd],
       env: { ...process.env, MINIONS_SERVICE_HOME: home, MINIONS_SITE_URL: installation.site } });
   } finally { closeSync(fd); }
   let spawnError; child.on('error', error => { spawnError = error; }); child.unref();
