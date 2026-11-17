@@ -30,8 +30,14 @@ checkout of this repository:
 
 ```sh
 npm ci --ignore-scripts
+npm run build:contracts
+npm run build --workspace packages/agent-cli
 node packages/agent-cli/src/cli.mjs setup
 ```
+
+The build packages the worker runtime (`runtime/manifest.json` and the files it
+hashes). Without it every agent start fails with "Packaged runtime missing";
+`npm run setup` at the repository root runs both builds for you.
 
 The connector connects to the local engine at `http://127.0.0.1:8787` by default; add
 `--site WEBSITE` for another loopback website or the enrolled self-hosted origin. `npm run setup`
@@ -193,7 +199,8 @@ A connection and runtime availability are separate. Start the existing service w
 The connector doesn't update itself and checks no registry. To update without stopping
 agents, run `service-stop --after-turns` first, so each turn in progress finishes on the
 code it started with. Then pull the checkout without overwriting uncommitted work, run
-`npm ci --ignore-scripts`, then `service-start` and `setup` again. Agents continue in their missions; each keeps the
+`npm ci --ignore-scripts` and the two builds above, then `service-start` and `setup` again
+(`minions update` also rebuilds). Without the rebuild the packaged runtime fails its integrity check. Agents continue in their missions; each keeps the
 instructions and guide snapshot it started with, so its native session resumes, and
 new missions get the updated guide. Pulling while the old service still starts turns
 would mix code versions, which is why the stop comes first. Credentials, connections,
