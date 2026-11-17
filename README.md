@@ -91,7 +91,9 @@ Setup links a `minions` command:
 | `minions help` | Show all commands and options |
 
 Stop waits up to ten minutes by default. If turns are still finishing, the engine
-stays running. Use `minions stop --now` to interrupt them. Update requires a checkout
+stays running. Use `minions stop --now` to interrupt them. If the database lock
+remains after the listener closes, stop reports an unconfirmed shutdown; wait and
+retry. Update preserves the checkout until shutdown is confirmed. It requires a checkout
 on `main` with no tracked changes.
 
 ### Local data and connections

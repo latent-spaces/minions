@@ -4,7 +4,7 @@
 // second implementation of any of them. At a terminal it is playful; piped or called by an agent it prints plain
 // lines (owner, 16 November 2026). Nothing here runs a model.
 import { spawn, spawnSync } from 'node:child_process';
-import { closeSync, existsSync, mkdirSync, openSync, readSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, lstatSync, mkdirSync, openSync, readSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { initializationState, occupiedMessage, requireNode24, settingsText } from './engine-plan.mjs';
@@ -137,6 +137,11 @@ async function start(args) {
   return ready ? 0 : 1;
 }
 
+function engineLockRemains(installation) {
+  try { lstatSync(`${installation.files.sqlitePath}.lock`); return true; }
+  catch (error) { if (error.code === 'ENOENT') return false; throw error; }
+}
+
 /**
  * Stops the shared service, letting the turns in progress finish unless now, then the engine. Resolves false and
  * leaves the engine running when turns are still finishing, so they can complete.
@@ -169,6 +174,11 @@ async function rest(installation, { now, minutes, requireServiceStopped = false 
     try { await stopEngine(installation, { quiet: true }); } finally { done(); }
     say(`${green('*')} Engine stopped`, 'The engine stopped.');
   } else if (state === 'other') say(`${yellow('!')} Port ${installation.port} belongs to another program; it was left alone.`, `Port ${installation.port} is used by another program; it was left alone.`);
+  if (engineLockRemains(installation)) {
+    console.error(`The engine database lock remains: ${installation.files.sqlitePath}.lock`);
+    console.error('Startup or shutdown may still be running. Wait and retry minions stop; shutdown was not confirmed.');
+    return false;
+  }
   return true;
 }
 
@@ -183,7 +193,7 @@ function waitOptions(args) {
 async function stop(args) {
   const options = waitOptions(args);
   const installation = locate();
-  if (await engineState(installation) !== 'running' && !(await serviceStatus(installation)).running) {
+  if (await engineState(installation) !== 'running' && !(await serviceStatus(installation)).running && !engineLockRemains(installation)) {
     art('asleep', magenta);
     say(bold('Minions are already asleep. Zzz...'), 'Minions are not running.');
     return 0;

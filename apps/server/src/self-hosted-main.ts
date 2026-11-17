@@ -83,7 +83,7 @@ async function stopRunningEngine(origin: string, signingSecret: string, lock: st
   } catch {
     console.info(`No engine answered at ${origin}.`);
     // Startup and shutdown can hold the database lock without a listening endpoint.
-    if (existsSync(lock)) console.info(lockedMessage(lock));
+    if (existsSync(lock)) throw new Error(lockedMessage(lock));
     return;
   }
   if (response.status !== 202) throw new Error(`The program at ${origin} is not this engine or refused the stop request (HTTP ${response.status}). Nothing was stopped.`);
