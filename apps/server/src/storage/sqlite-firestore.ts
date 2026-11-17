@@ -733,9 +733,9 @@ function matches(path: string, data: Data, w: Where, db: SqliteFirestore): boole
     case '<=': return ranged && compare(v, target) <= 0;
     case '>': return ranged && compare(v, target) > 0;
     case '>=': return ranged && compare(v, target) >= 0;
-    // As in Firestore, null inside an in-list matches nothing.
-    case 'in': return (target as any[]).some(t => t !== null && equal(v, t));
-    case 'not-in': return v !== null && !(target as any[]).some(t => equal(v, t));
+    case 'in': return (target as any[]).some(t => equal(v, t));
+    // Firestore NOT_IN excludes null fields and matches nothing when its comparison list contains null.
+    case 'not-in': return v !== null && !(target as any[]).includes(null) && !(target as any[]).some(t => equal(v, t));
     case 'array-contains': return Array.isArray(v) && v.some(x => equal(x, target));
     case 'array-contains-any': return Array.isArray(v) && v.some(x => (target as any[]).some(t => equal(x, t)));
     default: throw new Error(`Unsupported operator ${w.op}`);
