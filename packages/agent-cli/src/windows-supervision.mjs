@@ -12,7 +12,9 @@ const jobName = mark => {
   if (!/^[a-f0-9]{32}$/.test(mark)) throw new Error('Invalid Windows mission identity.');
   return `Local\\Minions-${mark}`;
 };
-const invocation = (mode, mark, env, pipe) => ({ command: windowsPowerShell(env), args: ['-NoLogo', '-NoProfile', '-NonInteractive', '-File', helper, '-Mode', mode, '-JobName', jobName(mark), ...(pipe ? ['-PipeName', pipe] : [])] });
+// Windows client editions default to the Restricted execution policy, which refuses every -File script. Bypass is
+// scoped to this one process, needs no administrator and changes no machine setting; the script is our packaged file.
+const invocation = (mode, mark, env, pipe) => ({ command: windowsPowerShell(env), args: ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', helper, '-Mode', mode, '-JobName', jobName(mark), ...(pipe ? ['-PipeName', pipe] : [])] });
 
 async function inspect(mode, mark, env, signal) {
   const { command, args } = invocation(mode, mark, env);
