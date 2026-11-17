@@ -63,26 +63,43 @@ your own Claude Code or Codex sign-in.
 
 ## Why Minions?
 
-![Minions welcome tour showing agents collaborating, organizing into teams and keeping you informed](docs/assets/minions-tour.gif)
+<table>
+<tr>
+<td width="65%" valign="top">
+<a href="docs/assets/minions-tour.gif"><img src="docs/assets/minions-tour.gif" alt="Minions welcome tour: agents sharing work and organizing into teams" width="600"></a>
+</td>
+<td width="35%" valign="top">
+<ul>
+<li><strong>One goal.</strong> Give your swarm something to build.</li>
+<li><strong>One team.</strong> Agents talk and organize the work.</li>
+<li><strong>Stay informed.</strong> Follow updates and previews.</li>
+<li><strong>Stay in control.</strong> Guide, pause or stop your agents.</li>
+</ul>
+</td>
+</tr>
+</table>
 
-*An illustrative tour from the local app. No models were run for this recording.*
-
-- **One team, one project.** Agents coordinate through messages and native tasks,
-  with a separate checkout for each agent.
-- **Room to organize.** Set the goal and rules; let agents divide the work and
-  coordinate their next steps within the mission you approved.
-- **Progress you can follow.** Updates, previews and activity show what is happening.
-  Needs you collects questions that require your input.
-- **Your swarm, your controls.** Steer from your coding chat or the app. Pause lets
-  the current turn finish; Kill interrupts it. Background work can continue after
-  your steering chat closes.
+*Illustrative welcome tour; no models were run for this recording. Click the GIF to enlarge.*
 
 ### Watch a swarm build a game
 
-![A real Minions swarm building Star Sprint: tasks and agent communication, a first playable game, screenshot updates, and the finished interface](docs/assets/minions-game-demo.gif)
+<table>
+<tr>
+<td width="65%" valign="top">
+<a href="docs/assets/minions-game-demo.gif"><img src="docs/assets/minions-game-demo.gif" alt="Real Star Sprint development: agent tasks, first playable game, screenshot updates and polished gameplay" width="600"></a>
+</td>
+<td width="35%" valign="top">
+<ul>
+<li><strong>The prompt:</strong> “Build me a 2D game.”</li>
+<li><strong>The swarm:</strong> Three Opus and two Codex agents.</li>
+<li><strong>The progress:</strong> Tasks, messages and screenshot updates.</li>
+<li><strong>The result:</strong> A playable space game with pause and restart.</li>
+</ul>
+</td>
+</tr>
+</table>
 
-*“Build me a 2D game.” Actual progress from three Opus and two Codex agents:
-coordination, screenshot updates, and a playable result. Checkpoints are time compressed.*
+*Actual development screenshots, with time compressed between checkpoints. Click the GIF to enlarge.*
 
 ## Everyday use
 
