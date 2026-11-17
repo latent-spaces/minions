@@ -41,7 +41,7 @@ again.
 
 Setup signs in to the engine as its owner with no human step, starts its shared service
 and connects every Claude Code and Codex it finds: it writes the one `minions` entry and
-removes older per-engine `minions-<8 hex>` entries and their permissions, leaving any other entry as it is, allows
+removes the pre-rename `mlswarm` entry and the older per-engine `mlswarm-<8 hex>` entries and their permissions, leaving any other entry as it is, allows
 Minions's tools once and installs the bundled skill, keeping a skill the person changed.
 Codex's `config.toml` is read with a TOML parser and edited line by line, so comments and
 layout outside the replaced entry stay; a file that does not parse, or that entry written as an inline table or
@@ -90,7 +90,7 @@ leaves that to its caller. `npm run setup` passes it and then runs `register`, w
 registers the installation as `minions` through Claude Code's own `claude mcp add-json`
 (spawned without a shell; an npm `.cmd` shim on Windows runs its JavaScript entry point with
 Node) unless an entry with the same address exists, replaces an entry with an older
-address, removes older `minions-<8 hex>` entries, and writes the same entry into Codex's
+address, removes the retired `mlswarm` and `mlswarm-<8 hex>` entries, and writes the same entry into Codex's
 `config.toml` when Codex is installed. It exits 4 when neither client is found.
 
 A client loads MCP tools only when its session starts. Until then, `tool --list [TOOL_NAME]`
