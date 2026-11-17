@@ -2,16 +2,16 @@
 // child this script starts is Node itself, without a shell, so checkout paths with spaces and Windows work alike; npm
 // runs the package build scripts as any npm run does. Nothing here runs a model.
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, lstatSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, lstatSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { parseArgs } from 'node:util';
 import { npmCli } from './npm-cli.mjs';
-import { connectorCommand, initializationState, interruptedByUser, needsInstall, occupiedMessage, ownerIdentity, requireNode24, settingsText } from './engine-plan.mjs';
-import { at, connectorCli, engineMain, engineState, locate, openPage, portHolder, repository, run, startEngine } from './engine-control.mjs';
+import { connectorCommand, initializationState, interruptedByUser, occupiedMessage, ownerIdentity, requireNode24, settingsText } from './engine-plan.mjs';
+import { installDependencies } from './dependencies.mjs';
+import { connectorCli, engineMain, engineState, locate, openPage, portHolder, repository, run, startEngine } from './engine-control.mjs';
 
 const say = text => console.info(`\nMinions setup: ${text}`);
-const modified = file => { try { return statSync(file).mtimeMs; } catch { return null; } };
 
 /** Opens the local app, which lets the owner straight in on this computer. */
 function openApp(site) {
@@ -133,12 +133,7 @@ async function main() {
 
   next('Installing dependencies');
   const npm = npmCli();
-  if (!needsInstall({ hiddenLockfile: modified(at('node_modules/.package-lock.json')), lockfile: modified(at('package-lock.json')) })) {
-    console.info('Dependencies are installed and match package-lock.json; skipping npm ci.');
-  } else {
-    console.info('Running npm ci; this downloads the dependencies the first time and can take a few minutes on a slow connection.');
-    await run('npm ci', [npm, 'ci', '--no-audit', '--no-fund'], { env: base, quiet: true });
-  }
+  await installDependencies({ cwd: repository, env: base, npm });
 
   next('Building the contracts, engine, local app and connector');
   // The packages' own build scripts.
