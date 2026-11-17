@@ -185,11 +185,3 @@ export async function readProfilePhoto(personId: string, photoId: string, actor:
   if (hash(bytes) !== row.digest) throw new Error('Profile photo content integrity failed.');
   return bytes;
 }
-export async function exportActivePhoto(personId: string, profile: Profile) {
-  if (!profile.photo || !ID.test(profile.photo.id)) return null;
-  const row = (await photoCandidates(personId).doc(profile.photo.id).get()).data() as PhotoRecord | undefined;
-  if (!row || row.status !== 'ready' || !row.media) return null;
-  const bytes = await readObject(row.objectKey);
-  if (hash(bytes) !== row.digest) throw new Error('Profile photo export integrity failed.');
-  return { id: profile.photo.id, mimeType: 'image/webp', encoding: 'base64', bytes: bytes.toString('base64') };
-}

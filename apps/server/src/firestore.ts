@@ -42,13 +42,6 @@ export async function openDatabase(env: NodeJS.ProcessEnv = process.env): Promis
 }
 export const db = await openDatabase();
 
-// Brand set by storage/sqlite-firestore.ts on its references, so this check never has to load node:sqlite.
-const SQLITE_DOCUMENT_REFERENCE = Symbol.for('minions.sqliteDocumentReference');
-/** True for a stored document reference. */
-export function isDocumentReference(value: unknown): value is DocumentReference {
-  return typeof value === 'object' && value !== null && (value as Record<symbol, unknown>)[SQLITE_DOCUMENT_REFERENCE] === true;
-}
-
 export type WithId<T> = T & { id: string };
 
 // Times are Unix milliseconds.
