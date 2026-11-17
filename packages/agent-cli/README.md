@@ -18,9 +18,18 @@ detached development servers, stop when their native turn ends. Unconfirmed clea
 retains checkout ownership. No PID/image-name sweep or silent in-chat fallback exists.
 Windows clients must be native `.exe` files or standard npm `.cmd` shims pointing to
 a JavaScript entry point, run with the service's Node without a command shell.
-Linux mission cleanup also requires readable environments for same-user processes in
-`/proc`. If the host denies that inspection, cleanup fails explicitly without signaling
-unverified processes or reporting success.
+Linux mission cleanup reads same-user process environments in `/proc`. Before a new
+mission can launch, the service saves a private, bounded baseline of existing process
+IDs and start ticks, bound to that mission and the kernel boot ID. An inaccessible
+process is excluded only when that exact identity was already in the pre-launch
+baseline; the baseline never authorizes a signal, and readable mission markers still
+receive normal cleanup. It is captured once and is not refreshed on later turns or
+recovery. Existing mission directories without a baseline retain the stricter behavior.
+
+A process outside that baseline that hides its environment (for example, an unrelated
+`ssh-agent` started during the mission) still makes cleanup unconfirmed. Inspect the
+reported PID and retry Stop after resolving it. Missing, corrupt or mismatched baseline
+evidence never permits an unverified process to be signaled or cleanup to claim success.
 
 ## Setup
 

@@ -84,7 +84,7 @@ export async function composeInstalledRuntime({ home, site, getService, credenti
         ? inspectWorkerCheckout({folder:binding.folder,agentId:mission.target.agentId,project:mission.target.projectId}):null;},
       stopOrphanedMission:mission=>{const binding=resolveBinding(mission.target);
         if(!binding)throw new Error('This project agent has no trusted local binding.');
-        return stopOrphanedMission(mission,{folder:binding.folder});} });
+        return stopOrphanedMission(mission,{folder:binding.folder,stateDir:join(binding.stateDir,`mission-${mission.missionId}-${mission.generation}`)});} });
     // Adds take the account's operation lock, which refuses rather than waits, so this service runs
     // them one at a time: two website starts in the same poll would otherwise fail each other.
     let adding = Promise.resolve();
