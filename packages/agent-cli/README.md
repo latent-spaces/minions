@@ -95,8 +95,8 @@ setup changes no client and prints the `mcp-config` command instead; `--no-clien
 leaves that to its caller. `npm run setup` passes it and then runs `register`, which
 registers the installation as `minions` through Claude Code's own `claude mcp add-json`
 (spawned without a shell; an npm `.cmd` shim on Windows runs its JavaScript entry point with
-Node) unless an entry with the same address exists, replaces an entry with an older
-address, removes the retired `mlswarm` and `mlswarm-<8 hex>` entries, and writes the same entry into Codex's
+Node) unless the complete user entry already matches, repairs stale addresses or
+authentication helpers, removes the retired `mlswarm` and `mlswarm-<8 hex>` entries, and writes the same entry into Codex's
 `config.toml` when Codex is installed. It exits 4 when neither client is found.
 
 A client loads MCP tools only when its session starts. Until then, `tool --list [TOOL_NAME]`

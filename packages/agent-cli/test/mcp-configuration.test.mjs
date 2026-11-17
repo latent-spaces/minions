@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { reusableConfiguration, renderReusableConfiguration } from '../src/mcp-configuration.mjs';
 import { ensureInstallation, readInstallation } from '../src/service/installation.mjs';
+import { registerWithClaudeCode } from '../src/client-setup.mjs';
 
 async function installation(t) {
   const home = mkdtempSync(join(tmpdir(), 'minions-configuration-'));
@@ -53,4 +54,28 @@ test('setup retires the pre-rename mlswarm entries and keeps the minions one', a
   assert.doesNotMatch(after, /mlswarm/);
   assert.match(after, /\[mcp_servers\.minions\]/);
   assert.match(after, /\[mcp_servers\.other\]/);
+});
+
+test('Claude registration repairs stale helpers and only keeps a complete matching user entry', async t => {
+  const home = await installation(t), userHome = join(home, 'user');
+  mkdirSync(userHome);
+  const { entry } = reusableConfiguration({ client: 'claude', home });
+  for (const stale of [
+    { type: 'http', url: entry.url },
+    { ...entry, headersHelper: 'old-node old-helper.mjs' },
+    { ...entry, url: `${entry.url}-old` },
+  ]) {
+    writeFileSync(join(userHome, '.claude.json'), JSON.stringify({ mcpServers: { minions: stale } }));
+    const calls = [];
+    const run = args => { calls.push(args); return { status: 0, stdout: `URL: ${stale.url}`, stderr: '' }; };
+    assert.equal(registerWithClaudeCode({ home, userHome, run }).status, 'registered');
+    assert.deepEqual(calls.find(args => args[1] === 'remove'), ['mcp', 'remove', '--scope', 'user', 'minions']);
+    const added = calls.find(args => args[1] === 'add-json');
+    assert.deepEqual(JSON.parse(added.at(-1)), entry);
+  }
+  writeFileSync(join(userHome, '.claude.json'), JSON.stringify({ mcpServers: { minions: entry } }));
+  const calls = [];
+  const run = args => { calls.push(args); return { status: 0, stdout: 'localized output', stderr: '' }; };
+  assert.equal(registerWithClaudeCode({ home, userHome, run }).status, 'current');
+  assert.deepEqual(calls, [['mcp', 'get', 'minions']], 'a matching user entry needs no CLI mutation');
 });
