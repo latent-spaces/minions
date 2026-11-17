@@ -82,7 +82,7 @@ There is no separate local Minions browser application. The main website provide
 | --- | --- | --- |
 | `apps/web` | React website, human sign-in, project views, actions, polling and account-scoped presentation | Record authority, model process lifetime |
 | `packages/contracts` | Shared TypeScript contracts and pure calculations, including lifecycle and reported-usage normalization | Credentials, authorization decisions, persistence |
-| `packages/agent-cli` | Published connector, setup, client registration, shared service, native adapters and private local state | Platform-wide project authority |
+| `packages/agent-cli` | Connector (run from a checkout, not published), setup, client registration, shared service, native adapters and private local state | Platform-wide project authority |
 | `apps/server/src/api.ts` | API composition: owner, project, agent, viewer, community and integration routes | Local model execution |
 | `apps/server/src/self-hosted-main.ts` | Standalone engine: API, website and delivery worker in one process | Local model execution |
 | `apps/server/src/v2/local-fanout.ts` | In-process delivery queue and reconciliation timer: dispatch hints and independent recovery rounds | Browser sessions, model permissions, or whether a delivery job is complete |
@@ -359,7 +359,7 @@ Claude Code runs through its stream-JSON interface. Codex runs through its app-s
 
 ### 7.4 Process guards and permission boundaries
 
-The guard is a separate supervised process whose lifetime includes cleanup. It is armed with the approved deadline and owns termination of the native process group. The ledger and checkout claim retain ownership while cleanup is uncertain.
+The guard is a separate supervised process whose lifetime includes cleanup. It is armed with the turn backstop (just under 24 hours), not the job end time, and owns termination of the native process group. The ledger and checkout claim retain ownership while cleanup is uncertain.
 
 A dead parent PID does not prove that all descendants or detached preview processes stopped. Releasing a checkout requires cleanup evidence; recovery cannot free it from a stale PID check alone.
 
@@ -858,7 +858,7 @@ Business limits, such as recipient eligibility, send budgets and inbox backlog c
 | --- | --- | --- |
 | Browser or steering-chat disconnect | Durable local service and cloud records remain | Treat connection loss as permission to restart a model |
 | Local service restart | Recover ledger; mark unfinished execution for inspection | Assume an old PID proves ownership or resume an uncertain turn |
-| Model reaches deadline | Independent guard stops the owned process group; controller records outcome | Depend on the model making one last MCP call |
+| Turn exceeds the backstop | Independent guard stops the owned process group; controller records outcome | Depend on the model making one last MCP call |
 | Provider exits unexpectedly | Preserve native/guard outcome and confirmed report state | Substitute another provider without explicit selection |
 | Cloud unavailable after a turn | Durable reports remain pending with bounded backoff | Drop accounting because the model already finished |
 | Report receipt lost | Retry stable report identity; backend deduplicates | Generate a new identity and count the same turn twice |
@@ -960,7 +960,7 @@ The person selects the project, agent/provider and five-minute window. The cloud
 
 The controller claims the checkout, prepares the turn and starts the independent guard and provider. The provider receives the narrow worker MCP bridge. Cloud calls are checked against the current agent and issued run, while local calls also require the active mission/generation.
 
-At the deadline the guard stops the process. The controller records what actually happened, preserves cleanup uncertainty if any, and writes durable completion/report delivery work. Delivery retries independently of whether the chat or model still exists. A five-minute start does not rewrite the person's separately saved default run length.
+The job end time does not interrupt the turn: the worker finishes it and then waits (see the time limits in section 6). Only the turn backstop makes the guard stop the process. The controller records what actually happened, preserves cleanup uncertainty if any, and writes durable completion/report delivery work. Delivery retries independently of whether the chat or model still exists. A five-minute start does not rewrite the person's separately saved default run length.
 
 ### 23.2 A quiet project is polled
 
