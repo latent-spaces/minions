@@ -13,6 +13,32 @@ function validateIdentity(identity) {
   validateExecution({ provider: identity.provider, model: identity.model });
   return structuredClone(identity);
 }
+
+const PROMPT_BLOCK_LIMITS = Object.freeze({
+  count: 32,
+  name: 80,
+  bytes: 1_000_000_000,
+});
+
+const validPromptBlocks = blocks =>
+  Array.isArray(blocks) &&
+  blocks.length <= PROMPT_BLOCK_LIMITS.count &&
+  blocks.every(block =>
+    block &&
+    typeof block === 'object' &&
+    !Array.isArray(block) &&
+    Object.keys(block).sort().join(',') === 'bytes,delivery,name,sha256,source' &&
+    typeof block.name === 'string' &&
+    block.name.length > 0 &&
+    block.name.length <= PROMPT_BLOCK_LIMITS.name &&
+    identifier(block.source) &&
+    Number.isSafeInteger(block.bytes) &&
+    block.bytes >= 0 &&
+    block.bytes <= PROMPT_BLOCK_LIMITS.bytes &&
+    /^[a-f0-9]{64}$/.test(block.sha256) &&
+    ['full', 'unchanged'].includes(block.delivery)
+  );
+
 function sameIdentity(a, b) { return sameTarget(a?.target, b.target) && a.missionId === b.missionId && a.generation === b.generation && a.provider === b.provider && a.model === b.model; }
 function pathFor(directory) {
   directory = resolve(directory);
@@ -33,6 +59,25 @@ function openFile(path, flags) {
 function validateRecord(record) {
   const common = ['kind','turnId','attemptId','seq','at'];
   const fields = { assistant_text: ['text','textTruncated'], status: ['text','textTruncated'], tool: ['name'], permission: ['name'], model: ['name'], session: ['sessionId'], native_started: ['pid'], guard_started: ['pid'], attempt_finished: ['failed','interrupted','cleanupConfirmed','collectorTruncated','failureCode','delivery'], attempt_started: [], submitted: [], acknowledged: [], capture_truncated: [] };
+  // const fields = {
+  //   assistant_text: ['text','textTruncated'],
+  //   status: ['text','textTruncated'],
+  //   tool: ['name'],
+  //   permission: ['name'],
+  //   model: ['name'],
+  //   session: ['sessionId'],
+  //   native_started: ['pid'],
+  //   guard_started: ['pid'],
+  //   attempt_finished: [
+  //     'failed','interrupted','cleanupConfirmed',
+  //     'collectorTruncated','failureCode','delivery'
+  //   ],
+  //   attempt_started: [],
+  //   submitted: [],
+  //   acknowledged: [],
+  //   capture_truncated: [],
+  //   prompt_manifest: ['blocks']
+  // };
   const extra = fields[record?.kind];
   if (!extra || Object.keys(record).some(k => !common.includes(k) && !extra.includes(k)) || common.some(k => !Object.hasOwn(record,k))) throw fault('journal_corrupt_record');
   validateUuid(record.turnId,'turnId'); validateUuid(record.attemptId,'attemptId');
