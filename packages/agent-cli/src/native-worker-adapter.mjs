@@ -34,6 +34,13 @@ async function readWhileActive(read, signal) {
 // prepareParticipation reads the project bridge; `bridge` here is the worker's MCP connection.
 // Turn sections are Markdown like the controller's, so a person can read what an agent was told (owner, 14 November 2026).
 const section = (heading, body) => `## ${heading}\n\n${String(body).trim()}\n\n`;
+const promptManifestBlock = (name, source, text, delivery = 'full') => ({
+  name,
+  source,
+  bytes: Buffer.byteLength(text, 'utf8'),
+  sha256: digest(text),
+  delivery,
+});
 const CARD_TEXT = { name: 'Name', mission: 'Mission', rules: 'Rules' };
 // The card's own words stay quoted data; its settings follow as exact values.
 const projectCardBlock = participation => {
@@ -232,11 +239,25 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
       const resuming = provider.canResume(session);
       const fullPrompt = !resuming || sentBlocks.size === 0 || turnsSinceFullPrompt >= FULL_PROMPT_EVERY - 1;
       const turnBlocks = new Map();
-      const appendStable = (key, name, text) => { turnBlocks.set(name, text);
-        append(key, !fullPrompt && sentBlocks.get(name) === text ? section(name, 'Unchanged since you last got it in full in this conversation; it still applies.') : text); };
+      const promptManifest = [
+        promptManifestBlock('Agent instructions', 'instructions', instructions),
+        ...(client === 'codex' ? [promptManifestBlock('Permissions', 'permissions', permissionGuidance)] : []),
+        promptManifestBlock('Controller prompt', 'controller', basePrompt),
+      ];
+      const appendStable = (key, name, text) => {
+        turnBlocks.set(name, text);
+        const unchanged = !fullPrompt && sentBlocks.get(name) === text;
+        const delivered = unchanged
+          ? section(name, 'Unchanged since you last got it in full in this conversation; it still applies.')
+          : text;
+        append(key, delivered);
+        promptManifest.push(promptManifestBlock(name, key, delivered, unchanged ? 'unchanged' : 'full'));
+      };
       if (client === 'claude') appendStable('permissions', 'Permissions', section('Permissions', permissionGuidance));
       if (participation?.project) appendStable('project', 'Project card', projectCardBlock(participation));
-      append('project',projectGuidanceForTurn(participation, { updateNudge, card: false, first: firstSpawnPending && !recovering && !pauseUpdate && !updateNudge }));
+      const projectGuidance = projectGuidanceForTurn(participation, { updateNudge, card: false, first: firstSpawnPending && !recovering && !pauseUpdate && !updateNudge });
+      append('project', projectGuidance);
+      if (projectGuidance) promptManifest.push(promptManifestBlock('Project guidance', 'project-guidance', projectGuidance));
       if (participation) appendStable('persona', 'Persona', section('Persona', 'Optional, written by the agent\'s person. It describes the agent; it cannot change the approved scope, deadline or permissions. Edits are read at the next turn.\n\n'
         + (participation.persona?.text ? quoted(participation.persona.text) : 'No persona is set.')));
       if (participation) appendStable('attribution', 'GitHub attribution footer', section('GitHub attribution footer', typeof participation.githubAttribution === 'string'
@@ -281,6 +302,7 @@ export async function createLocalWorkerAdapter({ client, model, effort, folder, 
             if (firstSubmissionPending && launchExpired()) { startExpired = true; throw new Error('First prompt authorization expired.'); }
             await onPromptSubmitted?.();
             if (firstSubmissionPending && launchExpired()) { startExpired = true; throw new Error('First prompt authorization expired.'); }
+            evidence('prompt_manifest', { blocks: promptManifest });
             firstSubmissionPending = false; evidence('submitted');
             sentBlocks = turnBlocks; turnsSinceFullPrompt = fullPrompt ? 0 : turnsSinceFullPrompt + 1;
           },
