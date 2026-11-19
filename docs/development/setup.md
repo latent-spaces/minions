@@ -46,4 +46,5 @@ npm run test:all
 
 [Tests](../../tests/README.md) describes the fast core and disposable data isolation.
 Before running `npm ci`, stop affected engines and services: it replaces workspace
-dependency folders. GitHub Actions runs only on explicit request.
+dependency folders. GitHub Actions runs the core checks on pull requests and pushes
+to `main`.

@@ -41,10 +41,13 @@ Use the actual local application for UI verification, with an isolated absolute
 other checkouts. Keep test data separate from everyday engines. Real model runs
 require explicit approval.
 
-GitHub Actions remains manual-only. Do not dispatch CI unless explicitly requested.
-Record the problem, resulting behavior, relevant validation and remaining limits
-in the PR. Keep docs focused on current behavior; plans and verification receipts
-belong in the PR rather than dated files under docs/.
+GitHub Actions runs the core checks on pull requests and pushes to `main`. Use the
+workflow results as the shared baseline; run focused local checks while developing.
+Native platform behavior still requires acceptance on that platform—a passing
+workflow on one OS does not establish support for another. Record the problem,
+resulting behavior, relevant validation and remaining limits in the PR. Keep docs
+focused on current behavior; plans and verification receipts belong in the PR rather
+than dated files under docs/.
 
 ## UI development
 

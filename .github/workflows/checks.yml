@@ -1,15 +1,18 @@
 name: Checks
-# Run checks manually when requested.
 on:
+  pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   checks:
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, windows-2025]
+        os: [ubuntu-24.04, windows-2025, macos-15]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4

@@ -8,6 +8,6 @@
 5. Describe the problem, resulting behavior, validation and remaining limits in the PR.
 
 Use an isolated engine for development. Keep personal data, credentials and
-verification receipts out of the repository. GitHub Actions runs only when
-explicitly requested. See [setup](../development/setup.md), [tests](../../tests/README.md)
-and the [UI workflow](ui-workflow.md).
+verification receipts out of the repository. GitHub Actions runs the core checks on
+pull requests and pushes to `main`. See [setup](../development/setup.md),
+[tests](../../tests/README.md) and the [UI workflow](ui-workflow.md).

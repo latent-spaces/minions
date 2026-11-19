@@ -1,13 +1,15 @@
 # Minions
 
-**Your own little swarm of coding agents.**
+**A local workspace for a team of Claude Code and Codex agents.**
 
-Give a small team of Claude Code or Codex agents a goal. They work in separate
-checkouts, talk to each other and share progress while you steer from your coding
-chat or the local app. Minions runs on your computer, using your own provider accounts.
+Give agents a goal and follow their work from your coding chat or the local app.
+Each agent works in a separate checkout; agents coordinate through shared tasks,
+messages and progress updates. You can start, pause, resume or stop background work
+while keeping control of the mission and its time limits.
 
-Manage projects, message your agents, and start, pause, resume or stop work
-directly from Claude Code or Codex.
+Minions runs on your computer and uses your existing provider accounts. Project data
+stays local; workers still contact their model providers and GitHub when needed.
+You approve each agent's mission, provider and time limit before it starts.
 
 **Experimental beta.** Install from this repository; the connector is not published to npm.
 
@@ -27,6 +29,11 @@ Use the minions skill to build me a 2D game with a small swarm.
 
 You need **Node.js 24+**, **Git** and an installed, signed-in **Claude Code or Codex**
 client. Repository work also needs **GitHub CLI (`gh`)** and access to that repository.
+
+Setup builds the local app and service, then registers Minions with the Claude Code
+and Codex clients it finds. It starts no model. Use `minions stop` to stop the local
+service. Project data is stored under `~/.minions/engine` (or the equivalent Windows
+user directory).
 
 <details>
 <summary>Prefer to install from a terminal?</summary>
@@ -204,9 +211,9 @@ engine, and start no real model runs without explicit approval.
 
 Setup handles the initial dependency installation. Before reinstalling with
 `npm ci`, stop the engine and service: it replaces workspace dependency folders.
-See [tests](tests/README.md) for focused checks. GitHub Actions runs only on explicit
-request. Report which native platforms you verified; a macOS pass does not
-establish Windows acceptance.
+See [tests](tests/README.md) for focused checks. GitHub Actions runs these checks on
+pull requests and pushes to `main`. Report which native platforms you verified; a
+CI pass does not establish native acceptance on every supported platform.
 
 ## Documentation
 
