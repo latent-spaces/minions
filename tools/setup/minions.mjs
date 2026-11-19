@@ -64,6 +64,7 @@ Usage: minions <command> [options]
                             stop the shared service and the engine. Agents continue in the same
                             missions on the next start. --now ends turns in progress at once.
   status [--json]           Is the engine running, and is the shared service? Where are the files?
+  doctor [--json]           Check setup, engine and shared-service health; suggest fixes.
   open                      Open the local app in your browser.
   logs [--service] [--lines N] [--follow]
                             Show the end of the engine log (or the shared service log).
@@ -231,6 +232,37 @@ async function status(args) {
   return 0;
 }
 
+async function doctor(args) {
+  const { values } = parseArgs({ args, options: { json: { type: 'boolean' } } });
+  const installation = locate();
+  const { files, home, site, port } = installation;
+  const built = existsSync(engineMain);
+  const setUp = initialized(installation);
+  const engine = await engineState(installation);
+  const service = setUp === 'existing' && built ? await serviceStatus(installation) : { running: false, installed: false };
+  const checks = [
+    { name: 'Node.js', ok: Number(process.versions.node.split('.')[0]) >= 24, detail: `v${process.versions.node}`, fix: 'Install Node.js 24 or newer, then run minions setup.' },
+    { name: 'Git', ok: spawnSync('git', ['--version'], { encoding: 'utf8', shell: false, windowsHide: true }).status === 0, detail: 'Required for project checkouts.', fix: 'Install Git and make sure it is available on PATH.' },
+    { name: 'Engine build', ok: built, detail: built ? 'Built.' : 'Not built.', fix: 'Run minions setup to build the engine.' },
+    { name: 'Engine setup', ok: setUp === 'existing', detail: setUp === 'existing' ? `Initialized in ${home}.` : setUp === 'incomplete' ? `Initialization is incomplete in ${home}.` : 'Not initialized.', fix: 'Run minions setup to finish initialization.' },
+    { name: 'Engine port', ok: engine === 'running' || (engine === 'free' && setUp === 'new'), detail: engine === 'running' ? `Minions engine is responding at ${site}.` : engine === 'other' ? `Port ${port} is held by another program.` : 'Engine is stopped.', fix: engine === 'other' ? `Free port ${port} or set MINIONS_ENGINE_PORT, then run minions setup.` : 'Run minions start to wake the engine.' },
+    { name: 'Shared service', ok: service.running === true, detail: service.running ? 'Running and available to coding agents.' : service.error ? `Could not read service status: ${service.error}` : 'Not running.', fix: 'Run minions start to start the shared service.' },
+  ];
+  const healthy = checks.every(check => check.ok);
+  if (values.json) {
+    console.info(JSON.stringify({ healthy, checks, site, home, engineLog: files.engineLog }, null, 2));
+    return healthy ? 0 : 1;
+  }
+  art(healthy ? 'awake' : 'confused', healthy ? green : yellow);
+  for (const check of checks) {
+    const marker = check.ok ? green('PASS') : yellow('FIX ');
+    console.info(`${marker} ${check.name}: ${check.detail}`);
+    if (!check.ok) console.info(`     ${check.fix}`);
+  }
+  console.info(healthy ? 'Minions is ready.' : `For engine details, run minions logs. Engine log: ${files.engineLog}`);
+  return healthy ? 0 : 1;
+}
+
 async function open() {
   const installation = locate();
   if (await engineState(installation) !== 'running') {
@@ -329,7 +361,7 @@ async function update(args) {
   return result;
 }
 
-const COMMANDS = { start, stop, status, open, logs, update, setup: args => setup(args) };
+const COMMANDS = { start, stop, status, doctor, open, logs, update, setup: args => setup(args) };
 
 async function main(argv) {
   const [command, ...args] = argv;

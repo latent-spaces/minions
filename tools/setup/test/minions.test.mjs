@@ -32,6 +32,12 @@ test('minions answers help, reports an empty installation and refuses an unknown
     assert.equal(value.engine, 'free');
     assert.equal(value.initialized, 'new');
     assert.equal(value.service.running, false);
+    const doctor = minions('doctor', '--json');
+    assert.equal(doctor.status, 1);
+    const report = JSON.parse(doctor.stdout);
+    assert.equal(report.healthy, false);
+    assert.ok(report.checks.some(check => check.name === 'Engine setup' && !check.ok));
+    assert.match(help.stdout, /doctor \[--json\]/);
     const unknown = minions('dance');
     assert.equal(unknown.status, 2);
     assert.match(unknown.stdout, /Unknown command: dance/);

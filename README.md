@@ -83,6 +83,7 @@ Setup links a `minions` command:
 | Command | What it does |
 | --- | --- |
 | `minions status` | Show the engine, service and state locations |
+| `minions doctor` | Check setup and engine/service health, with suggested fixes |
 | `minions open` | Open the local app |
 | `minions logs -f` | Follow engine logs; add `--service` for worker service logs |
 | `minions stop` | Let current turns finish, then stop the service and engine |
