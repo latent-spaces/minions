@@ -29,3 +29,16 @@ v3 had ~12 s of frozen frames (ffmpeg `freezedetect=n=0.003:d=0.8`) and long fad
 | 8 | 17.4–20.0 | Wordmark, "Your agents. Your computer. Your call.", `npm run setup`, repo URL; hold from ~19.2 s. |
 
 Synthetic data only. Setup values (1 hour, 500K token cap) are illustrative UI text, not claims.
+
+## New-logo render (17 Nov 2026)
+
+`brag-newlogo.mp4` (16:9) and `brag-1x1-newlogo.mp4` (square), rendered against the public `main` (`e6d6888`). Changes from `brag.mp4`:
+
+- The italic "Minions" text is replaced by the current `BrandLogo` (gradient creature mark + `minions` wordmark) in the reveal and the outro.
+- Icons come from the app's Phosphor set (`apps/web/src/ui/icons`) instead of the removed `lucide-react`.
+- The "How long?" focus ring is ink, matching the app's select style, instead of the old blue accent.
+- Square only: during the Kill confirmation the agent name stays on one line and the focus line steps aside.
+
+The stage source in `work/stage/` now needs the current `main`; the older `brag.mp4` was rendered from `3baa57a`.
+- The outro keeps only `github.com/latent-spaces/minions`; the `npm run setup` pill is gone (owner, 17 Nov 2026).
+- The big logo uses halo-free copies of the brand PNGs (`promo-videos/brand/*-clean.png`). The app's originals carry near-invisible pixels that smudge above the wordmark at video size.

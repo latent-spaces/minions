@@ -10,7 +10,8 @@ html,body{margin:0;background:#fff;overflow:hidden}
 .layer>.caption{position:absolute;left:0;right:0;top:0}
 .caption.hook{margin-top:250px}
 .reveal{position:absolute;left:0;right:0;top:250px;text-align:center}
-.wordmark-logo.big{display:inline-block;font-size:190px;letter-spacing:-.02em}
+.big-logo{display:inline-block}
+.big-logo .wordmark-logo{font-size:150px}
 .tagline{position:absolute;left:0;right:0;top:500px;margin:0;text-align:center;font-size:48px;font-weight:450;color:var(--text-muted);letter-spacing:-.01em;padding:0 60px}
 .reveal.outro{top:200px}.tagline.outro{top:450px}
 .outro-row{position:absolute;left:0;right:0;top:600px;display:flex;justify-content:center}
@@ -60,7 +61,7 @@ html,body{margin:0;background:#fff;overflow:hidden}
 /* 1:1 */
 .sq .caption{font-size:58px;margin-top:110px;padding:0 70px}
 .sq .caption.hook{margin-top:230px}
-.sq .wordmark-logo.big{font-size:180px}
+.sq .big-logo .wordmark-logo{font-size:140px}
 .sq .reveal{top:240px}.sq .tagline{top:470px;font-size:42px;padding:0 90px}
 .sq .reveal.outro{top:180px}.sq .tagline.outro{top:420px;padding:0 120px}
 .sq .outro-row{top:620px}
@@ -82,3 +83,12 @@ html,body{margin:0;background:#fff;overflow:hidden}
 .outro-row{gap:22px;align-items:center}
 .url{display:inline-flex;align-items:center;height:64px;padding:0 30px;border:1px solid var(--hairline-strong);border-radius:999px;font:500 28px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--ink);background:#fff}
 .sq .outro-row{flex-direction:column;gap:14px}
+/* square: the Kill confirmation takes the row, so the name stays on one line and the focus line steps aside */
+.agent-row strong{white-space:nowrap}
+.sq .agent-row.killing .status{display:none}
+.sq .agent-row.killing .confirm{font-size:16px;gap:10px}
+/* Video-size logo: the brand PNGs carry a near-invisible halo (alpha 1–11) that shows as a smudge at 150px after
+   compression, so the video uses copies with that halo cleared (promo-videos/brand/*-clean.png). */
+.big-logo .k42-brand-word{content:url(../../../brand/minions-word-clean.png)}
+.big-logo .k42-brand-mark img{content:url(../../../brand/minions-pupils-clean.png)}
+.big-logo .k42-brand-body{mask-image:url(../../../brand/minions-mark-clean.png)!important;-webkit-mask-image:url(../../../brand/minions-mark-clean.png)!important}

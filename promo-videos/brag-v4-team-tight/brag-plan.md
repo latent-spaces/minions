@@ -39,3 +39,17 @@ Music: 120 BPM (beat = 0.5s, bar = 2s), C major-ish pluck + soft kick/clap, cuts
 | 6 Outro | 17.0–20.0 | 35–40 | Wordmark + "Runs on your computer. Pause or kill any time." + `npm run setup`. |
 
 Privacy: no real names/data. Agent names are generic (`claude-builder`, `codex-tooling`…), the person is "You". The repo is private, so the outro names the setup command, not a URL.
+
+## New-logo render (17 Nov 2026)
+
+`brag-newlogo.mp4` (16:9) and `brag-1x1-newlogo.mp4` (square), rendered against the public `main` (`e6d6888`). Changes from `brag.mp4`:
+
+- The italic "Minions" text is replaced by the current `BrandLogo` (gradient creature mark + `minions` wordmark) in the reveal and the outro.
+- The terminal types the copyable prompt from the current README, "Use the minions skill to build me a 2D game with a small swarm.", instead of the removed `claude-prompt` text.
+- Icons come from the app's Phosphor set (`apps/web/src/ui/icons`) instead of the removed `lucide-react`. The map is the current `CommunicationMap`.
+- Square only: the outro row of eight characters is a little smaller so it stays inside the frame.
+
+The stage source in `work/stage/` now needs the current `main`; the older `brag.mp4` was rendered from `3baa57a`.
+- The outro keeps only `github.com/latent-spaces/minions`; the `npm run setup` pill is gone (owner, 17 Nov 2026).
+- The big logo uses halo-free copies of the brand PNGs (`promo-videos/brand/*-clean.png`). The app's originals carry near-invisible pixels that smudge above the wordmark at video size.
+- The map caption reads "They work in the background and talk to each other." without the dash (owner, 17 Nov 2026).

@@ -20,6 +20,11 @@ cloning or pulling, or you'll get small pointer files instead of the media.
 | [`brag-v4-team-tight/`](brag-v4-team-tight/) | v1 tightened: no still frames, shorter mid-video wordmark, labels that fit, repo URL in the outro | `brag.mp4` (16:9 only) | 20 s |
 | [`brag-v5-your-call-tight/`](brag-v5-your-call-tight/) | v3 tightened: crowd-to-one hook, live counters, quicker transitions, readable Kill confirmation, repo URL | `brag.mp4` (16:9 only) | 20 s |
 | [`brag-v6-chaotic-tight/`](brag-v6-chaotic-tight/) | v2 tightened: moving wordmark, bigger map, smaller `/exit` window, matching Pause/Kill pills, repo URL | `brag.mp4` (16:9 only) | 20 s |
+| [`brag-v7-your-call-team/`](brag-v7-your-call-team/) | v5 with v4's one-agent-to-team intro and the real agent map, new logo | `brag.mp4`, `brag-1x1.mp4` | 20 s |
+| [`brag-v8-team-crowd/`](brag-v8-team-crowd/) | v4 with v5's crowd of agents in the hook, new logo, resolved musical ending | `brag.mp4`, `brag-1x1.mp4` (earlier round: `*-r1.mp4`) | 20 s |
+| [`natgeo-v1-natural-history/`](natgeo-v1-natural-history/) | "Minions: A Natural History": a British naturalist (Kokoro `bm_george`) watches the minions self-organise, talk, post and ask for help | `minions-natgeo-v1.mp4`, `-v2.mp4` (16:9), `-v3-square.mp4` (1:1 social cut) | 1:53 / 48 s |
+
+v4 and v5 also have `brag-newlogo.mp4` and `brag-1x1-newlogo.mp4`, re-rendered with the current logo against the public `main` (see each `brag-plan.md`). `render.sh <cut> <port> <scratch-dir>` renders a brag cut's 16:9 and 1:1 new-logo versions; `brand/` holds the halo-free logo PNGs they use. The nature-documentary cut has its own `plan.md`.
 
 [`compare/`](compare/) has before/after videos (`v1-vs-v4.mp4`, `v2-vs-v6.mp4`, `v3-vs-v5.mp4`), with the original on the left and the revision on the right. Audio is from the revision. v4–v6 reuse the music of the cut they revise, and each `brag-plan.md` lists what changed at the top. Stage ports: v4 47315, v5 47316, v6 47317.
 

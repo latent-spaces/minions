@@ -1,5 +1,5 @@
 // Brag video composition. Every frame is a function of performance.now(), which the capture script fakes.
-// Real Minions components, CSS and character assets; all data is synthetic.
+// Real Minions components, CSS and character assets; all data is synthetic. Uses the current BrandLogo and Phosphor icons.
 import {createRoot} from 'react-dom/client';
 import {useEffect,useMemo,useState,type CSSProperties,type ReactNode} from 'react';
 import type {CommunicationAgent,CommunicationAgentState} from '@minions/contracts';
@@ -9,8 +9,8 @@ import {CommunicationMap} from '../../../../apps/web/src/ui/communication-map/Co
 import {normalizeToViewport} from '../../../../apps/web/src/ui/communication-map/viewport-layout';
 import type {MapNode} from '../../../../apps/web/src/ui/communication-map/protocol';
 import type {Traffic} from '../../../../apps/web/src/ui/communication-map/layout';
-import {claudePrompt,DEFAULT_PROMPT_CHOICES} from '../../../../apps/web/src/ui/claude-prompt';
-import {Check,PenLine,Pause,Square} from 'lucide-react';
+import {Check,PenLine} from '../../../../apps/web/src/ui/icons';
+import {BrandLogo} from '../../../../apps/web/src/ui/BrandLogo';
 import '../../../../apps/web/src/styles.css';
 import '../../../../apps/web/src/ui/theme.css';
 import '../../../../apps/web/src/ui/application-shell.css';
@@ -75,13 +75,14 @@ function Hook({t}:{t:number}){
  return <div className="layer">
   <Caption style={{top:230,...show(t,0,1.95,40,.35)}}>One coding agent is a chat.</Caption>
   <Caption style={{top:230,...show(t,2.05,4.0)}}>Minions gives you a team.</Caption>
-  <div className="reveal" style={show(t,4.05,5.5,30,.3)}><span className="wordmark-logo big">Minions</span></div>
+  <div className="reveal" style={show(t,4.05,5.5,30,.3)}><span className="big-logo"><BrandLogo/></span></div>
   <p className="tagline" style={show(t,4.2,5.5,20,.3)}>Your own little swarm of coding agents.</p>
  </div>;
 }
 
 // ---------- Scene 3: start from your chat ----------
-const PROMPT=claudePrompt(DEFAULT_PROMPT_CHOICES);
+// The copyable getting-started prompt from the current README.
+const PROMPT='Use the minions skill to build me a 2D game with a small swarm.';
 function Start({t}:{t:number}){
  const typed=PROMPT.slice(0,Math.floor(clamp((t-5.85)/2.0)*PROMPT.length));
  const caret=Math.floor(t*4)%2===0&&t<7.95;
@@ -125,7 +126,7 @@ function MapView({t}:{t:number}){
 function MapScene({t}:{t:number}){
  const panel=out3(p(t,10.0,10.35)),leave=p(t,13.82,14.0);
  return <div className="layer">
-  <Caption style={{top:SQ?70:96,...show(t,10.05,13.97)}}>They work in the background — and talk to each other.</Caption>
+  <Caption style={{top:SQ?70:96,...show(t,10.05,13.97)}}>They work in the background and talk to each other.</Caption>
   <div className="map-panel" style={{opacity:t<9.5?0:panel*(1-leave),transform:`translate(-50%,0) translateY(${(1-panel)*40}px) scale(${SQ?1.3:1.4})`}}>
    <iframe src="/?map=1" title="map"/>
   </div>
@@ -170,13 +171,12 @@ function NeedsScene({t}:{t:number}){
 // ---------- Scene 6: outro ----------
 function Outro({t}:{t:number}){
  return <div className="layer">
-  <div className="reveal outro" style={show(t,17.0,99,30,.35)}><span className="wordmark-logo big">Minions</span></div>
+  <div className="reveal outro" style={show(t,17.0,99,30,.35)}><span className="big-logo"><BrandLogo/></span></div>
   <p className="tagline outro" style={show(t,17.2,99,20,.3)}>Runs on your computer. Pause or kill any time.</p>
   <div className="outro-row">
-   <span className="pill" style={show(t,17.45,99,16,.3)}><code>npm run setup</code></span>
-   <span className="ctl url" style={show(t,17.6,99,16,.3)}>github.com/latent-spaces/minions</span>
+   <span className="ctl url" style={show(t,17.45,99,16,.3)}>github.com/latent-spaces/minions</span>
   </div>
-  {TEAM.map((c,i)=>{const k=p(t,17.3+i*.08,17.6+i*.08);const n=TEAM.length,s=96,g=26,w=n*s+(n-1)*g;return <Tile key={c} character={c} size={s} tone={TONES[i%TONES.length]} state={START_STATE[(i+1)%8]} style={{left:CX-w/2+i*(s+g)+s/2,top:(SQ?940:880)+hop(t,.25+i*.06,14)*(1-p(t,19.0,19.2)),opacity:k>0?1:0,transform:`translate(-50%,-50%) scale(${back(k)})`}}/>;})}
+  {TEAM.map((c,i)=>{const k=p(t,17.3+i*.08,17.6+i*.08);const n=TEAM.length,s=SQ?84:96,g=SQ?18:26,w=n*s+(n-1)*g;return <Tile key={c} character={c} size={s} tone={TONES[i%TONES.length]} state={START_STATE[(i+1)%8]} style={{left:CX-w/2+i*(s+g)+s/2,top:(SQ?940:880)+hop(t,.25+i*.06,14)*(1-p(t,19.0,19.2)),opacity:k>0?1:0,transform:`translate(-50%,-50%) scale(${back(k)})`}}/>;})}
  </div>;
 }
 

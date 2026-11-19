@@ -1,12 +1,14 @@
 // "Your own little swarm" — tight cut (v5): continuous motion, overlapping transitions, readable Kill confirm, repo URL.
-// Based on brag-v3-your-call. Every frame is a function of window.__T (the capture script sets it and fakes the clock).
+// Based on brag-v3-your-call. Uses the current BrandLogo (creature mark + minions wordmark) and Phosphor icons. Every frame is a function of window.__T (the capture script sets it and fakes the clock).
 // Real Minions CSS, character assets and wording; all data is synthetic.
 import {createRoot} from 'react-dom/client';
 import {useEffect,useState,type CSSProperties,type ReactNode} from 'react';
 import type {CommunicationAgentState} from '@minions/contracts';
 import {CharacterAvatar} from '../../../../apps/web/src/ui/CharacterAvatar';
 import {characterSource} from '../../../../apps/web/src/ui/character-set';
-import {Check,PenLine,Pause,Play,Plus,ChevronDown,Minus} from 'lucide-react';
+import {Check,PenLine,Pause,Play,Plus,ChevronDown} from '../../../../apps/web/src/ui/icons';
+import {Minus} from '@phosphor-icons/react';
+import {BrandLogo} from '../../../../apps/web/src/ui/BrandLogo';
 import '../../../../apps/web/src/styles.css';
 import '../../../../apps/web/src/ui/theme.css';
 import '../../../../apps/web/src/ui/application-shell.css';
@@ -84,7 +86,7 @@ function Opening({t}:{t:number}){
   <Crowd t={t}/>
   <h2 className="caption hook" style={show(t,0,2.45,18,.3)}>You don’t need a hundred agents.</h2>
   <h2 className="caption hook" style={show(t,2.5,4.95)}>Just a few. And you’re in charge.</h2>
-  <div className="reveal" style={{...show(t,5.05,7.5,24,.5)}}><span className="wordmark-logo big" style={{transform:`scale(${1+.04*p(t,5.05,7.5)})`}}>Minions</span></div>
+  <div className="reveal" style={{...show(t,5.05,7.5,24,.5)}}><span className="big-logo" style={{transform:`scale(${1+.04*p(t,5.05,7.5)})`}}><BrandLogo/></span></div>
   <p className="tagline" style={show(t,5.3,7.5,16,.45)}>Your own little swarm of coding agents.</p>
   {TRIO.map((c,i)=>{
    const appear=i===0?1:back(p(t,2.5+(i-1)*E,2.5+(i-1)*E+.35));
@@ -107,7 +109,7 @@ function Setup({t}:{t:number}){
    <h3>Start the job</h3>
    <div className="row"><span className="label">Agents</span><span className="stepper"><button><Minus size={16}/></button><b key={n} style={{display:'inline-block',transform:`scale(${1+.25*(1-p(t,n===2?7.75:n===3?8.0625:0,(n===2?7.75:n===3?8.0625:0)+.25))})`}}>{n}</b><button className={n<3?'hot':''}><Plus size={16}/></button></span>
     <span className="mini">{TRIO.slice(0,n).map((c,i)=>{const at=i===0?7.42:i===1?7.75:8.0625;const k=back(p(t,at,at+.3));return <Tile key={c} character={c} size={44} state={started?'working':'idle'} style={{position:'relative',transform:`scale(${k}) translateY(${started?bob(t,i,2):0}px)`}}/>;})}</span></div>
-   <div className="row"><span className="label">How long?</span><span className="select" style={{boxShadow:t>8.2&&t<8.7?'0 0 0 3px rgba(0,102,255,.25)':undefined}}>{dur} <ChevronDown size={18}/></span></div>
+   <div className="row"><span className="label">How long?</span><span className="select" style={{boxShadow:t>8.2&&t<8.7?'0 0 0 3px rgba(20,20,20,.12)':undefined}}>{dur} <ChevronDown size={18}/></span></div>
    <div className="row"><span className="label">Runs on</span><span className="value">This computer · your Claude Code sign-in</span></div>
    <div className="actions">{started&&<span className="booting" style={{opacity:out3(p(t,9.15,9.4))}}>Starting {Math.min(3,1+Math.floor(boot*3))} of 3…</span>}<button className="ghost">Not now</button><button className={`primary go${started?' done':''}`} id="start">{started?<><Check size={18}/> Started</>:'Start'}</button></div>
   </div>
@@ -181,9 +183,9 @@ function Needs({t}:{t:number}){
 function Outro({t}:{t:number}){
  const tt=Math.min(t,HOLD);
  return <div className="layer" style={{transform:`scale(${1.04-.04*out3(p(t,17.4,HOLD))})`,transformOrigin:'50% 45%'}}>
-  <div className="reveal outro" style={show(t,17.45,99,24,.4)}><span className="wordmark-logo big">Minions</span></div>
+  <div className="reveal outro" style={show(t,17.45,99,24,.4)}><span className="big-logo"><BrandLogo/></span></div>
   <p className="tagline outro" style={show(t,17.6,99,16,.4)}>Your agents. Your computer. Your call.</p>
-  <div className="outro-row" style={show(t,17.85,99,14,.4)}><span className="pill"><code>npm run setup</code></span><span className="url">github.com/latent-spaces/minions</span></div>
+  <div className="outro-row" style={show(t,17.85,99,14,.4)}><span className="url">github.com/latent-spaces/minions</span></div>
   {TRIO.map((c,i)=>{const k=back(p(t,17.5+i*E,17.5+i*E+.35));const s=SQ?110:120,g=36;const damp=1-p(t,HOLD-.6,HOLD);return <Tile key={c} character={c} size={s} state="working" style={{left:(SQ?540:960)+(i-1)*(s+g),top:(SQ?900:880)+bob(tt,i,9)*damp,opacity:k>0?1:0,transform:`translate(-50%,-50%) scale(${k})`}}/>;})}
  </div>;
 }

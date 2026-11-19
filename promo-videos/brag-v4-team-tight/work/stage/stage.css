@@ -5,7 +5,8 @@ html,body{margin:0;background:#fff;overflow:hidden}
 .tile-face{position:absolute;inset:11%}
 .caption{z-index:2;position:absolute;left:0;right:0;margin:0;text-align:center;font-size:64px;font-weight:650;letter-spacing:-.025em;line-height:1.1}
 .reveal{position:absolute;left:0;right:0;top:250px;text-align:center}
-.wordmark-logo.big{display:inline-block;font-size:190px;letter-spacing:-.02em}
+.big-logo{display:inline-block}
+.big-logo .wordmark-logo{font-size:150px}
 .tagline{position:absolute;left:0;right:0;top:500px;margin:0;text-align:center;font-size:48px;font-weight:450;color:var(--text-muted);letter-spacing:-.01em}
 .reveal.outro{top:210px}.tagline.outro{top:450px}
 .term{position:absolute;left:50%;top:300px;width:1240px;background:#141414;border-radius:22px;box-shadow:0 30px 80px rgba(20,20,20,.25);overflow:hidden;color:#f3f3f3}
@@ -44,7 +45,7 @@ html,body{margin:0;background:#fff;overflow:hidden}
 /* 1:1 */
 .stage.sq{width:1080px;height:1080px}
 .sq .caption{font-size:62px;padding:0 70px}
-.sq .wordmark-logo.big{font-size:180px}
+.sq .big-logo .wordmark-logo{font-size:140px}
 .sq .reveal{top:230px}
 .sq .tagline{top:470px;font-size:42px;padding:0 80px}
 .sq .reveal.outro{top:170px}.sq .tagline.outro{top:410px}
@@ -56,3 +57,8 @@ html,body{margin:0;background:#fff;overflow:hidden}
 .caption{text-wrap:balance}
 .sq .term-tool .muted{display:none}
 .ctl.url{font:500 26px ui-monospace,SFMono-Regular,Menlo,monospace}
+/* Video-size logo: the brand PNGs carry a near-invisible halo (alpha 1–11) that shows as a smudge at 150px after
+   compression, so the video uses copies with that halo cleared (promo-videos/brand/*-clean.png). */
+.big-logo .k42-brand-word{content:url(../../../brand/minions-word-clean.png)}
+.big-logo .k42-brand-mark img{content:url(../../../brand/minions-pupils-clean.png)}
+.big-logo .k42-brand-body{mask-image:url(../../../brand/minions-mark-clean.png)!important;-webkit-mask-image:url(../../../brand/minions-mark-clean.png)!important}
