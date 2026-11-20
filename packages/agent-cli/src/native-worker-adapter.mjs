@@ -158,7 +158,8 @@ export function modelTurnOutcome({ stream, stderr = '', exitCode = null, signal 
     signal: /^SIG[A-Z0-9]{1,12}$/.test(nativeExit?.signal ?? '') ? nativeExit.signal : null,
     guard_exit_code: Number.isSafeInteger(exitCode) ? exitCode : null,
     guard_signal: /^SIG[A-Z0-9]{1,12}$/.test(signal ?? '') ? signal : null,
-    truncated: stream.truncated === true, delivery: stream.delivery };
+    truncated: stream.truncated === true, delivery: stream.delivery,
+    ...(interrupted && stream.provider === 'codex' ? stream.interruptTiming : null) };
   const limitResetAt = failed && failureCode === 'provider_limited' ? providerLimitResetAt(diagnostics, now) : null;
   return { ...(failed ? { failureCode } : {}), ...(limitResetAt !== null ? { limitResetAt } : {}), diagnostics: detail,
     retryable: failed && !['private_state_failure', 'authentication_required', 'permission_required', 'merge_policy_unavailable', 'native_permissions_unavailable', 'native_protocol_frame_too_large', 'native_protocol_error', 'native_interactive_request'].includes(failureCode)

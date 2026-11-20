@@ -296,7 +296,10 @@ async function mutate(operator: WithId<Profile>, id: string, input: z.infer<type
           ...before, repoUrl: input.repoUrl, revision, configuredAt: before?.configuredAt ?? at, configuredBy: operator.id };
         kind = 'card_changed';
       }
-      tx.set(projects.doc(id), recordWithRuntime(approved.data()!, project));
+      const saved = recordWithRuntime(approved.data()!, project);
+      if (!('action' in input) && canonicalGithubRepo(before?.repoUrl) !== canonicalGithubRepo(project.repoUrl))
+        saved.setup.repositoryRevision = revision;
+      tx.set(projects.doc(id), saved);
       if ('action' in input && input.action === 'start') writeStartAnnouncement(tx, { revision, startedAt: at, actorName: person.data()!.name, scheduled: false });
       tx.create(projectCollection('projectHistory').doc(String(revision).padStart(12, '0')), { at, operatorId: operator.id, project, ...('action' in input ? { control: { action: input.action, startWithoutMinimum: input.start_without_minimum === true, ...(input.minutes !== undefined ? { minutes: input.minutes } : {}), ...(input.tokens !== undefined ? { tokens: input.tokens } : {}) } } : {}) });
       const fanout = kind ? createFanout(tx, kind, { projectId: id, revision }, at) : null;

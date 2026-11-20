@@ -6,8 +6,9 @@ import { z } from 'zod';
 import type { NativeTask, NativeTaskAncestor, NativeTaskSummary, NativeTaskActor, NativeTaskMutationResult, NativeTaskPage, NativeTaskDetail, NativeTaskComment, NativeTaskActivity, NativeTaskReference, NativeTaskPermissions } from '@minions/contracts';
 import { agents, currentProjectId, db, projectCollection } from '../firestore.js';
 import { Refusal } from '../errors.js';
-import { assertAgentMembership, assertMembership, assertProjectWritable, currentConnectionEpoch, type ProjectRole } from './access.js';
-import { assertRunInTransaction } from '../v2/runs.js';
+import { assertAgentMembership, assertProjectWritable, currentConnectionEpoch, type ProjectRole } from './access.js';
+import { authorizeNativeTask } from './native-task-authority.js';
+import { invalidateDeliveryReview, readDeliveryReviewState } from './delivery-review.js';
 import { backlog, deliver, readTargets, type Target } from '../v2/inbox.js';
 import { LIMITS, V2_LIMITS } from '../config.js';
 import { assertNewProgressAction, type ProgressActor } from './progress-authority.js';
@@ -64,14 +65,6 @@ const parse = <T>(schema: z.ZodType<T>, value: unknown): T => {
 };
 const actorRef = (actor: ProgressActor): NativeTaskActor => ({ kind: actor.kind, id: actor.kind === 'person' ? actor.person.id : actor.agent.id });
 const sameActor = (a: NativeTaskActor, b: NativeTaskActor) => a.kind === b.kind && a.id === b.id;
-async function authorize(tx: Transaction, actor: ProgressActor, now: () => number): Promise<ProjectRole> {
-  if (actor.kind === 'person') return assertMembership(tx, actor.person.id);
-  const role = await assertRunInTransaction(tx, actor.agent.id, actor.runId, now);
-  const current = (await tx.get(agents().doc(actor.agent.id))).data();
-  if (!current || current.tokenHash !== actor.agent.tokenHash || current.ownerProfileId !== actor.agent.ownerProfileId)
-    throw new Refusal('unauthorized', 'This agent connection changed. Reconnect before continuing.');
-  return role;
-}
 async function assignmentTarget(tx: Transaction, id: string) {
   try { await assertAgentMembership(tx, id); } catch (error) {
     if (error instanceof Refusal && error.code === 'unauthorized') throw new Refusal('bad_input', 'Assign a connected agent belonging to a current project member.');
@@ -117,7 +110,8 @@ async function taskPermissions(tx: Transaction, actor: ProgressActor, task: Nati
   // A proposed subtask waits for an owner's yes: no one can claim, assign or start it before that.
   const proposed = task.proposed === true;
   return { edit, editDescription: edit && (task.status !== 'done' || control), control: control && !proposed, assign: proposed ? 'none' : assign,
-    review: edit && proposed && actor.kind === 'person' && role === 'owner' };
+    review: edit && proposed && actor.kind === 'person' && role === 'owner',
+    configureDeliveryReview: edit && !proposed && actor.kind === 'person' && role === 'owner' };
 }
 // Leave headroom below the approved-computer client's 256 KiB cap. Pages are bounded by bytes as well as row count.
 const PAGE_BYTES = 160 * 1024;
@@ -147,7 +141,7 @@ async function readNativeTaskPage<T extends { id: string }>(actor: ProgressActor
   shape: (tx: Transaction, task: NativeTask) => Promise<T>, fields?: readonly string[]): Promise<{ tasks: T[]; nextCursor: string | null }> {
   const input = parse(NATIVE_TASK_QUERY, query);
   return db.runTransaction(async tx => {
-    await authorize(tx, actor, now);
+    await authorizeNativeTask(tx, actor, now);
     // Title search follows the existing bounded message-search pattern: sparse
     // matches may return an empty page with a cursor, never an unbounded refill.
     const scanLimit = input.search ? 200 : input.limit;
@@ -232,7 +226,7 @@ async function readNativeTaskChanges<T extends { id: string }>(actor: ProgressAc
   shape: (tx: Transaction, task: NativeTask) => Promise<T>, fields?: readonly string[]): Promise<NativeTaskChanges<T>> {
   const input = parse(NATIVE_TASK_CHANGES_QUERY, query);
   return db.runTransaction(async tx => {
-    await authorize(tx, actor, now);
+    await authorizeNativeTask(tx, actor, now);
     if (!input.since) {
       // One index entry read; its read time is the starting cursor.
       const probe = await tx.get(nativeTasks().orderBy(CHANGED_AT, 'desc').limit(1).select());
@@ -297,7 +291,7 @@ const summaryOf = (task: NativeTask): NativeTaskSummary => ({ id: task.id, title
 export async function getNativeTask(actor: ProgressActor, taskId: string, query: unknown = {}, now: () => number = Date.now): Promise<NativeTaskDetail> {
   parse(ID, taskId); const input = parse(NATIVE_TASK_DETAIL_QUERY, query);
   return db.runTransaction(async tx => {
-    const role = await authorize(tx, actor, now);
+    const role = await authorizeNativeTask(tx, actor, now);
     const task = (await tx.get(nativeTasks().doc(taskId))).data();
     if (!task) throw new Refusal('not_found', 'This task is unavailable in this project.');
     const permissions = await taskPermissions(tx, actor, task, role);
@@ -318,13 +312,13 @@ export async function getNativeTask(actor: ProgressActor, taskId: string, query:
       if (!after.exists) throw new Refusal('bad_input', 'Use this task history’s returned cursor.');
       aq = aq.startAfter(after);
     }
-    const [cr, ar, chain, children, progress] = await Promise.all([tx.get(cq), tx.get(aq), ancestorsOf(tx, task), subtasksOf(tx, taskId), subtaskProgressOf(tx, taskId)]);
+    const [cr, ar, chain, children, progress, deliveryReview] = await Promise.all([tx.get(cq), tx.get(aq), ancestorsOf(tx, task), subtasksOf(tx, taskId), subtaskProgressOf(tx, taskId), readDeliveryReviewState(tx, taskId, now)]);
     const ancestors: NativeTaskAncestor[] = chain.map(row => ({ id: row.id, title: row.title }));
     const commentPage = bytePage(cr.docs.slice(0, input.limit).map(row => row.data()), 40 * 1024);
     const events = bytePage(ar.docs.slice(0, input.limit).map(row => { const { task: _task, comment: _comment, ...event } = row.data(); return event; }), 24 * 1024);
     return { task: { ...await visibleTask(tx, task), subtaskProgress: progress }, permissions, comments: [...commentPage].reverse(), activity: events,
       nextCommentCursor: cr.size > commentPage.length ? commentPage.at(-1)!.id : null, nextActivityCursor: ar.size > events.length ? events.at(-1)!.id : null,
-      ancestors, subtasks: children.map(summaryOf) };
+      ancestors, subtasks: children.map(summaryOf), ...(deliveryReview ? { deliveryReview } : {}) };
   });
 }
 
@@ -333,7 +327,7 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
   const key = createHash('sha256').update(JSON.stringify([author, input.clientRequestId])).digest('hex');
   const fingerprint = createHash('sha256').update(JSON.stringify(input)).digest('hex');
   return db.runTransaction(async tx => {
-    const role = await authorize(tx, actor, now);
+    const role = await authorizeNativeTask(tx, actor, now);
     if (actor.kind === 'agent' && input.operation === 'assign')
       throw new Refusal('forbidden', 'Agents create unassigned tasks, claim for themselves and release only their own tasks.');
     // Only people's new tasks carry a message; agents talk with send_message.
@@ -479,6 +473,7 @@ export async function mutateNativeTask(actor: ProgressActor, value: unknown, now
     const result: NativeTaskMutationResult = { task, ...(comment ? { comment } : {}), replayed: false };
     if (Buffer.byteLength(JSON.stringify(task)) > TASK_BYTES) throw new Refusal('bad_input', 'This task is too large. Shorten its description or move supporting material to result links.');
     const visibleResult = { ...result, task: await visibleTask(tx, task) };
+    if (before) await invalidateDeliveryReview(tx, before, task, author, at);
     // Every read/permission check precedes every write. Receipt, state and audit commit atomically.
     tx.set(nativeTasks().doc(task.id), { ...task, [CHANGED_AT]: FieldValue.serverTimestamp() } as unknown as NativeTask);
     if (comment) tx.set(comments(task.id).doc(comment.id), comment);

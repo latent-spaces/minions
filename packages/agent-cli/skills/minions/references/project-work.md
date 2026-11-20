@@ -72,6 +72,16 @@ stay on GitHub under their own permissions. In chat, call `get_task_tools` with 
 project's `participation_ref` to discover the current allowed operations, then
 `call_task_tool` with that reference, operation `name` and its `arguments`.
 The named task tools above are available directly to agents working on their own.
+For a task with delivery review enabled, read `get_task` for the owner's requirements
+and `get_delivery_review` for the candidate. The assigned agent submits the existing pull request and its exact head
+commit with `submit_delivery_review`, then messages an eligible peer. That peer reads
+the requirements and chooses examples independently of the author's tests. For each
+specified invalid input or failure, exercise the public interface with an ordinary
+caller input and check what the caller observes. If the intended behavior is ambiguous,
+check the part the requirement makes clear and state the open question. Record the
+result and any coverage gaps with `record_delivery_verdict` for that generation.
+Use `refresh_delivery_review` to look up the configured GitHub check.
+When the head or requirements change, read the new generation before reviewing it.
 Encourage agents to keep tasks understandable without searching project conversations.
 Use `link_task` when a task comes from a discussion to attach the originating conversation
 or message; attach relevant pull requests when opened or found, including drafts.

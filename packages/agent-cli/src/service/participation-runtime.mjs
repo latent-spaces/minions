@@ -12,9 +12,9 @@ import { validateParticipationCommand, participationFingerprint, participationQu
 import { projectToolResult } from './project-tool-result.mjs';
 
 // One owner connection can span projects with different task settings. Mutations are discovered only through a scoped facade.
-const TASK_MUTATIONS = new Set(['create_task','update_task','claim_task','release_task','comment_task','link_task']);
+const TASK_MUTATIONS = new Set(['create_task','update_task','claim_task','release_task','comment_task','link_task','submit_delivery_review','record_delivery_verdict','refresh_delivery_review']);
 const TEAM_NAMES = new Set(['read_teams', 'manage_team']);
-const TASK_NAMES = new Set(['list_tasks','get_task',...TASK_MUTATIONS]);
+const TASK_NAMES = new Set(['list_tasks','get_task','get_delivery_review',...TASK_MUTATIONS]);
 const fail = (code, message) => { throw new RuntimeError(code, message); };
 const keyFor = record => `${record.participationId}:${record.generation}`;
 const live = record => record && ['approved','active'].includes(record.state) && record.deadlineAt > Date.now();

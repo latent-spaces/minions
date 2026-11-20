@@ -3,6 +3,7 @@ import { readNativeTaskSettings, saveNativeTaskSettings } from './native-task-se
 import { readNativeTeamSettings, saveNativeTeamSettings } from './native-team-settings.js';
 import { getNativeTeam, listNativeTeams } from './native-teams.js';
 import { listNativeTasks, listNativeTaskChanges, getNativeTask, mutateNativeTask } from './native-tasks.js';
+import { getDeliveryReview, mutateDeliveryReview } from './delivery-review.js';
 import { recordProjectVisit } from '../onboarding/journeys.js';
 import { MERGING_QUERY, readMergingAccess } from './merging.js';
 import { karmaProgress } from '../community/karma.js';
@@ -93,6 +94,14 @@ export function projectManagementRoutes(now: () => number) {
   // T2: tasks changed since a cursor (before /:taskId, which would otherwise take "changes" as an id). No client uses it yet.
   router.get('/:id/tasks/changes', (req, res) => answer(res, () => inProject(id(req), () => listNativeTaskChanges({ kind: 'person', person: res.locals.operator }, req.query, now))));
   router.get('/:id/tasks/:taskId', (req, res) => answer(res, () => inProject(id(req), () => getNativeTask({ kind: 'person', person: res.locals.operator }, String(req.params.taskId), req.query, now))));
+  router.get('/:id/tasks/:taskId/delivery-review', (req, res) => answer(res, () =>
+    inProject(id(req), () => getDeliveryReview({ kind: 'person', person: res.locals.operator }, String(req.params.taskId), req.query, now))));
+  router.post('/:id/tasks/:taskId/delivery-review', (req, res) => answer(res, () => {
+    if (req.body?.operation !== 'configure' && req.body?.operation !== 'refresh')
+      throw new Refusal('bad_input', 'Choose a delivery review configuration change or refresh.');
+    return inProject(id(req), () => mutateDeliveryReview({ kind: 'person', person: privatePerson(req, res) },
+      { ...req.body, taskId: String(req.params.taskId) }, now));
+  }));
   router.post('/:id/tasks', (req, res) => answer(res, () => {
     return inProject(id(req), () => mutateNativeTask({ kind: 'person', person: privatePerson(req, res) }, req.body, now));
   }));

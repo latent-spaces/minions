@@ -36,7 +36,7 @@ export function turnValues(turn: LastTurn): AnalyticsValues {
       value.mcpReports=1;
       for(const {name,...tool} of usage.context.byTool)value.mcpTools[name]=tool;
       value.metrics.conversationResponseBytes={sum:usage.context.byTool.filter(t=>['read_thread','read_agent_inbox'].includes(t.name)).reduce((n,t)=>n+t.responseTextBytes,0),known:1,partial:1};
-      value.metrics.taskResponseBytes={sum:usage.context.byTool.filter(t=>['list_tasks','get_task','create_task','update_task','claim_task','release_task','comment_task','link_task'].includes(t.name)).reduce((n,t)=>n+t.responseTextBytes,0),known:1,partial:1};
+      value.metrics.taskResponseBytes={sum:usage.context.byTool.filter(t=>['list_tasks','get_task','create_task','update_task','claim_task','release_task','comment_task','link_task','get_delivery_review','submit_delivery_review','record_delivery_verdict','refresh_delivery_review'].includes(t.name)).reduce((n,t)=>n+t.responseTextBytes,0),known:1,partial:1};
     }
     for(const key of ['instructionBytes','turnPromptBytes','catalogBytes'] as const) value.metrics[key]={sum:usage.context[key],known:1,partial:1};
     value.metrics.toolResponseBytes={sum:usage.context.tools.reduce((n,t)=>n+t.responseTextBytes,0),known:1,partial:1};

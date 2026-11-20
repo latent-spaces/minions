@@ -10,8 +10,61 @@ Provide report destinations explicitly. File arguments resolve against the invok
 directory. Source and inputs are anchored to their actual repository owners rather
 than the launcher's temporary working directory.
 
-The other files here are offline calculators and their tests (`npm --prefix
+The offline calculators and their tests (`npm --prefix
 tools/benchmarks test`); they read no database.
+
+## CooperBench patch scoring
+
+`cooperbench.py` uses the upstream Docker evaluator to score a pair of Git
+patches from the same benchmark base commit. It writes a fresh run directory
+with the inputs, merge status, and test results for both features. The runner
+only scores existing patches and does not start Minions, Paperclip, or a model.
+
+Install Docker and `uv`, then check out the pinned evaluator and dataset outside
+the Minions worktree. The runner uses the upstream lockfile with Python 3.12.
+
+```sh
+git clone https://github.com/cooperbench/CooperBench.git /tmp/cooperbench
+git -C /tmp/cooperbench checkout --detach 63b9d44d9f39a02fccf5bf0052db48a917a011fd
+docker pull akhatua/cooperbench-pallets-click:task2800
+python3 tools/benchmarks/cooperbench.py --checkout /tmp/cooperbench \
+  --output /tmp/cooperbench-reference --reference
+```
+
+If the Docker client uses a nondefault socket, set `DOCKER_HOST` to the active
+context's endpoint before running Python. For example, on Colima use
+`export DOCKER_HOST="$(docker context inspect colima --format '{{.Endpoints.docker.Host}}')"`.
+
+The reference run uses Click task 2800, features 2 and 6, from the `lite` subset.
+Their separate reference patches merge and pass both test suites. To score Minions
+or Paperclip outputs, use `--patches FIRST.patch SECOND.patch` in place of
+`--reference` and give each platform its own new `--output` directory. Use
+`--repo`, `--task`, and `--features FIRST SECOND` to select a different pair and
+pull its matching upstream task image first. Keep the dataset's reference patches
+and grader tests outside the workers' workspaces during live comparisons.
+
+### Replay the native review gate
+
+Use the read-only replay command on a completed CooperBench treatment run:
+
+```sh
+node tools/benchmarks/cooperbench-native-review-replay.mjs --run-dir /path/to/treatment
+node --test tools/benchmarks/cooperbench-native-review.test.mjs
+```
+
+The run directory contains `fixture.json`, `regression.json`, `gate.json` and
+`gate-evidence/`. Keep the fixture's local Git repository with its immutable
+`refs/coopbench` refs available. The command prints the first eligible checkpoint
+after verifying the frozen Git candidate, test bytes and stored check results.
+It reads existing evidence without running tests or models.
+
+The experimental runner owns this eligibility rule. A distinct peer can finish
+testing after local publication and before task registration. The check must pass
+on the exact immutable head and the same peer must approve the matching, current
+submitted generation within the run budget. A changed head needs new check
+evidence. The Minions app records the submission and generation-bound peer
+verdict. Its hosted PR and Actions observations are separate from the runner's
+local Git refs and pytest receipts.
 
 ## Context overhead comparison
 

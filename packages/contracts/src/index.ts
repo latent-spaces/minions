@@ -30,6 +30,7 @@ export * from './project-people.js';
 export * from './project-start.js';
 
 export * from './native-tasks.js';
+export * from './delivery-review.js';
 export * from './native-teams.js';
 export * from './onboarding.js';
 export type * from './repository-summary.js';

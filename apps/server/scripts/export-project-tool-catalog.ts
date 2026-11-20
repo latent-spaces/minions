@@ -3,7 +3,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { serverFor } from '../src/v2/routes.js';
 const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
-const server = serverFor({ id: 'catalog-only', name: 'catalog-only' } as never, undefined, Date.now, () => 0, async () => ({ count: 0, observedAt: 0 }));
+const server = serverFor({ id: 'catalog-only', name: 'catalog-only' } as never, undefined, Date.now, () => 0, async () => ({ count: 0, observedAt: 0 }), true, true, true);
 const client = new Client({ name: 'catalog-export', version: '1' });
 try {
   await server.connect(serverTransport);

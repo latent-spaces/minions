@@ -90,6 +90,51 @@ The eight background task tools are `list_tasks`, `get_task`, `create_task`, `up
 
 Background calls use `POST /p/{projectId}/v2/mcp`, an agent bearer credential and `X-Pilot-Run`. A tool call rechecks the current run, revocation and membership. An in-chat caller instead uses an already approved, unexpired `participation_ref`; discovery and invocation are explicitly project-scoped. The owner chat uses its local-owner session for management reads; acting as a project agent through the in-chat facade requires the scoped participation reference.
 
+## Delivery review on a code task
+
+Open the task and choose **Set up delivery review**. The project owner can select
+a particular peer or allow any other eligible project agent. The assignee submits
+the existing PR in the project repository, its head SHA, a short manifest and
+optional test file paths with their SHA-256 digests. Those digests record which
+bytes the agent reports having used. A different agent records its verdict on that
+submission. An owner can enable peer review alone or also pin a GitHub Actions job.
+
+For a GitHub pin, enter the exact job name, numeric workflow ID, workflow path
+and Git blob SHA of the workflow definition you trust. For example, in the
+project checkout, `gh workflow list --all --json id,path` lists workflow IDs
+and paths. `git rev-parse 'TRUSTED_COMMIT:.github/workflows/ci.yml'` prints the
+file's blob SHA after substituting a trusted commit and the actual workflow path.
+**Refresh GitHub checks** reads the existing PR and run through the local GitHub CLI.
+Verification covers the named job in the latest matching same-repository push
+run on the submitted head. The observer checks the workflow file, run attempt,
+job, check suite and GitHub Actions app, then reads the PR head again. Forks,
+synthetic merge commits and reusable workflow runs fall outside this implementation.
+The owner chooses a workflow that actually checks out and tests the intended code.
+
+The task shows the peer verdict and GitHub observation separately. Observations
+carry timestamps and ordinary observations expire from the current view after five
+minutes. The history retains older receipts. Replacing a submission or changing
+its configured requirements, task description or assignee clears current evidence.
+Title edits and comments preserve it. An owner records a reason when disabling
+review or replacing a check with an unresolved failure. When refreshes overlap
+on one submission, an inconclusive result preserves a known failure. A later
+verified run of the same check clears it. Minions uses the order in which the
+engine accepted the requests to resolve out-of-order replies. Once GitHub
+confirms that a PR closed or its head moved, the assignee must submit a new
+candidate for a fresh verdict. A reply for an older submission goes into its history. The task status
+and merge permissions continue to follow their existing controls.
+
+The first enabled task makes the review tools discoverable in that project. The
+assignee uses `submit_delivery_review` and can request a peer via `send_message`.
+The peer reads `get_delivery_review` and submits `record_delivery_verdict` with
+the observed generation. `refresh_delivery_review` requests a provider observation.
+Concurrent retries of the same request share the GitHub lookup in a running
+engine. After a restart, a retry can finish an interrupted lookup on a current submission.
+A completed request ID returns its historical receipt, including after a restart.
+Read `get_delivery_review` for current evidence and use a new request ID to refresh
+it. Missing evidence, an invalid response or a timed-out lookup yields an
+unavailable result. The task page shows the current submission and paged history.
+
 ## Editing, propagation and conversations
 
 The API commits an edit immediately. The shared UI refreshes visible lists/details and reconciles a saved version against a local draft; stale writes refuse. An uncertain write retains the exact request for Retry. A confirmed success, including an identical replay, settles only the submitted draft and preserves newer text. This is refresh/read propagation, not a guaranteed push notification or an interruption of a running model turn. Agents are instructed to reread before acting and completing. An edit does not enlarge approved scope or time. Large changed expectations can require a new human decision even when the shared text was editable.
@@ -103,7 +148,7 @@ Titles/descriptions/comments/references reach agents inside attributed untrusted
 | Consumer | ON (default) | OFF |
 | --- | --- | --- |
 | Server task mutation | Normal permission/revision checks | Refuses `tasks_disabled`, including stale discovered calls |
-| Engine tool listing / `get_project.tasks` | Eight tools and enabled state | Retained read tools and disabled state; a stale write handle can return MCP `Tool … not found` before the domain guard |
+| Engine tool listing / `get_project.tasks` | Eight task tools, plus four review tools after first opt-in | Retained read tools and disabled state; a stale write handle can return MCP `Tool … not found` before the domain guard |
 | In-chat scoped facade | Fresh allowed schemas and invocation | Fresh discovery removes writes; invocation rechecks |
 | Worker MCP discovery | Fresh server catalog intersected with bundled strict schemas | Writes omitted on fresh discovery; unavailable catalog fails closed |
 | Background prompt | Task workflow guidance | Goal/conversations/results; no task prerequisite and no GitHub Issues fallback |

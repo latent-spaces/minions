@@ -487,12 +487,16 @@ live, not a snapshot, so restart to discover changes on earlier pages. Read
 reader retains full task rows for its existing UI consumer.
 
 Project workers directly discover list_tasks, get_task, create_task, update_task,
-claim_task, release_task, comment_task and link_task while enabled.
+claim_task, release_task, comment_task and link_task while enabled. For tasks with
+delivery review configured, the assignee submits a PR head with
+`submit_delivery_review`. An eligible peer records its own assessment with
+`record_delivery_verdict`. Use `refresh_delivery_review` for the configured GitHub
+check and `get_delivery_review` to inspect the evidence.
 An in-chat owner connection may span multiple projects: get_task_tools(participation_ref)
 returns that project's current schemas, and call_task_tool invokes one with the same
 reference. No named task mutations appear in the global owner catalog. Discovery and
 invocation each refresh identity, membership, deadline and capability; OFF returns only
-list_tasks/get_task. The server independently enforces every operation.
+the read operations. The server independently enforces every operation.
 MCP text blocks can contain plain text, not just JSON. Background and in-chat facades
 preserve protocol refusals as bounded, sanitized code/message error results without
 forwarding protocol error data or bridge credentials.
@@ -711,6 +715,11 @@ explain ledger, delivery and checkout observations; they never kill a process,
 release a claim, archive/replay a report, restart work or run a model. A missing PID
 does not establish descendant cleanup. Journal capture failure remains visible in
 the saved turn outcome and must not prevent stop cleanup.
+
+After an interrupted Codex turn, the local outcome in `get_agent_run` can include
+milliseconds from the `turn/start` send to the first and last turn notifications
+and the interrupt request. These timings measure what the local collector received
+before cancellation. The native client's upstream requests are outside that stream.
 
 Owner-approved recovery uses `recover_agent_run` through the same service.
 `finalize` closes only a recovered mission whose saved execution is settled and

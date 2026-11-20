@@ -13,6 +13,7 @@ import type { PublicPhoto } from '../profile-photo-api';
 import { TASK_STATUSES, isAccessLoss, isConflict, isTasksDisabled, isSettledRefusal, taskReferenceView, newestTaskSnapshot, taskSourceHref, taskReferenceFromUrl, statusLabel, statusChangeBlock, taskMutation, singleFlight, readTasksView, writeTasksView, nestTasks, taskFromPrompt, type TasksApi, type TasksView } from '../task-model';
 import type { NativeTaskMutation } from '@minions/contracts';
 import { PickerMenu } from './PickerMenu';
+import { TaskDeliveryReview } from './TaskDeliveryReview';
 import { TaskAgentAvatar } from './TaskAgentAvatar';
 import { TaskAgentHover, TaskContributorAvatars } from './TaskContributorAvatars';
 import { PersonAvatar } from './PersonAvatar';
@@ -456,9 +457,10 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
   // A write whose outcome is unknown (lost reply, network, 5xx) is kept and resent byte-for-byte until it settles.
   const [uncertain, setUncertain] = useState<NativeTaskMutation | null>(null);
   const [subtaskPending, setSubtaskPending] = useState(false);
+  const [reviewRefreshPending, setReviewRefreshPending] = useState(false);
   const [turnedOff, setTurnedOff] = useState(false);
   const readOnly = readOnlyProp || turnedOff || detail?.permissions.edit === false;
-  const draftState=useRef({dirty:false,busy:false});draftState.current={dirty:!!comment.trim() || !!link.trim() || !!linkLabel.trim(),busy:busy || !!uncertain || subtaskPending};
+  const draftState=useRef({dirty:false,busy:false});draftState.current={dirty:!!comment.trim() || !!link.trim() || !!linkLabel.trim(),busy:busy || !!uncertain || subtaskPending || reviewRefreshPending};
   // A typed comment or link and a change awaiting its exact retry hold the page and survive an accidental close.
   const unsaved=draftState.current.dirty || draftState.current.busy;
   useEffect(()=>unsaved ? hold() : undefined,[unsaved]);
@@ -470,26 +472,51 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
   const live = useRef(api); live.current = api;
   useEffect(() => { live.current = api; return () => { live.current = null as unknown as TasksApi; }; }, [api]);
   const current = (from: TasksApi) => live.current === from;
-  const reload = useCallback(() => { const from = api; return api.get(taskId,{activityOrder:'desc'}).then(d => { if (!current(from)) return; if (d.task.revision < revision.current) return;
-      setDetail(current => current && current.task.revision > d.task.revision ? current : {...d,activity:[...d.activity].sort((a,b)=>a.revision-b.revision)}); onChange(d.task); setError(null); }, e => {
-    if (!current(from)) return;
+  const readOrder = useRef({ started: 0, applied: 0 });
+  // A review write doesn't change the task revision. Apply concurrent detail reads in request order.
+  // Separate a post-write read from any previous coalesced GET for this task.
+  const pendingDetail = useRef<{ api: TasksApi; promise: Promise<NativeTaskDetail> } | null>(null);
+  const readDetail = useCallback((fresh = false) => {
+    const read = () => api.get(taskId, { activityOrder: 'desc' });
+    const before = pendingDetail.current?.api === api ? pendingDetail.current.promise : null;
+    const promise = before ? fresh ? before.then(read, read) : before : read();
+    pendingDetail.current = { api, promise };
+    void promise.then(clear, clear);
+    function clear() { if (pendingDetail.current?.promise === promise) pendingDetail.current = null; }
+    return promise;
+  }, [api, taskId]);
+  const reload = useCallback((fresh = false, reportError = true) => { const from = api; const order = ++readOrder.current.started;
+    return readDetail(fresh).then(d => {
+      if (!current(from) || d.task.revision < revision.current) return false;
+      if (order < readOrder.current.applied) return true;
+      readOrder.current.applied = order;
+      setDetail(current => current && current.task.revision > d.task.revision ? current : {...d,activity:[...d.activity].sort((a,b)=>a.revision-b.revision)}); onChange(d.task); setError(null);
+      return true;
+    }, e => {
+    if (!current(from)) return false;
+    if (order < readOrder.current.applied) return true;
     if (isAccessLoss(e)) { setDetail(null); onAccessLost(); }
-    setError(errorText(e));
-  }); }, [api, taskId]);
+    if (reportError || isAccessLoss(e)) setError(errorText(e));
+    return false;
+  }); }, [api, readDetail]);
   useEffect(() => { setDetail(null); }, [api]);
   // Comment authors and history actors are labelled like task rows.
-  useEffect(() => { onActors(detail ? [...detail.comments.map(c => c.author), ...detail.activity.map(a => a.actor)] : []); }, [detail]);
+  useEffect(() => { onActors(detail ? [...detail.comments.map(c => c.author), ...detail.activity.map(a => a.actor),
+    ...[detail.deliveryReview?.current?.submittedBy, detail.deliveryReview?.verdict?.actor].filter(actor => actor !== undefined)] : []); }, [detail]);
   /** After a confirmed write, fetch the authoritative newest history without dropping older loaded pages or drafts. */
-  const refreshActivity = () => { const from = api; api.get(taskId, { activityOrder: 'desc' }).then(d => { if (!current(from)) return;
+  const refreshActivity = () => { const from = api; const order = ++readOrder.current.started;
+    readDetail(true).then(d => {
+    if (!current(from) || order < readOrder.current.applied) return;
+    readOrder.current.applied = order;
     setDetail(cur => {
       if (!cur || cur.task.revision > d.task.revision) return cur;
       const comments = new Map(cur.comments.map(comment => [comment.id, comment]));
       for (const comment of d.comments) if ((comments.get(comment.id)?.updatedAt ?? -1) <= comment.updatedAt) comments.set(comment.id, comment);
-      return { ...cur, task: newestTaskSnapshot(cur.task, d.task), permissions:d.permissions,
+      return { ...cur, task: newestTaskSnapshot(cur.task, d.task), permissions:d.permissions, deliveryReview: d.deliveryReview,
         comments: [...comments.values()].sort((a, b) => a.createdAt - b.createdAt || a.id.localeCompare(b.id)),
         activity: [...d.activity, ...cur.activity.filter(a => !d.activity.some(n => n.id === a.id))].sort((a, b) => a.revision - b.revision) };
     }); onChange(d.task); },
-    e => { if (current(from) && isAccessLoss(e)) { setDetail(null); setError(errorText(e)); onAccessLost(); } }); };
+    e => { if (current(from) && order >= readOrder.current.applied && isAccessLoss(e)) { setDetail(null); setError(errorText(e)); onAccessLost(); } }); };
   useEffect(() => { void reload(); }, [reload]);
   useEffect(() => {
     const refresh=()=>{if(document.visibilityState!=='hidden' && !draftState.current.busy)void reload();};
@@ -529,7 +556,10 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
           if (same) { setLink(value => value === draft.link ? '' : value); setLinkLabel(value => value === draft.label ? '' : value); setLinkOpen(false); }
         } catch { /* A newer incomplete draft is unrelated to this successful write. */ }
       }
-      setDetail(d => d && { ...d, task: newestTaskSnapshot(d.task, result.task), comments: result.comment ? [...d.comments.filter(c => c.id !== result.comment!.id), d.comments.find(c => c.id === result.comment!.id && c.updatedAt > result.comment!.updatedAt) ?? result.comment].sort((a,b)=>a.createdAt-b.createdAt || a.id.localeCompare(b.id)) : d.comments });
+      setDetail(d => d && { ...d, task: newestTaskSnapshot(d.task, result.task),
+        deliveryReview: result.task.revision > d.task.revision && (d.task.description !== result.task.description || d.task.assignedAgentId !== result.task.assignedAgentId)
+          && d.deliveryReview ? { ...d.deliveryReview, current: null, verdict: null, observation: null } : d.deliveryReview,
+        comments: result.comment ? [...d.comments.filter(c => c.id !== result.comment!.id), d.comments.find(c => c.id === result.comment!.id && c.updatedAt > result.comment!.updatedAt) ?? result.comment].sort((a,b)=>a.createdAt-b.createdAt || a.id.localeCompare(b.id)) : d.comments });
       onChange(result.task); refreshActivity(); return true;
     }, e => {
       if (!current(from)) return false;
@@ -614,6 +644,12 @@ function TaskPage({ api, taskId, directory, agents, readOnly: readOnlyProp, onAc
       </div>
       {task && <>
         <Subtasks api={api} parent={task} subtasks={subtasks} directory={directory} readOnly={readOnly || !!task.proposed} onOpen={leave} onCreated={() => void reload()} onProtectedChange={setSubtaskPending} />
+
+        <TaskDeliveryReview taskId={taskId} review={detail.deliveryReview}
+          configure={!readOnly && detail.permissions.configureDeliveryReview === true && task.status !== 'canceled'} refresh={!readOnly && task.status !== 'canceled'}
+          agents={agents.filter(agent => agent.id !== task.assignedAgentId)} actorName={directory.name}
+          read={api.getDeliveryReview} save={api.mutateDeliveryReview} reload={reportError => reload(true, reportError)}
+          onRefreshPendingChange={setReviewRefreshPending} />
 
         <section className="k42-task-section" aria-label="Activity">
           <h3>Activity</h3>

@@ -5,6 +5,8 @@ import { mkdtempSync, mkdirSync, realpathSync, rmSync, symlinkSync } from 'node:
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { workerCodexProfile, workerPrivatePaths, createProvider } from '../runtime/providers.mjs';
+import { modelTurnOutcome } from '../src/native-worker-adapter.mjs';
+import { validateOutcome } from '../src/service/contracts.mjs';
 
 const privatePaths = ['/synthetic/private state', '/synthetic/credentials'];
 
@@ -92,4 +94,47 @@ test('permission setup retains the native merge-rule trust check', t => {
   f.reply(1, {}); f.reply(4, { config: {}, layers: [{ name: { type: 'project', dotCodexFolder: '/synthetic/checkout/.codex' }, disabledReason: 'untrusted' }] });
   assert.equal(f.stream.failure.code, 'merge_policy_unavailable');
   assert.equal(f.sent.some(value => value.method === 'thread/start'), false);
+});
+
+test('Codex interruption preserves local event timings before cancellation', t => {
+  let now = 1000;
+  t.mock.method(performance, 'now', () => now);
+  const f = collector(t);
+  f.ready();
+  f.reply(2, f.confirmed);
+  const threadId = f.confirmed.thread.id, turnId = 'synthetic-turn';
+  f.reply(3, { turn: { id: turnId } });
+  const notify = (method, params) => f.stream.line(JSON.stringify({ method, params }));
+  now = 1003;
+  notify('turn/started', { threadId, turn: { id: turnId } });
+  now = 1040;
+  notify('item/agentMessage/delta', { threadId, turnId, delta: 'private payload' });
+  now = 1080;
+  notify('item/agentMessage/delta', { threadId, turnId: 'other-turn' });
+  notify('item/agentMessage/delta', { threadId: randomUUID(), turnId });
+  now = 1200;
+  f.stream.interrupt();
+  now = 1250;
+  notify('turn/completed', { threadId, turn: { id: turnId, status: 'interrupted' } });
+  const { text, ...outcome } = modelTurnOutcome({ stream: f.stream, interrupted: true });
+  assert.equal(outcome.diagnostics.turn_first_event_ms, 3);
+  assert.equal(outcome.diagnostics.turn_last_event_ms, 40);
+  assert.equal(outcome.diagnostics.turn_interrupt_requested_ms, 200);
+  assert.ok(!JSON.stringify(outcome).includes('private payload'));
+  assert.doesNotThrow(() => validateOutcome({ ...outcome, cleanupConfirmed: true }));
+});
+
+test('Codex interruption before any turn notification records absent event times', t => {
+  let now = 1000;
+  t.mock.method(performance, 'now', () => now);
+  const f = collector(t);
+  f.ready();
+  f.reply(2, f.confirmed);
+  now = 1025;
+  f.stream.interrupt();
+  const { text, ...outcome } = modelTurnOutcome({ stream: f.stream, interrupted: true });
+  assert.equal(outcome.diagnostics.turn_first_event_ms, null);
+  assert.equal(outcome.diagnostics.turn_last_event_ms, null);
+  assert.equal(outcome.diagnostics.turn_interrupt_requested_ms, 25);
+  assert.doesNotThrow(() => validateOutcome({ ...outcome, cleanupConfirmed: true }));
 });

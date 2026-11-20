@@ -20,7 +20,7 @@ import { agentFromRequest } from './agent-auth.js';
 import { readParticipationContext } from '../projects/agent-participation.js';
 import { getProject } from '../store/project.js';
 import { assertStarted } from '../store/project-policy.js';
-import { NATIVE_TASK_TOOLS, TASKS_OFF, projectTasksEnabled, registerTaskTools } from './task-tools.js';
+import { nativeTaskToolNames, TASKS_OFF, projectTasksEnabled, registerTaskTools } from './task-tools.js';
 import { nativeTasks } from '../projects/native-tasks.js';
 import { NATIVE_TEAM_TOOLS, TEAMS_OFF, registerTeamTools } from './team-tools.js';
 import { nativeTeamsEnabled, projectExecution } from '@minions/contracts';
@@ -109,7 +109,7 @@ export function v2Routes(now: () => number): Router {
       // Read the optional task capability per request, so the listed tools follow the current setting.
       const record = (await projects.doc(currentProjectId()).get()).data();
       const tasksWritable = projectTasksEnabled(record);
-      const server = serverFor(agent, req.get('x-pilot-run'), now, toolCalls, readAgentCount, tasksWritable, nativeTeamsEnabled(record?.nativeTeams));
+      const server = serverFor(agent, req.get('x-pilot-run'), now, toolCalls, readAgentCount, tasksWritable, nativeTeamsEnabled(record?.nativeTeams), record?.hasDeliveryReviews === true);
       const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
       res.on('close', () => {
         void transport.close();
@@ -407,7 +407,7 @@ function unauthorized(res: Response): void {
 // The tools act as this agent, in this run. No tool takes an agent id as input.
 export function serverFor(agent: WithId<Agent>, runId: string | undefined, now: () => number,
   toolCalls: (key: string, at: number) => number,
-  readAgentCount: () => Promise<{ count: number; observedAt: number }>, tasksWritable = true, teamsWritable = true): McpServer {
+  readAgentCount: () => Promise<{ count: number; observedAt: number }>, tasksWritable = true, teamsWritable = true, hasDeliveryReviews = false): McpServer {
   const server = new McpServer({ name: 'agent-coordination', version: '2.0.0' });
 
   // A tool never throws: a Refusal becomes an error the agent can read, and anything else
@@ -475,9 +475,9 @@ export function serverFor(agent: WithId<Agent>, runId: string | undefined, now: 
       humanRequests: { tools: ['request_human_help','list_human_requests','acknowledge_human_answer','resolve_human_request'] },
       teams: { enabled: nativeTeamsEnabled(record.data()?.nativeTeams), tools: nativeTeamsEnabled(record.data()?.nativeTeams) ? [...NATIVE_TEAM_TOOLS] : ['read_teams'],
         ...(nativeTeamsEnabled(record.data()?.nativeTeams) ? {} : { policy: TEAMS_OFF }) },
-      tasks: tasksOn ? { enabled: true, tools: [...NATIVE_TASK_TOOLS],
+      tasks: tasksOn ? { enabled: true, tools: nativeTaskToolNames(true, hasDeliveryReviews),
         counts: { assignedToYouOpen: yours!.data().count, unassignedBacklog: backlog!.data().count } }
-        : { enabled: false, tools: ['list_tasks', 'get_task'], policy: TASKS_OFF },
+        : { enabled: false, tools: nativeTaskToolNames(false, hasDeliveryReviews), policy: TASKS_OFF },
     };
   }));
 
@@ -558,7 +558,7 @@ export function serverFor(agent: WithId<Agent>, runId: string | undefined, now: 
     return readThreadPage(thread_id, cursor, after_message_id, limit ?? LIST_PAGE_DEFAULT);
   }));
 
-  registerTaskTools(server, () => ({ kind: 'agent', agent, runId: runId! }), run, now, tasksWritable);
+  registerTaskTools(server, () => ({ kind: 'agent', agent, runId: runId! }), run, now, tasksWritable, hasDeliveryReviews);
   registerTeamTools(server, () => ({ kind: 'agent', agent, runId: runId! }), run, now, teamsWritable);
 
   server.registerTool('request_human_help', {
