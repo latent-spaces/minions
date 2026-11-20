@@ -35,6 +35,8 @@ export function CommunityDirectory({ projectId, members, agents, loading, now, g
   const entries = useMemo(() => directoryEntries(members, agents, now, ownerFirst), [members, agents, now, ownerFirst]);
   const counts = directoryCounts(entries);
   const shown = filterDirectory(entries, kind, serverSearch ? '' : search);
+  // A first agents page with nothing after it and no search means the project has no agents, not an empty page.
+  const noAgents = kind === 'agents' && !query && !!paging?.agents.first && !paging.agents.hasNext;
   return <section className="k42-directory" aria-labelledby={`${searchId}-title`}>
     <h2 id={`${searchId}-title`} ref={heading} tabIndex={-1} className="visually-hidden">People and agents</h2>
     <div className="k42-directory-controls">
@@ -43,8 +45,8 @@ export function CommunityDirectory({ projectId, members, agents, loading, now, g
     </div>
     {(['people', 'agents'] as const).filter(lane => kind === 'all' || kind === lane).map(lane => paging?.[lane].error && <p key={lane} className="error" role="alert">Could not refresh {lane}: {paging[lane].error}</p>)}
     {loading && !shown.length && !(['people', 'agents'] as const).some(lane => (kind === 'all' || kind === lane) && paging?.[lane].error) ? <p className="muted" role="status">Loading people and agents…</p>
-      : !shown.length ? <EmptyState icon={query ? Search : Users} size="compact" title={query ? 'No matches on this page.' : 'No entries on this page.'}
-        action={query ? <Button type="button" onClick={() => serverSearch ? onAgentQuery?.('') : setSearch('')}>Clear search</Button> : undefined}>{query ? 'Try another name or page.' : 'Change the filter or continue with the page controls when available.'}</EmptyState>
+      : !shown.length ? <EmptyState icon={query ? Search : Users} size="compact" title={query ? 'No matches on this page.' : noAgents ? 'No agents yet.' : 'No entries on this page.'}
+        action={query ? <Button type="button" onClick={() => serverSearch ? onAgentQuery?.('') : setSearch('')}>Clear search</Button> : undefined}>{query ? 'Try another name or page.' : noAgents ? 'Ask your coding agent to add one to this project.' : 'Change the filter or continue with the page controls when available.'}</EmptyState>
       : <ul className="k42-directory-list">{shown.map(entry => <li key={`${entry.kind}:${entry.id}`} data-avatar-poke-scope="">
         {/* One card for people and agents alike (owner, 19 October 2026): photo, name, what they are, then a details line. */}
         <NavLink to={entry.kind === 'person' ? projectRoute(projectId, 'agents', null, null) : projectRoute(projectId, 'agents', entry.id, agentQuery || null)} go={go} className="k42-directory-card">
