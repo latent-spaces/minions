@@ -35,17 +35,44 @@ export function CommunityDirectory({ projectId, members, agents, loading, now, g
   const entries = useMemo(() => directoryEntries(members, agents, now, ownerFirst), [members, agents, now, ownerFirst]);
   const counts = directoryCounts(entries);
   const shown = filterDirectory(entries, kind, serverSearch ? '' : search);
+  const lanes = (['people', 'agents'] as const).filter(lane => kind === 'all' || kind === lane);
+  const hasError = lanes.some(lane => paging?.[lane].error);
+  const agentsPage = paging?.agents;
+  let emptyTitle = 'No entries on this page.';
+  let emptyDescription: string | undefined;
+  if (query) {
+    emptyTitle = 'No matches on this page.';
+    emptyDescription = 'Try a different search.';
+  } else if (kind === 'agents' && agentsPage?.first && !agentsPage.hasNext) {
+    emptyTitle = 'No agents yet.';
+    emptyDescription = 'Ask your coding agent to add an agent to this project.';
+  }
   return <section className="k42-directory" aria-labelledby={`${searchId}-title`}>
     <h2 id={`${searchId}-title`} ref={heading} tabIndex={-1} className="visually-hidden">People and agents</h2>
     <div className="k42-directory-controls">
       {onKind && <DirectoryChips counts={counts} kind={kind} onKind={onKind} />}
       <SearchField id={searchId} className="k42-directory-search-field" label={serverSearch ? 'Find agent names starting with' : 'Search this page'} value={query} maxLength={serverSearch ? 40 : 80} placeholder={serverSearch ? 'Agent name starts with' : 'Search this page'} onChange={event => serverSearch ? onAgentQuery?.(event.target.value) : setSearch(event.target.value)} />
     </div>
-    {(['people', 'agents'] as const).filter(lane => kind === 'all' || kind === lane).map(lane => paging?.[lane].error && <p key={lane} className="error" role="alert">Could not refresh {lane}: {paging[lane].error}</p>)}
-    {loading && !shown.length && !(['people', 'agents'] as const).some(lane => (kind === 'all' || kind === lane) && paging?.[lane].error) ? <p className="muted" role="status">Loading people and agents…</p>
-      : !shown.length ? <EmptyState icon={query ? Search : Users} size="compact" title={query ? 'No matches on this page.' : 'No entries on this page.'}
-        action={query ? <Button type="button" onClick={() => serverSearch ? onAgentQuery?.('') : setSearch('')}>Clear search</Button> : undefined}>{query ? 'Try another name or page.' : 'Change the filter or continue with the page controls when available.'}</EmptyState>
-      : <ul className="k42-directory-list">{shown.map(entry => <li key={`${entry.kind}:${entry.id}`} data-avatar-poke-scope="">
+    {lanes.map(lane => paging?.[lane].error && (
+      <p key={lane} className="error" role="alert">Could not load {lane}. {paging[lane].error}</p>
+    ))}
+    {!shown.length && !hasError && (
+      loading ? <p className="muted" role="status">{kind === 'agents' ? 'Loading agents…' : 'Loading people and agents…'}</p> : (
+        <EmptyState
+          icon={query ? Search : Users}
+          size="compact"
+          title={emptyTitle}
+          action={query && (
+            <Button type="button" onClick={() => serverSearch ? onAgentQuery?.('') : setSearch('')}>
+              Clear search
+            </Button>
+          )}
+        >
+          {emptyDescription}
+        </EmptyState>
+      )
+    )}
+    {shown.length > 0 && <ul className="k42-directory-list">{shown.map(entry => <li key={`${entry.kind}:${entry.id}`} data-avatar-poke-scope="">
         {/* One card for people and agents alike (owner, 19 October 2026): photo, name, what they are, then a details line. */}
         <NavLink to={entry.kind === 'person' ? projectRoute(projectId, 'agents', null, null) : projectRoute(projectId, 'agents', entry.id, agentQuery || null)} go={go} className="k42-directory-card">
           <span className="k42-directory-photo">{entry.kind === 'person' ? <PersonAvatar id={entry.id} photo={entry.photo} character={entry.character} name={entry.name} /> : <CodingAgentAvatar state={entry.state} provider={entry.provider} name={entry.name} id={entry.id} persona={entry.personaChoice} ownerName={entry.ownerName} ownerId={entry.ownerId} size={56} decorative />}
@@ -58,7 +85,7 @@ export function CommunityDirectory({ projectId, members, agents, loading, now, g
         <AvatarPokeButton name={entry.name} className="k42-directory-poke" />
         {entry.kind === 'agent' && agentActions?.(entry.id)}
       </li>)}</ul>}
-    {(['people', 'agents'] as const).filter(lane => kind === 'all' || kind === lane).map(lane => {
+    {lanes.map(lane => {
       const page = paging?.[lane];
       return page && (!page.first || page.hasNext) ? <nav key={lane} aria-label={`${lane === 'people' ? 'People' : 'Agents'} pages`}>
         <p className="muted">{lane === 'people' ? 'People' : 'Agents'} pages</p>
