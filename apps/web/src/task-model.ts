@@ -1,10 +1,12 @@
 import type { NativeTask, NativeTaskDetail, NativeTaskMutation, NativeTaskMutationResult, NativeTaskPage, NativeTaskReference } from '@minions/contracts';
-import type { NativeTaskStatus } from '@minions/contracts';
+import type { DeliveryReviewDetail, DeliveryReviewMutation, DeliveryReviewMutationResult, NativeTaskStatus } from '@minions/contracts';
 
 export interface TasksApi {
   list(cursor?: string | null, status?: NativeTaskStatus, assignedAgentId?: string | null, search?: string): Promise<NativeTaskPage>;
   get(taskId: string, cursors?: { commentCursor?: string | null; activityCursor?: string | null; activityOrder?: 'asc' | 'desc'; activityId?: string }): Promise<NativeTaskDetail>;
   mutate(mutation: NativeTaskMutation): Promise<NativeTaskMutationResult>;
+  getDeliveryReview?(taskId: string, cursor?: string): Promise<DeliveryReviewDetail>;
+  mutateDeliveryReview?(mutation: Extract<DeliveryReviewMutation, { operation: 'configure' | 'refresh' }>): Promise<DeliveryReviewMutationResult>;
 }
 
 // Native tasks (contract v1): the project's own work record. Assignment never starts, steers or extends an agent.

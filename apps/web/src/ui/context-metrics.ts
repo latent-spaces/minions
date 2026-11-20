@@ -16,7 +16,7 @@ export const SOURCES=[
 export type Source=typeof SOURCES[number];
 /** The two sources that are Minions's own setup, hatched in charts: standing instructions and tool definitions. */
 export const isSetupSource=(key:Source['key'])=>key==='instructions'||key==='definitions';
-const taskTools=['list_tasks','get_task','create_task','update_task','claim_task','release_task','comment_task','link_task'],conversationTools=['read_thread','read_agent_inbox'];
+const taskTools=['list_tasks','get_task','create_task','update_task','claim_task','release_task','comment_task','link_task','get_delivery_review','submit_delivery_review','record_delivery_verdict','refresh_delivery_review'],conversationTools=['read_thread','read_agent_inbox'];
 /** Measured supplied bytes per source, in fixed order; sources a report did not measure are absent, not zero. */
 export function suppliedSources(context:ContextSummary|null):(Source&{bytes:number})[] {
   if(!context)return [];

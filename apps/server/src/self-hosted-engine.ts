@@ -56,6 +56,10 @@ export async function startSelfHostedEngine({ requestStop }: { requestStop(): vo
     authentication.use('/engine/stop', engineStopRoute({ key: engineStopKey(owner.signingSecret), requestStop }));
     authentication.use(sessionRoutes(identity));
     const { createApi } = await import('./api.js');
+    const { setDeliveryReviewObserver } = await import('./projects/delivery-review.js');
+    const { observeGitHubDelivery } = await import('../../../packages/agent-cli/src/service/github-delivery-review.mjs');
+    // Derive check evidence directly from GitHub on this computer. No agent or owner endpoint accepts a provider report.
+    setDeliveryReviewObserver(observeGitHubDelivery);
     const { startLocalWorker } = await import('./v2/local-fanout.js');
     const { drainProjectControl } = await import('./projects/project-control.js');
     runtime = await startSelfHostedRuntime({ app: createApi(config.host, authentication, () => origin), host: config.host, port: config.port,

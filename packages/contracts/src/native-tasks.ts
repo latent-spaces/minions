@@ -1,3 +1,5 @@
+import type { DeliveryReviewState } from './delivery-review.js';
+
 /** Native task contract v1. Assignment never grants execution or repository authority. */
 export type NativeTaskStatus = 'backlog' | 'in_progress' | 'done' | 'canceled';
 export type NativeTaskPriority = 'low' | 'normal' | 'high';
@@ -60,12 +62,14 @@ export interface NativeTaskAncestor { id: string; title: string }
 export interface NativeTaskPage { tasks: NativeTask[]; nextCursor: string | null }
 export interface NativeTaskPermissions { edit: boolean; editDescription: boolean; control: boolean; assign: 'any' | 'own' | 'none';
   /** v1.3: may accept or decline this proposed subtask (project owners and admins). */
-  review?: boolean }
+  review?: boolean;
+  configureDeliveryReview?: boolean }
 export interface NativeTaskDetail { task: NativeTask; permissions: NativeTaskPermissions; comments: NativeTaskComment[]; activity: NativeTaskActivity[]; nextCommentCursor: string | null; nextActivityCursor: string | null;
   /** v1.3: parents from the top-level task down to this task's parent. */
   ancestors?: NativeTaskAncestor[];
   /** v1.3: this task's direct subtasks (up to 100), oldest first, including proposals. */
-  subtasks?: NativeTaskSummary[] }
+  subtasks?: NativeTaskSummary[];
+  deliveryReview?: DeliveryReviewState }
 
 /** Agents nest subtasks two levels deep: a task and its subtasks. People may nest deeper. */
 export const AGENT_TASK_DEPTH = 2;

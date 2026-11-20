@@ -7,6 +7,8 @@ import { hashToken, newToken, personIdentityFromIdToken } from '../src/auth.js';
 import { ownerRoutes } from '../src/owner/routes.js';
 import { projects } from '../src/community/records.js';
 import { configureWorkspace, controlWorkspace } from '../src/projects/store.js';
+import { mutateNativeTask } from '../src/projects/native-tasks.js';
+import { mutateDeliveryReview } from '../src/projects/delivery-review.js';
 import { inProject, agents, profiles, db } from '../src/firestore.js';
 import { membershipDoc, membershipsOf } from '../src/projects/access.js';
 import { seed, resetEmulator, idTokenFor, seedApprovedProject, setTestMembership } from './helpers.js';
@@ -41,6 +43,35 @@ test('owner MCP configures a private project, edits its versioned Card and reque
   expect((await http(`/projects/${id}/publish`,f.token,{client_request_id:randomUUID(),expected_revision:after.body.revision,approved:true},profile)).status).toBe(403);
   expect((await projects.doc(id).get()).data()!.publication.listed).toBe(false);
 });
+test('real repository reconfiguration versions delivery evidence across card edits and project controls', async () => {
+  const { token, personIds: [profileId] } = await fixture();
+  const originalUrl = 'https://github.com/example/first';
+  const created = await http('/projects/private', token, { githubUrl: originalUrl, title: 'Review trial',
+    goal: 'Record review evidence', client_request_id: randomUUID(), approved: true }, profileId);
+  expect(created.status).toBe(200);
+  const id = created.body.id;
+  const root = `/projects/${id}`;
+  const owner = { kind: 'person' as const, person: { id: profileId, ...(await profiles.doc(profileId).get()).data()! } };
+  await inProject(id, async () => {
+    const { task } = await mutateNativeTask(owner, { operation: 'create', title: 'Review the PR', clientRequestId: randomUUID() }, now);
+    await mutateDeliveryReview(owner, { operation: 'configure', taskId: task.id, enabled: true,
+      expectedGeneration: 0, clientRequestId: randomUUID() }, now);
+  });
+  const setup = (await http(root + '/overview', token)).body;
+  const write = async (path: string, body: object) => {
+    const reply = await http(root + path, token, { ...body, approved: true, client_request_id: randomUUID() }, profileId);
+    expect(reply.status).toBe(200);
+    return reply.body;
+  };
+  const changed = await write('/configure', { expected_revision: setup.revision, repoUrl: 'https://github.com/example/second' });
+  const rebound = await write('/configure', { expected_revision: changed.revision, repoUrl: originalUrl });
+  expect(rebound.revision).toBeGreaterThan(changed.revision);
+  await write('/card', { expected_version: setup.cardVersion, definition: { ...setup.definition, goal: 'Review both changes' } });
+  await write('/control', { expected_revision: rebound.revision, action: 'start' });
+  expect((await projects.doc(id).get()).data()).toMatchObject({ hasDeliveryReviews: true,
+    setup: { repoUrl: originalUrl, repositoryRevision: rebound.revision } });
+});
+
 test('owner routes accept the local owner session and nothing else; the computer connection routes are gone', async () => {
   const { personIds } = await seed({ profiles: [{ name: 'Owner', email: 'owner@example.test' }, { name: 'Other', email: 'other@example.test' }] });
   const session = await idTokenFor('owner@example.test');

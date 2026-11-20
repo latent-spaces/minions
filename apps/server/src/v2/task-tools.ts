@@ -12,6 +12,7 @@ import { getNativeTask, listNativeTasks, listNativeTaskSummaries, mutateNativeTa
 import type { ProgressActor } from '../projects/progress-authority.js';
 import { nativeTasksEnabled } from '@minions/contracts';
 import { actorSource, untrusted } from './untrusted.js';
+import { deliveryReviewWithSource, DELIVERY_REVIEW_READ_TOOL, DELIVERY_REVIEW_WRITE_TOOLS, registerDeliveryReviewTools } from './delivery-review-tools.js';
 import { LIST_PAGE, LIST_PAGE_DEFAULT } from './list-page.js';
 
 // Native tasks are an optional project capability, on unless the project's nativeTasks setting says
@@ -21,8 +22,15 @@ import { LIST_PAGE, LIST_PAGE_DEFAULT } from './list-page.js';
 export const projectTasksEnabled = (record: { nativeTasks?: { enabled?: boolean } | null } | null | undefined) => nativeTasksEnabled(record?.nativeTasks);
 export const TASKS_OFF = 'Native tasks are turned off for this project. Existing tasks stay readable; keep working through the project goal, conversations and results. Do not use GitHub Issues as a tracker instead.';
 
-export const NATIVE_TASK_TOOLS = ['list_tasks', 'get_task', 'create_task', 'update_task', 'claim_task', 'release_task',
-  'comment_task', 'link_task'] as const;
+export function nativeTaskToolNames(writable: boolean, hasDeliveryReviews: boolean) {
+  const names = ['list_tasks', 'get_task'];
+  if (writable) names.push('create_task', 'update_task', 'claim_task', 'release_task', 'comment_task', 'link_task');
+  if (hasDeliveryReviews) {
+    names.push(DELIVERY_REVIEW_READ_TOOL);
+    if (writable) names.push(...DELIVERY_REVIEW_WRITE_TOOLS);
+  }
+  return names;
+}
 
 const TASK_ID = z.string().min(1).max(200);
 const REVISION = z.number().int().positive().max(Number.MAX_SAFE_INTEGER)
@@ -62,7 +70,7 @@ const activityWithSource = ({ task, comment, ...event }: ActivitySnapshot) =>
   ({ ...event, ...(task ? { task: taskWithSource(task) } : {}), ...(comment ? { comment: commentWithSource(comment) } : {}) });
 // Subtask and breadcrumb rows carry no author record, so their titles have an unknown source.
 const detailWithSource = (detail: NativeTaskDetail) =>
-  ({ ...detail, task: taskWithSource(detail.task), comments: detail.comments.map(commentWithSource), activity: detail.activity.map(activityWithSource),
+  ({ ...detail, ...(detail.deliveryReview ? { deliveryReview: deliveryReviewWithSource(detail.deliveryReview) } : {}), task: taskWithSource(detail.task), comments: detail.comments.map(commentWithSource), activity: detail.activity.map(activityWithSource),
     ancestors: detail.ancestors?.map(row => ({ ...row, title: untrusted(actorSource(undefined), row.title) })),
     subtasks: detail.subtasks?.map(row => ({ ...row, title: untrusted(actorSource(undefined), row.title) })) });
 
@@ -70,7 +78,7 @@ type Run = (tool: () => Promise<object>) => Promise<CallToolResult>;
 type Mutation = NativeTaskMutation extends infer M ? M extends unknown ? Omit<M, 'clientRequestId'> : never : never;
 
 // With tasks off only the read tools are listed; the service still refuses writes from stale clients.
-export function registerTaskTools(server: McpServer, actor: () => ProgressActor, run: Run, now: () => number, writable = true): void {
+export function registerTaskTools(server: McpServer, actor: () => ProgressActor, run: Run, now: () => number, writable = true, hasDeliveryReviews = false): void {
   const agentId = () => { const current = actor(); return current.kind === 'agent' ? current.agent.id : current.person.id; };
   const mutate = (clientRequestId: string, mutation: Mutation) => run(async () => resultWithSource(
     await mutateNativeTask(actor(), { ...mutation, clientRequestId: taskRequestUuid(agentId(), clientRequestId) } as NativeTaskMutation, now)));
@@ -104,13 +112,14 @@ export function registerTaskTools(server: McpServer, actor: () => ProgressActor,
 
   server.registerTool('get_task', {
     annotations: { readOnlyHint: true },
-    description: 'Read one task with a page of its comments and activity, its parent chain (ancestors, top-level first) and up to 100 direct subtasks. Use list_tasks with parent_task_id and its cursors for every child. Read it before changing it and pass its revision as expected_revision.',
+    description: 'Read one task with a page of its comments and activity, delivery evidence if configured, its parent chain (ancestors, top-level first) and up to 100 direct subtasks. Use list_tasks with parent_task_id and its cursors for every child. Read it before changing it and pass its revision as expected_revision.',
     inputSchema: { task_id: TASK_ID, comment_cursor: z.string().max(1000).optional(), activity_cursor: z.string().max(1000).optional(), activity_id: TASK_ID.optional().describe('Read one saved history version; ordinary activity pages contain compact summaries.'),
       limit: z.number().int().min(1).max(100).optional().describe('Comments and activity entries per page, 1–100 (default 50). The task, ancestors and subtask summaries are separate.'),
       activity_order: z.enum(['asc', 'desc']).optional().describe('Activity order: asc is oldest first (default); desc is newest first. Keep the same order when paging. Comment pages always select the newest comments first.') },
   }, ({ task_id, comment_cursor, activity_cursor, activity_id, limit, activity_order }) => run(async () =>
     detailWithSource(await getNativeTask(actor(), task_id, { commentCursor: comment_cursor, activityCursor: activity_cursor, activityId: activity_id, limit, activityOrder: activity_order }, now))));
 
+  if (hasDeliveryReviews) registerDeliveryReviewTools(server, actor, run, now, writable, request => taskRequestUuid(agentId(), `delivery-review:${request}`));
   if (!writable) return;
 
   server.registerTool('create_task', {

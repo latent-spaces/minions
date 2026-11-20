@@ -103,7 +103,7 @@ const contextCategory = name => {
   if (name === 'read_thread') return 'threads';
   if (name === 'send_message') return 'messaging';
   if (['record_work_intent', 'list_work_intents'].includes(name)) return 'checkpoints';
-  if (['list_tasks', 'get_task', 'create_task', 'update_task', 'claim_task', 'release_task', 'comment_task', 'link_task'].includes(name)) return 'coordination';
+  if (['list_tasks', 'get_task', 'create_task', 'update_task', 'claim_task', 'release_task', 'comment_task', 'link_task','get_delivery_review','submit_delivery_review','record_delivery_verdict','refresh_delivery_review'].includes(name)) return 'coordination';
   if (['read_teams', 'manage_team'].includes(name)) return 'coordination';
   return 'other';
 };
@@ -221,10 +221,12 @@ export class ProjectOperations {
         return { jsonrpc: '2.0', id: rpc.id, result: refusalResult(error.message) };
       }
     }
+    // A refresh can spend up to 20 seconds reading the pinned workflow and the PR head again.
+    const timeoutMs = rpc.method === 'tools/call' && rpc.params?.name === 'refresh_delivery_review' ? 25_000 : 15_000;
     const response = await this.fetchImpl(`${this.control.url}/v2/mcp`, {
       method: 'POST', redirect: 'error', headers: { authorization: `Bearer ${this.control.token}`, 'x-pilot-run': this.control.runId,
         'content-type': 'application/json', accept: 'application/json, text/event-stream' },
-      body: JSON.stringify(rpc), signal: AbortSignal.any([AbortSignal.timeout(15_000), this.control.requestSignal, this.control.abort?.signal].filter(Boolean)),
+      body: JSON.stringify(rpc), signal: AbortSignal.any([AbortSignal.timeout(timeoutMs), this.control.requestSignal, this.control.abort?.signal].filter(Boolean)),
     });
     let text = '', bytes = 0; const decoder = new TextDecoder();
     for await (const chunk of response.body ?? []) {

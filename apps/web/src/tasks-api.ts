@@ -1,5 +1,5 @@
 import type { SessionUser } from './session-identity';
-import type { NativeTaskDetail, NativeTaskMutation, NativeTaskMutationResult, NativeTaskPage, NativeTaskStatus } from '@minions/contracts';
+import type { DeliveryReviewDetail, DeliveryReviewMutation, DeliveryReviewMutationResult, NativeTaskDetail, NativeTaskMutation, NativeTaskMutationResult, NativeTaskPage, NativeTaskStatus } from '@minions/contracts';
 import { authorizedRequest } from './authorized-request';
 
 /** Requests carry the selected profile and are fenced to the signed-in account, like other person-scoped project writes. */
@@ -25,6 +25,10 @@ export function tasksApi(user: SessionUser, projectId: string, ownProfileId?: st
       return request<NativeTaskDetail>(`${root}/${encodeURIComponent(taskId)}${query.size ? `?${query}` : ''}`);
     },
     mutate: (mutation: NativeTaskMutation) => request<NativeTaskMutationResult>(root, mutation),
+    getDeliveryReview: (taskId: string, cursor?: string) =>
+      request<DeliveryReviewDetail>(`${root}/${encodeURIComponent(taskId)}/delivery-review${cursor ? `?cursor=${encodeURIComponent(cursor)}` : ''}`),
+    mutateDeliveryReview: ({ taskId, ...mutation }: Extract<DeliveryReviewMutation, { operation: 'configure' | 'refresh' }>) =>
+      request<DeliveryReviewMutationResult>(`${root}/${encodeURIComponent(taskId)}/delivery-review`, mutation),
   };
 }
 export * from './task-model';
