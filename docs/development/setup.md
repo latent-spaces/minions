@@ -12,12 +12,13 @@ MINIONS_ENGINE_HOME=/absolute/path/to/minions-dev MINIONS_ENGINE_PORT=8788 npm r
 On Windows PowerShell:
 
 ```powershell
-$env:MINIONS_ENGINE_HOME = 'C:\path\to\minions-dev'
+$env:MINIONS_ENGINE_HOME = Join-Path $env:USERPROFILE 'minions-dev'
 $env:MINIONS_ENGINE_PORT = '8788'
 npm run setup
 ```
 
-Use an absolute Windows path on Windows. Keep `MINIONS_ENGINE_HOME` and
+On Windows, use an absolute path inside your user folder; the engine refuses owner
+files anywhere else. Keep `MINIONS_ENGINE_HOME` and
 `MINIONS_ENGINE_PORT` set to the same values for subsequent commands. Isolated setup
 skips client registration and command linking. Keep development data separate from
 your everyday engine and start no models without explicit approval.
