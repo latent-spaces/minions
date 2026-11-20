@@ -122,10 +122,15 @@ test('an approved computer adds an agent with a private credential saved before 
   const added=await f.client.addAgent({project_id:P,agent_name:'fox',folder});
   const sent=f.requests.filter(r=>r.url.endsWith('/agents/connect')).map(r=>JSON.parse(r.body));
   assert.equal(sent.length,2);assert.equal(sent[1].candidateTokenHash,sent[0].candidateTokenHash);
-  const dir=join(f.home,digest(`${site}/p/${P}`),'666f78-fox'),token=readFileSync(join(dir,'token'),'utf8');
-  // Windows has no POSIX mode bits (Node reports 0o666); its private state is confined to the user folder instead.
-  assert.match(token,/^[\w-]{43}$/);if(process.platform!=='win32')assert.equal(statSync(join(dir,'token')).mode&0o077,0);
-  assert.ok(!JSON.stringify(added).includes(token));assert.ok(!JSON.stringify(f.requests).includes(token));
+  const tokenPath = join(f.home, digest(`${site}/p/${P}`), '666f78-fox', 'token');
+  const token = readFileSync(tokenPath, 'utf8');
+  assert.match(token, /^[\w-]{43}$/);
+  // Node's mode bits describe file permissions on POSIX. Windows uses ACLs.
+  if (process.platform !== 'win32') {
+    assert.equal(statSync(tokenPath).mode & 0o077, 0);
+  }
+  assert.ok(!JSON.stringify(added).includes(token));
+  assert.ok(!JSON.stringify(f.requests).includes(token));
  }finally{f.close();rmSync(folder,{recursive:true,force:true});}
 });
 

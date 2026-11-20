@@ -17,11 +17,12 @@ $env:MINIONS_ENGINE_PORT = '8788'
 npm run setup
 ```
 
-On Windows, use an absolute path inside your user folder; the engine refuses owner
-files anywhere else. Keep `MINIONS_ENGINE_HOME` and
-`MINIONS_ENGINE_PORT` set to the same values for subsequent commands. Isolated setup
-skips client registration and command linking. Keep development data separate from
-your everyday engine and start no models without explicit approval.
+On Windows, choose an absolute path to a subdirectory of your user profile on a
+local drive. The engine requires this location for its private owner files.
+
+Use the same `MINIONS_ENGINE_HOME` and `MINIONS_ENGINE_PORT` for subsequent commands.
+Isolated setup skips client registration and command linking. Keep development data
+separate from your everyday engine and start no models without explicit approval.
 
 The engine serves the built app. For frontend iteration, rebuild it from the
 repository root, then reload the page at the isolated engine's own address:
