@@ -103,9 +103,11 @@ export function validateOutcome(value) {
   }
   if(value.diagnostics!==undefined && value.diagnostics!==null){
     const d=value.diagnostics; const names=['phase','signal','guard_signal','delivery']; const numbers=['request_id','elapsed_ms','frame_bytes_at_least','rpc_code','exit_code','guard_exit_code'];
-    fields(d,[],[...names,...numbers,'truncated'],'diagnostics');
+    const timings=['turn_first_event_ms','turn_last_event_ms','turn_interrupt_requested_ms'];
+    fields(d,[],[...names,...numbers,...timings,'truncated'],'diagnostics');
     for(const key of names) if(d[key]!==undefined&&d[key]!==null&&!safeName(d[key])) fail('Invalid diagnostic identifier');
     for(const key of numbers) if(d[key]!==undefined&&d[key]!==null&&(!Number.isFinite(d[key])||Math.abs(d[key])>1e15)) fail('Invalid diagnostic value');
+    for(const key of timings) if(d[key]!==undefined&&d[key]!==null&&(!Number.isSafeInteger(d[key])||!safeCounter(d[key]))) fail('Invalid diagnostic timing');
     if(d.truncated!==undefined&&typeof d.truncated!=='boolean') fail('Invalid diagnostic flag');
   }
   if(Buffer.byteLength(JSON.stringify(value))>RUNTIME_LIMITS.metadataBytes) fail('Outcome metadata exceeds its bound');

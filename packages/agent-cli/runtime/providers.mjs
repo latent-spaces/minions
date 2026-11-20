@@ -452,7 +452,9 @@ class ProviderStream {
 class CodexStream extends ProviderStream {
   constructor(options) { super('codex', options); this.rpc = options.rpc; this.threadId = null; this.turnId = null;
     this.tokenTotals = null; this.nativeContext = null; this.compactionIds = new Set(); this.closed = false; this.nextId = 10; this.interrupted = false;
-    this.phase = 'initialize'; this.requestId = 1; }
+    this.phase = 'initialize'; this.requestId = 1;
+    this.turnSentAt = null; this.turnFirstEventMs = null; this.turnLastEventMs = null; this.interruptTiming = null;
+  }
   attach(process_) {
     this.process = process_;
     this.attachedAt = Date.now();
@@ -460,7 +462,12 @@ class CodexStream extends ProviderStream {
     this.send({ id: 1, method: 'initialize', params: { clientInfo: this.rpc.clientInfo, capabilities: { experimentalApi: true } } });
     this.setupTimer = setTimeout(() => { this.fail('Codex startup timed out before starting project work.', 'native_startup_timeout'); }, 45_000);
   }
-  send(value) { if (!this.closed && !this.process.stdin.destroyed) this.process.stdin.write(JSON.stringify(value) + '\n'); }
+  send(value) {
+    if (!this.closed && !this.process.stdin.destroyed) {
+      if (value.method === 'turn/start') this.turnSentAt = performance.now();
+      this.process.stdin.write(JSON.stringify(value) + '\n');
+    }
+  }
   cleanup() { clearTimeout(this.setupTimer); clearTimeout(this.closeTimer); }
   finish() {
     if (this.closed) return; this.closed = true; this.cleanup(); this.process.stdin.end();
@@ -475,6 +482,15 @@ class CodexStream extends ProviderStream {
   }
   overflow(bytes) { this.fail('Codex protocol response exceeded the bounded frame limit.', 'native_protocol_frame_too_large', { frame_bytes_at_least: bytes }); }
   interrupt() {
+    // Snapshot before the interrupt sends any new notifications. These timings
+    // are from the local collector and do not measure upstream provider requests.
+    if (!this.interrupted && !this.closed && this.turnSentAt !== null) {
+      this.interruptTiming = {
+        turn_first_event_ms: this.turnFirstEventMs,
+        turn_last_event_ms: this.turnLastEventMs,
+        turn_interrupt_requested_ms: Math.round(performance.now() - this.turnSentAt),
+      };
+    }
     this.interrupted = true;
     if (this.threadId && this.turnId) this.send({ id: this.nextId++, method: 'turn/interrupt', params: { threadId: this.threadId, turnId: this.turnId } });
     else this.process.kill('SIGINT');
@@ -560,6 +576,11 @@ class CodexStream extends ProviderStream {
       this.turnId = v.turn.id; this.acknowledgePrompt(); this.phase = 'turn'; clearTimeout(this.setupTimer);
     }
     if (v.turnId && this.turnId && v.turnId !== this.turnId) return;
+    if (!this.interrupted && this.turnSentAt !== null && this.turnId && e.method
+        && (v.turnId === this.turnId || e.method === 'turn/started' && v.turn?.id === this.turnId)) {
+      this.turnLastEventMs = Math.round(performance.now() - this.turnSentAt);
+      this.turnFirstEventMs ??= this.turnLastEventMs;
+    }
     if (e.method === 'model/rerouted') this.observeModel({ model: safeName(v.toModel), modelSource: 'provider-rerouted' });
     if (e.method === 'thread/tokenUsage/updated' && this.turnId) {
       const t = v.tokenUsage?.total;
